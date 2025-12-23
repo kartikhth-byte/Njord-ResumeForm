@@ -97,7 +97,10 @@ serve(async (req) => {
     })
     
     // Resume view link
-    const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
+const appUrl = Deno.env.get('APP_URL')
+if (!appUrl) {
+  throw new Error('APP_URL environment variable is required')
+}
     const resumeLink = `${appUrl}/view/${application.public_token}`
 
     // Get Resend API key
