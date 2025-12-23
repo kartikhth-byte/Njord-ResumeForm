@@ -31,6 +31,8 @@ const emptyReference = {
 
 export default function Section18({ data = {}, onUpdate }) {
   const [references, setReferences] = useState(data.references || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -38,6 +40,44 @@ export default function Section18({ data = {}, onUpdate }) {
       setReferences(data.references)
     }
   }, [data])
+
+  // Validation function for reference fields
+  const validateReferenceField = (index, field, value) => {
+    const key = `reference-${index}-${field}`
+    
+    switch (field) {
+      case 'name':
+        return !value ? 'Name is required' : ''
+      case 'position':
+        return !value ? 'Position is required' : ''
+      case 'company':
+        return !value ? 'Company is required' : ''
+      case 'relationship':
+        return !value ? 'Relationship is required' : ''
+      case 'phoneNumber':
+        if (!value) return 'Phone number is required'
+        // Basic phone validation (allows international formats)
+        if (value.length < 8) return 'Please enter a valid phone number'
+        return ''
+      case 'email':
+        if (!value) return 'Email is required'
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) return 'Please enter a valid email address'
+        return ''
+      case 'yearsKnown':
+        if (!value) return 'Years known is required'
+        const years = parseInt(value, 10)
+        if (years < 0) return 'Years known must be 0 or greater'
+        if (years > 50) return 'Years known must be 50 or less'
+        return ''
+      // Optional field - no validation
+      case 'additionalNotes':
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddReference = () => {
     const newReferences = [...references, { ...emptyReference }]
@@ -58,7 +98,25 @@ export default function Section18({ data = {}, onUpdate }) {
       [field]: value
     }
     setReferences(newReferences)
+    
+    // Mark field as touched
+    const key = `reference-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateReferenceField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section18: { references: newReferences } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `reference-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = references[index]?.[field]
+    const error = validateReferenceField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -126,7 +184,9 @@ export default function Section18({ data = {}, onUpdate }) {
                       required
                       value={reference.name}
                       onChange={(e) => handleReferenceChange(index, 'name', e.target.value)}
+                      onBlur={() => handleBlur(index, 'name')}
                       placeholder="e.g., Captain John Smith"
+                      error={touched[`reference-${index}-name`] ? errors[`reference-${index}-name`] : ''}
                     />
 
                     <FormInput
@@ -135,7 +195,9 @@ export default function Section18({ data = {}, onUpdate }) {
                       required
                       value={reference.position}
                       onChange={(e) => handleReferenceChange(index, 'position', e.target.value)}
+                      onBlur={() => handleBlur(index, 'position')}
                       placeholder="e.g., Fleet Manager, Master Mariner"
+                      error={touched[`reference-${index}-position`] ? errors[`reference-${index}-position`] : ''}
                     />
                   </div>
 
@@ -145,7 +207,9 @@ export default function Section18({ data = {}, onUpdate }) {
                     required
                     value={reference.company}
                     onChange={(e) => handleReferenceChange(index, 'company', e.target.value)}
+                    onBlur={() => handleBlur(index, 'company')}
                     placeholder="e.g., Maersk, V.Ships, Anglo-Eastern"
+                    error={touched[`reference-${index}-company`] ? errors[`reference-${index}-company`] : ''}
                   />
 
                   <FormSelect
@@ -154,8 +218,10 @@ export default function Section18({ data = {}, onUpdate }) {
                     required
                     value={reference.relationship}
                     onChange={(e) => handleReferenceChange(index, 'relationship', e.target.value)}
+                    onBlur={() => handleBlur(index, 'relationship')}
                     options={RELATIONSHIP_OPTIONS}
                     helpText="How do you know this person?"
+                    error={touched[`reference-${index}-relationship`] ? errors[`reference-${index}-relationship`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -166,8 +232,10 @@ export default function Section18({ data = {}, onUpdate }) {
                       type="tel"
                       value={reference.phoneNumber}
                       onChange={(e) => handleReferenceChange(index, 'phoneNumber', e.target.value)}
+                      onBlur={() => handleBlur(index, 'phoneNumber')}
                       placeholder="e.g., +1 234 567 8900"
                       helpText="Include country code"
+                      error={touched[`reference-${index}-phoneNumber`] ? errors[`reference-${index}-phoneNumber`] : ''}
                     />
 
                     <FormInput
@@ -177,7 +245,9 @@ export default function Section18({ data = {}, onUpdate }) {
                       type="email"
                       value={reference.email}
                       onChange={(e) => handleReferenceChange(index, 'email', e.target.value)}
+                      onBlur={() => handleBlur(index, 'email')}
                       placeholder="e.g., john.smith@company.com"
+                      error={touched[`reference-${index}-email`] ? errors[`reference-${index}-email`] : ''}
                     />
                   </div>
 
@@ -190,8 +260,10 @@ export default function Section18({ data = {}, onUpdate }) {
                     max="50"
                     value={reference.yearsKnown}
                     onChange={(e) => handleReferenceChange(index, 'yearsKnown', e.target.value)}
+                    onBlur={() => handleBlur(index, 'yearsKnown')}
                     placeholder="e.g., 5"
                     helpText="How many years have you known this person?"
+                    error={touched[`reference-${index}-yearsKnown`] ? errors[`reference-${index}-yearsKnown`] : ''}
                   />
 
                   <div>

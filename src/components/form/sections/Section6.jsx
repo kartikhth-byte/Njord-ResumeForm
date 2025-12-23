@@ -12,6 +12,8 @@ const emptyEducation = {
 
 export default function Section6({ data = {}, onUpdate }) {
   const [education, setEducation] = useState(data.education || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -19,6 +21,28 @@ export default function Section6({ data = {}, onUpdate }) {
       setEducation(data.education)
     }
   }, [data])
+
+  // Validation function for individual education fields
+  const validateEducationField = (index, field, value) => {
+    const key = `education-${index}-${field}`
+    
+    switch (field) {
+      case 'institution':
+        return !value ? 'Institution name is required' : ''
+      case 'from':
+        return !value ? 'Start date is required' : ''
+      case 'to':
+        if (!value) return 'End date is required'
+        if (education[index]?.from && value <= education[index].from) {
+          return 'End date must be after start date'
+        }
+        return ''
+      case 'qualification':
+        return !value ? 'Qualification is required' : ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddEducation = () => {
     const newEducation = [...education, { ...emptyEducation }]
@@ -39,7 +63,26 @@ export default function Section6({ data = {}, onUpdate }) {
       [field]: value
     }
     setEducation(newEducation)
+    
+    // Mark field as touched
+    const key = `education-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateEducationField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section6: { education: newEducation } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `education-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate on blur
+    const value = education[index]?.[field]
+    const error = validateEducationField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -104,7 +147,9 @@ export default function Section6({ data = {}, onUpdate }) {
                     required
                     value={edu.institution}
                     onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
+                    onBlur={() => handleBlur(index, 'institution')}
                     placeholder="e.g., Maritime Academy, University Name"
+                    error={touched[`education-${index}-institution`] ? errors[`education-${index}-institution`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -114,8 +159,10 @@ export default function Section6({ data = {}, onUpdate }) {
                       required
                       value={edu.from}
                       onChange={(e) => handleEducationChange(index, 'from', e.target.value)}
+                      onBlur={() => handleBlur(index, 'from')}
                       max={new Date().toISOString().split('T')[0]}
                       helpText="Start date"
+                      error={touched[`education-${index}-from`] ? errors[`education-${index}-from`] : ''}
                     />
 
                     <FormDatePicker
@@ -124,9 +171,11 @@ export default function Section6({ data = {}, onUpdate }) {
                       required
                       value={edu.to}
                       onChange={(e) => handleEducationChange(index, 'to', e.target.value)}
+                      onBlur={() => handleBlur(index, 'to')}
                       min={edu.from}
                       max={new Date().toISOString().split('T')[0]}
                       helpText="End date"
+                      error={touched[`education-${index}-to`] ? errors[`education-${index}-to`] : ''}
                     />
                   </div>
 
@@ -136,8 +185,10 @@ export default function Section6({ data = {}, onUpdate }) {
                     required
                     value={edu.qualification}
                     onChange={(e) => handleEducationChange(index, 'qualification', e.target.value)}
+                    onBlur={() => handleBlur(index, 'qualification')}
                     placeholder="e.g., Bachelor of Science in Marine Engineering, Diploma in Nautical Science"
                     helpText="Degree, diploma, or certificate obtained"
+                    error={touched[`education-${index}-qualification`] ? errors[`education-${index}-qualification`] : ''}
                   />
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
@@ -15,9 +15,24 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
     return data.publicUrl
   }
 
+  // Update preview when currentPhotoPath prop changes (e.g., after loading from database)
+  useEffect(() => {
+    console.log('🖼️ PhotoUpload: currentPhotoPath changed to:', currentPhotoPath)
+    if (currentPhotoPath) {
+      const url = getPhotoUrl(currentPhotoPath)
+      console.log('🖼️ PhotoUpload: Setting preview URL to:', url)
+      setPreviewUrl(url)
+    } else {
+      console.log('🖼️ PhotoUpload: No photo path, clearing preview')
+      setPreviewUrl(null)
+    }
+  }, [currentPhotoPath])
+
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    console.log('📸 PhotoUpload: File selected:', file.name, file.type, file.size)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -37,6 +52,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
       // Create preview
       const reader = new FileReader()
       reader.onload = (e) => {
+        console.log('📸 PhotoUpload: Preview created')
         setPreviewUrl(e.target.result)
       }
       reader.readAsDataURL(file)
@@ -45,6 +61,8 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${user.id}/${fileName}`
+
+      console.log('📸 PhotoUpload: Uploading to:', filePath)
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -56,11 +74,13 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
 
       if (uploadError) throw uploadError
 
+      console.log('✅ PhotoUpload: Upload successful, path:', filePath)
+
       // Callback with the file path
       onPhotoUploaded(filePath)
 
     } catch (error) {
-      console.error('Error uploading photo:', error)
+      console.error('❌ PhotoUpload: Error uploading photo:', error)
       alert('Failed to upload photo. Please try again.')
       setPreviewUrl(currentPhotoPath ? getPhotoUrl(currentPhotoPath) : null)
     } finally {

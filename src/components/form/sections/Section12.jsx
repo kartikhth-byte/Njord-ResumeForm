@@ -47,6 +47,8 @@ const emptyLanguage = {
 
 export default function Section12({ data = {}, onUpdate }) {
   const [languages, setLanguages] = useState(data.languages || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -54,6 +56,20 @@ export default function Section12({ data = {}, onUpdate }) {
       setLanguages(data.languages)
     }
   }, [data])
+
+  // Validation function for language fields
+  const validateLanguageField = (index, field, value) => {
+    const key = `language-${index}-${field}`
+    
+    switch (field) {
+      case 'language':
+        return !value ? 'Language is required' : ''
+      case 'level':
+        return !value ? 'Proficiency level is required' : ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddLanguage = () => {
     const newLanguages = [...languages, { ...emptyLanguage }]
@@ -74,7 +90,25 @@ export default function Section12({ data = {}, onUpdate }) {
       [field]: value
     }
     setLanguages(newLanguages)
+    
+    // Mark field as touched
+    const key = `language-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateLanguageField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section12: { languages: newLanguages } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `language-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = languages[index]?.[field]
+    const error = validateLanguageField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -140,7 +174,9 @@ export default function Section12({ data = {}, onUpdate }) {
                     required
                     value={lang.language}
                     onChange={(e) => handleLanguageChange(index, 'language', e.target.value)}
+                    onBlur={() => handleBlur(index, 'language')}
                     options={LANGUAGE_OPTIONS}
+                    error={touched[`language-${index}-language`] ? errors[`language-${index}-language`] : ''}
                   />
 
                   <FormSelect
@@ -149,7 +185,9 @@ export default function Section12({ data = {}, onUpdate }) {
                     required
                     value={lang.level}
                     onChange={(e) => handleLanguageChange(index, 'level', e.target.value)}
+                    onBlur={() => handleBlur(index, 'level')}
                     options={LEVEL_OPTIONS}
+                    error={touched[`language-${index}-level`] ? errors[`language-${index}-level`] : ''}
                   />
                 </div>
               </div>

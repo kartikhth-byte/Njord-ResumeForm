@@ -13,6 +13,8 @@ const emptyGMDSS = {
 
 export default function Section9({ data = {}, onUpdate }) {
   const [gmdss, setGmdss] = useState(data.gmdss || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -20,6 +22,45 @@ export default function Section9({ data = {}, onUpdate }) {
       setGmdss(data.gmdss)
     }
   }, [data])
+
+  // Validation function for individual GMDSS certificate fields
+  const validateGMDSSField = (index, field, value) => {
+    const key = `gmdss-${index}-${field}`
+    
+    // Helper function to validate year in date
+    const validateYear = (dateString) => {
+      if (!dateString) return null
+      const year = dateString.split('-')[0]
+      if (year.length !== 4) return 'Year must be 4 digits'
+      const yearNum = parseInt(year, 10)
+      if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+      return null
+    }
+    
+    switch (field) {
+      case 'issuingAuthority':
+        return !value ? 'Issuing authority is required' : ''
+      case 'number':
+        return !value ? 'Certificate number is required' : ''
+      case 'placeOfIssue':
+        return !value ? 'Place of issue is required' : ''
+      case 'dateOfIssue':
+        if (!value) return 'Date of issue is required'
+        const issueYearError = validateYear(value)
+        if (issueYearError) return issueYearError
+        return ''
+      case 'dateOfExpiry':
+        if (!value) return 'Date of expiry is required'
+        const expiryYearError = validateYear(value)
+        if (expiryYearError) return expiryYearError
+        if (gmdss[index]?.dateOfIssue && value <= gmdss[index].dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddGMDSS = () => {
     const newGmdss = [...gmdss, { ...emptyGMDSS }]
@@ -40,7 +81,26 @@ export default function Section9({ data = {}, onUpdate }) {
       [field]: value
     }
     setGmdss(newGmdss)
+    
+    // Mark field as touched
+    const key = `gmdss-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateGMDSSField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section9: { gmdss: newGmdss } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `gmdss-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate on blur
+    const value = gmdss[index]?.[field]
+    const error = validateGMDSSField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -105,8 +165,10 @@ export default function Section9({ data = {}, onUpdate }) {
                     required
                     value={cert.issuingAuthority}
                     onChange={(e) => handleGMDSSChange(index, 'issuingAuthority', e.target.value)}
+                    onBlur={() => handleBlur(index, 'issuingAuthority')}
                     placeholder="e.g., FCC, Ofcom, WPC India"
                     helpText="Telecommunications authority that issued the certificate"
+                    error={touched[`gmdss-${index}-issuingAuthority`] ? errors[`gmdss-${index}-issuingAuthority`] : ''}
                   />
 
                   <FormInput
@@ -115,7 +177,9 @@ export default function Section9({ data = {}, onUpdate }) {
                     required
                     value={cert.number}
                     onChange={(e) => handleGMDSSChange(index, 'number', e.target.value)}
+                    onBlur={() => handleBlur(index, 'number')}
                     placeholder="e.g., GMDSS123456"
+                    error={touched[`gmdss-${index}-number`] ? errors[`gmdss-${index}-number`] : ''}
                   />
 
                   <FormInput
@@ -124,7 +188,9 @@ export default function Section9({ data = {}, onUpdate }) {
                     required
                     value={cert.placeOfIssue}
                     onChange={(e) => handleGMDSSChange(index, 'placeOfIssue', e.target.value)}
+                    onBlur={() => handleBlur(index, 'placeOfIssue')}
                     placeholder="e.g., Mumbai, India"
+                    error={touched[`gmdss-${index}-placeOfIssue`] ? errors[`gmdss-${index}-placeOfIssue`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,7 +200,9 @@ export default function Section9({ data = {}, onUpdate }) {
                       required
                       value={cert.dateOfIssue}
                       onChange={(e) => handleGMDSSChange(index, 'dateOfIssue', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfIssue')}
                       max={new Date().toISOString().split('T')[0]}
+                      error={touched[`gmdss-${index}-dateOfIssue`] ? errors[`gmdss-${index}-dateOfIssue`] : ''}
                     />
 
                     <FormDatePicker
@@ -143,7 +211,9 @@ export default function Section9({ data = {}, onUpdate }) {
                       required
                       value={cert.dateOfExpiry}
                       onChange={(e) => handleGMDSSChange(index, 'dateOfExpiry', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={cert.dateOfIssue || new Date().toISOString().split('T')[0]}
+                      error={touched[`gmdss-${index}-dateOfExpiry`] ? errors[`gmdss-${index}-dateOfExpiry`] : ''}
                     />
                   </div>
                 </div>

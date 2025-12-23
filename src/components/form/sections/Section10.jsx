@@ -45,6 +45,99 @@ export default function Section10({ data = {}, onUpdate }) {
     }
   })
 
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function for medical certificates
+  const validateMedicalField = (index, field, value) => {
+    const key = `medical-${index}-${field}`
+    
+    switch (field) {
+      case 'type':
+        return !value ? 'Certificate type is required' : ''
+      case 'dateOfIssue':
+        if (!value) return 'Date of issue is required'
+        const issueYearError = validateYear(value)
+        if (issueYearError) return issueYearError
+        return ''
+      case 'dateOfExpiry':
+        if (!value) return 'Date of expiry is required'
+        const expiryYearError = validateYear(value)
+        if (expiryYearError) return expiryYearError
+        if (formData.medicalFitness[index]?.dateOfIssue && value <= formData.medicalFitness[index].dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
+
+  // Validation function for vaccination fields
+  const validateVaccinationField = (field, value) => {
+    const key = `vaccination-${field}`
+    
+    // Yellow Fever validation
+    if (field === 'yellowFever-dateOfIssue') {
+      if (formData.vaccinations.yellowFever.received && !value) {
+        return 'Date of issue is required when Yellow Fever is checked'
+      }
+      if (value) {
+        const yearError = validateYear(value)
+        if (yearError) return yearError
+      }
+      return ''
+    }
+    
+    if (field === 'yellowFever-dateOfExpiry') {
+      if (formData.vaccinations.yellowFever.received && !value) {
+        return 'Date of expiry is required when Yellow Fever is checked'
+      }
+      if (value) {
+        const yearError = validateYear(value)
+        if (yearError) return yearError
+        if (formData.vaccinations.yellowFever.dateOfIssue && value <= formData.vaccinations.yellowFever.dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+      }
+      return ''
+    }
+    
+    // COVID validation
+    if (field === 'covidDoses') {
+      if (formData.vaccinations.covidVaccinated && !value) {
+        return 'Number of doses is required when COVID-19 is checked'
+      }
+      if (value && (parseInt(value) < 1 || parseInt(value) > 5)) {
+        return 'Doses must be between 1 and 5'
+      }
+      return ''
+    }
+    
+    if (field === 'covidLastDoseDate') {
+      if (formData.vaccinations.covidVaccinated && !value) {
+        return 'Last dose date is required when COVID-19 is checked'
+      }
+      if (value) {
+        const yearError = validateYear(value)
+        if (yearError) return yearError
+      }
+      return ''
+    }
+    
+    return ''
+  }
+
   // Sync state when data prop changes
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
@@ -99,7 +192,25 @@ export default function Section10({ data = {}, onUpdate }) {
     }
     const newFormData = { ...formData, medicalFitness: newMedicalFitness }
     setFormData(newFormData)
+    
+    // Mark field as touched
+    const key = `medical-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateMedicalField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section10: newFormData })
+  }
+
+  const handleMedicalBlur = (index, field) => {
+    const key = `medical-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = formData.medicalFitness[index]?.[field]
+    const error = validateMedicalField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   const handleVaccinationChange = (field, value) => {
@@ -111,7 +222,44 @@ export default function Section10({ data = {}, onUpdate }) {
       }
     }
     setFormData(newFormData)
+    
+    // Mark field as touched
+    const key = `vaccination-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Handle COVID checkbox validation
+    if (field === 'covidVaccinated' && value) {
+      // If checkbox is checked, validate COVID fields
+      const dosesError = validateVaccinationField('covidDoses', formData.vaccinations.covidDoses)
+      const dateError = validateVaccinationField('covidLastDoseDate', formData.vaccinations.covidLastDoseDate)
+      setErrors(prev => ({
+        ...prev,
+        'vaccination-covidDoses': dosesError,
+        'vaccination-covidLastDoseDate': dateError
+      }))
+    } else if (field === 'covidVaccinated' && !value) {
+      // If checkbox is unchecked, clear errors
+      setErrors(prev => ({
+        ...prev,
+        'vaccination-covidDoses': '',
+        'vaccination-covidLastDoseDate': ''
+      }))
+    } else {
+      // Validate individual COVID fields
+      const error = validateVaccinationField(field, value)
+      setErrors(prev => ({ ...prev, [key]: error }))
+    }
+    
     onUpdate({ section10: newFormData })
+  }
+
+  const handleVaccinationBlur = (field) => {
+    const key = `vaccination-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = formData.vaccinations[field]
+    const error = validateVaccinationField(field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   const handleYellowFeverChange = (field, value) => {
@@ -126,7 +274,44 @@ export default function Section10({ data = {}, onUpdate }) {
       }
     }
     setFormData(newFormData)
+    
+    // Mark field as touched
+    const key = `vaccination-yellowFever-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate yellow fever dates if checkbox is checked
+    if (field === 'received' && value) {
+      // If checkbox is checked, validate dates
+      const issueError = validateVaccinationField('yellowFever-dateOfIssue', formData.vaccinations.yellowFever.dateOfIssue)
+      const expiryError = validateVaccinationField('yellowFever-dateOfExpiry', formData.vaccinations.yellowFever.dateOfExpiry)
+      setErrors(prev => ({
+        ...prev,
+        'vaccination-yellowFever-dateOfIssue': issueError,
+        'vaccination-yellowFever-dateOfExpiry': expiryError
+      }))
+    } else if (field === 'received' && !value) {
+      // If checkbox is unchecked, clear errors
+      setErrors(prev => ({
+        ...prev,
+        'vaccination-yellowFever-dateOfIssue': '',
+        'vaccination-yellowFever-dateOfExpiry': ''
+      }))
+    } else {
+      // Validate individual date fields
+      const error = validateVaccinationField(`yellowFever-${field}`, value)
+      setErrors(prev => ({ ...prev, [key]: error }))
+    }
+    
     onUpdate({ section10: newFormData })
+  }
+
+  const handleYellowFeverBlur = (field) => {
+    const key = `vaccination-yellowFever-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = formData.vaccinations.yellowFever[field]
+    const error = validateVaccinationField(`yellowFever-${field}`, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -179,7 +364,9 @@ export default function Section10({ data = {}, onUpdate }) {
                       required
                       value={medical.type}
                       onChange={(e) => handleMedicalChange(index, 'type', e.target.value)}
+                      onBlur={() => handleMedicalBlur(index, 'type')}
                       options={MEDICAL_TYPE_OPTIONS}
+                      error={touched[`medical-${index}-type`] ? errors[`medical-${index}-type`] : ''}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +376,9 @@ export default function Section10({ data = {}, onUpdate }) {
                         required
                         value={medical.dateOfIssue}
                         onChange={(e) => handleMedicalChange(index, 'dateOfIssue', e.target.value)}
+                        onBlur={() => handleMedicalBlur(index, 'dateOfIssue')}
                         max={new Date().toISOString().split('T')[0]}
+                        error={touched[`medical-${index}-dateOfIssue`] ? errors[`medical-${index}-dateOfIssue`] : ''}
                       />
 
                       <FormDatePicker
@@ -198,7 +387,9 @@ export default function Section10({ data = {}, onUpdate }) {
                         required
                         value={medical.dateOfExpiry}
                         onChange={(e) => handleMedicalChange(index, 'dateOfExpiry', e.target.value)}
+                        onBlur={() => handleMedicalBlur(index, 'dateOfExpiry')}
                         min={medical.dateOfIssue || new Date().toISOString().split('T')[0]}
+                        error={touched[`medical-${index}-dateOfExpiry`] ? errors[`medical-${index}-dateOfExpiry`] : ''}
                       />
                     </div>
                   </div>
@@ -241,18 +432,24 @@ export default function Section10({ data = {}, onUpdate }) {
               <FormDatePicker
                 label="Date of Issue"
                 name="yellowFever-dateOfIssue"
+                required
                 value={formData.vaccinations.yellowFever.dateOfIssue}
                 onChange={(e) => handleYellowFeverChange('dateOfIssue', e.target.value)}
+                onBlur={() => handleYellowFeverBlur('dateOfIssue')}
                 max={new Date().toISOString().split('T')[0]}
+                error={touched['vaccination-yellowFever-dateOfIssue'] ? errors['vaccination-yellowFever-dateOfIssue'] : ''}
               />
 
               <FormDatePicker
                 label="Date of Expiry"
                 name="yellowFever-dateOfExpiry"
+                required
                 value={formData.vaccinations.yellowFever.dateOfExpiry}
                 onChange={(e) => handleYellowFeverChange('dateOfExpiry', e.target.value)}
+                onBlur={() => handleYellowFeverBlur('dateOfExpiry')}
                 min={formData.vaccinations.yellowFever.dateOfIssue}
                 helpText="Usually valid for life"
+                error={touched['vaccination-yellowFever-dateOfExpiry'] ? errors['vaccination-yellowFever-dateOfExpiry'] : ''}
               />
             </div>
           )}
@@ -281,17 +478,23 @@ export default function Section10({ data = {}, onUpdate }) {
                 type="number"
                 min="1"
                 max="5"
+                required
                 value={formData.vaccinations.covidDoses}
                 onChange={(e) => handleVaccinationChange('covidDoses', e.target.value)}
+                onBlur={() => handleVaccinationBlur('covidDoses')}
                 placeholder="e.g., 2"
+                error={touched['vaccination-covidDoses'] ? errors['vaccination-covidDoses'] : ''}
               />
 
               <FormDatePicker
                 label="Last Dose Date"
                 name="covidLastDoseDate"
+                required
                 value={formData.vaccinations.covidLastDoseDate}
                 onChange={(e) => handleVaccinationChange('covidLastDoseDate', e.target.value)}
+                onBlur={() => handleVaccinationBlur('covidLastDoseDate')}
                 max={new Date().toISOString().split('T')[0]}
+                error={touched['vaccination-covidLastDoseDate'] ? errors['vaccination-covidLastDoseDate'] : ''}
               />
             </div>
           )}

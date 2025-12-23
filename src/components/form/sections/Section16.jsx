@@ -66,6 +66,8 @@ const emptySeaService = {
 
 export default function Section16({ data = {}, onUpdate }) {
   const [seaService, setSeaService] = useState(data.seaService || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -73,6 +75,65 @@ export default function Section16({ data = {}, onUpdate }) {
       setSeaService(data.seaService)
     }
   }, [data])
+
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function for sea service fields
+  const validateServiceField = (index, field, value) => {
+    const key = `service-${index}-${field}`
+    
+    switch (field) {
+      case 'vesselName':
+        return !value ? 'Vessel name is required' : ''
+      case 'vesselType':
+        return !value ? 'Vessel type is required' : ''
+      case 'flag':
+        return !value ? 'Flag is required' : ''
+      case 'grt':
+        if (!value) return 'GRT is required'
+        if (parseInt(value) < 0) return 'GRT must be positive'
+        return ''
+      case 'mainEngine':
+        return !value ? 'Main engine type is required' : ''
+      case 'rankHeld':
+        return !value ? 'Rank held is required' : ''
+      case 'companyName':
+        return !value ? 'Company name is required' : ''
+      case 'signOnDate':
+        if (!value) return 'Sign on date is required'
+        const signOnYearError = validateYear(value)
+        if (signOnYearError) return signOnYearError
+        return ''
+      case 'signOffDate':
+        if (!value) return 'Sign off date is required'
+        const signOffYearError = validateYear(value)
+        if (signOffYearError) return signOffYearError
+        if (seaService[index]?.signOnDate && value <= seaService[index].signOnDate) {
+          return 'Sign off date must be after sign on date'
+        }
+        return ''
+      case 'tradeRoute':
+        return !value ? 'Trade route is required' : ''
+      case 'reasonForLeaving':
+        if (!value) return 'Reason for leaving is required'
+        if (value.trim().length < 5) return 'Please provide more detail (at least 5 characters)'
+        return ''
+      // Optional fields - no validation
+      case 'dwt':
+      case 'engineKw':
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddService = () => {
     const newSeaService = [...seaService, { ...emptySeaService }]
@@ -93,7 +154,25 @@ export default function Section16({ data = {}, onUpdate }) {
       [field]: value
     }
     setSeaService(newSeaService)
+    
+    // Mark field as touched
+    const key = `service-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateServiceField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section16: { seaService: newSeaService } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `service-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = seaService[index]?.[field]
+    const error = validateServiceField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   // Calculate total sea service
@@ -221,7 +300,9 @@ export default function Section16({ data = {}, onUpdate }) {
                       required
                       value={service.vesselName}
                       onChange={(e) => handleServiceChange(index, 'vesselName', e.target.value)}
+                      onBlur={() => handleBlur(index, 'vesselName')}
                       placeholder="e.g., MV Atlantic Explorer"
+                      error={touched[`service-${index}-vesselName`] ? errors[`service-${index}-vesselName`] : ''}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -231,7 +312,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.vesselType}
                         onChange={(e) => handleServiceChange(index, 'vesselType', e.target.value)}
+                        onBlur={() => handleBlur(index, 'vesselType')}
                         options={VESSEL_TYPE_OPTIONS}
+                        error={touched[`service-${index}-vesselType`] ? errors[`service-${index}-vesselType`] : ''}
                       />
 
                       <FormInput
@@ -240,7 +323,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.flag}
                         onChange={(e) => handleServiceChange(index, 'flag', e.target.value)}
+                        onBlur={() => handleBlur(index, 'flag')}
                         placeholder="e.g., Panama, Liberia, Marshall Islands"
+                        error={touched[`service-${index}-flag`] ? errors[`service-${index}-flag`] : ''}
                       />
                     </div>
 
@@ -252,8 +337,10 @@ export default function Section16({ data = {}, onUpdate }) {
                         type="number"
                         value={service.grt}
                         onChange={(e) => handleServiceChange(index, 'grt', e.target.value)}
+                        onBlur={() => handleBlur(index, 'grt')}
                         placeholder="e.g., 45000"
                         helpText="Vessel size in GRT"
+                        error={touched[`service-${index}-grt`] ? errors[`service-${index}-grt`] : ''}
                       />
 
                       <FormInput
@@ -274,7 +361,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.mainEngine}
                         onChange={(e) => handleServiceChange(index, 'mainEngine', e.target.value)}
+                        onBlur={() => handleBlur(index, 'mainEngine')}
                         options={ENGINE_TYPE_OPTIONS}
+                        error={touched[`service-${index}-mainEngine`] ? errors[`service-${index}-mainEngine`] : ''}
                       />
 
                       <FormInput
@@ -300,7 +389,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.rankHeld}
                         onChange={(e) => handleServiceChange(index, 'rankHeld', e.target.value)}
+                        onBlur={() => handleBlur(index, 'rankHeld')}
                         placeholder="e.g., Chief Officer, 2nd Engineer"
+                        error={touched[`service-${index}-rankHeld`] ? errors[`service-${index}-rankHeld`] : ''}
                       />
 
                       <FormInput
@@ -309,7 +400,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.companyName}
                         onChange={(e) => handleServiceChange(index, 'companyName', e.target.value)}
+                        onBlur={() => handleBlur(index, 'companyName')}
                         placeholder="e.g., Maersk, V.Ships"
+                        error={touched[`service-${index}-companyName`] ? errors[`service-${index}-companyName`] : ''}
                       />
                     </div>
 
@@ -320,7 +413,9 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.signOnDate}
                         onChange={(e) => handleServiceChange(index, 'signOnDate', e.target.value)}
+                        onBlur={() => handleBlur(index, 'signOnDate')}
                         max={new Date().toISOString().split('T')[0]}
+                        error={touched[`service-${index}-signOnDate`] ? errors[`service-${index}-signOnDate`] : ''}
                       />
 
                       <FormDatePicker
@@ -329,8 +424,11 @@ export default function Section16({ data = {}, onUpdate }) {
                         required
                         value={service.signOffDate}
                         onChange={(e) => handleServiceChange(index, 'signOffDate', e.target.value)}
+                        onBlur={() => handleBlur(index, 'signOffDate')}
                         min={service.signOnDate}
                         max={new Date().toISOString().split('T')[0]}
+                        helpText="Must be after sign on date"
+                        error={touched[`service-${index}-signOffDate`] ? errors[`service-${index}-signOffDate`] : ''}
                       />
                     </div>
 
@@ -340,7 +438,9 @@ export default function Section16({ data = {}, onUpdate }) {
                       required
                       value={service.tradeRoute}
                       onChange={(e) => handleServiceChange(index, 'tradeRoute', e.target.value)}
+                      onBlur={() => handleBlur(index, 'tradeRoute')}
                       options={TRADE_ROUTE_OPTIONS}
+                      error={touched[`service-${index}-tradeRoute`] ? errors[`service-${index}-tradeRoute`] : ''}
                     />
 
                     <div>
@@ -352,11 +452,19 @@ export default function Section16({ data = {}, onUpdate }) {
                         name={`service-${index}-reasonForLeaving`}
                         value={service.reasonForLeaving}
                         onChange={(e) => handleServiceChange(index, 'reasonForLeaving', e.target.value)}
+                        onBlur={() => handleBlur(index, 'reasonForLeaving')}
                         rows={2}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          touched[`service-${index}-reasonForLeaving`] && errors[`service-${index}-reasonForLeaving`]
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        }`}
                         placeholder="e.g., End of contract, Promotion, Career advancement"
                       />
+                      {touched[`service-${index}-reasonForLeaving`] && errors[`service-${index}-reasonForLeaving`] && (
+                        <p className="mt-1 text-sm text-red-600">{errors[`service-${index}-reasonForLeaving`]}</p>
+                      )}
                       <p className="mt-1 text-sm text-gray-500">
                         Brief explanation for leaving this position
                       </p>

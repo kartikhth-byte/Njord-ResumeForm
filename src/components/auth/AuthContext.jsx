@@ -16,6 +16,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
 
+  // Add this useEffect to restore session on page load
+useEffect(() => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      setUser(session?.user || null)
+    } else if (event === 'SIGNED_OUT') {
+      setUser(null)
+    }
+  })
+
+  return () => subscription.unsubscribe()
+}, [])
+
+  // Inside AuthProvider component, add this useEffect
+useEffect(() => {
+  // Refresh session every 5 minutes to prevent timeout
+  const interval = setInterval(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      await supabase.auth.refreshSession()
+    }
+  }, 5 * 60 * 1000) // 5 minutes
+
+  return () => clearInterval(interval)
+}, [])
+
   useEffect(() => {
     // Get initial session
     const initializeAuth = async () => {

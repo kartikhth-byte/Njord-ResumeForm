@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -14,43 +14,96 @@ export default function FormLayout({ children }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState(null)
-  const [saveTimeout, setSaveTimeout] = useState(null)
+  const saveTimeoutRef = useRef(null)
+  const applicationDataRef = useRef({})
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    applicationDataRef.current = applicationData
+  }, [applicationData])
 
   // Load application data on mount
   useEffect(() => {
-    loadApplicationData()
+    if (user) {
+      loadApplicationData()
+    }
   }, [user])
 
   const loadApplicationData = async () => {
     try {
       setLoading(true)
 
-      // Get draft application
-      const { data: app, error: appError } = await supabase
+      // BUG FIX 2: Look for in-progress applications (status='new' AND not submitted)
+      // This finds the application that Dashboard.jsx just created
+      let { data: app, error: appError } = await supabase
         .from('applications')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'draft')
-        .single()
+        .eq('status', 'new')
+        .is('submitted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      if (appError) {
-        console.error('Error loading application:', appError)
-        return
+      if (appError) throw appError
+
+      // Create application if it doesn't exist
+      if (!app) {
+        console.log('📝 Creating new draft application...')
+        const { data: newApp, error: createError } = await supabase
+          .from('applications')
+          .insert({
+            user_id: user.id,
+            status: 'new',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (createError) throw createError
+        app = newApp
+        console.log('✅ Application created:', app.id)
+      } else {
+        console.log('✅ Found existing in-progress application:', app.id)
       }
 
       setApplicationId(app.id)
 
-      // Get application data
-      const { data: appData, error: dataError } = await supabase
+      // Get or create application_data
+      let { data: appData, error: dataError } = await supabase
         .from('application_data')
         .select('*')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
-      if (dataError) throw dataError
+      if (dataError && dataError.code !== 'PGRST116') throw dataError
 
-      console.log('Loaded existing data:', appData?.data)
-      setApplicationData(appData?.data || {})
+      // Create application_data if it doesn't exist
+      if (!appData) {
+        console.log('📝 Creating application_data row...')
+        const { data: newData, error: insertError } = await supabase
+          .from('application_data')
+          .insert({
+            application_id: app.id,
+            data: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+        appData = newData
+        console.log('✅ Application_data created')
+      } else {
+        console.log('✅ Found existing application_data')
+      }
+
+      const loadedData = appData?.data || {}
+      setApplicationData(loadedData)
+      applicationDataRef.current = loadedData
+      console.log('Loaded existing data with', Object.keys(loadedData).length, 'sections')
     } catch (error) {
       console.error('Error loading application data:', error)
     } finally {
@@ -58,33 +111,43 @@ export default function FormLayout({ children }) {
     }
   }
 
-  // Auto-save function with debouncing
+  // Auto-save function with debouncing - FIXED VERSION
   const handleDataUpdate = (updates) => {
+    console.log('🔵 handleDataUpdate called with:', updates)
+    
     // Update local state immediately for responsiveness
-    setApplicationData(prev => ({
-      ...prev,
-      ...updates
-    }))
+    setApplicationData(prev => {
+      const newData = {
+        ...prev,
+        ...updates
+      }
+      applicationDataRef.current = newData
+      return newData
+    })
 
     // Clear existing timeout
-    if (saveTimeout) {
-      clearTimeout(saveTimeout)
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
     }
 
     // Set new timeout for auto-save (debounce)
     const timeout = setTimeout(() => {
-      saveData({
-        ...applicationData,
-        ...updates
-      })
+      // Use ref to get latest data (fixes stale closure!)
+      saveData(applicationDataRef.current)
     }, 2000) // Save after 2 seconds of no changes
 
-    setSaveTimeout(timeout)
+    saveTimeoutRef.current = timeout
   }
 
   const saveData = async (dataToSave) => {
+    if (!applicationId) {
+      console.error('❌ Cannot save: applicationId is null')
+      return
+    }
+
     try {
       setSaving(true)
+      console.log('💾 Saving data:', dataToSave)
 
       const { error } = await supabase
         .from('application_data')
@@ -105,13 +168,26 @@ export default function FormLayout({ children }) {
         .eq('id', applicationId)
 
       setLastSaved(new Date())
-      console.log('Auto-saved successfully')
+      console.log('✅ Auto-saved successfully')
     } catch (error) {
-      console.error('Error saving data:', error)
+      console.error('❌ Error saving data:', error)
     } finally {
       setSaving(false)
     }
   }
+
+  // Save on unmount (when leaving page)
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        // Force immediate save on unmount
+        if (applicationDataRef.current && applicationId) {
+          saveData(applicationDataRef.current)
+        }
+      }
+    }
+  }, [applicationId])
 
   if (loading) {
     return (
@@ -127,21 +203,21 @@ export default function FormLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile: Show Navbar */}
-      <div className="lg:hidden">
+      <div className="md:hidden">
         <Navbar />
       </div>
 
       {/* Desktop & Mobile Layout */}
       <div className="flex h-screen">
-        {/* Desktop: Left Sidebar - Hidden on mobile */}
-        <div className="hidden lg:block">
+        {/* Desktop & Tablet: Left Sidebar - Hidden only on mobile phones */}
+        <div className="hidden md:block">
           <FormSidebar applicationData={applicationData} />
         </div>
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mobile: Horizontal Section Navigation */}
-          <div className="lg:hidden sticky top-0 z-10 bg-white border-b">
+          <div className="md:hidden sticky top-0 z-10 bg-white border-b">
             <FormNavigation applicationData={applicationData} />
           </div>
 
@@ -169,7 +245,7 @@ export default function FormLayout({ children }) {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
                 {React.cloneElement(children, {
                   data: applicationData[`section${sectionId}`] || {},
-                  onUpdate: handleDataUpdate,
+                  onDataUpdate: handleDataUpdate,
                   currentData: applicationData
                 })}
               </div>
@@ -196,20 +272,34 @@ export default function FormLayout({ children }) {
 
                 <button
                   onClick={() => {
-                    const nextSection = Math.min(20, parseInt(sectionId) + 1)
-                    window.location.href = `/application/form/section/${nextSection}`
+                    if (parseInt(sectionId) === 20) {
+                      window.location.href = '/application/review'
+                    } else {
+                      const nextSection = Math.min(20, parseInt(sectionId) + 1)
+                      window.location.href = `/application/form/section/${nextSection}`
+                    }
                   }}
-                  disabled={parseInt(sectionId) === 20}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
                     parseInt(sectionId) === 20
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-green-600 text-white hover:bg-green-700'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  Next
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  {parseInt(sectionId) === 20 ? (
+                    <>
+                      Review & Submit
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

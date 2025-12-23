@@ -26,6 +26,8 @@ const emptyVisa = {
 
 export default function Section5({ data = {}, onUpdate }) {
   const [visas, setVisas] = useState(data.visas || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -33,6 +35,30 @@ export default function Section5({ data = {}, onUpdate }) {
       setVisas(data.visas)
     }
   }, [data])
+
+  // Validation function for individual visa fields
+  const validateVisaField = (index, field, value) => {
+    const key = `visa-${index}-${field}`
+    
+    switch (field) {
+      case 'type':
+        return !value ? 'Visa type is required' : ''
+      case 'number':
+        return !value ? 'Visa number is required' : ''
+      case 'placeOfIssue':
+        return !value ? 'Place of issue is required' : ''
+      case 'dateOfIssue':
+        return !value ? 'Date of issue is required' : ''
+      case 'dateOfExpiry':
+        if (!value) return 'Date of expiry is required'
+        if (visas[index]?.dateOfIssue && value <= visas[index].dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddVisa = () => {
     const newVisas = [...visas, { ...emptyVisa }]
@@ -53,7 +79,26 @@ export default function Section5({ data = {}, onUpdate }) {
       [field]: value
     }
     setVisas(newVisas)
+    
+    // Mark field as touched
+    const key = `visa-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateVisaField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section5: { visas: newVisas } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `visa-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate on blur
+    const value = visas[index]?.[field]
+    const error = validateVisaField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -118,7 +163,9 @@ export default function Section5({ data = {}, onUpdate }) {
                     required
                     value={visa.type}
                     onChange={(e) => handleVisaChange(index, 'type', e.target.value)}
-                    options={SOME_OPTIONS}
+                    onBlur={() => handleBlur(index, 'type')}
+                    options={VISA_TYPES}
+                    error={touched[`visa-${index}-type`] ? errors[`visa-${index}-type`] : ''}
                   />
 
                   <FormInput
@@ -127,7 +174,9 @@ export default function Section5({ data = {}, onUpdate }) {
                     required
                     value={visa.number}
                     onChange={(e) => handleVisaChange(index, 'number', e.target.value)}
+                    onBlur={() => handleBlur(index, 'number')}
                     placeholder="e.g., V12345678"
+                    error={touched[`visa-${index}-number`] ? errors[`visa-${index}-number`] : ''}
                   />
 
                   <FormInput
@@ -136,7 +185,9 @@ export default function Section5({ data = {}, onUpdate }) {
                     required
                     value={visa.placeOfIssue}
                     onChange={(e) => handleVisaChange(index, 'placeOfIssue', e.target.value)}
+                    onBlur={() => handleBlur(index, 'placeOfIssue')}
                     placeholder="e.g., US Embassy, Mumbai"
+                    error={touched[`visa-${index}-placeOfIssue`] ? errors[`visa-${index}-placeOfIssue`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,7 +197,9 @@ export default function Section5({ data = {}, onUpdate }) {
                       required
                       value={visa.dateOfIssue}
                       onChange={(e) => handleVisaChange(index, 'dateOfIssue', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfIssue')}
                       max={new Date().toISOString().split('T')[0]}
+                      error={touched[`visa-${index}-dateOfIssue`] ? errors[`visa-${index}-dateOfIssue`] : ''}
                     />
 
                     <FormDatePicker
@@ -155,7 +208,9 @@ export default function Section5({ data = {}, onUpdate }) {
                       required
                       value={visa.dateOfExpiry}
                       onChange={(e) => handleVisaChange(index, 'dateOfExpiry', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={visa.dateOfIssue || new Date().toISOString().split('T')[0]}
+                      error={touched[`visa-${index}-dateOfExpiry`] ? errors[`visa-${index}-dateOfExpiry`] : ''}
                     />
                   </div>
                 </div>

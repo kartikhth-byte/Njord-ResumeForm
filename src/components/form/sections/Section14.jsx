@@ -55,6 +55,8 @@ const emptyCourse = {
 
 export default function Section14({ data = {}, onUpdate }) {
   const [courses, setCourses] = useState(data.courses || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -62,6 +64,47 @@ export default function Section14({ data = {}, onUpdate }) {
       setCourses(data.courses)
     }
   }, [data])
+
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function for course fields
+  const validateCourseField = (index, field, value) => {
+    const key = `course-${index}-${field}`
+    
+    switch (field) {
+      case 'courseName':
+        return !value ? 'Course name is required' : ''
+      case 'issuingAuthority':
+        return !value ? 'Issuing authority is required' : ''
+      case 'certificateNumber':
+        return !value ? 'Certificate number is required' : ''
+      case 'placeOfIssue':
+        return !value ? 'Place of issue is required' : ''
+      case 'dateOfIssue':
+        if (!value) return 'Date of issue is required'
+        const issueYearError = validateYear(value)
+        if (issueYearError) return issueYearError
+        return ''
+      case 'dateOfExpiry':
+        if (!value) return 'Date of expiry is required'
+        const expiryYearError = validateYear(value)
+        if (expiryYearError) return expiryYearError
+        if (courses[index]?.dateOfIssue && value <= courses[index].dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddCourse = () => {
     const newCourses = [...courses, { ...emptyCourse }]
@@ -82,7 +125,25 @@ export default function Section14({ data = {}, onUpdate }) {
       [field]: value
     }
     setCourses(newCourses)
+    
+    // Mark field as touched
+    const key = `course-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateCourseField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section14: { courses: newCourses } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `course-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = courses[index]?.[field]
+    const error = validateCourseField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -148,8 +209,10 @@ export default function Section14({ data = {}, onUpdate }) {
                     required
                     value={course.courseName}
                     onChange={(e) => handleCourseChange(index, 'courseName', e.target.value)}
+                    onBlur={() => handleBlur(index, 'courseName')}
                     options={STCW_COURSE_OPTIONS}
                     helpText="Select from the list or choose 'Other' to specify"
+                    error={touched[`course-${index}-courseName`] ? errors[`course-${index}-courseName`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,8 +222,10 @@ export default function Section14({ data = {}, onUpdate }) {
                       required
                       value={course.issuingAuthority}
                       onChange={(e) => handleCourseChange(index, 'issuingAuthority', e.target.value)}
+                      onBlur={() => handleBlur(index, 'issuingAuthority')}
                       placeholder="e.g., MAERSK Training, MCA, DG Shipping"
                       helpText="Training institution or authority"
+                      error={touched[`course-${index}-issuingAuthority`] ? errors[`course-${index}-issuingAuthority`] : ''}
                     />
 
                     <FormInput
@@ -169,7 +234,9 @@ export default function Section14({ data = {}, onUpdate }) {
                       required
                       value={course.certificateNumber}
                       onChange={(e) => handleCourseChange(index, 'certificateNumber', e.target.value)}
+                      onBlur={() => handleBlur(index, 'certificateNumber')}
                       placeholder="e.g., STCW123456"
+                      error={touched[`course-${index}-certificateNumber`] ? errors[`course-${index}-certificateNumber`] : ''}
                     />
                   </div>
 
@@ -179,7 +246,9 @@ export default function Section14({ data = {}, onUpdate }) {
                     required
                     value={course.placeOfIssue}
                     onChange={(e) => handleCourseChange(index, 'placeOfIssue', e.target.value)}
+                    onBlur={() => handleBlur(index, 'placeOfIssue')}
                     placeholder="e.g., Mumbai, India"
+                    error={touched[`course-${index}-placeOfIssue`] ? errors[`course-${index}-placeOfIssue`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +258,9 @@ export default function Section14({ data = {}, onUpdate }) {
                       required
                       value={course.dateOfIssue}
                       onChange={(e) => handleCourseChange(index, 'dateOfIssue', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfIssue')}
                       max={new Date().toISOString().split('T')[0]}
+                      error={touched[`course-${index}-dateOfIssue`] ? errors[`course-${index}-dateOfIssue`] : ''}
                     />
 
                     <FormDatePicker
@@ -198,8 +269,10 @@ export default function Section14({ data = {}, onUpdate }) {
                       required
                       value={course.dateOfExpiry}
                       onChange={(e) => handleCourseChange(index, 'dateOfExpiry', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={course.dateOfIssue || new Date().toISOString().split('T')[0]}
-                      helpText="Most STCW certificates expire after 5 years"
+                      helpText="Must be after date of issue"
+                      error={touched[`course-${index}-dateOfExpiry`] ? errors[`course-${index}-dateOfExpiry`] : ''}
                     />
                   </div>
                 </div>

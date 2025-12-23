@@ -3,17 +3,7 @@ import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
 import FormInput from '../shared/FormInput'
 import { RANK_OPTIONS } from '../../../utils/rankOptions'
-
-const VESSEL_TYPE_OPTIONS = [
-  { value: 'container', label: 'Container' },
-  { value: 'tanker', label: 'Tanker' },
-  { value: 'bulk_carrier', label: 'Bulk Carrier' },
-  { value: 'roro', label: 'RoRo (Roll on/Roll off)' },
-  { value: 'general_cargo', label: 'General Cargo' },
-  { value: 'cruise', label: 'Cruise' },
-  { value: 'offshore', label: 'Offshore' },
-  { value: 'other', label: 'Other' },
-]
+import { VESSEL_TYPE_OPTIONS } from '../../../utils/vesselOptions'
 
 export default function Section1({ data = {}, onUpdate }) {
   const [formData, setFormData] = useState({

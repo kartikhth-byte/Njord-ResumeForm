@@ -3,24 +3,74 @@ import FormInput from '../shared/FormInput'
 import FormDatePicker from '../shared/FormDatePicker'
 
 export default function Section11({ data = {}, onUpdate }) {
+  // Fix: Read from data.medicalHistory to match what we're saving
+  const medicalHistory = data.medicalHistory || {}
+  
   const [formData, setFormData] = useState({
-    signedOffMedical: data.signedOffMedical || false,
-    vesselName: data.vesselName || '',
-    dateOfOccurrence: data.dateOfOccurrence || '',
-    description: data.description || '',
+    signedOffMedical: medicalHistory.signedOffMedical || false,
+    vesselName: medicalHistory.vesselName || '',
+    dateOfOccurrence: medicalHistory.dateOfOccurrence || '',
+    description: medicalHistory.description || '',
   })
+
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && Object.keys(data).length > 0) {
+    if (data && data.medicalHistory) {
+      const medicalHistory = data.medicalHistory
       setFormData({
-        signedOffMedical: data.signedOffMedical || false,
-        vesselName: data.vesselName || '',
-        dateOfOccurrence: data.dateOfOccurrence || '',
-        description: data.description || '',
+        signedOffMedical: medicalHistory.signedOffMedical || false,
+        vesselName: medicalHistory.vesselName || '',
+        dateOfOccurrence: medicalHistory.dateOfOccurrence || '',
+        description: medicalHistory.description || '',
       })
     }
   }, [data])
+
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function
+  const validateField = (name, value) => {
+    // Only validate if checkbox is checked
+    if (!formData.signedOffMedical) return ''
+    
+    switch (name) {
+      case 'vesselName':
+        if (formData.signedOffMedical && !value) {
+          return 'Vessel name is required when medical history is reported'
+        }
+        return ''
+      case 'dateOfOccurrence':
+        if (formData.signedOffMedical && !value) {
+          return 'Date of occurrence is required when medical history is reported'
+        }
+        if (value) {
+          const yearError = validateYear(value)
+          if (yearError) return yearError
+        }
+        return ''
+      case 'description':
+        if (formData.signedOffMedical && !value) {
+          return 'Description is required when medical history is reported'
+        }
+        if (formData.signedOffMedical && value && value.trim().length < 10) {
+          return 'Please provide a more detailed description (at least 10 characters)'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -39,10 +89,33 @@ export default function Section11({ data = {}, onUpdate }) {
         dateOfOccurrence: '',
         description: '',
       }
+      // Clear all errors when unchecked
+      setErrors({})
+    } else if (name === 'signedOffMedical' && checked) {
+      // When checkbox is checked, validate all conditional fields
+      const vesselError = validateField('vesselName', newFormData.vesselName)
+      const dateError = validateField('dateOfOccurrence', newFormData.dateOfOccurrence)
+      const descError = validateField('description', newFormData.description)
+      setErrors({
+        vesselName: vesselError,
+        dateOfOccurrence: dateError,
+        description: descError
+      })
+    } else {
+      // Validate individual field
+      setTouched(prev => ({ ...prev, [name]: true }))
+      const error = validateField(name, fieldValue)
+      setErrors(prev => ({ ...prev, [name]: error }))
     }
     
     setFormData(newFormData)
     onUpdate({ section11: { medicalHistory: newFormData } })
+  }
+
+  const handleBlur = (name) => {
+    setTouched(prev => ({ ...prev, [name]: true }))
+    const error = validateField(name, formData[name])
+    setErrors(prev => ({ ...prev, [name]: error }))
   }
 
   return (
@@ -94,8 +167,10 @@ export default function Section11({ data = {}, onUpdate }) {
               required={formData.signedOffMedical}
               value={formData.vesselName}
               onChange={handleChange}
+              onBlur={() => handleBlur('vesselName')}
               placeholder="e.g., MV Atlantic Explorer"
               helpText="Name of the vessel you were signed off from"
+              error={touched.vesselName ? errors.vesselName : ''}
             />
 
             <FormDatePicker
@@ -104,8 +179,10 @@ export default function Section11({ data = {}, onUpdate }) {
               required={formData.signedOffMedical}
               value={formData.dateOfOccurrence}
               onChange={handleChange}
+              onBlur={() => handleBlur('dateOfOccurrence')}
               max={new Date().toISOString().split('T')[0]}
               helpText="Approximate date when the incident occurred"
+              error={touched.dateOfOccurrence ? errors.dateOfOccurrence : ''}
             />
 
             <div>
@@ -117,14 +194,26 @@ export default function Section11({ data = {}, onUpdate }) {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
+                onBlur={() => handleBlur('description')}
                 rows={5}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-3 border rounded-lg transition-colors focus:outline-none focus:ring-2 ${
+                  touched.description && errors.description
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                }`}
                 placeholder="Please provide details about the medical condition, treatment received, and current health status..."
                 required={formData.signedOffMedical}
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Include the nature of the condition, any treatment you received, and your current health status
-              </p>
+              {!touched.description || !errors.description ? (
+                <p className="mt-1 text-sm text-gray-500">
+                  Include the nature of the condition, any treatment you received, and your current health status
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-red-600 flex items-start gap-1">
+                  <span className="text-red-500">⚠</span>
+                  <span>{errors.description}</span>
+                </p>
+              )}
             </div>
           </div>
         )}

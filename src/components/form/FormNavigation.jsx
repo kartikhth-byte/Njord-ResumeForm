@@ -1,16 +1,34 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, AlertCircle, Circle } from 'lucide-react'
+import { validateSection } from '../../utils/sectionValidation'
+
+const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20]
 
 export default function FormNavigation({ applicationData }) {
   const navigate = useNavigate()
   const { sectionId } = useParams()
   const currentSection = parseInt(sectionId) || 1
 
-  // Check if section is completed
-  const isSectionCompleted = (sectionNum) => {
-    if (!applicationData) return false
+  // Get section status using validation
+  const getSectionStatus = (sectionNum) => {
+    if (!applicationData) return 'empty'
+    
     const sectionData = applicationData[`section${sectionNum}`]
-    return sectionData && Object.keys(sectionData).length > 0
+    const isMandatory = MANDATORY_SECTIONS.includes(sectionNum)
+    
+    // Empty section
+    if (!sectionData || Object.keys(sectionData).length === 0) {
+      return isMandatory ? 'incomplete' : 'empty'
+    }
+    
+    // Validate section
+    const validation = validateSection(sectionNum, sectionData)
+    
+    if (validation.isValid) {
+      return 'complete'
+    } else {
+      return 'incomplete'
+    }
   }
 
   const handleSectionClick = (section) => {
@@ -22,7 +40,7 @@ export default function FormNavigation({ applicationData }) {
       {/* Progress circles for mobile - Now 20 sections */}
       <div className="flex items-center gap-2 min-w-max">
         {Array.from({ length: 20 }, (_, i) => i + 1).map((section) => {
-          const isCompleted = isSectionCompleted(section)
+          const status = getSectionStatus(section)
           const isCurrent = currentSection === section
 
           return (
@@ -32,13 +50,19 @@ export default function FormNavigation({ applicationData }) {
               className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
                 isCurrent
                   ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                  : isCompleted
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-400'
+                  : status === 'complete'
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : status === 'incomplete'
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
               }`}
             >
-              {isCompleted && !isCurrent ? (
+              {status === 'complete' && !isCurrent ? (
                 <CheckCircle className="w-5 h-5" />
+              ) : status === 'incomplete' && !isCurrent ? (
+                <AlertCircle className="w-5 h-5" />
+              ) : !isCurrent ? (
+                <Circle className="w-5 h-5" />
               ) : (
                 section
               )}

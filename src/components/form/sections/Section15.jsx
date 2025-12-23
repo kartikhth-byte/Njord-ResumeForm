@@ -57,6 +57,8 @@ const emptyEndorsement = {
 
 export default function Section15({ data = {}, onUpdate }) {
   const [endorsements, setEndorsements] = useState(data.endorsements || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -64,6 +66,49 @@ export default function Section15({ data = {}, onUpdate }) {
       setEndorsements(data.endorsements)
     }
   }, [data])
+
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function for endorsement fields
+  const validateEndorsementField = (index, field, value) => {
+    const key = `endorsement-${index}-${field}`
+    
+    switch (field) {
+      case 'flagState':
+        return !value ? 'Flag state is required' : ''
+      case 'endorsementType':
+        return !value ? 'Endorsement type is required' : ''
+      case 'rankEndorsed':
+        return !value ? 'Rank endorsed is required' : ''
+      case 'endorsementNumber':
+        return !value ? 'Endorsement number is required' : ''
+      case 'placeOfIssue':
+        return !value ? 'Place of issue is required' : ''
+      case 'dateOfIssue':
+        if (!value) return 'Date of issue is required'
+        const issueYearError = validateYear(value)
+        if (issueYearError) return issueYearError
+        return ''
+      case 'dateOfExpiry':
+        if (!value) return 'Date of expiry is required'
+        const expiryYearError = validateYear(value)
+        if (expiryYearError) return expiryYearError
+        if (endorsements[index]?.dateOfIssue && value <= endorsements[index].dateOfIssue) {
+          return 'Expiry date must be after issue date'
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddEndorsement = () => {
     const newEndorsements = [...endorsements, { ...emptyEndorsement }]
@@ -84,7 +129,25 @@ export default function Section15({ data = {}, onUpdate }) {
       [field]: value
     }
     setEndorsements(newEndorsements)
+    
+    // Mark field as touched
+    const key = `endorsement-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    // Validate field
+    const error = validateEndorsementField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
+    
     onUpdate({ section15: { endorsements: newEndorsements } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `endorsement-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = endorsements[index]?.[field]
+    const error = validateEndorsementField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   return (
@@ -151,8 +214,10 @@ export default function Section15({ data = {}, onUpdate }) {
                       required
                       value={endorsement.flagState}
                       onChange={(e) => handleEndorsementChange(index, 'flagState', e.target.value)}
+                      onBlur={() => handleBlur(index, 'flagState')}
                       options={FLAG_STATE_OPTIONS}
                       helpText="Country that issued the endorsement"
+                      error={touched[`endorsement-${index}-flagState`] ? errors[`endorsement-${index}-flagState`] : ''}
                     />
 
                     <FormSelect
@@ -161,7 +226,9 @@ export default function Section15({ data = {}, onUpdate }) {
                       required
                       value={endorsement.endorsementType}
                       onChange={(e) => handleEndorsementChange(index, 'endorsementType', e.target.value)}
+                      onBlur={() => handleBlur(index, 'endorsementType')}
                       options={ENDORSEMENT_TYPE_OPTIONS}
+                      error={touched[`endorsement-${index}-endorsementType`] ? errors[`endorsement-${index}-endorsementType`] : ''}
                     />
                   </div>
 
@@ -171,8 +238,10 @@ export default function Section15({ data = {}, onUpdate }) {
                     required
                     value={endorsement.rankEndorsed}
                     onChange={(e) => handleEndorsementChange(index, 'rankEndorsed', e.target.value)}
+                    onBlur={() => handleBlur(index, 'rankEndorsed')}
                     placeholder="e.g., Master, Chief Officer, Chief Engineer"
                     helpText="The rank/position this endorsement is valid for"
+                    error={touched[`endorsement-${index}-rankEndorsed`] ? errors[`endorsement-${index}-rankEndorsed`] : ''}
                   />
 
                   <FormInput
@@ -181,7 +250,9 @@ export default function Section15({ data = {}, onUpdate }) {
                     required
                     value={endorsement.endorsementNumber}
                     onChange={(e) => handleEndorsementChange(index, 'endorsementNumber', e.target.value)}
+                    onBlur={() => handleBlur(index, 'endorsementNumber')}
                     placeholder="e.g., END123456"
+                    error={touched[`endorsement-${index}-endorsementNumber`] ? errors[`endorsement-${index}-endorsementNumber`] : ''}
                   />
 
                   <FormInput
@@ -190,7 +261,9 @@ export default function Section15({ data = {}, onUpdate }) {
                     required
                     value={endorsement.placeOfIssue}
                     onChange={(e) => handleEndorsementChange(index, 'placeOfIssue', e.target.value)}
+                    onBlur={() => handleBlur(index, 'placeOfIssue')}
                     placeholder="e.g., Panama City, Panama"
+                    error={touched[`endorsement-${index}-placeOfIssue`] ? errors[`endorsement-${index}-placeOfIssue`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -200,7 +273,9 @@ export default function Section15({ data = {}, onUpdate }) {
                       required
                       value={endorsement.dateOfIssue}
                       onChange={(e) => handleEndorsementChange(index, 'dateOfIssue', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfIssue')}
                       max={new Date().toISOString().split('T')[0]}
+                      error={touched[`endorsement-${index}-dateOfIssue`] ? errors[`endorsement-${index}-dateOfIssue`] : ''}
                     />
 
                     <FormDatePicker
@@ -209,8 +284,10 @@ export default function Section15({ data = {}, onUpdate }) {
                       required
                       value={endorsement.dateOfExpiry}
                       onChange={(e) => handleEndorsementChange(index, 'dateOfExpiry', e.target.value)}
+                      onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={endorsement.dateOfIssue || new Date().toISOString().split('T')[0]}
-                      helpText="Endorsements typically expire with the CoC"
+                      helpText="Must be after date of issue"
+                      error={touched[`endorsement-${index}-dateOfExpiry`] ? errors[`endorsement-${index}-dateOfExpiry`] : ''}
                     />
                   </div>
                 </div>

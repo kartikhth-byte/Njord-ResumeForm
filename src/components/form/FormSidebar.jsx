@@ -21,8 +21,12 @@ import {
   DollarSign,
   FileText,
   CheckCircle,
+  AlertCircle,
   Circle
 } from 'lucide-react'
+import { validateSection } from '../../utils/sectionValidation'
+
+const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20]
 
 const SECTIONS = [
   { id: 1, title: 'Availability & Application', icon: Calendar, shortTitle: 'Availability' },
@@ -52,17 +56,32 @@ export default function FormSidebar({ applicationData }) {
   const { sectionId } = useParams()
   const currentSection = parseInt(sectionId) || 1
 
-  // Check if section is completed
-  const isSectionCompleted = (sectionNum) => {
-    if (!applicationData) return false
+  // Get section status using validation
+  const getSectionStatus = (sectionNum) => {
+    if (!applicationData) return 'empty'
+    
     const sectionData = applicationData[`section${sectionNum}`]
-    return sectionData && Object.keys(sectionData).length > 0
+    const isMandatory = MANDATORY_SECTIONS.includes(sectionNum)
+    
+    // Empty section
+    if (!sectionData || Object.keys(sectionData).length === 0) {
+      return isMandatory ? 'incomplete' : 'empty'
+    }
+    
+    // Validate section
+    const validation = validateSection(sectionNum, sectionData)
+    
+    if (validation.isValid) {
+      return 'complete'
+    } else {
+      return 'incomplete'
+    }
   }
 
-  // Calculate overall progress
+  // Calculate overall progress based on validation
   const calculateProgress = () => {
     if (!applicationData) return 0
-    const completed = SECTIONS.filter(section => isSectionCompleted(section.id)).length
+    const completed = SECTIONS.filter(section => getSectionStatus(section.id) === 'complete').length
     return Math.round((completed / SECTIONS.length) * 100)
   }
 
@@ -107,7 +126,7 @@ export default function FormSidebar({ applicationData }) {
         <div className="space-y-1">
           {SECTIONS.map((section) => {
             const Icon = section.icon
-            const isCompleted = isSectionCompleted(section.id)
+            const status = getSectionStatus(section.id)
             const isCurrent = currentSection === section.id
 
             return (
@@ -117,15 +136,19 @@ export default function FormSidebar({ applicationData }) {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
                   isCurrent
                     ? 'bg-blue-600 text-white shadow-md'
-                    : isCompleted
+                    : status === 'complete'
                     ? 'bg-green-50 text-green-900 hover:bg-green-100'
+                    : status === 'incomplete'
+                    ? 'bg-red-50 text-red-900 hover:bg-red-100'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {/* Icon/Status */}
                 <div className={`flex-shrink-0 ${isCurrent ? 'text-white' : ''}`}>
-                  {isCompleted && !isCurrent ? (
+                  {status === 'complete' && !isCurrent ? (
                     <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : status === 'incomplete' && !isCurrent ? (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
                   ) : isCurrent ? (
                     <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
                       <span className="text-xs font-bold text-blue-600">{section.id}</span>
@@ -139,7 +162,13 @@ export default function FormSidebar({ applicationData }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 flex-shrink-0 ${
-                      isCurrent ? 'text-white' : isCompleted ? 'text-green-600' : 'text-gray-400'
+                      isCurrent 
+                        ? 'text-white' 
+                        : status === 'complete' 
+                        ? 'text-green-600' 
+                        : status === 'incomplete'
+                        ? 'text-red-600'
+                        : 'text-gray-400'
                     }`} />
                     <span className={`text-sm font-medium truncate ${
                       isCurrent ? 'text-white' : ''
@@ -152,7 +181,11 @@ export default function FormSidebar({ applicationData }) {
                 {/* Section Number Badge (for non-current) */}
                 {!isCurrent && (
                   <span className={`text-xs font-semibold ${
-                    isCompleted ? 'text-green-700' : 'text-gray-400'
+                    status === 'complete' 
+                      ? 'text-green-700' 
+                      : status === 'incomplete'
+                      ? 'text-red-700'
+                      : 'text-gray-400'
                   }`}>
                     {section.id}
                   </span>

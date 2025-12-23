@@ -35,6 +35,8 @@ const emptyContact = {
 
 export default function Section19({ data = {}, onUpdate }) {
   const [contacts, setContacts] = useState(data.contacts || [])
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -42,6 +44,41 @@ export default function Section19({ data = {}, onUpdate }) {
       setContacts(data.contacts)
     }
   }, [data])
+
+  // Validation function for contact fields
+  const validateContactField = (index, field, value) => {
+    const key = `contact-${index}-${field}`
+    
+    switch (field) {
+      case 'fullName':
+        return !value ? 'Full name is required' : ''
+      case 'relationship':
+        return !value ? 'Relationship is required' : ''
+      case 'phoneNumber':
+        if (!value) return 'Phone number is required'
+        if (value.length < 8) return 'Please enter a valid phone number'
+        return ''
+      case 'email':
+        if (!value) return 'Email is required'
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) return 'Please enter a valid email address'
+        return ''
+      case 'address':
+        return !value ? 'Street address is required' : ''
+      case 'city':
+        return !value ? 'City is required' : ''
+      case 'country':
+        return !value ? 'Country is required' : ''
+      case 'postalCode':
+        return !value ? 'Postal code is required' : ''
+      // Optional fields
+      case 'alternatePhone':
+      case 'state':
+        return ''
+      default:
+        return ''
+    }
+  }
 
   const handleAddContact = () => {
     const newContacts = [...contacts, { ...emptyContact }]
@@ -72,7 +109,27 @@ export default function Section19({ data = {}, onUpdate }) {
       [field]: value
     }
     setContacts(newContacts)
+    
+    // Mark field as touched (skip for isPrimary checkbox)
+    if (field !== 'isPrimary') {
+      const key = `contact-${index}-${field}`
+      setTouched(prev => ({ ...prev, [key]: true }))
+      
+      // Validate field
+      const error = validateContactField(index, field, value)
+      setErrors(prev => ({ ...prev, [key]: error }))
+    }
+    
     onUpdate({ section19: { contacts: newContacts } })
+  }
+
+  const handleBlur = (index, field) => {
+    const key = `contact-${index}-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    
+    const value = contacts[index]?.[field]
+    const error = validateContactField(index, field, value)
+    setErrors(prev => ({ ...prev, [key]: error }))
   }
 
   const primaryContact = contacts.find(c => c.isPrimary)
@@ -200,7 +257,9 @@ export default function Section19({ data = {}, onUpdate }) {
                         required
                         value={contact.fullName}
                         onChange={(e) => handleContactChange(index, 'fullName', e.target.value)}
+                        onBlur={() => handleBlur(index, 'fullName')}
                         placeholder="e.g., Jane Smith"
+                        error={touched[`contact-${index}-fullName`] ? errors[`contact-${index}-fullName`] : ''}
                       />
 
                       <FormSelect
@@ -209,7 +268,9 @@ export default function Section19({ data = {}, onUpdate }) {
                         required
                         value={contact.relationship}
                         onChange={(e) => handleContactChange(index, 'relationship', e.target.value)}
+                        onBlur={() => handleBlur(index, 'relationship')}
                         options={RELATIONSHIP_OPTIONS}
+                        error={touched[`contact-${index}-relationship`] ? errors[`contact-${index}-relationship`] : ''}
                       />
                     </div>
                   </div>
@@ -226,8 +287,10 @@ export default function Section19({ data = {}, onUpdate }) {
                         type="tel"
                         value={contact.phoneNumber}
                         onChange={(e) => handleContactChange(index, 'phoneNumber', e.target.value)}
+                        onBlur={() => handleBlur(index, 'phoneNumber')}
                         placeholder="e.g., +1 234 567 8900"
                         helpText="Include country code"
+                        error={touched[`contact-${index}-phoneNumber`] ? errors[`contact-${index}-phoneNumber`] : ''}
                       />
 
                       <FormInput
@@ -248,7 +311,9 @@ export default function Section19({ data = {}, onUpdate }) {
                       type="email"
                       value={contact.email}
                       onChange={(e) => handleContactChange(index, 'email', e.target.value)}
+                      onBlur={() => handleBlur(index, 'email')}
                       placeholder="e.g., jane.smith@email.com"
+                      error={touched[`contact-${index}-email`] ? errors[`contact-${index}-email`] : ''}
                     />
                   </div>
 
@@ -262,7 +327,9 @@ export default function Section19({ data = {}, onUpdate }) {
                       required
                       value={contact.address}
                       onChange={(e) => handleContactChange(index, 'address', e.target.value)}
+                      onBlur={() => handleBlur(index, 'address')}
                       placeholder="e.g., 123 Main Street, Apt 4B"
+                      error={touched[`contact-${index}-address`] ? errors[`contact-${index}-address`] : ''}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -272,7 +339,9 @@ export default function Section19({ data = {}, onUpdate }) {
                         required
                         value={contact.city}
                         onChange={(e) => handleContactChange(index, 'city', e.target.value)}
+                        onBlur={() => handleBlur(index, 'city')}
                         placeholder="e.g., New York"
+                        error={touched[`contact-${index}-city`] ? errors[`contact-${index}-city`] : ''}
                       />
 
                       <FormInput
@@ -292,7 +361,9 @@ export default function Section19({ data = {}, onUpdate }) {
                         required
                         value={contact.country}
                         onChange={(e) => handleContactChange(index, 'country', e.target.value)}
+                        onBlur={() => handleBlur(index, 'country')}
                         placeholder="e.g., United States"
+                        error={touched[`contact-${index}-country`] ? errors[`contact-${index}-country`] : ''}
                       />
 
                       <FormInput
@@ -301,7 +372,9 @@ export default function Section19({ data = {}, onUpdate }) {
                         required
                         value={contact.postalCode}
                         onChange={(e) => handleContactChange(index, 'postalCode', e.target.value)}
+                        onBlur={() => handleBlur(index, 'postalCode')}
                         placeholder="e.g., 10001"
+                        error={touched[`contact-${index}-postalCode`] ? errors[`contact-${index}-postalCode`] : ''}
                       />
                     </div>
                   </div>

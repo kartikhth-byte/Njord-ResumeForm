@@ -28,6 +28,9 @@ export default function Section20({ data = {}, onUpdate }) {
     placeOfSigning: data.placeOfSigning || '',
   })
 
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
       setFormData({
@@ -51,6 +54,54 @@ export default function Section20({ data = {}, onUpdate }) {
     }
   }, [data])
 
+  // Helper function to validate year in date
+  const validateYear = (dateString) => {
+    if (!dateString) return null
+    const year = dateString.split('-')[0]
+    if (year.length !== 4) return 'Year must be 4 digits'
+    const yearNum = parseInt(year, 10)
+    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
+    return null
+  }
+
+  // Validation function
+  const validateField = (name, value) => {
+    switch (name) {
+      // Required checkboxes
+      case 'accuracyDeclaration':
+        return !value ? 'You must accept the declaration of accuracy' : ''
+      case 'backgroundCheckConsent':
+        return !value ? 'You must consent to background checks' : ''
+      case 'dataProcessingConsent':
+        return !value ? 'You must consent to data processing' : ''
+      
+      // Conditional field
+      case 'criminalRecordDetails':
+        if (formData.criminalRecord && !value) {
+          return 'Please provide details about your criminal record'
+        }
+        if (formData.criminalRecord && value && value.trim().length < 10) {
+          return 'Please provide more detail (at least 10 characters)'
+        }
+        return ''
+      
+      // Signature fields
+      case 'fullName':
+        return !value ? 'Full name is required for signature' : ''
+      case 'signatureDate':
+        if (!value) return 'Signature date is required'
+        const yearError = validateYear(value)
+        if (yearError) return yearError
+        return ''
+      case 'placeOfSigning':
+        return !value ? 'Place of signing is required' : ''
+      
+      // Optional fields
+      default:
+        return ''
+    }
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     const fieldValue = type === 'checkbox' ? checked : value
@@ -63,10 +114,33 @@ export default function Section20({ data = {}, onUpdate }) {
     // Clear criminal record details if checkbox is unchecked
     if (name === 'criminalRecord' && !checked) {
       newFormData.criminalRecordDetails = ''
+      // Clear error for criminal record details
+      setErrors(prev => ({ ...prev, criminalRecordDetails: '' }))
     }
     
     setFormData(newFormData)
+    
+    // Mark field as touched
+    setTouched(prev => ({ ...prev, [name]: true }))
+    
+    // Validate field
+    const error = validateField(name, fieldValue)
+    setErrors(prev => ({ ...prev, [name]: error }))
+    
+    // If criminalRecord checkbox is checked, validate criminalRecordDetails
+    if (name === 'criminalRecord' && checked) {
+      const detailsError = validateField('criminalRecordDetails', newFormData.criminalRecordDetails)
+      setErrors(prev => ({ ...prev, criminalRecordDetails: detailsError }))
+    }
+    
     onUpdate({ section20: newFormData })
+  }
+
+  const handleBlur = (name) => {
+    setTouched(prev => ({ ...prev, [name]: true }))
+    
+    const error = validateField(name, formData[name])
+    setErrors(prev => ({ ...prev, [name]: error }))
   }
 
   const allDeclarationsChecked = 
@@ -169,13 +243,21 @@ export default function Section20({ data = {}, onUpdate }) {
                 name="criminalRecordDetails"
                 value={formData.criminalRecordDetails}
                 onChange={handleChange}
+                onBlur={() => handleBlur('criminalRecordDetails')}
                 rows={3}
                 required={formData.criminalRecord}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  touched.criminalRecordDetails && errors.criminalRecordDetails
+                    ? 'border-red-500'
+                    : 'border-gray-300'
+                }`}
                 placeholder="Please provide details of the offense, date, and outcome..."
               />
+              {touched.criminalRecordDetails && errors.criminalRecordDetails && (
+                <p className="mt-1 text-sm text-red-600">{errors.criminalRecordDetails}</p>
+              )}
               <p className="mt-1 text-sm text-gray-500">
-                Full disclosure is required. Non-disclosure may result in disqualification.
+                Honesty is appreciated. This will not automatically disqualify you.
               </p>
             </div>
           )}
@@ -244,7 +326,11 @@ export default function Section20({ data = {}, onUpdate }) {
 
         <div className="space-y-4">
           {/* Accuracy Declaration */}
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4">
+          <div className={`bg-white border-2 rounded-lg p-4 ${
+            touched.accuracyDeclaration && errors.accuracyDeclaration
+              ? 'border-red-500'
+              : 'border-gray-300'
+          }`}>
             <div className="flex items-start">
               <input
                 type="checkbox"
@@ -265,10 +351,17 @@ export default function Section20({ data = {}, onUpdate }) {
                 </p>
               </label>
             </div>
+            {touched.accuracyDeclaration && errors.accuracyDeclaration && (
+              <p className="mt-2 ml-8 text-sm text-red-600">{errors.accuracyDeclaration}</p>
+            )}
           </div>
 
           {/* Background Check Consent */}
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4">
+          <div className={`bg-white border-2 rounded-lg p-4 ${
+            touched.backgroundCheckConsent && errors.backgroundCheckConsent
+              ? 'border-red-500'
+              : 'border-gray-300'
+          }`}>
             <div className="flex items-start">
               <input
                 type="checkbox"
@@ -289,10 +382,17 @@ export default function Section20({ data = {}, onUpdate }) {
                 </p>
               </label>
             </div>
+            {touched.backgroundCheckConsent && errors.backgroundCheckConsent && (
+              <p className="mt-2 ml-8 text-sm text-red-600">{errors.backgroundCheckConsent}</p>
+            )}
           </div>
 
           {/* Data Processing Consent */}
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4">
+          <div className={`bg-white border-2 rounded-lg p-4 ${
+            touched.dataProcessingConsent && errors.dataProcessingConsent
+              ? 'border-red-500'
+              : 'border-gray-300'
+          }`}>
             <div className="flex items-start">
               <input
                 type="checkbox"
@@ -313,6 +413,9 @@ export default function Section20({ data = {}, onUpdate }) {
                 </p>
               </label>
             </div>
+            {touched.dataProcessingConsent && errors.dataProcessingConsent && (
+              <p className="mt-2 ml-8 text-sm text-red-600">{errors.dataProcessingConsent}</p>
+            )}
           </div>
 
           {/* Marketing Consent (Optional) */}
@@ -359,8 +462,10 @@ export default function Section20({ data = {}, onUpdate }) {
             required
             value={formData.fullName}
             onChange={handleChange}
+            onBlur={() => handleBlur('fullName')}
             placeholder="Type your full legal name"
             helpText="This serves as your electronic signature"
+            error={touched.fullName ? errors.fullName : ''}
           />
 
           <FormInput
@@ -370,7 +475,9 @@ export default function Section20({ data = {}, onUpdate }) {
             required
             value={formData.signatureDate}
             onChange={handleChange}
+            onBlur={() => handleBlur('signatureDate')}
             max={new Date().toISOString().split('T')[0]}
+            error={touched.signatureDate ? errors.signatureDate : ''}
           />
         </div>
 
@@ -380,8 +487,10 @@ export default function Section20({ data = {}, onUpdate }) {
           required
           value={formData.placeOfSigning}
           onChange={handleChange}
+          onBlur={() => handleBlur('placeOfSigning')}
           placeholder="e.g., Mumbai, India"
           helpText="City and country where you are signing this application"
+          error={touched.placeOfSigning ? errors.placeOfSigning : ''}
         />
       </div>
 
@@ -396,10 +505,10 @@ export default function Section20({ data = {}, onUpdate }) {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-green-900">
-                Application Complete!
+                Section 20 Complete!
               </h3>
               <p className="text-sm text-green-800 mt-1">
-                You have completed all mandatory declarations and provided your digital signature. Please proceed to review and submit your application.
+                All mandatory declarations and digital signature have been provided for this section. Please ensure all other sections are complete before proceeding to review and submit.
               </p>
             </div>
           </div>
@@ -414,10 +523,10 @@ export default function Section20({ data = {}, onUpdate }) {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900">
-                Please Complete All Required Fields
+                Complete Required Fields for This Section
               </h3>
               <p className="text-sm text-amber-800 mt-1">
-                You must check all mandatory declarations and provide your digital signature before you can submit this application.
+                Please check all three mandatory declarations and provide your digital signature to complete Section 20.
               </p>
             </div>
           </div>

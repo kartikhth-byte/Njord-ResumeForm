@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import Navbar from '../components/layout/Navbar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
 import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronDown, ChevronUp, Eye } from 'lucide-react'
+import { formatDisplayValue } from '../utils/formatUtils'
+import { generateReferenceNumber } from '../utils/referenceGenerator' // ← ADD THIS LINE
 
 const SECTION_NAMES = {
   1: 'Availability & Application Details',
@@ -146,30 +148,109 @@ export default function ReviewSubmit() {
     }
   }
 
-  const handleConfirmSubmit = async () => {
-    try {
-      setSubmitting(true)
+const handleConfirmSubmit = async () => {
+  try {
+    setSubmitting(true)
 
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({
-          status: 'submitted',
-          submitted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', applicationId)
+    // Generate reference number
+    const referenceNumber = generateReferenceNumber()
+    console.log('Generated reference number:', referenceNumber)
 
-      if (updateError) throw updateError
+    // Get position for success page
+    const position = applicationData?.section1?.appliedForRank || 'Maritime Position'
+    console.log('Position:', position)
 
-      navigate('/application/success')
-    } catch (error) {
-      console.error('Error submitting application:', error)
-      alert('Error submitting application. Please try again.')
-    } finally {
-      setSubmitting(false)
-      setShowConfirmModal(false)
+    // Ensure public_token exists (generate if null)
+    const { data: currentApp, error: fetchError } = await supabase
+      .from('applications')
+      .select('public_token')
+      .eq('id', applicationId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    let publicToken = currentApp?.public_token
+    
+    // Generate public_token if it doesn't exist
+    if (!publicToken) {
+      publicToken = crypto.randomUUID()
+      console.log('Generated new public_token:', publicToken)
+    } else {
+      console.log('Using existing public_token:', publicToken)
     }
+
+   // Update application with ALL required fields
+const { error: updateError } = await supabase
+  .from('applications')
+  .update({
+    status: 'submitted',
+    submitted_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    reference_number: referenceNumber,
+    public_token: publicToken,
+    applied_rank: position  // ← ADD THIS LINE
+  })
+  .eq('id', applicationId)
+
+    if (updateError) {
+      console.error('Error updating application:', updateError)
+      throw updateError
+    }
+
+    console.log('✅ Application updated successfully')
+    console.log('Reference number:', referenceNumber)
+    console.log('Public token:', publicToken)
+
+    // Verify the update worked
+    const { data: verifyApp, error: verifyError } = await supabase
+      .from('applications')
+      .select('reference_number, public_token')
+      .eq('id', applicationId)
+      .single()
+
+    console.log('Verification - Saved values:', verifyApp)
+
+    if (verifyError || !verifyApp?.reference_number) {
+      console.error('Verification failed:', verifyError)
+      throw new Error('Failed to save application data')
+    }
+
+    // Call edge function to send recruiter email
+    try {
+      const { data: emailData, error: emailError } = await supabase.functions.invoke(
+        'send-application-emails',
+        {
+          body: { applicationId }
+        }
+      )
+
+      if (emailError) {
+        console.error('Email function error:', emailError)
+        // Don't block submission if email fails
+      } else {
+        console.log('Email sent successfully:', emailData)
+      }
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError)
+      // Don't block submission if email fails
+    }
+
+    // Navigate to success page with reference number
+    navigate('/application/success', {
+      state: {
+        referenceNumber,
+        position: formatDisplayValue(position)
+      }
+    })
+
+  } catch (error) {
+    console.error('Error submitting application:', error)
+    alert('Error submitting application. Please try again.')
+  } finally {
+    setSubmitting(false)
+    setShowConfirmModal(false)
   }
+}
 
   const toggleSection = (sectionNum) => {
     setExpandedSections(prev => ({
@@ -204,8 +285,8 @@ export default function ReviewSubmit() {
       case 1:
         return (
           <div className="space-y-1">
-            {renderField('Position Applied For', sectionData.appliedForRank)}
-            {renderField('Vessel Type', sectionData.vesselType)}
+            {renderField('Position Applied For', formatDisplayValue(sectionData.appliedForRank))}
+            {renderField('Vessel Type', formatDisplayValue(sectionData.vesselType))}
             {renderField('Available From', sectionData.availableFrom)}
             {renderField('Available Till', sectionData.availableTill)}
           </div>
@@ -278,9 +359,9 @@ export default function ReviewSubmit() {
             {sectionData.seaService.map((service, idx) => (
               <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{service.vesselName || `Vessel ${idx + 1}`}</p>
-                {renderField('Rank', service.rankHeld)}
+                {renderField('Rank', formatDisplayValue(service.rankHeld))}
                 {renderField('Company', service.companyName)}
-                {renderField('Vessel Type', service.vesselType)}
+                {renderField('Vessel Type', formatDisplayValue(service.vesselType))}
                 {renderField('Sign On', service.signOnDate)}
                 {renderField('Sign Off', service.signOffDate)}
               </div>
@@ -329,7 +410,7 @@ export default function ReviewSubmit() {
 
     switch (sectionNumber) {
       case 1:
-        return sectionData.appliedForRank ? `Applied for: ${sectionData.appliedForRank}` : 'Incomplete'
+        return sectionData.appliedForRank ? `Applied for: ${formatDisplayValue(sectionData.appliedForRank)}` : 'Incomplete'
       case 2:
         return sectionData.firstName ? `${sectionData.firstName} ${sectionData.lastName || ''}` : 'Incomplete'
       case 3:

@@ -27,6 +27,7 @@ import {
   Building,
   DollarSign
 } from 'lucide-react'
+import { formatDisplayValue } from '../utils/formatUtils'
 
 const SECTION_INFO = [
   { id: 1, title: 'Availability & Application', icon: Calendar },
@@ -52,13 +53,15 @@ const SECTION_INFO = [
 ]
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(true)
   const [applications, setApplications] = useState([])
   const [draftApplication, setDraftApplication] = useState(null)
   const [applicationData, setApplicationData] = useState(null)
+  const [copiedRef, setCopiedRef] = useState(null)
 
+  // Fetch applications
   useEffect(() => {
     if (user) {
       fetchApplications()
@@ -69,28 +72,31 @@ export default function Dashboard() {
     try {
       setLoading(true)
 
-      // Fetch all applications for this user
+      // UPDATED: Fetch all applications, order by created_at (no version_number)
       const { data, error } = await supabase
         .from('applications')
         .select('*')
         .eq('user_id', user.id)
-        .order('version_number', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // Separate draft and submitted
-      const draft = data?.find(app => app.status === 'draft')
-      const submitted = data?.filter(app => app.status === 'submitted') || []
+      // Separate in-progress and submitted applications
+      // In-progress applications have status 'new' and are not yet submitted
+      const inProgress = data?.find(app => app.status === 'new' && !app.submitted_at)
+      const submitted = data?.filter(app => 
+        app.submitted_at !== null || (app.status !== 'new' && app.status !== null)
+      ) || []
 
-      setDraftApplication(draft)
+      setDraftApplication(inProgress)
       setApplications(submitted)
 
-      // If there's a draft, fetch its data
-      if (draft) {
+      // If there's an in-progress application, fetch its data
+      if (inProgress) {
         const { data: appData, error: dataError } = await supabase
           .from('application_data')
           .select('*')
-          .eq('application_id', draft.id)
+          .eq('application_id', inProgress.id)
           .single()
 
         if (dataError) throw dataError
@@ -105,38 +111,80 @@ export default function Dashboard() {
 
   const handleStartApplication = async () => {
     try {
-      // Create new application
+      // UPDATED: Simplified logic - no version calculation
+      // Check if there's already an in-progress draft
+      if (draftApplication) {
+        // If draft exists, just navigate to it
+        navigate(`/application/form/section/1`)
+        return
+      }
+
+      // Check if there's a previous submitted application to copy from
+      let previousData = {}
+      if (applications.length > 0) {
+        // Get the most recent submitted application
+        const latestApp = applications[0] // Already sorted by created_at desc
+        
+        // Fetch its data
+        const { data: prevAppData, error: prevDataError } = await supabase
+          .from('application_data')
+          .select('data')
+          .eq('application_id', latestApp.id)
+          .single()
+        
+        if (prevDataError) {
+          console.error('Error fetching previous data:', prevDataError)
+        } else if (prevAppData) {
+          previousData = prevAppData.data || {}
+        }
+      }
+
+      console.log('Creating new draft application...')
+
+      // UPDATED: Create application WITHOUT version_number
       const { data: newApp, error: appError } = await supabase
         .from('applications')
         .insert([
           {
             user_id: user.id,
-            version_number: applications.length + 1,
-            status: 'draft',
+            status: 'new',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           },
         ])
         .select()
         .single()
 
-      if (appError) throw appError
+      if (appError) {
+        console.error('Error creating application:', appError)
+        throw appError
+      }
 
-      // Create application_data entry
+      // Create application_data entry with copied data
       const { error: dataError } = await supabase
         .from('application_data')
         .insert([
           {
             application_id: newApp.id,
-            data: {},
+            data: previousData, // Use copied data if available
           },
         ])
 
-      if (dataError) throw dataError
+      if (dataError) {
+        console.error('Error creating application_data:', dataError)
+        throw dataError
+      }
+
+      // Show message if data was copied
+      if (Object.keys(previousData).length > 0) {
+        alert('New draft created with data from your previous application. Review and update as needed.')
+      }
 
       // Navigate to section 1
       navigate(`/application/form/section/1`)
     } catch (error) {
-      console.error('Error creating application:', error)
-      alert('Failed to create application. Please try again.')
+      console.error('Error in handleStartApplication:', error)
+      alert(`Failed to create application: ${error.message}`)
     }
   }
 
@@ -154,18 +202,46 @@ export default function Dashboard() {
     }
 
     try {
-      const { error } = await supabase
+      console.log('Discarding draft:', draftApplication?.id)
+      
+      // Delete application_data first (foreign key constraint)
+      const { error: dataError } = await supabase
+        .from('application_data')
+        .delete()
+        .eq('application_id', draftApplication.id)
+
+      if (dataError) {
+        console.error('Error deleting application_data:', dataError)
+        throw dataError
+      }
+      console.log('Application_data deleted')
+
+      // Then delete the application
+      const { error: appError } = await supabase
         .from('applications')
         .delete()
         .eq('id', draftApplication.id)
 
-      if (error) throw error
+      if (appError) {
+        console.error('Error deleting application:', appError)
+        throw appError
+      }
+      console.log('Application deleted')
 
+      // Clear state immediately
+      setDraftApplication(null)
+      setApplicationData(null)
+      
       // Refresh applications
-      fetchApplications()
+      await fetchApplications()
+      
+      alert('Draft discarded successfully')
+      
+      // Force page reload to ensure UI updates
+      window.location.reload()
     } catch (error) {
-      console.error('Error deleting draft:', error)
-      alert('Failed to delete draft. Please try again.')
+      console.error('Error in handleDiscardDraft:', error)
+      alert(`Failed to delete draft: ${error.message}`)
     }
   }
 
@@ -204,6 +280,8 @@ export default function Dashboard() {
     return sectionData && Object.keys(sectionData).length > 0
   }
 
+
+  // Regular loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -407,23 +485,75 @@ export default function Dashboard() {
                   className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                          Submitted
-                        </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+<span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+  app.status === 'new' ? 'bg-blue-100 text-blue-800' :
+  app.status === 'interview_scheduled' ? 'bg-purple-100 text-purple-800' :
+  app.status === 'interview_cleared' ? 'bg-indigo-100 text-indigo-800' :
+  app.status === 'test_scheduled' ? 'bg-orange-100 text-orange-800' :
+  app.status === 'test_cleared' ? 'bg-teal-100 text-teal-800' :
+  app.status === 'hired' ? 'bg-green-100 text-green-800' :
+  app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+  app.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+  'bg-green-100 text-green-800'
+}`}>
+  {app.status === 'new' ? 'New' :
+   app.status === 'interview_scheduled' ? 'Interview Scheduled' :
+   app.status === 'interview_cleared' ? 'Interview Cleared' :
+   app.status === 'test_scheduled' ? 'Test Scheduled' :
+   app.status === 'test_cleared' ? 'Test Cleared' :
+   app.status === 'hired' ? 'Hired' :
+   app.status === 'rejected' ? 'Rejected' :
+   app.status === 'withdrawn' ? 'Withdrawn' :
+   'Submitted'}
+</span>
                         <span className="text-sm text-gray-500">Version {app.version_number}</span>
                       </div>
+
+                      {/* Reference Number */}
+                      {app.reference_number && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-gray-500">Ref:</span>
+                          <span className="text-sm font-mono font-semibold text-blue-600">
+                            {app.reference_number}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(app.reference_number)
+                              setCopiedRef(app.reference_number)
+                              setTimeout(() => setCopiedRef(null), 2000)
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            title="Copy reference number"
+                          >
+                            {copiedRef === app.reference_number ? (
+                              <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
                       <p className="text-sm text-gray-900 font-medium">
-                        {app.applied_rank || 'Position not specified'}
+                        {formatDisplayValue(app.applied_rank) || 'Position not specified'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Submitted: {new Date(app.submitted_at).toLocaleDateString()}
+                        Submitted: {new Date(app.submitted_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
                       </p>
                     </div>
                     <button
                       onClick={() => navigate(`/application/view/${app.public_token}`)}
-                      className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
                     >
                       View Application
                     </button>

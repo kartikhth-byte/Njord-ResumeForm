@@ -135,6 +135,53 @@ export default function Section2({ data = {}, onUpdate }) {
     }
   }, [formData.dateOfBirth])
 
+  // Validation rules
+  const validateField = (name, value) => {
+    // Handle nested field names
+    const fieldName = name.includes('.') ? name.split('.')[1] : name
+    const parentField = name.includes('.') ? name.split('.')[0] : null
+
+    // Personal Information
+    if (name === 'surname' && !value) return 'Surname is required'
+    if (name === 'firstName' && !value) return 'First name is required'
+    if (name === 'nationality' && !value) return 'Nationality is required'
+    if (name === 'placeOfBirth' && !value) return 'Place of birth is required'
+    if (name === 'dateOfBirth' && !value) return 'Date of birth is required'
+    if (name === 'gender' && !value) return 'Gender is required'
+
+    // Contact Information
+    if (name === 'email') {
+      if (!value) return 'Email is required'
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(value)) return 'Please enter a valid email address'
+    }
+    if (name === 'phoneCountryCode' && !value) return 'Phone country code is required'
+    if (name === 'phoneNumber' && !value) return 'Phone number is required'
+    if (name === 'address' && !value) return 'Address is required'
+    if (name === 'city' && !value) return 'City is required'
+    if (name === 'country' && !value) return 'Country is required'
+    if (name === 'postalCode' && !value) return 'Postal code is required'
+    if (name === 'maritalStatus' && !value) return 'Marital status is required'
+
+    // Next of Kin
+    if (name === 'nextOfKin.name' && !value) return 'Next of kin name is required'
+    if (name === 'nextOfKin.relationship' && !value) return 'Next of kin relationship is required'
+    if (name === 'nextOfKin.address' && formData.nextOfKin.addressDifferent && !value) {
+      return 'Next of kin address is required when address is different'
+    }
+    if (name === 'nextOfKin.phone' && formData.nextOfKin.phoneDifferent && !value) {
+      return 'Next of kin phone is required when phone is different'
+    }
+
+    // Emergency Contact
+    if (name === 'emergencyContact.name' && !value) return 'Emergency contact name is required'
+    if (name === 'emergencyContact.relationship' && !value) return 'Emergency contact relationship is required'
+    if (name === 'emergencyContact.address' && !value) return 'Emergency contact address is required'
+    if (name === 'emergencyContact.phone' && !value) return 'Emergency contact phone is required'
+
+    return ''
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     const fieldValue = type === 'checkbox' ? checked : value
@@ -161,6 +208,13 @@ export default function Section2({ data = {}, onUpdate }) {
     setFormData(newFormData)
     setTouched(prev => ({ ...prev, [name]: true }))
     
+    // Validate field
+    const error = validateField(name, fieldValue)
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }))
+    
     // Trigger auto-save
     onUpdate({ section2: newFormData })
   }
@@ -185,8 +239,15 @@ export default function Section2({ data = {}, onUpdate }) {
   }
 
   const handleBlur = (e) => {
-    const { name } = e.target
+    const { name, value } = e.target
     setTouched(prev => ({ ...prev, [name]: true }))
+    
+    // Validate on blur
+    const error = validateField(name, value)
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }))
   }
 
   return (
@@ -219,6 +280,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Doe"
+            error={touched.surname ? errors.surname : ''}
           />
 
           <FormInput
@@ -229,6 +291,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="John"
+            error={touched.firstName ? errors.firstName : ''}
           />
         </div>
 
@@ -272,6 +335,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="e.g., American, Indian"
+            error={touched.nationality ? errors.nationality : ''}
           />
 
           <FormInput
@@ -282,6 +346,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="City, Country"
+            error={touched.placeOfBirth ? errors.placeOfBirth : ''}
           />
 
           <FormSelect
@@ -292,6 +357,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             options={GENDER_OPTIONS}
+            error={touched.gender ? errors.gender : ''}
           />
         </div>
 
@@ -304,6 +370,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             max={new Date().toISOString().split('T')[0]}
+            error={touched.dateOfBirth ? errors.dateOfBirth : ''}
           />
 
           <FormInput
@@ -330,6 +397,7 @@ export default function Section2({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="john.doe@example.com"
+          error={touched.email ? errors.email : ''}
         />
 
         <PhoneInput
@@ -348,6 +416,7 @@ export default function Section2({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="Street address, Apartment, Suite"
+          error={touched.address ? errors.address : ''}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -359,6 +428,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="New York"
+            error={touched.city ? errors.city : ''}
           />
 
           <FormInput
@@ -378,6 +448,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="10001"
+            error={touched.postalCode ? errors.postalCode : ''}
           />
         </div>
 
@@ -389,6 +460,7 @@ export default function Section2({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="United States"
+          error={touched.country ? errors.country : ''}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,6 +493,7 @@ export default function Section2({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           options={MARITAL_STATUS_OPTIONS}
+          error={touched.maritalStatus ? errors.maritalStatus : ''}
         />
       </div>
 
@@ -437,6 +510,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Jane Doe"
+            error={touched['nextOfKin.name'] ? errors['nextOfKin.name'] : ''}
           />
 
           <FormSelect
@@ -447,6 +521,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             options={RELATIONSHIP_OPTIONS}
+            error={touched['nextOfKin.relationship'] ? errors['nextOfKin.relationship'] : ''}
           />
         </div>
 
@@ -472,6 +547,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Full address if different from above"
+            error={touched['nextOfKin.address'] ? errors['nextOfKin.address'] : ''}
           />
         )}
 
@@ -497,6 +573,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Phone number if different"
+            error={touched['nextOfKin.phone'] ? errors['nextOfKin.phone'] : ''}
           />
         )}
       </div>
@@ -514,6 +591,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Jane Doe"
+            error={touched['emergencyContact.name'] ? errors['emergencyContact.name'] : ''}
           />
 
           <FormSelect
@@ -524,6 +602,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             options={RELATIONSHIP_OPTIONS}
+            error={touched['emergencyContact.relationship'] ? errors['emergencyContact.relationship'] : ''}
           />
         </div>
 
@@ -535,6 +614,7 @@ export default function Section2({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="Full address"
+          error={touched['emergencyContact.address'] ? errors['emergencyContact.address'] : ''}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -546,6 +626,7 @@ export default function Section2({ data = {}, onUpdate }) {
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="+1 555-1234"
+            error={touched['emergencyContact.phone'] ? errors['emergencyContact.phone'] : ''}
           />
 
           <FormInput
