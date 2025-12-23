@@ -10,12 +10,8 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Frame-Options",
-          "value": "ALLOW-FROM https://njord-voyage-navigator.lovable.app"
-        },
-        {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://*.lovable.app https://lovable.dev"
+          "value": "frame-ancestors 'self' https://njord-voyage-navigator.lovable.app https://*.lovable.app https://*.lovableproject.com"
         },
         {
           "key": "Access-Control-Allow-Origin",
@@ -27,7 +23,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Authorization"
+          "value": "Content-Type, Authorization"
         }
       ]
     },
@@ -42,4 +38,3 @@
     }
   ]
 }
-
