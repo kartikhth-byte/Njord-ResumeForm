@@ -11,7 +11,8 @@ import {
   CheckCircle, 
   Search,
   Users,
-  Eye
+  Eye,
+  Calendar  // ← ADD THIS
 } from 'lucide-react'
 
 export default function RecruiterDashboard() {
@@ -239,23 +240,40 @@ const getApplicantData = (app) => {
                 {role} • {user?.email}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              {permissions.includes('manage_team') && (
-                <button
-                  onClick={() => navigate('/recruiter/team')}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Users className="w-4 h-4" />
-                  Team
-                </button>
-              )}
-              <button
-                onClick={signOut}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
+<div className="flex items-center gap-2">
+  {permissions.includes('manage_team') && (
+    <button
+      onClick={() => navigate('/recruiter/team')}
+      className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+      title="Team Management"
+    >
+      <Users className="w-5 h-5" />
+    </button>
+  )}
+  
+  <button
+    onClick={() => navigate('/expiry-dashboard')}
+    className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+    title="Document Expiry Dashboard"
+  >
+    <FileText className="w-5 h-5" />
+  </button>
+  
+  <button
+    onClick={() => navigate('/calendar-dashboard')}
+    className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+    title="Calendar Dashboard"
+  >
+    <Calendar className="w-5 h-5" />
+  </button>
+  
+  <button
+    onClick={signOut}
+    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+  >
+    Sign Out
+  </button>
+</div>
           </div>
         </div>
       </header>

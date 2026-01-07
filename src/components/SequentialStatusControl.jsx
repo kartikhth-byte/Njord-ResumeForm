@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { ChevronRight, Loader2, MoreVertical, X, SkipForward } from 'lucide-react'
+import ScheduleEventForm from './ScheduleEventForm'
 
 export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange }) {
   const [loading, setLoading] = useState(false)
@@ -9,6 +10,10 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [modalType, setModalType] = useState(null) // 'next', 'skip', 'reject', 'withdrawn'
   const [selectedStatus, setSelectedStatus] = useState(null)
   const [notes, setNotes] = useState('')
+  
+  // NEW: Schedule event state
+  const [showScheduleForm, setShowScheduleForm] = useState(false)
+  const [scheduleData, setScheduleData] = useState(null)
 
   const statusFlow = [
     'new',
@@ -41,17 +46,27 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const getSkippableStatuses = () => {
     const currentIndex = statusFlow.indexOf(currentStatus)
     if (currentIndex === -1) return []
-    // Return all statuses after the next one (skip at least one stage)
     return statusFlow.slice(currentIndex + 2)
   }
 
   const nextStatus = getNextStatus()
   const isTerminal = currentStatus === 'hired' || currentStatus === 'rejected' || currentStatus === 'withdrawn'
 
+  // NEW: Check if status requires scheduling
+  const requiresScheduling = (status) => {
+    return status === 'interview_scheduled' || status === 'test_scheduled'
+  }
+
   const handleNextStage = () => {
     if (!nextStatus) return
     setModalType('next')
     setSelectedStatus(nextStatus)
+    
+    // NEW: Show scheduling form if moving to interview/test scheduled
+    if (requiresScheduling(nextStatus)) {
+      setShowScheduleForm(true)
+    }
+    
     setShowModal(true)
     setShowMenu(false)
   }
@@ -59,6 +74,12 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const handleSkipTo = (status) => {
     setModalType('skip')
     setSelectedStatus(status)
+    
+    // NEW: Show scheduling form if skipping to interview/test scheduled
+    if (requiresScheduling(status)) {
+      setShowScheduleForm(true)
+    }
+    
     setShowModal(true)
     setShowMenu(false)
   }
@@ -77,8 +98,27 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
     setShowMenu(false)
   }
 
+  // NEW: Handle schedule form data
+  const handleScheduleData = (data) => {
+    setScheduleData(data)
+  }
+
   const handleConfirm = async () => {
     if (!selectedStatus) return
+
+    // NEW: Validate scheduling data if required
+    if (requiresScheduling(selectedStatus)) {
+      if (!scheduleData) {
+        alert('Please fill in the scheduling details')
+        return
+      }
+      
+      // Validate required fields
+      if (!scheduleData.scheduledDate || !scheduleData.scheduledTime) {
+        alert('Please provide date and time for the event')
+        return
+      }
+    }
 
     setLoading(true)
     try {
@@ -103,15 +143,44 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
         if (notesError) console.error('Error adding notes:', notesError)
       }
 
+      // NEW: Create event if scheduling required
+      if (requiresScheduling(selectedStatus) && scheduleData) {
+        const eventType = selectedStatus === 'interview_scheduled' ? 'interview' : 'test'
+        
+        const { error: scheduleError } = await supabase.functions.invoke('schedule-event', {
+          body: {
+            applicationId: applicationId,
+            eventType: eventType,
+            scheduledDate: scheduleData.scheduledDate,
+            scheduledTime: scheduleData.scheduledTime,
+            durationMinutes: parseInt(scheduleData.durationMinutes) || 60,
+            locationType: scheduleData.locationType,
+            locationAddress: scheduleData.locationAddress || null,
+            locationLink: scheduleData.locationLink || null,
+            notes: scheduleData.eventNotes || null,
+            interviewers: scheduleData.interviewers || null
+          }
+        })
+
+        if (scheduleError) {
+          console.error('Error scheduling event:', scheduleError)
+          alert('Status updated but failed to schedule event: ' + scheduleError.message)
+        } else {
+          console.log('Event scheduled successfully')
+        }
+      }
+
       // Callback
       if (onStatusChange) {
         onStatusChange(selectedStatus)
       }
 
-      // Close modal
+      // Close modal and reset
       setShowModal(false)
+      setShowScheduleForm(false)
       setNotes('')
       setSelectedStatus(null)
+      setScheduleData(null)
     } catch (error) {
       console.error('Error updating status:', error)
       alert('Failed to update status: ' + error.message)
@@ -234,13 +303,23 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => !loading && setShowModal(false)} />
           
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {getModalTitle()}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 {getModalDescription()}
               </p>
+
+              {/* NEW: Show scheduling form if required */}
+              {showScheduleForm && requiresScheduling(selectedStatus) && (
+                <div className="mb-6">
+                  <ScheduleEventForm
+                    eventType={selectedStatus === 'interview_scheduled' ? 'interview' : 'test'}
+                    onDataChange={handleScheduleData}
+                  />
+                </div>
+              )}
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -259,8 +338,10 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
                 <button
                   onClick={() => {
                     setShowModal(false)
+                    setShowScheduleForm(false)
                     setNotes('')
                     setSelectedStatus(null)
+                    setScheduleData(null)
                   }}
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
@@ -275,10 +356,10 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Updating...
+                      {showScheduleForm ? 'Updating & Scheduling...' : 'Updating...'}
                     </>
                   ) : (
-                    'Confirm'
+                    showScheduleForm ? 'Update Status & Send Invites' : 'Confirm'
                   )}
                 </button>
               </div>

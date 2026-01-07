@@ -22,6 +22,8 @@ import RecruiterSetup from './pages/RecruiterSetup'
 import Unauthorized from './pages/Unauthorized'
 import RecruiterApplications from './pages/RecruiterApplications'
 import CleanupDrafts from './pages/CleanupDrafts'
+import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
+import CalendarDashboardPage from './pages/CalendarDashboardPage'
 
 // ErrorBoundary component
 class ErrorBoundary extends Component {
@@ -126,6 +128,9 @@ function App() {
             <Route path="/recruiter/setup" element={<RecruiterSetup />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/cleanup-drafts" element={<CleanupDrafts />} />
+            <Route path="/expiry-dashboard" element={<ExpiryDashboardPage />} />
+            <Route path="/calendar-dashboard" element={<CalendarDashboardPage />} />
+
 
             <Route
                    path="/recruiter/applications"
