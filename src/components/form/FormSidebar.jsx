@@ -47,7 +47,7 @@ const SECTIONS = [
   { id: 16, title: 'Sea Service', icon: Anchor, shortTitle: 'Sea Service' },
   { id: 17, title: 'Experience Summary', icon: BarChart3, shortTitle: 'Experience' },
   { id: 18, title: 'References', icon: MessageSquare, shortTitle: 'References' },
-  { id: 19, title: 'Bank Details', icon: DollarSign, shortTitle: 'Bank Details' },
+{ id: 19, title: 'Emergency Contact', icon: Users, shortTitle: 'Emergency' },
   { id: 20, title: 'Declaration & Consent', icon: FileText, shortTitle: 'Declaration' },
 ]
 

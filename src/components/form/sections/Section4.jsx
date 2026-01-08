@@ -14,6 +14,15 @@ export default function Section4({ data = {}, onUpdate }) {
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
 
+  // Auto-capitalize helper function - converts to Title Case
+const autoCapitalize = (value) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
   // Sync state when data prop changes
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
@@ -103,29 +112,35 @@ export default function Section4({ data = {}, onUpdate }) {
           helpText="Your CDC or Seaman's Book identification number"
         />
 
-        <FormInput
-          label="Place of Issue"
-          name="placeOfIssue"
-          required
-          value={formData.placeOfIssue}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.placeOfIssue ? errors.placeOfIssue : ''}
-          placeholder="e.g., Mumbai, India"
-          helpText="City and country where CDC/Seaman's Book was issued"
-        />
+<FormInput
+  label="Place of Issue"
+  name="placeOfIssue"
+  required
+  value={formData.placeOfIssue}
+  onChange={(e) => {
+    const capitalized = autoCapitalize(e.target.value)
+    handleChange({ target: { name: 'placeOfIssue', value: capitalized } })
+  }}
+  onBlur={handleBlur}
+  error={touched.placeOfIssue ? errors.placeOfIssue : ''}
+  placeholder="e.g., Mumbai, India"
+  helpText="City and country where CDC/Seaman's Book was issued"
+/>
 
-        <FormInput
-          label="Issuing Authority"
-          name="issuingAuthority"
-          required
-          value={formData.issuingAuthority}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.issuingAuthority ? errors.issuingAuthority : ''}
-          placeholder="e.g., USCG, Indian DG Shipping, UK MCA"
-          helpText="Government maritime authority that issued the document"
-        />
+<FormInput
+  label="Issuing Authority"
+  name="issuingAuthority"
+  required
+  value={formData.issuingAuthority}
+  onChange={(e) => {
+    const capitalized = autoCapitalize(e.target.value)
+    handleChange({ target: { name: 'issuingAuthority', value: capitalized } })
+  }}
+  onBlur={handleBlur}
+  error={touched.issuingAuthority ? errors.issuingAuthority : ''}
+  placeholder="e.g., DG Shipping India, UK MCA, USCG"
+  helpText="Government maritime authority that issued the document"
+/>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormDatePicker

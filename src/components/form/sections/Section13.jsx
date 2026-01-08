@@ -61,7 +61,7 @@ export default function Section13({ data = {}, onUpdate }) {
     hairColor: data.hairColor || '',
     eyeColor: data.eyeColor || '',
     shoeSize: data.shoeSize || '',
-    shoeSizeUnit: data.shoeSizeUnit || 'EU',
+shoeSizeUnit: data.shoeSizeUnit || '',
     boilerSuitSize: data.boilerSuitSize || '',
     uniformShirtSize: data.uniformShirtSize || '',
     uniformTrouserSize: data.uniformTrouserSize || '',
@@ -81,7 +81,7 @@ export default function Section13({ data = {}, onUpdate }) {
         hairColor: data.hairColor || '',
         eyeColor: data.eyeColor || '',
         shoeSize: data.shoeSize || '',
-        shoeSizeUnit: data.shoeSizeUnit || 'EU',
+shoeSizeUnit: data.shoeSizeUnit || '',
         boilerSuitSize: data.boilerSuitSize || '',
         uniformShirtSize: data.uniformShirtSize || '',
         uniformTrouserSize: data.uniformTrouserSize || '',
@@ -261,40 +261,43 @@ export default function Section13({ data = {}, onUpdate }) {
         <div className="space-y-5">
           <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Uniform & Safety Equipment Sizes</h3>
 
-          {/* Shoe Size with Unit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shoe Size
-              <span className="text-red-500 ml-1">*</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <input
-                  type="text"
-                  name="shoeSize"
-                  value={formData.shoeSize}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('shoeSize')}
-                  placeholder="e.g., 42 or 9 or 8"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    touched.shoeSize && errors.shoeSize
-                      ? 'border-red-500'
-                      : 'border-gray-300'
-                  }`}
-                />
-              </div>
-              <FormSelect
-                name="shoeSizeUnit"
-                value={formData.shoeSizeUnit}
-                onChange={handleChange}
-                options={SHOE_SIZE_UNIT_OPTIONS}
-              />
-            </div>
-            {touched.shoeSize && errors.shoeSize && (
-              <p className="mt-1 text-sm text-red-600">{errors.shoeSize}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">Your shoe size in selected system</p>
-          </div>
+{/* Shoe Size with Unit */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Shoe Size
+      <span className="text-red-500 ml-1">*</span>
+    </label>
+    <input
+      type="text"
+      name="shoeSize"
+      value={formData.shoeSize}
+      onChange={handleChange}
+      onBlur={() => handleBlur('shoeSize')}
+      placeholder="e.g., 42 or 9 or 8"
+      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+        touched.shoeSize && errors.shoeSize
+          ? 'border-red-500'
+          : 'border-gray-300'
+      }`}
+    />
+    {touched.shoeSize && errors.shoeSize && (
+      <p className="mt-1 text-sm text-red-600">{errors.shoeSize}</p>
+    )}
+    <p className="mt-1 text-sm text-gray-500">Enter your shoe size number</p>
+  </div>
+
+  <FormSelect
+    label="Sizing System"
+    name="shoeSizeUnit"
+    required
+    value={formData.shoeSizeUnit}
+    onChange={handleChange}
+    options={SHOE_SIZE_UNIT_OPTIONS}
+    placeholder="Select system"
+    helpText="Choose measurement system"
+  />
+</div>
 
           <FormSelect
             label="Boiler Suit / Coverall Size"

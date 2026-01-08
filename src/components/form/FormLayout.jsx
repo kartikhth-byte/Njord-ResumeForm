@@ -33,8 +33,7 @@ export default function FormLayout({ children }) {
     try {
       setLoading(true)
 
-      // BUG FIX 2: Look for in-progress applications (status='new' AND not submitted)
-      // This finds the application that Dashboard.jsx just created
+      // Look for in-progress applications (status='new' AND not submitted)
       let { data: app, error: appError } = await supabase
         .from('applications')
         .select('*')
@@ -70,7 +69,7 @@ export default function FormLayout({ children }) {
 
       setApplicationId(app.id)
 
-      // Get or create application_data
+      // Get application_data if it exists
       let { data: appData, error: dataError } = await supabase
         .from('application_data')
         .select('*')
@@ -79,31 +78,19 @@ export default function FormLayout({ children }) {
 
       if (dataError && dataError.code !== 'PGRST116') throw dataError
 
-      // Create application_data if it doesn't exist
+      // FIXED: Don't create application_data until first save!
+      // This prevents empty {} from showing all sections as invalid
       if (!appData) {
-        console.log('📝 Creating application_data row...')
-        const { data: newData, error: insertError } = await supabase
-          .from('application_data')
-          .insert({
-            application_id: app.id,
-            data: {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        appData = newData
-        console.log('✅ Application_data created')
+        console.log('📝 New application - application_data will be created on first save')
+        setApplicationData({})
+        applicationDataRef.current = {}
       } else {
         console.log('✅ Found existing application_data')
+        const loadedData = appData?.data || {}
+        setApplicationData(loadedData)
+        applicationDataRef.current = loadedData
+        console.log('Loaded existing data with', Object.keys(loadedData).length, 'sections')
       }
-
-      const loadedData = appData?.data || {}
-      setApplicationData(loadedData)
-      applicationDataRef.current = loadedData
-      console.log('Loaded existing data with', Object.keys(loadedData).length, 'sections')
     } catch (error) {
       console.error('Error loading application data:', error)
     } finally {
@@ -111,7 +98,7 @@ export default function FormLayout({ children }) {
     }
   }
 
-  // Auto-save function with debouncing - FIXED VERSION
+  // Auto-save function with debouncing
   const handleDataUpdate = (updates) => {
     console.log('🔵 handleDataUpdate called with:', updates)
     
@@ -149,15 +136,39 @@ export default function FormLayout({ children }) {
       setSaving(true)
       console.log('💾 Saving data:', dataToSave)
 
-      const { error } = await supabase
+      // FIXED: Check if application_data exists first
+      const { data: existing } = await supabase
         .from('application_data')
-        .update({
-          data: dataToSave,
-          updated_at: new Date().toISOString()
-        })
+        .select('id')
         .eq('application_id', applicationId)
+        .maybeSingle()
 
-      if (error) throw error
+      if (!existing) {
+        // Create application_data on first save
+        console.log('📝 Creating application_data on first save...')
+        const { error: insertError } = await supabase
+          .from('application_data')
+          .insert({
+            application_id: applicationId,
+            data: dataToSave,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (insertError) throw insertError
+        console.log('✅ Application_data created with first save')
+      } else {
+        // Update existing application_data
+        const { error } = await supabase
+          .from('application_data')
+          .update({
+            data: dataToSave,
+            updated_at: new Date().toISOString()
+          })
+          .eq('application_id', applicationId)
+
+        if (error) throw error
+      }
 
       // Also update applications table timestamp
       await supabase

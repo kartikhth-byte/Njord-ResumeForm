@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
+import FormSelect from '../shared/FormSelect'  // ADD THIS
 import FormDatePicker from '../shared/FormDatePicker'
+import { COUNTRIES } from '../../../utils/countryData'  // ADD THIS
 
 export default function Section3({ data = {}, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -13,6 +15,15 @@ export default function Section3({ data = {}, onUpdate }) {
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
+
+// Auto-capitalize helper function - converts to Title Case
+const autoCapitalize = (value) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
 
   // Sync state when data prop changes
   useEffect(() => {
@@ -103,29 +114,33 @@ export default function Section3({ data = {}, onUpdate }) {
           helpText="Your passport number as shown on the passport"
         />
 
-        <FormInput
-          label="Place of Issue"
-          name="placeOfIssue"
-          required
-          value={formData.placeOfIssue}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.placeOfIssue ? errors.placeOfIssue : ''}
-          placeholder="e.g., New York, USA"
-          helpText="City and country where passport was issued"
-        />
+<FormInput
+  label="Place of Issue"
+  name="placeOfIssue"
+  required
+  value={formData.placeOfIssue}
+  onChange={(e) => {
+    const capitalized = autoCapitalize(e.target.value)
+    handleChange({ target: { name: 'placeOfIssue', value: capitalized } })
+  }}
+  onBlur={handleBlur}
+  error={touched.placeOfIssue ? errors.placeOfIssue : ''}
+  placeholder="e.g., Mumbai, India"
+  helpText="City and country where passport was issued"
+/>
 
-        <FormInput
-          label="Issuing Authority"
-          name="issuingAuthority"
-          required
-          value={formData.issuingAuthority}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={touched.issuingAuthority ? errors.issuingAuthority : ''}
-          placeholder="e.g., US Department of State, Indian Passport Office"
-          helpText="Government authority that issued the passport"
-        />
+<FormSelect
+  label="Issuing Authority (Country)"
+  name="issuingAuthority"
+  required
+  value={formData.issuingAuthority}
+  onChange={handleChange}
+  onBlur={handleBlur}
+  options={COUNTRIES}
+  placeholder="Select issuing country"
+  error={touched.issuingAuthority ? errors.issuingAuthority : ''}
+  helpText="Country that issued your passport"
+/>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormDatePicker

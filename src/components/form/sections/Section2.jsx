@@ -4,6 +4,8 @@ import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
 import PhotoUpload from '../shared/PhotoUpload'
 import PhoneInput from '../shared/PhoneInput'
+import { COUNTRIES, NATIONALITIES, INDIAN_STATES, INDIAN_CITIES } from '../../../utils/countryData'
+
 
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Male' },
@@ -70,6 +72,15 @@ export default function Section2({ data = {}, onUpdate }) {
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
 
+// Auto-capitalize helper function - converts to Title Case
+const autoCapitalize = (value) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
   // Sync state when data prop changes
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
@@ -135,6 +146,7 @@ export default function Section2({ data = {}, onUpdate }) {
     }
   }, [formData.dateOfBirth])
 
+
   // Validation rules
   const validateField = (name, value) => {
     // Handle nested field names
@@ -183,41 +195,22 @@ export default function Section2({ data = {}, onUpdate }) {
   }
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    const fieldValue = type === 'checkbox' ? checked : value
-    
-    let newFormData = { ...formData }
-    
-    // Handle nested fields
-    if (name.startsWith('nextOfKin.')) {
-      const field = name.split('.')[1]
-      newFormData.nextOfKin = {
-        ...newFormData.nextOfKin,
-        [field]: fieldValue
-      }
-    } else if (name.startsWith('emergencyContact.')) {
-      const field = name.split('.')[1]
-      newFormData.emergencyContact = {
-        ...newFormData.emergencyContact,
-        [field]: fieldValue
-      }
-    } else {
-      newFormData[name] = fieldValue
-    }
-    
-    setFormData(newFormData)
-    setTouched(prev => ({ ...prev, [name]: true }))
-    
-    // Validate field
-    const error = validateField(name, fieldValue)
-    setErrors(prev => ({
+  const { name, value } = e.target
+  
+  // If country changes, clear city and state
+  if (name === 'country') {
+    setFormData(prev => ({
       ...prev,
-      [name]: error
+      [name]: value,
+      city: '',
+      state: ''
     }))
-    
-    // Trigger auto-save
-    onUpdate({ section2: newFormData })
+  } else {
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
+  
+  setTouched(prev => ({ ...prev, [name]: true }))
+}
 
   const handlePhoneChange = (countryCode, number) => {
     const newFormData = {
@@ -327,25 +320,31 @@ export default function Section2({ data = {}, onUpdate }) {
 
         {/* Birth Details */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormInput
-            label="Nationality"
-            name="nationality"
-            required
-            value={formData.nationality}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="e.g., American, Indian"
+          <FormSelect
+        label="Nationality"
+  name="nationality"
+  required
+  value={formData.nationality}
+  onChange={handleChange}
+  onBlur={handleBlur}
+  options={NATIONALITIES}
+  placeholder="Select your nationality"
             error={touched.nationality ? errors.nationality : ''}
           />
 
           <FormInput
-            label="Place of Birth"
-            name="placeOfBirth"
-            required
-            value={formData.placeOfBirth}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="City, Country"
+  label="Place of Birth"
+  name="placeOfBirth"
+  required
+  value={formData.placeOfBirth}
+  onChange={(e) => {
+    // Auto-capitalize first letter
+    const value = e.target.value
+    const capitalized = value.charAt(0).toUpperCase() + value.slice(1)
+    handleChange({ target: { name: 'placeOfBirth', value: capitalized } })
+  }}
+  onBlur={handleBlur}
+  placeholder="City, Country"
             error={touched.placeOfBirth ? errors.placeOfBirth : ''}
           />
 
@@ -420,25 +419,60 @@ export default function Section2({ data = {}, onUpdate }) {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormInput
-            label="City"
-            name="city"
-            required
-            value={formData.city}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="New York"
-            error={touched.city ? errors.city : ''}
-          />
+{formData.country === 'india' ? (
+  <FormSelect
+    label="City"
+    name="city"
+    required
+    value={formData.city}
+    onChange={handleChange}
+    onBlur={handleBlur}
+    options={INDIAN_CITIES}
+    placeholder="Select your city"
+    error={touched.city ? errors.city : ''}
+  />
+) : (
+  <FormInput
+    label="City"
+    name="city"
+    required
+    value={formData.city}
+    onChange={(e) => {
+      const capitalized = autoCapitalize(e.target.value)
+      handleChange({ target: { name: 'city', value: capitalized } })
+    }}
+    onBlur={handleBlur}
+    placeholder="Enter your city"
+    error={touched.city ? errors.city : ''}
+  />
+)}
 
-          <FormInput
-            label="State/Province"
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="NY (optional)"
-          />
+{formData.country === 'india' ? (
+  <FormSelect
+    label="State/Province"
+    name="state"
+    required
+    value={formData.state}
+    onChange={handleChange}
+    onBlur={handleBlur}
+    options={INDIAN_STATES}
+    placeholder="Select your state"
+    error={touched.state ? errors.state : ''}
+  />
+) : (
+  <FormInput
+    label="State/Province"
+    name="state"
+    value={formData.state}
+    onChange={(e) => {
+      const capitalized = autoCapitalize(e.target.value)
+      handleChange({ target: { name: 'state', value: capitalized } })
+    }}
+    onBlur={handleBlur}
+    placeholder="Enter your state/province"
+    error={touched.state ? errors.state : ''}
+  />
+)}
 
           <FormInput
             label="Postal Code"
@@ -452,14 +486,15 @@ export default function Section2({ data = {}, onUpdate }) {
           />
         </div>
 
-        <FormInput
-          label="Country"
-          name="country"
-          required
-          value={formData.country}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder="United States"
+        <FormSelect
+    label="Country"
+  name="country"
+  required
+  value={formData.country}
+  onChange={handleChange}
+  onBlur={handleBlur}
+  options={COUNTRIES}
+  placeholder="Select your country"
           error={touched.country ? errors.country : ''}
         />
 
