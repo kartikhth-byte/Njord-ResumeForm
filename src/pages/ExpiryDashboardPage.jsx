@@ -10,6 +10,23 @@ export default function ExpiryDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
+    // Block access for applicants
+  if (!loading && role !== 'recruiter' && role !== 'master_recruiter') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
+          <p className="text-gray-600">
+            You don't have permission to access this page.
+          </p>
+          <Link to="/dashboard" className="mt-4 text-blue-600 hover:underline">
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   useEffect(() => {
     // Only allow recruiters to access this page
     if (!user) {

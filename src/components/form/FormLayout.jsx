@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+// FINAL FIXED FormLayout.jsx - Correct updateData usage
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useAutoSave } from '../../hooks/useAutoSave'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../layout/Navbar'
 import FormSidebar from './FormSidebar'
@@ -9,31 +11,30 @@ import FormNavigation from './FormNavigation'
 export default function FormLayout({ children }) {
   const { sectionId } = useParams()
   const { user } = useAuth()
-  const [applicationData, setApplicationData] = useState({})
   const [applicationId, setApplicationId] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [lastSaved, setLastSaved] = useState(null)
-  const saveTimeoutRef = useRef(null)
-  const applicationDataRef = useRef({})
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    applicationDataRef.current = applicationData
-  }, [applicationData])
+  // ✅ Use useAutoSave hook with correct variable names
+  const {
+    data: applicationData,
+    updateData,
+    saveStatus,
+    lastSaved,
+    isLoading: autoSaveLoading
+  } = useAutoSave(applicationId)
 
-  // Load application data on mount
+  // Load application on mount
   useEffect(() => {
     if (user) {
-      loadApplicationData()
+      initializeApplication()
     }
   }, [user])
 
-  const loadApplicationData = async () => {
+  const initializeApplication = async () => {
     try {
       setLoading(true)
 
-      // Look for in-progress applications (status='new' AND not submitted)
+      // Look for in-progress application
       let { data: app, error: appError } = await supabase
         .from('applications')
         .select('*')
@@ -67,140 +68,59 @@ export default function FormLayout({ children }) {
         console.log('✅ Found existing in-progress application:', app.id)
       }
 
-      setApplicationId(app.id)
-
-      // Get application_data if it exists
+      // Ensure application_data row exists
       let { data: appData, error: dataError } = await supabase
         .from('application_data')
-        .select('*')
+        .select('id')
         .eq('application_id', app.id)
         .maybeSingle()
 
       if (dataError && dataError.code !== 'PGRST116') throw dataError
 
-      // FIXED: Don't create application_data until first save!
-      // This prevents empty {} from showing all sections as invalid
       if (!appData) {
-        console.log('📝 New application - application_data will be created on first save')
-        setApplicationData({})
-        applicationDataRef.current = {}
-      } else {
-        console.log('✅ Found existing application_data')
-        const loadedData = appData?.data || {}
-        setApplicationData(loadedData)
-        applicationDataRef.current = loadedData
-        console.log('Loaded existing data with', Object.keys(loadedData).length, 'sections')
-      }
-    } catch (error) {
-      console.error('Error loading application data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Auto-save function with debouncing
-  const handleDataUpdate = (updates) => {
-    console.log('🔵 handleDataUpdate called with:', updates)
-    
-    // Update local state immediately for responsiveness
-    setApplicationData(prev => {
-      const newData = {
-        ...prev,
-        ...updates
-      }
-      applicationDataRef.current = newData
-      return newData
-    })
-
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-
-    // Set new timeout for auto-save (debounce)
-    const timeout = setTimeout(() => {
-      // Use ref to get latest data (fixes stale closure!)
-      saveData(applicationDataRef.current)
-    }, 2000) // Save after 2 seconds of no changes
-
-    saveTimeoutRef.current = timeout
-  }
-
-  const saveData = async (dataToSave) => {
-    if (!applicationId) {
-      console.error('❌ Cannot save: applicationId is null')
-      return
-    }
-
-    try {
-      setSaving(true)
-      console.log('💾 Saving data:', dataToSave)
-
-      // FIXED: Check if application_data exists first
-      const { data: existing } = await supabase
-        .from('application_data')
-        .select('id')
-        .eq('application_id', applicationId)
-        .maybeSingle()
-
-      if (!existing) {
-        // Create application_data on first save
-        console.log('📝 Creating application_data on first save...')
+        console.log('📝 Creating application_data row...')
         const { error: insertError } = await supabase
           .from('application_data')
           .insert({
-            application_id: applicationId,
-            data: dataToSave,
+            application_id: app.id,
+            data: {},
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
 
         if (insertError) throw insertError
-        console.log('✅ Application_data created with first save')
-      } else {
-        // Update existing application_data
-        const { error } = await supabase
-          .from('application_data')
-          .update({
-            data: dataToSave,
-            updated_at: new Date().toISOString()
-          })
-          .eq('application_id', applicationId)
-
-        if (error) throw error
+        console.log('✅ Application_data created')
       }
 
-      // Also update applications table timestamp
-      await supabase
-        .from('applications')
-        .update({
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', applicationId)
-
-      setLastSaved(new Date())
-      console.log('✅ Auto-saved successfully')
+      // Set applicationId - hook will load data automatically
+      setApplicationId(app.id)
+      console.log('✅ Application initialized, hook will load data')
     } catch (error) {
-      console.error('❌ Error saving data:', error)
+      console.error('Error initializing application:', error)
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
-  // Save on unmount (when leaving page)
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-        // Force immediate save on unmount
-        if (applicationDataRef.current && applicationId) {
-          saveData(applicationDataRef.current)
-        }
-      }
-    }
-  }, [applicationId])
+  // ✅ FIX: Pass updates object directly, not a function
+  const handleDataUpdate = (updates) => {
+    console.log('🔵 handleDataUpdate called with:', updates)
+    
+    // ✅ CORRECT: Pass updates object directly
+    // Hook's updateData expects an object, not a function
+    updateData(updates)
+  }
 
-  if (loading) {
+  // Provide context to children
+  const contextValue = {
+    applicationData,
+    handleDataUpdate,
+    applicationId,
+    saveStatus,
+    lastSaved
+  }
+
+  if (loading || autoSaveLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -213,120 +133,63 @@ export default function FormLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile: Show Navbar */}
-      <div className="md:hidden">
-        <Navbar />
-      </div>
-
-      {/* Desktop & Mobile Layout */}
-      <div className="flex h-screen">
-        {/* Desktop & Tablet: Left Sidebar - Hidden only on mobile phones */}
-        <div className="hidden md:block">
-          <FormSidebar applicationData={applicationData} />
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile: Horizontal Section Navigation */}
-          <div className="md:hidden sticky top-0 z-10 bg-white border-b">
-            <FormNavigation applicationData={applicationData} />
-          </div>
-
-          {/* Form Content - Scrollable */}
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {/* Auto-save Indicator */}
-              <div className="mb-4 flex items-center justify-end gap-2 text-sm">
-                {saving ? (
-                  <span className="text-gray-500 flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                    Saving...
-                  </span>
-                ) : lastSaved ? (
-                  <span className="text-green-600 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Saved {formatTimeSince(lastSaved)}
-                  </span>
-                ) : null}
-              </div>
-
-              {/* Section Content */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 md:p-8">
-                {React.cloneElement(children, {
-                  data: applicationData[`section${sectionId}`] || {},
-                  onDataUpdate: handleDataUpdate,
-                  currentData: applicationData
-                })}
-              </div>
-
-              {/* Bottom Navigation */}
-              <div className="mt-6 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    const prevSection = Math.max(1, parseInt(sectionId) - 1)
-                    window.location.href = `/application/form/section/${prevSection}`
-                  }}
-                  disabled={parseInt(sectionId) === 1}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                    parseInt(sectionId) === 1
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      <Navbar />
+      
+      <div className="flex">
+        {/* Sidebar */}
+        <FormSidebar 
+          currentSection={parseInt(sectionId) || 1} 
+          applicationData={applicationData}
+        />
+        
+        {/* Main Content */}
+        <div className="flex-1 lg:ml-64">
+          <div className="max-w-4xl mx-auto p-6">
+            {/* Auto-Save Status Indicator */}
+            <div className="mb-4 flex items-center justify-end space-x-2 text-sm">
+              {saveStatus === 'saving' && (
+                <div className="flex items-center text-blue-600">
+                  <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Previous
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (parseInt(sectionId) === 20) {
-                      window.location.href = '/application/review'
-                    } else {
-                      const nextSection = Math.min(20, parseInt(sectionId) + 1)
-                      window.location.href = `/application/form/section/${nextSection}`
-                    }
-                  }}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                    parseInt(sectionId) === 20
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {parseInt(sectionId) === 20 ? (
-                    <>
-                      Review & Submit
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </div>
+                  <span>Saving...</span>
+                </div>
+              )}
+              
+              {saveStatus === 'saved' && lastSaved && (
+                <div className="flex items-center text-green-600">
+                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span>
+                    Saved {new Date(lastSaved).toLocaleTimeString()}
+                  </span>
+                </div>
+              )}
+              
+              {saveStatus === 'error' && (
+                <div className="flex items-center text-red-600">
+                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span>Save failed - please try again</span>
+                </div>
+              )}
             </div>
-          </main>
+
+            {/* Section Content */}
+            {React.Children.map(children, child =>
+              React.cloneElement(child, contextValue)
+            )}
+            
+            {/* Navigation */}
+            <FormNavigation 
+              currentSection={parseInt(sectionId) || 1}
+            />
+          </div>
         </div>
       </div>
     </div>
   )
-}
-
-// Helper function
-function formatTimeSince(date) {
-  const seconds = Math.floor((new Date() - date) / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h ago`
 }

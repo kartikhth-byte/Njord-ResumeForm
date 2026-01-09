@@ -1,4 +1,5 @@
 // supabase/functions/send-application-emails/index.ts
+// SECURED VERSION - WITH AUTHENTICATION & OWNERSHIP CHECKS
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -19,6 +20,43 @@ serve(async (req) => {
   }
 
   try {
+    // ✅ SECURITY STEP 1: AUTHENTICATE USER
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        }
+      )
+    }
+
+    // Extract token
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create Supabase client with service role
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // ✅ VERIFY USER IDENTITY
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        }
+      )
+    }
+
+    console.log('✅ Authenticated user:', user.id)
+
     // Parse request
     const { applicationId } = await req.json() as EmailRequest
     
@@ -28,13 +66,7 @@ serve(async (req) => {
 
     console.log('Processing application:', applicationId)
 
-    // Create Supabase client with service role
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Get application data
+    // ✅ SECURITY STEP 2: VERIFY OWNERSHIP
     const { data: application, error: appError } = await supabaseClient
       .from('applications')
       .select(`
@@ -42,15 +74,68 @@ serve(async (req) => {
         application_data (data)
       `)
       .eq('id', applicationId)
+      .eq('user_id', user.id)  // ✅ OWNERSHIP CHECK - Critical!
       .single()
 
     if (appError) {
       console.error('Error fetching application:', appError)
-      throw new Error(`Failed to fetch application: ${appError.message}`)
+      
+      // Generic error - don't reveal if application exists
+      return new Response(
+        JSON.stringify({ 
+          error: 'Application not found or access denied' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      )
     }
 
     if (!application) {
-      throw new Error('Application not found')
+      // Application doesn't exist OR user doesn't own it
+      return new Response(
+        JSON.stringify({ 
+          error: 'Application not found or access denied' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      )
+    }
+
+    console.log('✅ Ownership verified for application:', applicationId)
+
+    // ✅ SECURITY STEP 3: VALIDATE APPLICATION STATE
+    // Only allow sending email for submitted applications
+    if (!application.submitted_at) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Cannot send email for draft applications' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
+    }
+
+    // ✅ SECURITY STEP 4: PREVENT DUPLICATE EMAILS (Optional but recommended)
+    if (application.recruiter_email_sent) {
+      console.log('⚠️ Email already sent for this application')
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Email already sent for this application',
+          warning: 'This application has already been emailed to recruiters',
+          referenceNumber: application.reference_number
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200  // Return 200 but with warning
+        }
+      )
     }
 
     // Check if application has reference number
@@ -97,10 +182,10 @@ serve(async (req) => {
     })
     
     // Resume view link
-const appUrl = Deno.env.get('APP_URL')
-if (!appUrl) {
-  throw new Error('APP_URL environment variable is required')
-}
+    const appUrl = Deno.env.get('APP_URL')
+    if (!appUrl) {
+      throw new Error('APP_URL environment variable is required')
+    }
     const resumeLink = `${appUrl}/view/${application.public_token}`
 
     // Get Resend API key
@@ -112,7 +197,7 @@ if (!appUrl) {
     console.log('Sending email to recruiter:', recruiterEmail)
     console.log('Reference number:', referenceNumber)
 
-    // Recruiter notification email HTML
+    // Recruiter notification email HTML (unchanged)
     const recruiterEmailBody = `
       <!DOCTYPE html>
       <html>
@@ -275,7 +360,7 @@ if (!appUrl) {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🔔 New Application Received</h1>
+              <h1>📋 New Application Received</h1>
               <p>Njordships Maritime Recruitment Portal</p>
             </div>
             <div class="content">
@@ -334,7 +419,7 @@ if (!appUrl) {
               </div>
 
               <div class="link-box">
-                <p>📎 Direct Resume Link</p>
+                <p>🔎 Direct Resume Link</p>
                 <a href="${resumeLink}">${resumeLink}</a>
               </div>
 
@@ -351,7 +436,7 @@ if (!appUrl) {
       </html>
     `
 
-    // Send email using Resend (single email, not batch)
+    // Send email using Resend
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -373,7 +458,7 @@ if (!appUrl) {
       throw new Error(`Resend API error: ${JSON.stringify(resendData)}`)
     }
 
-    console.log('Email sent successfully:', resendData)
+    console.log('✅ Email sent successfully:', resendData)
 
     // Update application with email sent status
     const { error: updateError } = await supabaseClient
@@ -388,6 +473,8 @@ if (!appUrl) {
       console.error('Error updating application:', updateError)
       // Don't throw - email was sent successfully
     }
+
+    console.log('✅ Application updated with email sent status')
 
     return new Response(
       JSON.stringify({ 

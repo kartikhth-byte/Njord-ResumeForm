@@ -535,3 +535,183 @@ export const validateAllMandatorySections = (applicationData) => {
     errors: allErrors
   }
 }
+// =============================================================================
+// FIELD-LEVEL VALIDATION FUNCTIONS (ADDED FOR REAL-TIME VALIDATION)
+// =============================================================================
+
+/**
+ * Validate individual field in Section 1
+ * Returns error message or empty string
+ */
+export const validateSection1Field = (fieldName, value, formData = {}) => {
+  switch (fieldName) {
+    case 'appliedForRank':
+      return !value ? 'Position applied for is required' : ''
+    case 'vesselType':
+      return !value ? 'Vessel type is required' : ''
+    case 'availableFrom':
+      return !value ? 'Available from date is required' : ''
+    case 'mediaAdvertisementDetails':
+      return formData.mediaAdvertisement && !value 
+        ? 'Advertisement details are required' 
+        : ''
+    case 'recommendedBy':
+      return formData.professionalRecommendation && !value
+        ? 'Recommender name is required'
+        : ''
+    default:
+      return ''
+  }
+}
+
+/**
+ * Validate individual field in Section 2
+ */
+export const validateSection2Field = (fieldName, value, formData = {}) => {
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+  switch (fieldName) {
+    case 'surname':
+      return !value ? 'Surname is required' : ''
+    case 'firstName':
+      return !value ? 'First name is required' : ''
+    case 'nationality':
+      return !value ? 'Nationality is required' : ''
+    case 'placeOfBirth':
+      return !value ? 'Place of birth is required' : ''
+    case 'dateOfBirth':
+      return !value ? 'Date of birth is required' : ''
+    case 'gender':
+      return !value ? 'Gender is required' : ''
+    case 'email':
+      if (!value) return 'Email is required'
+      if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email address'
+      return ''
+    case 'phoneNumber':
+      if (!value) return 'Phone number is required'
+      if (value.length < 8) return 'Please enter a valid phone number'
+      return ''
+    case 'address':
+      return !value ? 'Address is required' : ''
+    case 'city':
+      return !value ? 'City is required' : ''
+    case 'country':
+      return !value ? 'Country is required' : ''
+    case 'postalCode':
+      return !value ? 'Postal code is required' : ''
+    case 'maritalStatus':
+      return !value ? 'Marital status is required' : ''
+    default:
+      return ''
+  }
+}
+
+/**
+ * Validate individual field in Section 3 (Passport)
+ */
+export const validateSection3Field = (fieldName, value, formData = {}) => {
+  switch (fieldName) {
+    case 'passportNumber':
+      return !value ? 'Passport number is required' : ''
+    case 'placeOfIssue':
+      return !value ? 'Place of issue is required' : ''
+    case 'dateOfIssue':
+      return !value ? 'Date of issue is required' : ''
+    case 'dateOfExpiry':
+      if (!value) return 'Date of expiry is required'
+      if (value && formData.dateOfIssue) {
+        const issueDate = new Date(formData.dateOfIssue)
+        const expiryDate = new Date(value)
+        if (expiryDate <= issueDate) {
+          return 'Expiry date must be after issue date'
+        }
+      }
+      return ''
+    case 'issuingAuthority':
+      return !value ? 'Issuing authority is required' : ''
+    default:
+      return ''
+  }
+}
+
+/**
+ * Validate individual field in Section 4 (CDC)
+ */
+export const validateSection4Field = (fieldName, value, formData = {}) => {
+  switch (fieldName) {
+    case 'cdcNumber':
+      return !value ? 'CDC/Seaman book number is required' : ''
+    case 'placeOfIssue':
+      return !value ? 'Place of issue is required' : ''
+    case 'dateOfIssue':
+      return !value ? 'Date of issue is required' : ''
+    case 'dateOfExpiry':
+      if (!value) return 'Date of expiry is required'
+      if (value && formData.dateOfIssue) {
+        const issueDate = new Date(formData.dateOfIssue)
+        const expiryDate = new Date(value)
+        if (expiryDate <= issueDate) {
+          return 'Expiry date must be after issue date'
+        }
+      }
+      return ''
+    case 'issuingAuthority':
+      return !value ? 'Issuing authority is required' : ''
+    default:
+      return ''
+  }
+}
+
+/**
+ * Validate individual field in Section 13 (Physical & Uniform)
+ */
+export const validateSection13Field = (fieldName, value, formData = {}) => {
+  switch (fieldName) {
+    case 'height':
+      if (!value) return 'Height is required'
+      if (Number(value) <= 0) return 'Please enter a valid height'
+      return ''
+    case 'weight':
+      if (!value) return 'Weight is required'
+      if (Number(value) <= 0) return 'Please enter a valid weight'
+      return ''
+    case 'hairColor':
+      return !value ? 'Hair color is required' : ''
+    case 'eyeColor':
+      return !value ? 'Eye color is required' : ''
+    case 'shoeSize':
+      return !value ? 'Shoe size is required' : ''
+    case 'shoeSizeUnit':
+      return !value ? 'Shoe size unit is required' : ''
+    case 'boilerSuitSize':
+      return !value ? 'Boiler suit size is required' : ''
+    case 'uniformShirtSize':
+      return !value ? 'Uniform shirt size is required' : ''
+    case 'uniformTrouserSize':
+      return !value ? 'Uniform trouser size is required' : ''
+    default:
+      return ''
+  }
+}
+
+/**
+ * Get the appropriate field validator function for a section
+ */
+export const getFieldValidator = (sectionNumber) => {
+  switch (sectionNumber) {
+    case 1: return validateSection1Field
+    case 2: return validateSection2Field
+    case 3: return validateSection3Field
+    case 4: return validateSection4Field
+    case 13: return validateSection13Field
+    default: return () => ''
+  }
+}
+
+/**
+ * Validate a single field in any section
+ */
+export const validateFieldInSection = (sectionNumber, fieldName, value, formData = {}) => {
+  const validator = getFieldValidator(sectionNumber)
+  return validator(fieldName, value, formData)
+}

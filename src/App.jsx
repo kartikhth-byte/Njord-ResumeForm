@@ -25,6 +25,21 @@ import CleanupDrafts from './pages/CleanupDrafts'
 import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 
+
+// Protected Route Component
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user } = useAuth()
+  const { role, loading } = usePermissions(user)
+
+  if (loading) return <div>Loading...</div>
+
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
+}
+
 // ErrorBoundary component
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -132,6 +147,24 @@ function App() {
             <Route path="/calendar-dashboard" element={<CalendarDashboardPage />} />
 
 
+// In routes:
+<Route 
+  path="/dashboard/expiry" 
+  element={
+    <ProtectedRoute allowedRoles={['recruiter', 'master_recruiter']}>
+      <ExpiryDashboardPage />
+    </ProtectedRoute>
+  } 
+/>
+
+<Route 
+  path="/dashboard/calendar" 
+  element={
+    <ProtectedRoute allowedRoles={['recruiter', 'master_recruiter']}>
+      <CalendarDashboardPage />
+    </ProtectedRoute>
+  } 
+/>
             <Route
                    path="/recruiter/applications"
                    element={

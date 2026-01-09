@@ -2,6 +2,9 @@
 // Dashboard to view all expiring documents grouped by urgency
 
 import { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'  // ADD THIS
+import { useAuth } from '../auth/AuthContext'  // ADD THIS
+import { usePermissions } from '../../hooks/usePermissions'  // ADD THIS
 import { supabase } from '../../lib/supabase'
 import DashboardHeader from './DashboardHeader'
 import { AlertCircle, Calendar, FileText, Clock, CheckCircle, RefreshCw } from 'lucide-react'
@@ -51,6 +54,8 @@ const URGENCY_CONFIG = {
 }
 
 export default function ExpiryDashboard() {
+  const { user } = useAuth()  // ADD THIS
+  const { role, loading: permLoading } = usePermissions(user)  // ADD THIS
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [documents, setDocuments] = useState([])
@@ -62,9 +67,28 @@ export default function ExpiryDashboard() {
   })
   const [selectedUrgency, setSelectedUrgency] = useState('all')
 
+  // PERMISSION CHECK: Block non-recruiters
+  if (!permLoading && role !== 'recruiter' && role !== 'master_recruiter') {
+    return <Navigate to="/recruiter" replace />
+  }
+
+  // Show loading while checking permissions
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   useEffect(() => {
-    fetchExpiringDocuments()
-  }, [])
+    if (!permLoading) {  // ADD THIS CHECK
+      fetchExpiringDocuments()
+    }
+  }, [permLoading])  // ADD permLoading DEPENDENCY
 
   const fetchExpiringDocuments = async () => {
     try {

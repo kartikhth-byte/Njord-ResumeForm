@@ -12,7 +12,8 @@ import {
   Search,
   Users,
   Eye,
-  Calendar  // ← ADD THIS
+  Calendar,  // ← ADD THIS
+  AlertCircle    // Add this
 } from 'lucide-react'
 
 export default function RecruiterDashboard() {
@@ -330,6 +331,47 @@ const getApplicantData = (app) => {
             </div>
           </div>
         </div>
+
+{/* Dashboard Navigation - Only for Recruiters */}
+{(role === 'recruiter' || role === 'master_recruiter') && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    {/* Expiry Dashboard Card */}
+    <button
+      onClick={() => navigate('/dashboard/expiry')}
+      className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
+          <AlertCircle className="w-6 h-6 text-red-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 text-lg">Document Expiry Dashboard</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Monitor expiring passports, certificates, and documents
+          </p>
+        </div>
+      </div>
+    </button>
+
+    {/* Calendar Dashboard Card */}
+    <button
+      onClick={() => navigate('/dashboard/calendar')}
+      className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          <Calendar className="w-6 h-6 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 text-lg">Calendar Dashboard</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            View and manage scheduled interviews and events
+          </p>
+        </div>
+      </div>
+    </button>
+  </div>
+)}
 
         {/* Quick Actions Banner */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 mb-6">
