@@ -9,20 +9,43 @@ export const generateApplicationPDF = async (application, applicationData) => {
   
   // Header
   doc.setFontSize(20)
-  doc.setTextColor(31, 41, 55) // gray-800
+  doc.setTextColor(31, 41, 55)
   doc.text('Seafarer Application Form', 105, 20, { align: 'center' })
   
   // Application ID and Date
   doc.setFontSize(10)
-  doc.setTextColor(107, 114, 128) // gray-500
+  doc.setTextColor(107, 114, 128)
   doc.text(`Application ID: #${application.id.slice(0, 8).toUpperCase()}`, 105, 28, { align: 'center' })
   doc.text(`Submitted: ${new Date(application.submitted_at).toLocaleDateString()}`, 105, 33, { align: 'center' })
   
   let yPosition = 45
 
+  // Helper function to render text with wrapping
+  const renderTextWithWrap = (text, x, y, maxWidth = 180) => {
+    const lines = doc.splitTextToSize(String(text), maxWidth)
+    const lineHeight = 5
+    const totalHeight = lines.length * lineHeight
+    
+    if (y + totalHeight > 280) {
+      doc.addPage()
+      y = 20
+    }
+    
+    lines.forEach((line, index) => {
+      doc.text(line, x, y + (index * lineHeight))
+    })
+    
+    return y + totalHeight + 2
+  }
+
   // Helper function to add section
   const addSection = (title, data) => {
-    // Check if we need a new page
+    // Skip if data is missing or empty
+    if (!data) return
+    if (Array.isArray(data) && data.length === 0) return
+    if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) return
+
+    // Page break for title
     if (yPosition > 250) {
       doc.addPage()
       yPosition = 20
@@ -41,7 +64,7 @@ export const generateApplicationPDF = async (application, applicationData) => {
     doc.setTextColor(55, 65, 81)
 
     if (Array.isArray(data)) {
-      // For array data (like visas, certificates)
+      // HANDLE ARRAYS (Education, Sea Service, etc.)
       data.forEach((item, index) => {
         if (yPosition > 270) {
           doc.addPage()
@@ -56,166 +79,124 @@ export const generateApplicationPDF = async (application, applicationData) => {
         Object.entries(item).forEach(([key, value]) => {
           if (value && typeof value !== 'object') {
             const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-            doc.text(`   ${label}: ${value}`, 14, yPosition)
-            yPosition += 5
+            const fullText = `   ${label}: ${value}`
+            yPosition = renderTextWithWrap(fullText, 14, yPosition, 180)
           }
         })
-        yPosition += 3
+        yPosition += 2
       })
     } else if (typeof data === 'object') {
-      // For object data
+      // HANDLE OBJECTS (Personal Details, etc.)
       Object.entries(data).forEach(([key, value]) => {
-        if (yPosition > 280) {
-          doc.addPage()
-          yPosition = 20
-        }
-
         if (value && typeof value !== 'object' && !Array.isArray(value)) {
           const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
           
-          // Handle boolean values
           if (typeof value === 'boolean') {
             value = value ? 'Yes' : 'No'
           }
           
-          doc.text(`${label}: ${value}`, 14, yPosition)
-          yPosition += 5
+          const fullText = `${label}: ${value}`
+          yPosition = renderTextWithWrap(fullText, 14, yPosition, 180)
         }
       })
     }
-
-    yPosition += 8
+    yPosition += 6
   }
 
-  // Section 1: Application Details
-  if (applicationData.section1) {
-    addSection('Section 1: Availability & Application Details', applicationData.section1)
+  // --- SECTION MAPPING ---
+  // Note: We access specific properties (e.g. .education) for array sections
+
+  addSection('Availability & Application Details', applicationData.section1)
+  addSection('Personal & Contact Details', applicationData.section2)
+  addSection('Passport Details', applicationData.section3)
+  addSection('CDC / National Seaman\'s Book', applicationData.section4) // ✅ Fixed Syntax
+
+  if (applicationData.section5?.visas) {
+    addSection('Visas', applicationData.section5.visas)
   }
 
-  // Section 2: Personal Details
-  if (applicationData.section2) {
-    addSection('Section 2: Personal & Contact Details', applicationData.section2)
+  // ✅ FIX: Pass the .education array, not the section object
+  if (applicationData.section6?.education) {
+    addSection('Education Background', applicationData.section6.education)
   }
 
-  // Section 3: Passport
-  if (applicationData.section3) {
-    addSection('Section 3: Passport Details', applicationData.section3)
+  if (applicationData.section7?.dependents) {
+    addSection('Dependents', applicationData.section7.dependents)
   }
 
-  // Section 4: CDC
-  if (applicationData.section4) {
-    addSection('Section 4: CDC / Seaman\'s Book', applicationData.section4)
+  // ✅ FIX: Pass the .certificates array
+  if (applicationData.section8?.certificates) {
+    addSection('National Certificates of Competency', applicationData.section8.certificates)
   }
 
-  // Section 5: Visas
-  if (applicationData.section5?.visas?.length > 0) {
-    addSection('Section 5: Visas', applicationData.section5.visas)
+  if (applicationData.section9?.gmdss) {
+    addSection('GMDSS Certificates', applicationData.section9.gmdss)
   }
 
-  // Section 6: Education
-  if (applicationData.section6?.education?.length > 0) {
-    addSection('Section 6: Education Background', applicationData.section6.education)
+  // ✅ FIX: Pass the .medicalFitness array
+  if (applicationData.section10?.medicalFitness) {
+    addSection('Medical Fitness & Vaccination', applicationData.section10.medicalFitness)
   }
 
-  // Section 7: Dependents
-  if (applicationData.section7?.dependents?.length > 0) {
-    addSection('Section 7: Dependents', applicationData.section7.dependents)
-  }
-
-  // Section 8: Certificates
-  if (applicationData.section8?.certificates?.length > 0) {
-    addSection('Section 8: Certificates of Competency', applicationData.section8.certificates)
-  }
-
-  // Section 9: GMDSS
-  if (applicationData.section9?.gmdss?.length > 0) {
-    addSection('Section 9: GMDSS Certificates', applicationData.section9.gmdss)
-  }
-
-  // Section 10: Medical
-  if (applicationData.section10?.medicalFitness?.length > 0) {
-    addSection('Section 10: Medical Fitness', applicationData.section10.medicalFitness)
-  }
-
-  // Section 11: Medical History
+  // ✅ FIX: Pass the .medicalHistory object inside the section
   if (applicationData.section11?.medicalHistory) {
-    addSection('Section 11: Medical History', applicationData.section11.medicalHistory)
+    addSection('Medical History', applicationData.section11.medicalHistory)
   }
 
-  // Section 12: Languages
-  if (applicationData.section12?.languages?.length > 0) {
-    addSection('Section 12: Foreign Languages', applicationData.section12.languages)
+  if (applicationData.section12?.languages) {
+    addSection('Foreign Languages', applicationData.section12.languages)
   }
 
-  // Section 13: Physical Details
-  if (applicationData.section13) {
-    addSection('Section 13: Physical & Uniform Details', applicationData.section13)
+  addSection('Physical & Uniform Details', applicationData.section13)
+
+  // ✅ FIX: Pass the .courses array
+  if (applicationData.section14?.courses) {
+    addSection('STCW Courses & Competencies', applicationData.section14.courses)
   }
 
-  // Section 14: STCW Courses
-  if (applicationData.section14?.courses?.length > 0) {
-    addSection('Section 14: STCW Courses', applicationData.section14.courses)
+  if (applicationData.section15?.endorsements) {
+    addSection('Flag State Endorsements', applicationData.section15.endorsements)
   }
 
-  // Section 15: Flag State Endorsements
-  if (applicationData.section15?.endorsements?.length > 0) {
-    addSection('Section 15: Flag State Endorsements', applicationData.section15.endorsements)
+  // ✅ FIX: Pass the .seaService array
+  if (applicationData.section16?.seaService) {
+    addSection('Sea Service / Employment History', applicationData.section16.seaService)
   }
 
-  // Section 16: Sea Service
-  if (applicationData.section16?.seaService?.length > 0) {
-    addSection('Section 16: Sea Service / Employment History', applicationData.section16.seaService)
+  if (applicationData.section17?.skills) {
+    addSection('Technical Experience & Skills', applicationData.section17.skills)
   }
 
-  // Section 18: References
-  if (applicationData.section18?.references?.length > 0) {
-    addSection('Section 18: Professional References', applicationData.section18.references)
+  // ✅ FIX: Pass the .references array
+  if (applicationData.section18?.references) {
+    addSection('Professional References', applicationData.section18.references)
   }
 
-  // Section 19: Emergency Contacts
-  if (applicationData.section19?.contacts?.length > 0) {
-    addSection('Section 19: Emergency Contact Information', applicationData.section19.contacts)
+  // ✅ FIX: Pass the .contacts array
+  if (applicationData.section19?.contacts) {
+    addSection('Emergency Contact Information', applicationData.section19.contacts)
   }
 
-  // Section 20: Declarations
   if (applicationData.section20) {
-    addSection('Section 20: Declarations & Signature', {
-      'Accuracy Declaration': applicationData.section20.accuracyDeclaration ? 'Accepted' : 'Not Accepted',
-      'Background Check Consent': applicationData.section20.backgroundCheckConsent ? 'Accepted' : 'Not Accepted',
-      'Data Processing Consent': applicationData.section20.dataProcessingConsent ? 'Accepted' : 'Not Accepted',
-      'Signature Name': applicationData.section20.fullName,
-      'Signature Date': applicationData.section20.signatureDate,
-      'Place of Signing': applicationData.section20.placeOfSigning,
-    })
+    addSection('Additional Information & Declarations', applicationData.section20)
   }
 
-  // Footer on last page
+  // Footer
   const pageCount = doc.internal.getNumberOfPages()
+  doc.setFontSize(8)
+  doc.setTextColor(107, 114, 128)
+  
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setFontSize(8)
-    doc.setTextColor(156, 163, 175)
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      105,
-      290,
-      { align: 'center' }
-    )
-    doc.text(
-      'This is a computer-generated document',
-      105,
-      285,
-      { align: 'center' }
-    )
+    doc.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' })
   }
 
-  // Generate filename
+  // Generate Filename & Save
   const applicantName = applicationData.section2?.firstName 
-    ? `${applicationData.section2.firstName}_${applicationData.section2.lastName || ''}`
+    ? `${applicationData.section2.firstName}_${applicationData.section2.surname || 'Application'}`
     : 'Application'
   
   const filename = `${applicantName.replace(/\s+/g, '_')}_${application.id.slice(0, 8)}.pdf`
-
-  // Save the PDF
-  doc.save(filename)
+  
+  doc.save(filename) // ✅ Added Save Action
 }
