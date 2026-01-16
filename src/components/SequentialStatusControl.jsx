@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { ChevronRight, Loader2, MoreVertical, X, SkipForward } from 'lucide-react'
-import ScheduleEventForm from './ScheduleEventForm'
 
 export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange }) {
   const [loading, setLoading] = useState(false)
@@ -10,26 +10,57 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [modalType, setModalType] = useState(null) // 'next', 'skip', 'reject', 'withdrawn'
   const [selectedStatus, setSelectedStatus] = useState(null)
   const [notes, setNotes] = useState('')
-  
-  // NEW: Schedule event state
-  const [showScheduleForm, setShowScheduleForm] = useState(false)
-  const [scheduleData, setScheduleData] = useState(null)
+  const buttonRef = useRef(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+
+  // Calculate and update dropdown position
+  useEffect(() => {
+    if (showMenu && buttonRef.current) {
+      const updatePosition = () => {
+        const rect = buttonRef.current.getBoundingClientRect()
+        // Use viewport-relative position (no scrollY/scrollX needed)
+        setDropdownPosition({
+          top: rect.bottom + 8,  // 8px below button
+          left: rect.right - 192  // Align right edge (192px = w-48)
+        })
+      }
+      
+      // Initial position
+      updatePosition()
+      
+      // Update on scroll
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+      
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
+      }
+    }
+  }, [showMenu])
 
   const statusFlow = [
     'new',
-    'interview_scheduled',
-    'interview_cleared',
+    'under_review',
     'test_scheduled',
-    'test_cleared',
+    'test_completed',
+    'test_passed',
+    'interview_scheduled',
+    'interview_completed',
+    'offered',
     'hired'
   ]
 
   const statusLabels = {
     new: 'New',
-    interview_scheduled: 'Interview Scheduled',
-    interview_cleared: 'Interview Cleared',
+    under_review: 'Under Review',
     test_scheduled: 'Test Scheduled',
-    test_cleared: 'Test Cleared',
+    test_completed: 'Test Completed',
+    test_passed: 'Test Passed',
+    test_failed: 'Test Failed',
+    interview_scheduled: 'Interview Scheduled',
+    interview_completed: 'Interview Completed',
+    offered: 'Offered',
     hired: 'Hired',
     rejected: 'Rejected',
     withdrawn: 'Withdrawn'
@@ -46,27 +77,17 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const getSkippableStatuses = () => {
     const currentIndex = statusFlow.indexOf(currentStatus)
     if (currentIndex === -1) return []
+    // Return all statuses after the next one (skip at least one stage)
     return statusFlow.slice(currentIndex + 2)
   }
 
   const nextStatus = getNextStatus()
   const isTerminal = currentStatus === 'hired' || currentStatus === 'rejected' || currentStatus === 'withdrawn'
 
-  // NEW: Check if status requires scheduling
-  const requiresScheduling = (status) => {
-    return status === 'interview_scheduled' || status === 'test_scheduled'
-  }
-
   const handleNextStage = () => {
     if (!nextStatus) return
     setModalType('next')
     setSelectedStatus(nextStatus)
-    
-    // NEW: Show scheduling form if moving to interview/test scheduled
-    if (requiresScheduling(nextStatus)) {
-      setShowScheduleForm(true)
-    }
-    
     setShowModal(true)
     setShowMenu(false)
   }
@@ -74,12 +95,6 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const handleSkipTo = (status) => {
     setModalType('skip')
     setSelectedStatus(status)
-    
-    // NEW: Show scheduling form if skipping to interview/test scheduled
-    if (requiresScheduling(status)) {
-      setShowScheduleForm(true)
-    }
-    
     setShowModal(true)
     setShowMenu(false)
   }
@@ -98,27 +113,8 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
     setShowMenu(false)
   }
 
-  // NEW: Handle schedule form data
-  const handleScheduleData = (data) => {
-    setScheduleData(data)
-  }
-
   const handleConfirm = async () => {
     if (!selectedStatus) return
-
-    // NEW: Validate scheduling data if required
-    if (requiresScheduling(selectedStatus)) {
-      if (!scheduleData) {
-        alert('Please fill in the scheduling details')
-        return
-      }
-      
-      // Validate required fields
-      if (!scheduleData.scheduledDate || !scheduleData.scheduledTime) {
-        alert('Please provide date and time for the event')
-        return
-      }
-    }
 
     setLoading(true)
     try {
@@ -143,44 +139,15 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
         if (notesError) console.error('Error adding notes:', notesError)
       }
 
-      // NEW: Create event if scheduling required
-      if (requiresScheduling(selectedStatus) && scheduleData) {
-        const eventType = selectedStatus === 'interview_scheduled' ? 'interview' : 'test'
-        
-        const { error: scheduleError } = await supabase.functions.invoke('schedule-event', {
-          body: {
-            applicationId: applicationId,
-            eventType: eventType,
-            scheduledDate: scheduleData.scheduledDate,
-            scheduledTime: scheduleData.scheduledTime,
-            durationMinutes: parseInt(scheduleData.durationMinutes) || 60,
-            locationType: scheduleData.locationType,
-            locationAddress: scheduleData.locationAddress || null,
-            locationLink: scheduleData.locationLink || null,
-            notes: scheduleData.eventNotes || null,
-            interviewers: scheduleData.interviewers || null
-          }
-        })
-
-        if (scheduleError) {
-          console.error('Error scheduling event:', scheduleError)
-          alert('Status updated but failed to schedule event: ' + scheduleError.message)
-        } else {
-          console.log('Event scheduled successfully')
-        }
-      }
-
       // Callback
       if (onStatusChange) {
         onStatusChange(selectedStatus)
       }
 
-      // Close modal and reset
+      // Close modal
       setShowModal(false)
-      setShowScheduleForm(false)
       setNotes('')
       setSelectedStatus(null)
-      setScheduleData(null)
     } catch (error) {
       console.error('Error updating status:', error)
       alert('Failed to update status: ' + error.message)
@@ -229,7 +196,7 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-visible relative">
         {/* Primary Next Stage Button */}
         {nextStatus && (
           <button
@@ -242,18 +209,30 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
         )}
 
         {/* Menu Button */}
-        <div className="relative">
+        <div className="relative overflow-visible" style={{ zIndex: 50 }}>
           <button
+            ref={buttonRef}
             onClick={() => setShowMenu(!showMenu)}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
 
-          {showMenu && (
+          {showMenu && createPortal(
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+              <div 
+                className="fixed inset-0" 
+                style={{ zIndex: 9998 }}
+                onClick={() => setShowMenu(false)} 
+              />
+              <div 
+                className="fixed w-48 rounded-lg shadow-2xl border-2 border-gray-300 py-1 bg-white"
+                style={{
+                  zIndex: 9999,
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`
+                }}
+              >
                 {/* Skip to Stage */}
                 {getSkippableStatuses().length > 0 && (
                   <>
@@ -292,7 +271,8 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
                   Mark Withdrawn
                 </button>
               </div>
-            </>
+            </>,
+            document.body
           )}
         </div>
       </div>
@@ -303,23 +283,13 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => !loading && setShowModal(false)} />
           
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {getModalTitle()}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 {getModalDescription()}
               </p>
-
-              {/* NEW: Show scheduling form if required */}
-              {showScheduleForm && requiresScheduling(selectedStatus) && (
-                <div className="mb-6">
-                  <ScheduleEventForm
-                    eventType={selectedStatus === 'interview_scheduled' ? 'interview' : 'test'}
-                    onDataChange={handleScheduleData}
-                  />
-                </div>
-              )}
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -338,10 +308,8 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
                 <button
                   onClick={() => {
                     setShowModal(false)
-                    setShowScheduleForm(false)
                     setNotes('')
                     setSelectedStatus(null)
-                    setScheduleData(null)
                   }}
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
@@ -356,10 +324,10 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      {showScheduleForm ? 'Updating & Scheduling...' : 'Updating...'}
+                      Updating...
                     </>
                   ) : (
-                    showScheduleForm ? 'Update Status & Send Invites' : 'Confirm'
+                    'Confirm'
                   )}
                 </button>
               </div>

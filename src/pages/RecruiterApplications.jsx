@@ -10,7 +10,24 @@ import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
 import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
-import { Users, Search, Eye, Loader2, LayoutList, Search as SearchIcon, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
+import { 
+  Users, 
+  Search, 
+  Eye, 
+  Loader2, 
+  LayoutList, 
+  Search as SearchIcon, 
+  TrendingUp, 
+  ChevronDown, 
+  ChevronRight,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Award,
+  Menu,
+  X as XIcon
+} from 'lucide-react'
 
 export default function RecruiterApplications() {
   const navigate = useNavigate()
@@ -42,23 +59,75 @@ export default function RecruiterApplications() {
   // Status Pipeline
   const [expandedStatuses, setExpandedStatuses] = useState(['new'])
   
+  // Sidebar - responsive default: closed on mobile, open on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState(['initial', 'testing', 'interview', 'final'])
 
-// ============================================================================
-// OPTIONAL: Add this state variable after line 43 (for enhanced UI features)
-// ============================================================================
-const [compoundQueryType, setCompoundQueryType] = useState(null)
+  const [compoundQueryType, setCompoundQueryType] = useState(null)
 
-  const statusTabs = [
-    { value: 'all', label: 'All Applications', count: 0 },
-    { value: 'new', label: 'New', count: 0 },
-    { value: 'interview_scheduled', label: 'Interview Scheduled', count: 0 },
-    { value: 'interview_cleared', label: 'Interview Cleared', count: 0 },
-    { value: 'test_scheduled', label: 'Test Scheduled', count: 0 },
-    { value: 'test_cleared', label: 'Test Cleared', count: 0 },
-    { value: 'hired', label: 'Hired', count: 0 },
-    { value: 'rejected', label: 'Rejected', count: 0 },
-    { value: 'withdrawn', label: 'Withdrawn', count: 0 }
-  ]
+  // Handle sidebar state based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      // Open sidebar on desktop (>= 1024px), close on mobile
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true)
+      } else {
+        setSidebarOpen(false)
+      }
+    }
+    
+    // Set initial state
+    handleResize()
+    
+    // Listen for resize
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Status groups for sidebar
+  const statusGroups = [
+    {
+      id: 'initial',
+      label: 'Initial Stage',
+      icon: FileText,
+      statuses: [
+        { value: 'all', label: 'All Applications', count: 0 },
+        { value: 'new', label: 'New', count: 0 },
+        { value: 'under_review', label: 'Under Review', count: 0 },
+      ]
+    },
+    {
+      id: 'testing',
+      label: 'Testing',
+      icon: Clock,
+      statuses: [
+        { value: 'test_scheduled', label: 'Test Scheduled', count: 0 },
+        { value: 'test_completed', label: 'Test Completed', count: 0 },
+        { value: 'test_passed', label: 'Test Passed', count: 0 },
+        { value: 'test_failed', label: 'Test Failed', count: 0 },
+      ]
+    },
+    {
+      id: 'interview',
+      label: 'Interview',
+      icon: Users,
+      statuses: [
+        { value: 'interview_scheduled', label: 'Interview Scheduled', count: 0 },
+        { value: 'interview_completed', label: 'Interview Completed', count: 0 },
+      ]
+    },
+    {
+      id: 'final',
+      label: 'Final Stage',
+      icon: CheckCircle,
+      statuses: [
+        { value: 'offered', label: 'Offered', count: 0 },
+        { value: 'hired', label: 'Hired', count: 0 },
+        { value: 'rejected', label: 'Rejected', count: 0 },
+        { value: 'withdrawn', label: 'Withdrawn', count: 0 },
+      ]
+    }
+  ];
 
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
@@ -127,8 +196,6 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
   const loadApplications = async (appliedFilters = {}) => {
     try {
       setLoading(true)
-      console.log('=== LOAD APPLICATIONS ===')
-      console.log('Applied filters:', appliedFilters)
 
       let query = supabase
         .from('applications')
@@ -146,7 +213,7 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
             data
           )
         `)
-        .not('submitted_at', 'is', null) // Only show submitted applications
+        .not('submitted_at', 'is', null)
 
       if (appliedFilters.position) {
         query = query.eq('applied_rank', appliedFilters.position)
@@ -198,87 +265,64 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
           section2.surname
         ].filter(Boolean).join(' ').trim() || profile?.full_name || 'Unknown'
         
-        const yearsOfExperience = calculateExperience(section16.seaService)
-        const certificates = section8.certificates || []
-        const certificateGrades = certificates.map(cert => cert.grade).filter(Boolean)
-        const visas = section5.visas || []
-        const visaTypes = visas.map(visa => visa.type).filter(Boolean)
-        const endorsements = section15.endorsements || []
-        const flagStates = endorsements.map(end => end.flagState).filter(Boolean)
-        
+        const age = section2.dateOfBirth 
+          ? Math.floor((new Date() - new Date(section2.dateOfBirth)) / (365.25 * 24 * 60 * 60 * 1000))
+          : null
+
         return {
-          id: app.id,
-          applicant_id: app.user_id,
+          ...app,
           full_name: fullName,
-          email: section2.email || profile?.email || 'Unknown',
-          phone: section2.phoneNumber || 'N/A',
-          nationality: section2.nationality || 'N/A',
-          age: section2.age || null,
-          desired_rank: section1.appliedForRank || app.applied_rank || 'Not specified',
-          vessel_type: section1.vesselType || 'Not specified',
-          available_from: section1.availableFrom || null,
-          years_of_experience: yearsOfExperience,
-          certificate_grades: certificateGrades,
-          visa_types: visaTypes,
-          flag_states: flagStates,
-          status: app.status || 'new',
-          reference_number: app.reference_number,
-          public_token: app.public_token,
-          created_at: app.created_at,
-          updated_at: app.updated_at
+          email: section2.email || profile?.email || '',
+          phone: section2.phoneNumber || section2.phone || '',
+          desired_rank: section1.appliedForRank || app.applied_rank || '',
+          vessel_type: section1.vesselType || '',
+          nationality: section2.nationality || '',
+          age: age,
+          experience_years: calculateExperience(section5.seaService),
+          available_from: section1.availableFrom || '',
+          total_experience: section5.totalSeaService || '',
+          last_vessel: section5.seaService?.[0]?.vesselName || '',
+          last_rank: section5.seaService?.[0]?.rank || '',
+          coc_number: section8.cocNumber || '',
+          coc_issuing_country: section8.issuingCountry || '',
+          english_proficiency: section15.englishProficiency || '',
+          marlins_score: section15.marlinsScore || '',
+          bmi: section16.bmi || '',
+          blood_group: section16.bloodGroup || ''
         }
       })
 
-      if (appliedFilters.vesselType) {
-        formattedData = formattedData.filter(app => app.vessel_type === appliedFilters.vesselType)
-      }
-
+      // Apply client-side filters
       if (appliedFilters.nationality) {
         formattedData = formattedData.filter(app => 
-          app.nationality.toLowerCase() === appliedFilters.nationality.toLowerCase()
+          app.nationality === appliedFilters.nationality
         )
       }
 
-      if (appliedFilters.experience) {
+      if (appliedFilters.vesselType) {
         formattedData = formattedData.filter(app => 
-          matchesExperienceFilter(app.years_of_experience, appliedFilters.experience)
+          app.vessel_type === appliedFilters.vesselType
         )
       }
 
-      if (appliedFilters.certificateGrade) {
+      if (appliedFilters.experienceRange) {
         formattedData = formattedData.filter(app => 
-          app.certificate_grades.some(grade => 
-            grade.toLowerCase().replace(/\s+/g, '_') === appliedFilters.certificateGrade
-          )
+          matchesExperienceFilter(app.experience_years, appliedFilters.experienceRange)
         )
       }
 
       if (appliedFilters.ageRange) {
         formattedData = formattedData.filter(app => 
-          matchesAgeRange(app.age, appliedFilters.ageRange)
+          app.age !== null && matchesAgeRange(app.age, appliedFilters.ageRange)
         )
       }
 
       if (appliedFilters.availability) {
         formattedData = formattedData.filter(app => 
-          matchesAvailability(app.available_from, appliedFilters.availability)
+          app.available_from && matchesAvailability(app.available_from, appliedFilters.availability)
         )
       }
 
-      if (appliedFilters.visaType) {
-        formattedData = formattedData.filter(app => 
-          app.visa_types.some(visa => visa.toLowerCase().includes(appliedFilters.visaType.toLowerCase().split(' ')[0]))
-        )
-      }
-
-      if (appliedFilters.flagState) {
-        formattedData = formattedData.filter(app => 
-          app.flag_states.includes(appliedFilters.flagState)
-        )
-      }
-
-      console.log('Final formatted data:', formattedData.length, 'applications')
-      
       setApplications(formattedData)
     } catch (error) {
       console.error('Error loading applications:', error)
@@ -290,18 +334,19 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
   const filterApplications = () => {
     let filtered = [...applications]
 
-    if (statusFilter !== 'all') {
+    if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(app => app.status === statusFilter)
     }
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(app =>
-        app.full_name.toLowerCase().includes(term) ||
-        app.email.toLowerCase().includes(term) ||
+        app.full_name?.toLowerCase().includes(term) ||
+        app.email?.toLowerCase().includes(term) ||
+        app.reference_number?.toLowerCase().includes(term) ||
         app.desired_rank?.toLowerCase().includes(term) ||
         app.vessel_type?.toLowerCase().includes(term) ||
-        app.reference_number?.toLowerCase().includes(term)
+        app.nationality?.toLowerCase().includes(term)
       )
     }
 
@@ -312,10 +357,14 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
     const counts = {
       all: applications.length,
       new: 0,
-      interview_scheduled: 0,
-      interview_cleared: 0,
+      under_review: 0,
       test_scheduled: 0,
-      test_cleared: 0,
+      test_completed: 0,
+      test_passed: 0,
+      test_failed: 0,
+      interview_scheduled: 0,
+      interview_completed: 0,
+      offered: 0,
       hired: 0,
       rejected: 0,
       withdrawn: 0
@@ -339,133 +388,41 @@ const [compoundQueryType, setCompoundQueryType] = useState(null)
   }
 
   const handleFilterChange = (newFilters) => {
-    console.log('Filter changed:', newFilters)
     setFilters(newFilters)
   }
 
   const handleApplyFilters = (filtersToApply = null) => {
-    const isEvent = filtersToApply && filtersToApply.nativeEvent
-    const appliedFilters = (filtersToApply && !isEvent) ? filtersToApply : filters
-    console.log('Applying filters:', appliedFilters)
-    loadApplications(appliedFilters)
+    const activeFilters = filtersToApply || filters
+    loadApplications(activeFilters)
   }
 
- // ============================================================================
-// CRITICAL FIX: Replace these TWO functions in your RecruiterApplications.jsx
-// ============================================================================
-
-// FUNCTION 1: Replace handleAISearchResults (around line 366)
-// ============================================================================
-const handleAISearchResults = async (results, filters, query) => {
-  setAiSearchActive(true)
-  setAiSearchQuery(query)
-  setCurrentPage(1)
-  
-  // Detect compound query type (optional - for enhanced UI)
-  const queryLower = query.toLowerCase()
-  if (queryLower.includes(' and ')) {
-    setCompoundQueryType?.('AND')  // Optional chaining in case state doesn't exist
-  } else if (queryLower.includes(' or ')) {
-    setCompoundQueryType?.('OR')
-  } else {
-    setCompoundQueryType?.(null)
+  const handleAISearchResults = (results, query) => {
+    setAiSearchResults(results)
+    setAiSearchQuery(query)
+    setAiSearchActive(true)
+    setFilteredApplications(results)
   }
-  
-  const applicationIds = results.map(r => r.application_id)
-  
-  if (applicationIds.length === 0) {
+
+  const handleClearAISearch = () => {
+    setAiSearchActive(false)
     setAiSearchResults([])
-    setFilteredApplications([])
-    return
+    setAiSearchQuery('')
+    filterApplications()
   }
-  
-  // CRITICAL FIX 1: Add version_number to SELECT
-  const { data: appsData, error } = await supabase
-    .from('applications')
-    .select(`
-      id,
-      user_id,
-      applied_rank,
-      status,
-      created_at,
-      updated_at,
-      reference_number,
-      public_token,
-      application_data (data)
-    `)
-    .in('id', applicationIds)
-  
-  if (error) {
-    console.error('Error fetching AI search results:', error)
-    return
+
+  const toggleStatus = (statusValue) => {
+    setExpandedStatuses(prev =>
+      prev.includes(statusValue)
+        ? prev.filter(s => s !== statusValue)
+        : [...prev, statusValue]
+    )
   }
-  
-  const applicantIds = [...new Set(appsData.map(app => app.user_id))]
-  const { data: profilesData } = await supabase
-    .from('profiles')
-    .select('id, full_name, email')
-    .in('id', applicantIds)
-  
-  const formattedResults = appsData.map(app => {
-    const profile = profilesData.find(p => p.id === app.user_id)
-    const section1 = app.application_data?.data?.section1 || {}
-    const section2 = app.application_data?.data?.section2 || {}
-    const similarity = results.find(r => r.application_id === app.id)?.similarity || 0
-    
-    const fullName = [
-      section2.firstName,
-      section2.middleName,
-      section2.surname
-    ].filter(Boolean).join(' ').trim() || profile?.full_name || 'Unknown'
-    
-    // CRITICAL FIX 2: Include version_number in result
-    return {
-      id: app.id,
-      applicant_id: app.user_id,
-      full_name: fullName,
-      email: section2.email || profile?.email || 'Unknown',
-      phone: section2.phoneNumber || 'N/A',
-      nationality: section2.nationality || 'N/A',
-      desired_rank: section1.appliedForRank || app.applied_rank || 'Not specified',
-      vessel_type: section1.vesselType || 'Not specified',
-      status: app.status || 'new',
-      reference_number: app.reference_number,
-      public_token: app.public_token,
-      created_at: app.created_at,
-      updated_at: app.updated_at,
-      similarity: similarity
-    }
-  })
-  
- console.log('AI Search results:', formattedResults.length, 'applications')
-  
-  // No deduplication needed - database constraint ensures uniqueness
-  
-  // Sort by similarity (highest first)
-  formattedResults.sort((a, b) => b.similarity - a.similarity)
-  
-  setAiSearchResults(formattedResults)
-  setFilteredApplications(formattedResults)
 
-}
-
-// FUNCTION 2: Replace handleClearAISearch (around line 441)
-// ============================================================================
-const handleClearAISearch = () => {
-  setAiSearchActive(false)
-  setAiSearchResults([])
-  setAiSearchQuery('')
-  setCompoundQueryType?.(null)  // Optional chaining in case state doesn't exist
-  setCurrentPage(1)
-  filterApplications()
-}
-
-
-  const toggleStatus = (status) => {
-    setExpandedStatuses(prev => 
-      prev.includes(status) 
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev =>
+      prev.includes(groupId)
+        ? prev.filter(g => g !== groupId)
+        : [...prev, groupId]
     )
   }
 
@@ -475,13 +432,10 @@ const handleClearAISearch = () => {
     return data.slice(startIndex, endIndex)
   }
 
-  if (permLoading || loading) {
+  if (permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading applications...</p>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
   }
@@ -501,9 +455,9 @@ const handleClearAISearch = () => {
   const paginatedApplications = getPaginatedData(filteredApplications)
 
   const ApplicationTable = ({ apps, showRelevance = false }) => (
-    <div className="bg-white rounded-lg shadow-sm border">
-      <div className="overflow-x-auto">
-        <table className="w-full">
+    <div className="bg-white rounded-lg shadow-sm border overflow-visible">
+      <div className="overflow-x-auto overflow-y-visible">
+        <table className="w-full overflow-visible">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -535,60 +489,53 @@ const handleClearAISearch = () => {
                   Relevance
                 </th>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 overflow-visible">
             {apps.length === 0 ? (
               <tr>
-                <td colSpan={showRelevance ? "10" : "9"} className="px-6 py-12 text-center">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">
-                    {searchTerm || statusFilter !== 'all' || Object.keys(filters).length > 0
-                      ? 'No applications match your filters'
-                      : 'No applications yet'}
-                  </p>
+                <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
+                  No applications found
                 </td>
               </tr>
             ) : (
               apps.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="font-mono text-sm text-blue-600 font-medium">
-                      {app.reference_number || 'N/A'}
+                <tr key={app.id} className="hover:bg-gray-50 transition-colors overflow-visible">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-mono text-blue-600 font-medium">
+                      {app.reference_number}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{app.full_name}</p>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {app.email}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {app.phone}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {formatDisplayValue(app.desired_rank)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {formatDisplayValue(app.vessel_type)}
+                    <div className="text-sm font-medium text-gray-900">{app.full_name}</div>
                   </td>
                   <td className="px-6 py-4">
+                    <div className="text-sm text-gray-600">{app.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">{app.phone}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">{formatDisplayValue(app.desired_rank)}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">{formatDisplayValue(app.vessel_type)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <StatusBadge status={app.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(app.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">
+                      {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '-'}
+                    </div>
                   </td>
                   {showRelevance && (
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full"
                             style={{ width: `${app.similarity * 100}%` }}
@@ -600,8 +547,8 @@ const handleClearAISearch = () => {
                       </div>
                     </td>
                   )}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className="px-6 py-4 relative">
+                    <div className="flex items-center gap-2 relative z-10">
                       <SequentialStatusControl
                         applicationId={app.id}
                         currentStatus={app.status}
@@ -626,290 +573,414 @@ const handleClearAISearch = () => {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-                <p className="text-sm text-gray-600">Manage and track all applications</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              <button
-                onClick={() => {
-                  setActiveTab('all')
-                  setCurrentPage(1)
-                }}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'all'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <LayoutList className="w-5 h-5" />
-                All Applications
-                <span className={`ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium ${
-                  activeTab === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-900'
-                }`}>
-                  {applications.length}
-                </span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setActiveTab('search')
-                  setCurrentPage(1)
-                }}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'search'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <SearchIcon className="w-5 h-5" />
-                Advanced Search
-              </button>
-              
-              <button
-                onClick={() => {
-                  setActiveTab('pipeline')
-                  setCurrentPage(1)
-                }}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'pipeline'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <TrendingUp className="w-5 h-5" />
-                Status Pipeline
-              </button>
-            </nav>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Vertical Sidebar */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-30
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        transition-transform duration-300 ease-in-out
+        w-72 bg-white border-r border-gray-200 flex flex-col
+      `}>
+        {/* Back to Dashboard Button - Very Top */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <button
+            onClick={() => navigate('/recruiter/dashboard')}
+            className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
 
-        {activeTab === 'all' && (
-          <div className="space-y-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Quick search: name, email, reference, rank, vessel type..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Status Filter</h2>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
 
-            <div className="overflow-x-auto">
-              <div className="flex gap-2 min-w-max">
-                {statusTabs.map(tab => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setStatusFilter(tab.value)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
-                      statusFilter === tab.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                    }`}
-                  >
-                    {tab.label}
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-opacity-20 bg-gray-900">
-                      {statusCounts[tab.value]}
+        {/* Sidebar Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {statusGroups.map(group => {
+            const GroupIcon = group.icon
+            const isExpanded = expandedGroups.includes(group.id)
+            const groupTotal = group.statuses.reduce((sum, status) => 
+              sum + (statusCounts[status.value] || 0), 0
+            ) - (statusCounts.all || 0) // Don't double count "all"
+
+            return (
+              <div key={group.id} className="space-y-1">
+                {/* Group Header */}
+                <button
+                  onClick={() => toggleGroup(group.id)}
+                  className="w-full flex items-center justify-between p-2 text-left rounded-lg hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    )}
+                    <GroupIcon className="w-4 h-4 text-gray-500 group-hover:text-blue-600" />
+                    <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900">
+                      {group.label}
                     </span>
-                  </button>
-                ))}
+                  </div>
+                  {group.id !== 'initial' && (
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                      {groupTotal}
+                    </span>
+                  )}
+                </button>
+
+                {/* Group Statuses */}
+                {isExpanded && (
+                  <div className="ml-6 space-y-1">
+                    {group.statuses.map(status => (
+                      <button
+                        key={status.value}
+                        onClick={() => setStatusFilter(status.value)}
+                        className={`
+                          w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
+                          ${statusFilter === status.value
+                            ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }
+                        `}
+                      >
+                        <span>{status.label}</span>
+                        <span className={`
+                          px-2 py-0.5 rounded-full text-xs font-medium
+                          ${statusFilter === status.value
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-600'
+                          }
+                        `}>
+                          {statusCounts[status.value] || 0}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200">
+          <div className="px-6 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
+                  <p className="text-sm text-gray-600">Manage and track all applications</p>
+                </div>
               </div>
             </div>
-
-            <ApplicationTable apps={paginatedApplications} />
-
-            {filteredApplications.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                itemsPerPage={itemsPerPage}
-                totalItems={filteredApplications.length}
-              />
-            )}
           </div>
-        )}
+        </header>
 
-        {activeTab === 'search' && (
-          <div className="space-y-6">
-            <EmbeddingGenerator />
+        {/* Tab Navigation */}
+        <div className="bg-white border-b border-gray-200 px-6">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => {
+                setActiveTab('all')
+                setCurrentPage(1)
+              }}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'all'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <LayoutList className="w-5 h-5" />
+              All Applications
+              <span className={`ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium ${
+                activeTab === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-900'
+              }`}>
+                {applications.length}
+              </span>
+            </button>
+            
+            <button
+              onClick={() => {
+                setActiveTab('search')
+                setCurrentPage(1)
+              }}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'search'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <SearchIcon className="w-5 h-5" />
+              Advanced Search
+            </button>
+            
+            <button
+              onClick={() => {
+                setActiveTab('pipeline')
+                setCurrentPage(1)
+              }}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'pipeline'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              Status Pipeline
+            </button>
+          </nav>
+        </div>
 
-            <div className="flex items-center gap-4 bg-white rounded-lg border p-4">
-              <span className="text-sm font-medium text-gray-700">Search Mode:</span>
-              <button
-                onClick={() => setSearchMode('ai')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  searchMode === 'ai'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🤖 AI Search
-              </button>
-              <button
-                onClick={() => setSearchMode('filters')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  searchMode === 'filters'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🎛️ Manual Filters
-              </button>
+        {/* Search Bar (Only in All Applications Tab) */}
+        {activeTab === 'all' && (
+          <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
+              </p>
+
+              <div className="relative w-96">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email, reference..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
             </div>
-
-            {searchMode === 'ai' && (
-              <>
-                <AISearch 
-                  onResults={handleAISearchResults}
-                  onLoading={setLoading}
-                  onClearSearch={handleClearAISearch}
-                />
-                {aiSearchActive && (
-                  <>
-                    <ApplicationTable apps={paginatedApplications} showRelevance={true} />
-                    {filteredApplications.length > 0 && (
-                      <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                        itemsPerPage={itemsPerPage}
-                        totalItems={filteredApplications.length}
-                      />
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-            {searchMode === 'filters' && (
-              <>
-                <ApplicationFilters 
-                  onFilterChange={handleFilterChange}
-                  onApplyFilters={handleApplyFilters}
-                  activeFilters={filters}
-                />
-                {applications.length > 0 && (
-                  <>
-                    <ApplicationTable apps={paginatedApplications} />
-                    {filteredApplications.length > 0 && (
-                      <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                        itemsPerPage={itemsPerPage}
-                        totalItems={filteredApplications.length}
-                      />
-                    )}
-                  </>
-                )}
-              </>
-            )}
           </div>
         )}
 
-        {activeTab === 'pipeline' && (
-          <div className="space-y-4">
-            {statusTabs.filter(s => s.value !== 'all').map(status => {
-              const statusApps = applications.filter(app => app.status === status.value)
-              const isExpanded = expandedStatuses.includes(status.value)
-              
-              return (
-                <div key={status.value} className="bg-white rounded-lg border">
-                  <button
-                    onClick={() => toggleStatus(status.value)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500" />
-                      )}
-                      <StatusBadge status={status.value} />
-                      <span className="font-medium text-gray-900">{status.label}</span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
-                        {statusApps.length}
-                      </span>
-                    </div>
-                  </button>
-                  
-                  {isExpanded && statusApps.length > 0 && (
-                    <div className="border-t">
-                      {statusApps.map(app => (
-                        <div key={app.id} className="p-4 border-b last:border-b-0 hover:bg-gray-50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="font-mono text-sm text-blue-600 font-medium">
-                                  {app.reference_number}
-                                </span>
-                                <h4 className="font-medium text-gray-900">{app.full_name}</h4>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-500">Position:</span>{' '}
-                                  <span className="text-gray-900">{formatDisplayValue(app.desired_rank)}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Vessel:</span>{' '}
-                                  <span className="text-gray-900">{formatDisplayValue(app.vessel_type)}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Email:</span>{' '}
-                                  <span className="text-gray-900">{app.email}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Phone:</span>{' '}
-                                  <span className="text-gray-900">{app.phone}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 ml-4">
-                              <SequentialStatusControl
-                                applicationId={app.id}
-                                currentStatus={app.status}
-                                onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-                              />
-                              <button
-                                onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
-                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="View application"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+          ) : (
+            <>
+              {/* All Applications Tab */}
+              {activeTab === 'all' && (
+                <div className="space-y-6">
+                  <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
+
+                  {filteredApplications.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      itemsPerPage={itemsPerPage}
+                      totalItems={filteredApplications.length}
+                    />
                   )}
                 </div>
-              )
-            })}
-          </div>
-        )}
+              )}
+
+              {/* Advanced Search Tab */}
+              {activeTab === 'search' && (
+                <div className="space-y-6">
+                  <EmbeddingGenerator />
+
+                  <div className="flex items-center gap-4 bg-white rounded-lg border p-4">
+                    <span className="text-sm font-medium text-gray-700">Search Mode:</span>
+                    <button
+                      onClick={() => setSearchMode('ai')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        searchMode === 'ai'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🤖 AI Search
+                    </button>
+                    <button
+                      onClick={() => setSearchMode('filters')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        searchMode === 'filters'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🎛️ Manual Filters
+                    </button>
+                  </div>
+
+                  {searchMode === 'ai' && (
+                    <>
+                      <AISearch 
+                        onResults={handleAISearchResults}
+                        onLoading={setLoading}
+                        onClearSearch={handleClearAISearch}
+                      />
+                      {aiSearchActive && (
+                        <>
+                          <ApplicationTable apps={paginatedApplications} showRelevance={true} />
+                          {filteredApplications.length > 0 && (
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                              itemsPerPage={itemsPerPage}
+                              totalItems={filteredApplications.length}
+                            />
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {searchMode === 'filters' && (
+                    <>
+                      <ApplicationFilters 
+                        onFilterChange={handleFilterChange}
+                        onApplyFilters={handleApplyFilters}
+                        activeFilters={filters}
+                      />
+                      {applications.length > 0 && (
+                        <>
+                          <ApplicationTable apps={paginatedApplications} />
+                          {filteredApplications.length > 0 && (
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                              itemsPerPage={itemsPerPage}
+                              totalItems={filteredApplications.length}
+                            />
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Status Pipeline Tab */}
+              {activeTab === 'pipeline' && (
+                <div className="space-y-4">
+                  {statusGroups.map(group => (
+                    <div key={group.id} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider px-2">
+                        {group.label}
+                      </h3>
+                      {group.statuses
+                        .filter(s => s.value !== 'all')
+                        .map(status => {
+                          const statusApps = applications.filter(app => app.status === status.value)
+                          const isExpanded = expandedStatuses.includes(status.value)
+                          
+                          return (
+                            <div key={status.value} className="bg-white rounded-lg border overflow-visible">
+                              <button
+                                onClick={() => toggleStatus(status.value)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                                  ) : (
+                                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                                  )}
+                                  <StatusBadge status={status.value} />
+                                  <span className="font-medium text-gray-900">{status.label}</span>
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                                    {statusApps.length}
+                                  </span>
+                                </div>
+                              </button>
+                              
+                              {isExpanded && statusApps.length > 0 && (
+                                <div className="border-t overflow-visible">
+                                  {statusApps.map(app => (
+                                    <div key={app.id} className="p-4 border-b last:border-b-0 hover:bg-gray-50 relative">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-3 mb-2">
+                                            <span className="font-mono text-sm text-blue-600 font-medium">
+                                              {app.reference_number}
+                                            </span>
+                                            <h4 className="font-medium text-gray-900">{app.full_name}</h4>
+                                          </div>
+                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                            <div>
+                                              <span className="text-gray-500">Position:</span>{' '}
+                                              <span className="text-gray-900">{formatDisplayValue(app.desired_rank)}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-gray-500">Vessel:</span>{' '}
+                                              <span className="text-gray-900">{formatDisplayValue(app.vessel_type)}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-gray-500">Email:</span>{' '}
+                                              <span className="text-gray-900">{app.email}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-gray-500">Phone:</span>{' '}
+                                              <span className="text-gray-900">{app.phone}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 ml-4 relative z-10">
+                                          <SequentialStatusControl
+                                            applicationId={app.id}
+                                            currentStatus={app.status}
+                                            onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+                                          />
+                                          <button
+                                            onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
+                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="View application"
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

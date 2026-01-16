@@ -4,6 +4,9 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatDisplayValue } from '../utils/formatUtils'
 import { supabase } from '../lib/supabase'
+import RejectionModal from '../components/recruiter/RejectionModal'
+import TestRetakeModal from '../components/recruiter/TestRetakeModal'
+import StatusBadge from '../components/StatusBadge'
 import { 
   FileText, 
   Clock, 
@@ -12,8 +15,10 @@ import {
   Search,
   Users,
   Eye,
-  Calendar,  // ← ADD THIS
-  AlertCircle    // Add this
+  Calendar,
+  AlertCircle,
+  UserX,  // For Reject button
+  AlertTriangle  // For Test Retake button
 } from 'lucide-react'
 
 export default function RecruiterDashboard() {
@@ -33,6 +38,15 @@ export default function RecruiterDashboard() {
   const [searchRef, setSearchRef] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  
+  // Rejection Modal State
+  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
+  const [selectedApplication, setSelectedApplication] = useState(null)
+  
+  // Test Retake Modal State
+  const [isRetakeModalOpen, setIsRetakeModalOpen] = useState(false)
+  const [selectedRetakeApplication, setSelectedRetakeApplication] = useState(null)
+  
   const itemsPerPage = 20
 
   useEffect(() => {
@@ -42,98 +56,225 @@ export default function RecruiterDashboard() {
     }
   }, [user, permLoading, activeTab, currentPage])
 
-const loadStats = async () => {
-  try {
-    // Total applications (excluding drafts)
-    const { count: total } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .not('submitted_at', 'is', null)
+  const loadStats = async () => {
+    try {
+      // Total applications (excluding drafts)
+      const { count: total } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .not('submitted_at', 'is', null)
 
-    // Needs Review (status = new)
-    const { count: needsReview } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'new')
-      .not('submitted_at', 'is', null)
+      // Needs Review (status = new)
+      const { count: needsReview } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new')
+        .not('submitted_at', 'is', null)
 
-    // In Progress (interview and test stages)
-    const { count: inProgress } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['interview_scheduled', 'interview_cleared', 'test_scheduled', 'test_cleared'])
-      .not('submitted_at', 'is', null)
+      // In Progress (interview and test stages - UPDATED with new statuses)
+      const { count: inProgress } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .in('status', [
+          'under_review',
+          'test_scheduled', 
+          'test_completed',
+          'test_passed',
+          'test_failed',  // Added - needs recruiter decision
+          'interview_scheduled', 
+          'interview_completed'
+        ])
+        .not('submitted_at', 'is', null)
 
-    // Completed (hired/rejected/withdrawn)
-    const { count: completed } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['hired', 'rejected', 'withdrawn'])
-      .not('submitted_at', 'is', null)
+      // Completed (hired/rejected/withdrawn)
+      const { count: completed } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['hired', 'rejected', 'withdrawn'])
+        .not('submitted_at', 'is', null)
 
-    setStats({
-      total: total || 0,
-      needsReview: needsReview || 0,
-      inProgress: inProgress || 0,
-      completed: completed || 0
-    })
-  } catch (error) {
-    console.error('Error loading stats:', error)
+      setStats({
+        total: total || 0,
+        needsReview: needsReview || 0,
+        inProgress: inProgress || 0,
+        completed: completed || 0
+      })
+    } catch (error) {
+      console.error('Error loading stats:', error)
+    }
   }
-}
 
   const loadApplications = async () => {
-  try {
-    setLoading(true)
+    try {
+      setLoading(true)
 
-    let query = supabase
-      .from('applications')
-      .select(`
-        *,
-        application_data (
-          data
-        )
-      `, { count: 'exact' })
-      .not('submitted_at', 'is', null)
+      let query = supabase
+        .from('applications')
+        .select(`
+          *,
+          application_data (
+            data
+          )
+        `, { count: 'exact' })
+        .not('submitted_at', 'is', null)
 
-    // Apply tab filters
-    switch (activeTab) {
-      case 'needs-review':
-        query = query.eq('status', 'new')
-        break
-      case 'in-progress':
-        query = query.in('status', ['interview_scheduled', 'interview_cleared', 'test_scheduled', 'test_cleared'])
-        break
-      case 'archive':
-        query = query.in('status', ['hired', 'rejected', 'withdrawn'])
-        break
-      case 'all':
-        // No filter
-        break
+      // Apply tab filters - UPDATED with new statuses
+      switch (activeTab) {
+        case 'needs-review':
+          query = query.eq('status', 'new')
+          break
+        case 'in-progress':
+          query = query.in('status', [
+            'under_review',
+            'test_scheduled',
+            'test_completed',
+            'test_passed',
+            'test_failed',  // Added - needs recruiter decision
+            'interview_scheduled',
+            'interview_completed'
+          ])
+          break
+        case 'archive':
+          query = query.in('status', ['hired', 'rejected', 'withdrawn'])
+          break
+        case 'all':
+          // No filter
+          break
+      }
+
+      // Pagination
+      const from = (currentPage - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to)
+
+      if (error) throw error
+
+      console.log('Dashboard applications loaded:', data?.length || 0)
+      
+      setApplications(data || [])
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage))
+    } catch (error) {
+      console.error('Error loading applications:', error)
+    } finally {
+      setLoading(false)
     }
-
-    // Pagination
-    const from = (currentPage - 1) * itemsPerPage
-    const to = from + itemsPerPage - 1
-
-    const { data, error, count } = await query
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (error) throw error
-
-    console.log('Dashboard applications loaded:', data?.length || 0)
-    
-    // No deduplication needed anymore! Just set the data directly
-    setApplications(data || [])
-    setTotalPages(Math.ceil((count || 0) / itemsPerPage))
-  } catch (error) {
-    console.error('Error loading applications:', error)
-  } finally {
-    setLoading(false)
   }
-}
 
+  // Handle Rejection - FIXED VERSION
+  const handleReject = async (rejectionData) => {
+    try {
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      if (!currentUser) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update Supabase
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: 'rejected',
+          rejection_category: rejectionData.rejectionCategory,
+          predefined_tags: rejectionData.predefinedTags,
+          custom_tags: rejectionData.customTags,
+          contact_for_future_roles: rejectionData.contactForFutureRoles,
+          rejection_notes: rejectionData.rejectionNotes,
+          rejected_at: rejectionData.rejectedAt,
+          rejected_by: currentUser.id,
+        })
+        .eq('id', rejectionData.applicationId)
+
+      if (error) throw error
+
+      // Optional: Send rejection email to candidate
+      // await sendRejectionEmail(rejectionData)
+
+      // Refresh applications and stats
+      await loadApplications()
+      await loadStats()
+
+      // Close modal
+      setIsRejectionModalOpen(false)
+      setSelectedApplication(null)
+
+      // Show success message
+      alert('Application rejected successfully')
+    } catch (error) {
+      console.error('Error rejecting application:', error)
+      throw error // Modal will handle the error
+    }
+  }
+
+  // Handle Approve Test Retake
+  const handleApproveRetake = async (retakeData) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: 'test_scheduled',  // Back to test_scheduled
+          test_attempt_number: retakeData.nextAttempt,  // Increment attempt
+        })
+        .eq('id', retakeData.applicationId)
+
+      if (error) throw error
+
+      // Refresh applications and stats
+      await loadApplications()
+      await loadStats()
+
+      // Close modal
+      setIsRetakeModalOpen(false)
+      setSelectedRetakeApplication(null)
+
+      // Show success message
+      alert('Test retake approved! Candidate will be notified.')
+    } catch (error) {
+      console.error('Error approving retake:', error)
+      throw error
+    }
+  }
+
+  // Handle Reject from Test Retake Modal
+  const handleRejectFromRetake = async (rejectionData) => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      if (!currentUser) {
+        throw new Error('Not authenticated')
+      }
+
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: 'rejected',
+          rejection_category: rejectionData.rejectionCategory,  // 'failed_assessment'
+          rejection_notes: rejectionData.rejectionNotes,
+          rejected_at: new Date().toISOString(),
+          rejected_by: currentUser.id,
+        })
+        .eq('id', rejectionData.applicationId)
+
+      if (error) throw error
+
+      // Refresh applications and stats
+      await loadApplications()
+      await loadStats()
+
+      // Close modal
+      setIsRetakeModalOpen(false)
+      setSelectedRetakeApplication(null)
+
+      // Show success message
+      alert('Application rejected successfully')
+    } catch (error) {
+      console.error('Error rejecting application:', error)
+      throw error
+    }
+  }
 
   const handleSearchByRef = async (e) => {
     e.preventDefault()
@@ -157,132 +298,184 @@ const loadStats = async () => {
     }
   }
 
-const getApplicantData = (app) => {
-  console.log('=== DEBUG APPLICATION DATA ===')
-  console.log('App ID:', app.id)
-  console.log('Full app object:', app)
-  console.log('application_data:', app.application_data)
-  console.log('application_data.data:', app.application_data?.data)
-  
-  const section1 = app.application_data?.data?.section1 || {}
-  const section2 = app.application_data?.data?.section2 || {}
-  
-  console.log('Section1:', section1)
-  console.log('Section2:', section2)
-  console.log('firstName:', section2.firstName)
-  console.log('phoneNumber:', section2.phoneNumber)
-  console.log('==============================')
-  
-  return {
-    // From section2 - Personal Info
-    firstName: section2.firstName || '',
-    middleName: section2.middleName || '',
-    lastName: section2.surname || '',
-    fullName: [section2.firstName, section2.middleName, section2.surname].filter(Boolean).join(' ').trim() || 'Unknown',
-    email: section2.email || '',
-    phone: section2.phoneNumber || 'N/A',
-    nationality: section2.nationality || 'N/A',
+  const getApplicantData = (app) => {
+    console.log('=== DEBUG APPLICATION DATA ===')
+    console.log('App ID:', app.id)
+    console.log('Full app object:', app)
+    console.log('application_data:', app.application_data)
+    console.log('application_data.data:', app.application_data?.data)
     
-    // From section1 - Application Requirements
-    vesselType: section1.vesselType || 'Not specified',
-    appliedForRank: section1.appliedForRank || app.applied_rank || 'N/A'
-  }
-}
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      'new': 'bg-blue-100 text-blue-800',
-      'interview_scheduled': 'bg-purple-100 text-purple-800',
-      'interview_cleared': 'bg-indigo-100 text-indigo-800',
-      'test_scheduled': 'bg-orange-100 text-orange-800',
-      'test_cleared': 'bg-teal-100 text-teal-800',
-      'hired': 'bg-green-100 text-green-800',
-      'rejected': 'bg-red-100 text-red-800',
-      'withdrawn': 'bg-gray-100 text-gray-800'
+    const section1 = app.application_data?.data?.section1 || {}
+    const section2 = app.application_data?.data?.section2 || {}
+    
+    console.log('Section1:', section1)
+    console.log('Section2:', section2)
+    console.log('firstName:', section2.firstName)
+    console.log('phoneNumber:', section2.phoneNumber)
+    console.log('==============================')
+    
+    return {
+      // From section2 - Personal Info
+      firstName: section2.firstName || '',
+      middleName: section2.middleName || '',
+      lastName: section2.surname || '',
+      fullName: [section2.firstName, section2.middleName, section2.surname].filter(Boolean).join(' ').trim() || 'Unknown',
+      email: section2.email || '',
+      phoneNumber: section2.phoneNumber || section2.phone || '',
+      nationality: section2.nationality || '',
+      dateOfBirth: section2.dateOfBirth || '',
+      placeOfBirth: section2.placeOfBirth || '',
+      
+      // From section1 - Application Info
+      appliedForRank: section1.appliedForRank || '',
+      vesselType: section1.vesselType || '',
+      availableFrom: section1.availableFrom || ''
     }
-    return badges[status] || 'bg-gray-100 text-gray-800'
+  }
+
+  // Updated status badge with new statuses
+  // Determine which actions to show based on status
+  const getActionButtons = (app) => {
+    const applicantData = getApplicantData(app)
+    
+    switch (app.status) {
+      case 'new':
+      case 'under_review':
+        return (
+          <>
+            <button
+              onClick={() => navigate(`/application/view/${app.public_token}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              View
+            </button>
+            <button
+              onClick={() => {
+                setSelectedApplication({
+                  id: app.id,
+                  applicant_name: applicantData.fullName,
+                  reference_number: app.reference_number,
+                  status: app.status
+                })
+                setIsRejectionModalOpen(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <UserX className="w-4 h-4" />
+              Reject
+            </button>
+          </>
+        )
+      
+      case 'test_failed':
+        return (
+          <>
+            <button
+              onClick={() => navigate(`/application/view/${app.public_token}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              View
+            </button>
+            <button
+              onClick={() => {
+                setSelectedRetakeApplication({
+                  id: app.id,
+                  applicant_name: applicantData.fullName,
+                  reference_number: app.reference_number,
+                  status: app.status,
+                  test_attempt_number: app.test_attempt_number || 1,
+                  test_max_attempts: app.test_max_attempts || 2,
+                  test_score: app.test_score,  // Optional
+                  passing_score: 70,  // Optional
+                })
+                setIsRetakeModalOpen(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              Decide Retake
+            </button>
+          </>
+        )
+      
+      case 'interview_completed':
+        return (
+          <>
+            <button
+              onClick={() => navigate(`/application/view/${app.public_token}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              View
+            </button>
+            <button
+              onClick={() => {
+                setSelectedApplication({
+                  id: app.id,
+                  applicant_name: applicantData.fullName,
+                  reference_number: app.reference_number,
+                  status: app.status
+                })
+                setIsRejectionModalOpen(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <UserX className="w-4 h-4" />
+              Reject
+            </button>
+          </>
+        )
+      
+      default:
+        // For all other statuses, just show View button
+        return (
+          <button
+            onClick={() => navigate(`/application/view/${app.public_token}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            View
+          </button>
+        )
+    }
   }
 
   const tabs = [
-    { id: 'needs-review', label: 'Needs Review', count: stats.needsReview, icon: Clock },
-    { id: 'all', label: 'All Applications', count: stats.total, icon: FileText },
-    { id: 'in-progress', label: 'In Progress', count: stats.inProgress, icon: UserCheck },
-    { id: 'archive', label: 'Archive', count: stats.completed, icon: CheckCircle }
+    { id: 'needs-review', label: 'Needs Review', icon: Clock, count: stats.needsReview },
+    { id: 'in-progress', label: 'In Progress', icon: UserCheck, count: stats.inProgress },
+    { id: 'archive', label: 'Archive', icon: CheckCircle, count: stats.completed },
+    { id: 'all', label: 'All Applications', icon: Users, count: stats.total }
   ]
 
-  if (permLoading) {
+  if (permLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Recruiter Dashboard</h1>
-              <p className="text-sm text-gray-600">
-                {role} • {user?.email}
-              </p>
-            </div>
-<div className="flex items-center gap-2">
-  {permissions.includes('manage_team') && (
-    <button
-      onClick={() => navigate('/recruiter/team')}
-      className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-      title="Team Management"
-    >
-      <Users className="w-5 h-5" />
-    </button>
-  )}
-  
-  <button
-    onClick={() => navigate('/expiry-dashboard')}
-    className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-    title="Document Expiry Dashboard"
-  >
-    <FileText className="w-5 h-5" />
-  </button>
-  
-  <button
-    onClick={() => navigate('/calendar-dashboard')}
-    className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-    title="Calendar Dashboard"
-  >
-    <Calendar className="w-5 h-5" />
-  </button>
-  
-  <button
-    onClick={signOut}
-    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-  >
-    Sign Out
-  </button>
-</div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Recruiter Dashboard</h1>
+            <p className="text-gray-600 mt-1">Manage and review seafarer applications</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -311,10 +504,10 @@ const getApplicantData = (app) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">In Progress</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.inProgress}</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.inProgress}</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <UserCheck className="w-6 h-6 text-purple-600" />
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <UserCheck className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -332,46 +525,46 @@ const getApplicantData = (app) => {
           </div>
         </div>
 
-{/* Dashboard Navigation - Only for Recruiters */}
-{(role === 'recruiter' || role === 'master_recruiter') && (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    {/* Expiry Dashboard Card */}
-    <button
-      onClick={() => navigate('/dashboard/expiry')}
-      className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
-    >
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
-          <AlertCircle className="w-6 h-6 text-red-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900 text-lg">Document Expiry Dashboard</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Monitor expiring passports, certificates, and documents
-          </p>
-        </div>
-      </div>
-    </button>
+        {/* Dashboard Navigation - Only for Recruiters */}
+        {(role === 'recruiter' || role === 'master_recruiter') && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Expiry Dashboard Card */}
+            <button
+              onClick={() => navigate('/dashboard/expiry')}
+              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Document Expiry Dashboard</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Monitor expiring passports, certificates, and documents
+                  </p>
+                </div>
+              </div>
+            </button>
 
-    {/* Calendar Dashboard Card */}
-    <button
-      onClick={() => navigate('/dashboard/calendar')}
-      className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
-    >
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-          <Calendar className="w-6 h-6 text-blue-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900 text-lg">Calendar Dashboard</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            View and manage scheduled interviews and events
-          </p>
-        </div>
-      </div>
-    </button>
-  </div>
-)}
+            {/* Calendar Dashboard Card */}
+            <button
+              onClick={() => navigate('/dashboard/calendar')}
+              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <Calendar className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Calendar Dashboard</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    View and manage scheduled interviews and events
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Quick Actions Banner */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 mb-6">
@@ -467,9 +660,7 @@ const getApplicantData = (app) => {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {applicantData.fullName}
                           </h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(app.status)}`}>
-                            {app.status?.replace('_', ' ').toUpperCase()}
-                          </span>
+                          <StatusBadge status={app.status} />
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -477,14 +668,14 @@ const getApplicantData = (app) => {
                             <p className="text-gray-500">Reference</p>
                             <p className="font-mono text-blue-600">{app.reference_number}</p>
                           </div>
-<div>
-  <p className="text-gray-500">Position</p>
-  <p className="font-medium">{formatDisplayValue(applicantData.appliedForRank)}</p>
-</div>
-<div>
-  <p className="text-gray-500">Vessel Type</p>
-  <p className="font-medium">{formatDisplayValue(applicantData.vesselType)}</p>
-</div>
+                          <div>
+                            <p className="text-gray-500">Position</p>
+                            <p className="font-medium">{formatDisplayValue(applicantData.appliedForRank)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Vessel Type</p>
+                            <p className="font-medium">{formatDisplayValue(applicantData.vesselType)}</p>
+                          </div>
                           <div>
                             <p className="text-gray-500">Nationality</p>
                             <p className="font-medium">{applicantData.nationality}</p>
@@ -492,14 +683,9 @@ const getApplicantData = (app) => {
                         </div>
                       </div>
 
+                      {/* Action Buttons - Dynamic based on status */}
                       <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={() => navigate(`/application/view/${app.public_token}`)}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </button>
+                        {getActionButtons(app)}
                       </div>
                     </div>
                   </div>
@@ -534,6 +720,29 @@ const getApplicantData = (app) => {
           )}
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      <RejectionModal
+        isOpen={isRejectionModalOpen}
+        onClose={() => {
+          setIsRejectionModalOpen(false)
+          setSelectedApplication(null)
+        }}
+        application={selectedApplication}
+        onReject={handleReject}
+      />
+
+      {/* Test Retake Modal */}
+      <TestRetakeModal
+        isOpen={isRetakeModalOpen}
+        onClose={() => {
+          setIsRetakeModalOpen(false)
+          setSelectedRetakeApplication(null)
+        }}
+        application={selectedRetakeApplication}
+        onApproveRetake={handleApproveRetake}
+        onRejectApplication={handleRejectFromRetake}
+      />
     </div>
   )
 }
