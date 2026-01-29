@@ -451,6 +451,42 @@ const [offerApplication, setOfferApplication] = useState(null)
         formattedData = formattedData.filter(app => app.available_from && matchesAvailability(app.available_from, appliedFilters.availability))
       }
 
+            // Certificate Grade filter
+      if (appliedFilters.certificateGrade) {
+        formattedData = formattedData.filter(app => {
+          const appData = app.application_data?.data
+          // Check section 8 for certificate grade
+          const certificates = appData?.section8?.certificates || []
+          return certificates.some(cert => 
+            cert.certificateGrade === appliedFilters.certificateGrade
+          )
+        })
+      }
+
+      // Visa Type filter
+      if (appliedFilters.visaType) {
+        formattedData = formattedData.filter(app => {
+          const appData = app.application_data?.data
+          // Check section 5 for visas
+          const visas = appData?.section5?.visas || []
+          return visas.some(visa => 
+            visa.visaType === appliedFilters.visaType
+          )
+        })
+      }
+
+      // Flag State filter
+      if (appliedFilters.flagState) {
+        formattedData = formattedData.filter(app => {
+          const appData = app.application_data?.data
+          // Check section 15 for endorsements
+          const endorsements = appData?.section15?.endorsements || []
+          return endorsements.some(endorsement => 
+            endorsement.flagState === appliedFilters.flagState
+          )
+        })
+      }
+      
       setApplications(formattedData)
     } catch (error) {
       console.error('Error loading applications:', error)

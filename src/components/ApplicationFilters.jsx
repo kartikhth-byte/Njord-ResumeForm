@@ -350,7 +350,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                 <div className="py-1">
                   <button
                     onClick={() => {
-                      handleFilterChange('experience', null)
+                      handleFilterChange('experienceRange', null)
                       setShowExperienceDropdown(false)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
@@ -361,7 +361,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                     <button
                       key={option.value}
                       onClick={() => {
-                        handleFilterChange('experience', option.value)
+                        handleFilterChange('experienceRange', option.value)
                         setShowExperienceDropdown(false)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
@@ -743,7 +743,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
               Experience: {experienceOptions.find(e => e.value === activeFilters.experience)?.label}
               <X 
                 className="w-3 h-3 cursor-pointer hover:text-indigo-900" 
-                onClick={() => handleFilterChange('experience', null)} 
+                onClick={() => handleFilterChange('experienceRange', null)} 
               />
             </span>
           )}
