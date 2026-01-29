@@ -6,7 +6,7 @@ export interface ICSEvent {
   description: string
   location: string
   startDate: string  // YYYY-MM-DD
-  startTime: string  // HH:MM
+  startTime: string  // HH:MM or HH:MM:SS (both supported now)
   durationMinutes: number
   organizerEmail: string
   organizerName: string
@@ -17,7 +17,8 @@ export interface ICSEvent {
 
 export function generateICS(event: ICSEvent): string {
   // Parse date and time
-  const startDateTime = new Date(`${event.startDate}T${event.startTime}:00`)
+  // Handle both HH:MM and HH:MM:SS formats by NOT adding :00
+  const startDateTime = new Date(`${event.startDate}T${event.startTime}`)
   const endDateTime = new Date(startDateTime.getTime() + event.durationMinutes * 60000)
 
   // Format dates for ICS (YYYYMMDDTHHMMSSZ)
@@ -80,7 +81,9 @@ export function generateICS(event: ICSEvent): string {
 //   description: 'Maritime interview with NJORD Ships recruitment team',
 //   location: 'Zoom Meeting',
 //   startDate: '2025-12-25',
-//   startTime: '14:00',
+//   startTime: '14:00',     // Works with HH:MM
+//   // OR
+//   startTime: '14:00:00',  // Also works with HH:MM:SS
 //   durationMinutes: 60,
 //   organizerEmail: 'recruitment@njordships.com',
 //   organizerName: 'NJORD Ships Recruitment',

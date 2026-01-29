@@ -1,6 +1,4 @@
 // src/components/dashboard/DashboardHeader.jsx
-// Reusable header with back navigation for dashboards
-
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 
@@ -40,13 +38,16 @@ export default function DashboardHeader({
             <p className="text-gray-600 mt-1">{description}</p>
           </div>
         </div>
-        <button
-          onClick={onRefresh}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+        
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+        )}
       </div>
     </div>
   )

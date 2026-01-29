@@ -5,6 +5,8 @@ import { useAuth } from '../components/auth/AuthContext'
 import { Loader2, AlertCircle, Printer, ArrowLeft } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
 import { usePermissions } from '../hooks/usePermissions'
+import RejectionHistory from '../components/recruiter/RejectionHistory'
+import ReopenApplicationButton from '../components/recruiter/ReopenApplicationButton'
 
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
@@ -50,7 +52,7 @@ export default function ViewApplication() {
         .from('applications')
         .select('*')
         .eq('public_token', publicToken)
-  .in('status', ['new', 'interview_scheduled', 'interview_cleared', 'test_scheduled', 'test_cleared', 'offer_made', 'hired', 'rejected', 'withdrawn'])
+        .not('submitted_at', 'is', null)  // Only show submitted applications
         .single()
 
       if (appError) {
@@ -79,6 +81,19 @@ export default function ViewApplication() {
       setLoading(false)
     }
   }
+
+  const refreshApplication = async () => {
+  // Reload application data
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*, application_data(data)')
+    .eq('id', applicationId)
+    .single()
+  
+  if (!error && data) {
+    setApplication(data)
+  }
+}
 
   const handlePrint = () => {
     window.print()
@@ -168,13 +183,24 @@ const handleBack = () => {
                 <p className="text-sm text-gray-600">Application View</p>
               </div>
             </div>
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Printer className="w-4 h-4" />
-              Print
-            </button>
+<div className="flex items-center gap-3">
+  {/* Reopen button for rejected or withdrawn applications */}
+  {(application.status === 'rejected' || application.status === 'withdrawn') && (
+    <ReopenApplicationButton 
+      application={application}
+      onReopened={() => {
+        loadApplication()
+      }}
+    />
+  )}
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -189,8 +215,24 @@ const handleBack = () => {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-8 print:p-8">
+        {/* Rejection History - Shows warning for rejected/reopened applications */}
+        <RejectionHistory application={application} />
+        
         {/* Application Header - BLUE GRADIENT */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg border border-blue-800 p-6 mb-6 print:shadow-none print:border-2 print:bg-white">
+         <div className="flex items-center justify-between">
+  {/* Left side: Reference number and status */}
+  <div className="flex items-center gap-3">
+    <span className="text-2xl font-bold">{application.reference_number}</span>
+    <StatusBadge status={application.status} />
+  </div>
+
+  {/* Right side: Reopen button (only shows for rejected applications) */}
+  <ReopenApplicationButton 
+    application={application} 
+    onReopened={refreshApplication}
+  />
+</div>
           {/* Reference Number - Prominent Display */}
           {application.reference_number && (
             <div className="mb-4 pb-4 border-b border-blue-500 print:border-gray-300">

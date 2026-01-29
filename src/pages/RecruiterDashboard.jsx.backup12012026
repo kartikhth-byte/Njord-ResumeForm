@@ -368,7 +368,7 @@ const getApplicantData = (app) => {
         </div>
 
 {/* Dashboard Navigation - Only for Recruiters */}
-{(role === 'recruiter' || role === 'master_recruiter') && (
+{(role === 'Recruiter' || role === 'Master Recruiter') && (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
     {/* Expiry Dashboard Card */}
     <button

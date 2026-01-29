@@ -32,32 +32,67 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get event details with application and profile
+    // =========================================================================
+    // STEP 1: Get event details (NO JOINS - avoid RLS issues)
+    // =========================================================================
     const { data: event, error: eventError } = await supabaseClient
       .from('scheduled_events')
-      .select(`
-        *,
-        applications (
-          *,
-          application_data (data),
-          profiles!applications_user_id_fkey (
-            id,
-            email,
-            full_name
-          )
-        )
-      `)
+      .select('*')
       .eq('id', eventId)
       .single()
 
     if (eventError || !event) {
+      console.error('Event fetch error:', eventError)
       throw new Error('Event not found')
     }
 
-    const application = event.applications
-    const profile = application.profiles
-    const appData = application.application_data?.data || {}
+    // =========================================================================
+    // STEP 2: Get application separately
+    // =========================================================================
+    const { data: application, error: appError } = await supabaseClient
+      .from('applications')
+      .select('*')
+      .eq('id', event.application_id)
+      .single()
 
+    if (appError || !application) {
+      console.error('Application fetch error:', appError)
+      throw new Error('Application not found')
+    }
+
+    // =========================================================================
+    // STEP 3: Get application_data separately
+    // =========================================================================
+    const { data: applicationData, error: appDataError } = await supabaseClient
+      .from('application_data')
+      .select('data')
+      .eq('application_id', application.id)
+      .single()
+
+    if (appDataError) {
+      console.error('Application data fetch error:', appDataError)
+    }
+
+    const appData = applicationData?.data || {}
+
+    // =========================================================================
+    // STEP 4: Get profile separately
+    // =========================================================================
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('id', application.user_id)
+      .single()
+
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError)
+      throw new Error('User profile not found')
+    }
+
+    // =========================================================================
+    // STEP 5: Extract needed data
+    // =========================================================================
+    
     // Get applicant name
     const applicantName = `${appData.section2?.firstName || ''} ${appData.section2?.surname || ''}`.trim() 
       || profile.full_name 
@@ -71,14 +106,14 @@ serve(async (req) => {
     const { data: recruiterProfile } = await supabaseClient
       .from('profiles')
       .select('email, full_name')
-      .eq('id', event.created_by)
+      .eq('id', event.scheduled_by)
       .single()
 
     const recruiterEmail = recruiterProfile?.email || Deno.env.get('EMAIL_FROM') || 'recruitment@njordships.com'
     const recruiterName = recruiterProfile?.full_name || 'NJORD Ships Recruitment'
 
     // Format date and time
-    const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}:00`)
+const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
     const formattedDate = eventDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -102,18 +137,20 @@ serve(async (req) => {
 
     // Determine location string
     let locationString = 'To be confirmed'
-    if (event.location_type === 'virtual' && event.location_link) {
-      locationString = event.location_link
-    } else if (event.location_type === 'physical' && event.location_address) {
-      locationString = event.location_address
+    if (event.location_type === 'online' && event.location_details) {
+      locationString = event.location_details
+    } else if (event.location_type === 'in-person' && event.location_details) {
+      locationString = event.location_details
     } else if (event.location_type === 'phone') {
       locationString = 'Phone Interview'
+    } else if (event.location_details) {
+      locationString = event.location_details
     }
 
     // Generate calendar invite (same for both)
     const icsContent = generateICS({
       summary: `${event.event_type === 'interview' ? 'Interview' : 'Test'} - ${position} - NJORD Ships`,
-      description: `${event.event_type === 'interview' ? 'Interview' : 'Assessment Test'} for ${position} position at NJORD Ships.\\n\\nApplication Reference: ${referenceNumber}\\n${event.notes ? `\\nNotes: ${event.notes}` : ''}`,
+      description: `${event.event_type === 'interview' ? 'Interview' : 'Assessment Test'} for ${position} position at NJORD Ships.\\n\\nApplication Reference: ${referenceNumber}\\n${event.event_description ? `\\nNotes: ${event.event_description}` : ''}`,
       location: locationString,
       startDate: event.scheduled_date,
       startTime: event.scheduled_time,
@@ -122,7 +159,7 @@ serve(async (req) => {
       organizerName: recruiterName,
       attendeeEmail: applicantEmail,
       attendeeName: applicantName,
-      url: event.location_link || undefined
+      url: event.location_details || undefined
     })
 
     const icsBase64 = btoa(icsContent)
@@ -198,46 +235,33 @@ serve(async (req) => {
                 </div>
                 <div class="detail-row">
                   <span class="label">Location:</span>
-                  <span class="value">${event.location_type === 'virtual' && event.location_link ? `<a href="${event.location_link}">${event.location_link}</a>` : locationString}</span>
+                  <span class="value">${locationString.startsWith('http') ? `<a href="${locationString}">${locationString}</a>` : locationString}</span>
                 </div>
-                ${event.interviewers && event.interviewers.length > 0 ? `
-                  <div class="detail-row">
-                    <span class="label">Interviewers:</span>
-                    <span class="value">${event.interviewers.join(', ')}</span>
-                  </div>
-                ` : ''}
-                ${event.notes ? `
-                  <div class="detail-row">
-                    <span class="label">Notes:</span>
-                    <span class="value">${event.notes}</span>
-                  </div>
-                ` : ''}
                 <div class="detail-row">
                   <span class="label">Reference:</span>
                   <span class="value"><strong>${referenceNumber}</strong></span>
                 </div>
               </div>
 
-              <div class="tip-box">
-                <p style="margin: 0; font-size: 14px; color: #6b7280;">
-                  📎 <strong>Calendar Invite Attached</strong><br>
-                  The event has been added to your calendar. If it doesn't appear automatically, use the attached .ics file.
-                </p>
-              </div>
-
-              ${event.location_type === 'virtual' && event.location_link ? `
+              ${locationString.startsWith('http') ? `
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${event.location_link}" class="button">Join Virtual Meeting</a>
+                  <a href="${locationString}" class="button">🔗 Join Meeting</a>
                 </div>
               ` : ''}
 
+              <div style="background: #f9fafb; padding: 16px; border-radius: 6px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  📎 <strong>Calendar Invite:</strong> Attached as .ics file. Add to your calendar.
+                </p>
+              </div>
+
               <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-                If you need to reschedule or have any questions, please contact us at ${recruiterEmail}
+                If you have any questions, please contact our recruitment team.
               </p>
             </div>
             <div class="footer">
-              <p style="margin: 0;">NJORD Ships Maritime Recruitment</p>
-              <p style="margin: 5px 0 0 0;">© ${new Date().getFullYear()} All rights reserved</p>
+              <p style="margin: 0;">NJORD Ships Recruitment Management</p>
+              <p style="margin: 5px 0 0 0;">© ${new Date().getFullYear()} NJORD Ships</p>
             </div>
           </div>
         </body>
@@ -245,12 +269,12 @@ serve(async (req) => {
     `
 
     // ===========================================================================
-    // EMAIL 2: RECRUITER EMAIL (Admin-focused, efficient, actionable)
+    // EMAIL 2: RECRUITER EMAIL (Professional, data-focused)
     // ===========================================================================
     
     const recruiterSubject = isReminder 
-      ? `Reminder: ${event.event_type === 'interview' ? 'Interview' : 'Test'} Tomorrow with ${applicantName} [${referenceNumber}]`
-      : `${event.event_type === 'interview' ? 'Interview' : 'Test'} Scheduled: ${applicantName} - ${position} [${referenceNumber}]`
+      ? `Reminder: ${event.event_type === 'interview' ? 'Interview' : 'Test'} Tomorrow - ${applicantName} [${referenceNumber}]`
+      : `${event.event_type === 'interview' ? 'Interview' : 'Test'} Scheduled - ${applicantName} [${referenceNumber}]`
 
     const recruiterBody = `
       <!DOCTYPE html>
@@ -260,34 +284,27 @@ serve(async (req) => {
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
             .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-            .header { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 30px; }
+            .header { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 40px 30px; text-align: center; }
             .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
             .content { padding: 30px; }
-            .info-box { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 16px; margin: 20px 0; border-radius: 4px; }
-            .detail-row { padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; }
+            .info-box { background: #faf5ff; border-left: 4px solid #7c3aed; padding: 20px; margin: 20px 0; border-radius: 4px; }
+            .detail-row { padding: 12px 0; border-bottom: 1px solid #e5e7eb; display: flex; }
             .detail-row:last-child { border-bottom: none; }
-            .label { font-weight: 600; color: #6b7280; min-width: 130px; }
+            .label { font-weight: 600; color: #6b7280; min-width: 140px; }
             .value { color: #1f2937; flex: 1; }
-            .button { display: inline-block; background: #7c3aed; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: 600; font-size: 14px; }
+            .button { display: inline-block; background: #7c3aed; color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
             .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; background: #f9fafb; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>🗓️ ${isReminder ? 'Event Reminder' : 'Event Scheduled'}</h1>
-              <p style="margin: 5px 0 0 0; opacity: 0.9;">Recruitment Management</p>
+              <h1>${isReminder ? '⏰ Event Reminder' : '📅 Event Scheduled'}</h1>
+              <p>Recruiter Notification</p>
             </div>
             <div class="content">
-              ${isReminder ? `
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin-bottom: 20px; border-radius: 4px;">
-                  <strong>⏰ Tomorrow:</strong> ${event.event_type === 'interview' ? 'Interview' : 'Test'} with ${applicantName}
-                </div>
-              ` : `
-                <div style="background: #d1fae5; border-left: 4px solid #10b981; padding: 16px; margin-bottom: 20px; border-radius: 4px;">
-                  <strong>✅ Scheduled:</strong> ${event.event_type === 'interview' ? 'Interview' : 'Test'} with ${applicantName}
-                </div>
-              `}
+              <h2>Hello ${recruiterName},</h2>
+              <p>${isReminder ? 'Reminder: This' : 'This'} ${event.event_type} is scheduled for ${isReminder ? 'tomorrow' : formattedDate}.</p>
               
               <div class="info-box">
                 <h3 style="margin-top: 0; color: #7c3aed;">Applicant Information</h3>
@@ -329,30 +346,24 @@ serve(async (req) => {
                 </div>
                 <div class="detail-row">
                   <span class="label">Location:</span>
-                  <span class="value">${event.location_type === 'virtual' && event.location_link ? `<a href="${event.location_link}">Virtual Meeting</a>` : locationString}</span>
+                  <span class="value">${locationString.startsWith('http') ? `<a href="${locationString}">Virtual Meeting</a>` : locationString}</span>
                 </div>
-                ${event.interviewers && event.interviewers.length > 0 ? `
-                  <div class="detail-row">
-                    <span class="label">Interviewers:</span>
-                    <span class="value">${event.interviewers.join(', ')}</span>
-                  </div>
-                ` : ''}
-                ${event.notes ? `
+                ${event.event_description ? `
                   <div class="detail-row">
                     <span class="label">Notes:</span>
-                    <span class="value">${event.notes}</span>
+                    <span class="value">${event.event_description}</span>
                   </div>
                 ` : ''}
               </div>
 
-              ${event.location_type === 'virtual' && event.location_link ? `
+              ${locationString.startsWith('http') ? `
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${event.location_link}" class="button">📹 Join Meeting</a>
-                  <a href="${appUrl}/application/view/${application.public_token}" class="button">📄 View Application</a>
+                  <a href="${locationString}" class="button">📹 Join Meeting</a>
+                  <a href="${appUrl}/recruiter/applications/${application.id}" class="button">📄 View Application</a>
                 </div>
               ` : `
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${appUrl}/application/view/${application.public_token}" class="button">📄 View Application</a>
+                  <a href="${appUrl}/recruiter/applications/${application.id}" class="button">📄 View Application</a>
                 </div>
               `}
 
@@ -443,7 +454,7 @@ serve(async (req) => {
           sent_at: new Date().toISOString()
         },
         {
-          user_id: event.created_by,
+          user_id: event.scheduled_by,
           application_id: application.id,
           event_id: eventId,
           notification_type: isReminder ? `${event.event_type}_reminder_recruiter` : `${event.event_type}_scheduled_recruiter`,

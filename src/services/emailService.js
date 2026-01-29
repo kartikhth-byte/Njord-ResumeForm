@@ -1,17 +1,10 @@
 /**
  * Email Service - Supabase Edge Functions + Resend
- * 
- * Uses existing Supabase Edge Functions infrastructure
- * All emails are sent via Supabase Functions which use Resend API
+ * Compatible with both Legacy (Application Object) and New (Direct Params) calls.
  */
 
 import { supabase } from '../lib/supabase';
 
-/**
- * Send recruitment email via Supabase Edge Function
- * @param {string} functionName - Name of the Supabase function
- * @param {Object} payload - Email data
- */
 async function invokeEmailFunction(functionName, payload) {
   try {
     const { data, error } = await supabase.functions.invoke(functionName, {
@@ -20,74 +13,41 @@ async function invokeEmailFunction(functionName, payload) {
 
     if (error) {
       console.error(`Edge function error (${functionName}):`, error);
-      return {
-        success: false,
-        error: error.message
-      };
+      return { success: false, error: error.message };
     }
 
     console.log(`✅ Email sent via ${functionName}:`, data);
-    return {
-      success: true,
-      data: data
-    };
+    return { success: true, data: data };
   } catch (error) {
     console.error(`Error invoking ${functionName}:`, error);
-    return {
-      success: false,
-      error: error.message
-    };
+    return { success: false, error: error.message };
   }
 }
 
-/**
- * Send application received confirmation email
- */
+// Helper to normalize input (Handles both Application Object and Direct Params)
+const normalizeParams = (arg1, arg2) => {
+  // If arg1 has 'to' or 'applicantEmail', it's likely the new direct param style
+  if (arg1.to || (arg1.applicantEmail && !arg1.id)) {
+    return {
+      email: arg1.to || arg1.applicantEmail || arg1.email,
+      name: arg1.name || arg1.applicantName || arg1.applicant_name || 'Candidate',
+      ref: arg1.referenceNumber || arg1.reference_number || 'N/A',
+      rank: arg1.position || arg1.desired_rank || 'Applicant',
+      ...arg1 // Spread rest for custom fields like testLink
+    };
+  }
+  // Fallback to Legacy Application Object style
+  return {
+    email: arg1.email,
+    name: arg1.full_name || arg1.applicant_name,
+    ref: arg1.reference_number,
+    rank: arg1.desired_rank,
+    ...arg2 // Spread secondary argument (details/rejectionData)
+  };
+};
+
 export const sendApplicationReceivedEmail = async (application) => {
   return invokeEmailFunction('send-application-received', {
-    applicantEmail: application.email,
-    applicantName: application.full_name || application.applicantName,
-    referenceNumber: application.reference_number,
-    position: application.desired_rank || application.appliedRank
-  });
-};
-
-/**
- * Send test invitation email
- */
-export const sendTestInvitationEmail = async (application, testLink) => {
-  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
-  
-  return invokeEmailFunction('send-test-invitation', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    testLink: testLink,
-    expiryDate: expiryDate
-  });
-};
-
-/**
- * Send test retake approved email
- */
-export const sendTestRetakeApprovedEmail = async (application, testLink) => {
-  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
-  
-  return invokeEmailFunction('send-test-retake-approved', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    testLink: testLink,
-    expiryDate: expiryDate,
-    attemptNumber: application.test_attempt_number || 2
-  });
-};
-
-/**
- * Send test failed (max attempts) email
- */
-export const sendTestFailedEmail = async (application) => {
-  return invokeEmailFunction('send-test-failed', {
     applicantEmail: application.email,
     applicantName: application.full_name,
     referenceNumber: application.reference_number,
@@ -95,54 +55,92 @@ export const sendTestFailedEmail = async (application) => {
   });
 };
 
-/**
- * Send interview invitation email
- */
-export const sendInterviewInvitationEmail = async (application, interviewDetails) => {
+export const sendTestInvitationEmail = async (arg1, arg2) => {
+  const p = normalizeParams(arg1, arg2);
+  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+  
+  return invokeEmailFunction('send-test-invitation', {
+    applicantEmail: p.email,
+    applicantName: p.name,
+    referenceNumber: p.ref,
+    testLink: p.testLink || arg2, // arg2 was testLink in legacy
+    expiryDate: expiryDate
+  });
+};
+
+export const sendTestRetakeApprovedEmail = async (arg1, arg2) => {
+  const p = normalizeParams(arg1, arg2);
+  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+  
+  return invokeEmailFunction('send-test-retake-approved', {
+    applicantEmail: p.email,
+    applicantName: p.name,
+    referenceNumber: p.ref,
+    testLink: p.testLink || arg2 || 'https://njord-assessment.com/login',
+    expiryDate: expiryDate,
+    attemptNumber: p.attemptNumber || 2
+  });
+};
+
+export const sendTestFailedEmail = async (arg1) => {
+  const p = normalizeParams(arg1);
+  return invokeEmailFunction('send-test-failed', {
+    applicantEmail: p.email,
+    applicantName: p.name,
+    referenceNumber: p.ref,
+    position: p.rank
+  });
+};
+
+export const sendInterviewInvitationEmail = async (arg1, arg2) => {
+  const p = normalizeParams(arg1, arg2);
   return invokeEmailFunction('send-interview-invitation', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    interviewDate: interviewDetails.interviewDate,
-    interviewTime: interviewDetails.interviewTime,
-    meetingLink: interviewDetails.meetingLink,
-    duration: interviewDetails.duration || 60
+    applicantEmail: p.email,
+    applicantName: p.name,
+    referenceNumber: p.ref,
+    interviewDate: p.interviewDate,
+    interviewTime: p.interviewTime,
+    meetingLink: p.meetingLink,
+    duration: p.duration || 60
   });
 };
 
-/**
- * Send rejection email
- */
-export const sendRejectionEmail = async (application, rejectionData) => {
-  // Map rejection category to user-friendly reason
-  const reasonMap = {
-    'unqualified': 'After reviewing your qualifications, we found they did not meet the requirements for this role.',
-    'failed_assessment': 'Based on your assessment results, we have decided to move forward with other candidates.',
-    'failed_interview': 'After careful consideration of your interview, we have decided to pursue other candidates.',
-    'no_show': 'We noticed you were unable to attend the scheduled interview.',
-    'overqualified': 'Your experience exceeds the requirements for this position.',
-    'wrong_role': 'We believe your skills would be better suited for a different role.',
-    'future_consideration': 'While you are a strong candidate, the timing is not right for this particular position.',
-    'withdrew': 'We received your withdrawal request.',
-    'other': rejectionData.notes || 'After careful consideration, we have decided to pursue other candidates.'
-  };
-  
-  const reason = reasonMap[rejectionData.rejectionCategory] || reasonMap.other;
-  
+export const sendRejectionEmail = async (arg1, arg2) => {
+  const p = normalizeParams(arg1, arg2);
+
+  // Logic to handle rejection reason mapping
+  let reasonText = p.reason; 
+  if (!reasonText && p.rejectionCategory) {
+     const reasonMap = {
+      'unqualified': 'After reviewing your qualifications, we found they did not meet the requirements for this role.',
+      'failed_assessment': 'Based on your assessment results, we have decided to move forward with other candidates.',
+      'failed_interview': 'After careful consideration of your interview, we have decided to pursue other candidates.',
+      'no_show': 'We noticed you were unable to attend the scheduled interview.',
+      'overqualified': 'Your experience exceeds the requirements for this position.',
+      'wrong_role': 'We believe your skills would be better suited for a different role.',
+      'future_consideration': 'While you are a strong candidate, the timing is not right for this particular position.',
+      'withdrew': 'We received your withdrawal request.',
+      'other': p.notes || 'After careful consideration, we have decided to pursue other candidates.'
+    };
+    reasonText = reasonMap[p.rejectionCategory] || reasonMap.other;
+  }
+
+  // Append custom message if it exists and isn't already part of the reason
+  if (p.customMessage && !reasonText?.includes(p.customMessage)) {
+    reasonText = `${reasonText}\n\n${p.customMessage}`;
+  }
+
   return invokeEmailFunction('send-rejection-email', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    position: application.desired_rank,
-    reason: reason,
-    futureContact: rejectionData.contactForFutureRoles || false,
-    rejectionCategory: rejectionData.rejectionCategory
+    applicantEmail: p.email,
+    applicantName: p.name,
+    referenceNumber: p.ref,
+    position: p.rank,
+    reason: reasonText,
+    futureContact: p.futureContact || p.contactForFutureRoles || false,
+    rejectionCategory: p.rejectionCategory
   });
 };
 
-/**
- * Send offer letter email
- */
 export const sendOfferLetterEmail = async (application, offerDetails) => {
   return invokeEmailFunction('send-offer-letter', {
     applicantEmail: application.email,
@@ -155,23 +153,17 @@ export const sendOfferLetterEmail = async (application, offerDetails) => {
   });
 };
 
-/**
- * Log email to database (for tracking)
- */
 export const logEmail = async (emailData) => {
   try {
-    const { error } = await supabase
-      .from('email_logs')
-      .insert({
-        application_id: emailData.application_id || null,
-        recipient: emailData.to,
-        subject: emailData.subject,
-        template: emailData.template,
-        status: emailData.success ? 'sent' : 'failed',
-        error_message: emailData.error,
-        sent_at: new Date().toISOString()
-      });
-
+    const { error } = await supabase.from('email_logs').insert({
+      application_id: emailData.application_id || null,
+      recipient: emailData.to,
+      subject: emailData.subject,
+      template: emailData.template,
+      status: emailData.success ? 'sent' : 'failed',
+      error_message: emailData.error,
+      sent_at: new Date().toISOString()
+    });
     if (error) console.error('Failed to log email:', error);
   } catch (err) {
     console.error('Error logging email:', err);

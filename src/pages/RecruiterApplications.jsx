@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -10,6 +10,11 @@ import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
 import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
+import OfferModal from '../components/recruiter/OfferModal'
+
+// --- ADDED MODAL IMPORTS ---
+import RejectionModal from '../components/recruiter/RejectionModal'
+
 import { 
   Users, 
   Search, 
@@ -23,26 +28,131 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  XCircle,
-  Award,
   Menu,
   X as XIcon
 } from 'lucide-react'
 
+
 export default function RecruiterApplications() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const { canViewApplications, loading: permLoading } = usePermissions(user)
   
   const [applications, setApplications] = useState([])
+  const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)  // ← ADD THIS
+const [allApplicationsForPipeline, setAllApplicationsForPipeline] = useState([])  // ← ADD THIS
+
+
+  // Add this useEffect near the top of RecruiterApplications component
+useEffect(() => {
+  console.log('🔍 Checking for teams_connected parameter...')
+
+  const urlParams = new URLSearchParams(window.location.search)
+  const teamsConnected = urlParams.get('teams_connected')
+  const applicationId = localStorage.getItem('reopen_interview_modal')
+
+  console.log('🔍 URL params:', { teamsConnected, applicationId, applicationsCount: applications.length })
+  
+  if (teamsConnected === 'true' && applicationId) {
+    console.log('✅ Found teams_connected, checking if applications loaded...')
+    
+    // Wait until applications are actually loaded
+    if (applications.length === 0) {
+      console.log('⏳ Applications not loaded yet, waiting...')
+      return
+    }
+
+    console.log('✅ Applications loaded, searching for application...')
+    
+    const app = applications.find(a => a.id === applicationId)
+    console.log('🔍 Found application:', app)
+
+    if (app) {
+      console.log('✅ Reopening modal for application:', app.id)
+      
+      // Clean up
+      localStorage.removeItem('reopen_interview_modal')
+      window.history.replaceState({}, '', '/recruiter/applications')
+      
+      // Tell SequentialStatusControl to auto-open
+      setAutoOpenInterviewForApp(app.id)
+      
+      // Clear after a moment
+      //setTimeout(() => setAutoOpenInterviewForApp(null), 1000)
+    } else {
+      console.log('❌ Application not found in loaded list')
+      localStorage.removeItem('reopen_interview_modal')
+      window.history.replaceState({}, '', '/recruiter/applications')
+    }
+  }
+}, [applications])
+
   const [filteredApplications, setFilteredApplications] = useState([])
+  const [allStatusCounts, setAllStatusCounts] = useState({}) // New: stores counts of ALL applications
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [filters, setFilters] = useState({})
   
-  // Tab management
-  const [activeTab, setActiveTab] = useState('all')
+  // Initialize statusFilter from URL or default to 'all'
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all')
+  const [filters, setFilters] = useState({})
+  const [includeRejected, setIncludeRejected] = useState(false) // Include rejected candidates
+  const [includeWithdrawn, setIncludeWithdrawn] = useState(false) // Include withdrawn candidates  
+  const [includeHired, setIncludeHired] = useState(false) // Include hired candidates
+  const [includeActive, setIncludeActive] = useState(true) // Include active candidates (default: true)
+  
+const [isOfferModalOpen, setIsOfferModalOpen] = useState(false)
+const [offerApplication, setOfferApplication] = useState(null)
+
+  // Tab management - initialize from URL or default to 'all'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'all')
+  
+  // Helper function to update tab and URL
+  const updateActiveTab = (newTab) => {
+    setActiveTab(newTab)
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('tab', newTab)
+    if (statusFilter && statusFilter !== 'all') {
+      newParams.set('status', statusFilter)
+    }
+    setSearchParams(newParams, { replace: true })
+  }
+  
+  // Helper function to update status filter and URL
+  const updateStatusFilter = (newStatus) => {
+    setStatusFilter(newStatus)
+    const newParams = new URLSearchParams(searchParams)
+    if (activeTab && activeTab !== 'all') {
+      newParams.set('tab', activeTab)
+    }
+    newParams.set('status', newStatus)
+    setSearchParams(newParams, { replace: true })
+  }
+  
+  // Sync state with URL when navigating back
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'all'
+    const statusFromUrl = searchParams.get('status') || 'all'
+    
+    console.log('🔍 URL changed - Tab:', tabFromUrl, 'Status:', statusFromUrl)
+    console.log('🔍 Current state - Tab:', activeTab, 'Status:', statusFilter)
+    
+    // Only update if different to avoid infinite loops
+    setActiveTab(prev => {
+      if (prev !== tabFromUrl) {
+        console.log('✅ Updating activeTab from', prev, 'to', tabFromUrl)
+        return tabFromUrl
+      }
+      return prev
+    })
+    setStatusFilter(prev => {
+      if (prev !== statusFromUrl) {
+        console.log('✅ Updating statusFilter from', prev, 'to', statusFromUrl)
+        return statusFromUrl
+      }
+      return prev
+    })
+  }, [searchParams])
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -63,8 +173,11 @@ export default function RecruiterApplications() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState(['initial', 'testing', 'interview', 'final'])
 
-  const [compoundQueryType, setCompoundQueryType] = useState(null)
-
+  // --- MODAL STATES ---
+  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
+  const [selectedApplication, setSelectedApplication] = useState(null)
+  
+  
   // Handle sidebar state based on screen size
   useEffect(() => {
     const handleResize = () => {
@@ -97,14 +210,12 @@ export default function RecruiterApplications() {
       ]
     },
     {
-      id: 'testing',
-      label: 'Testing',
+      id: 'test',
+      label: 'Test',
       icon: Clock,
       statuses: [
         { value: 'test_scheduled', label: 'Test Scheduled', count: 0 },
         { value: 'test_completed', label: 'Test Completed', count: 0 },
-        { value: 'test_passed', label: 'Test Passed', count: 0 },
-        { value: 'test_failed', label: 'Test Failed', count: 0 },
       ]
     },
     {
@@ -113,7 +224,7 @@ export default function RecruiterApplications() {
       icon: Users,
       statuses: [
         { value: 'interview_scheduled', label: 'Interview Scheduled', count: 0 },
-        { value: 'interview_completed', label: 'Interview Completed', count: 0 },
+        { value: 'interview_passed', label: 'Interview Passed', count: 0 },
       ]
     },
     {
@@ -132,8 +243,10 @@ export default function RecruiterApplications() {
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
       loadApplications({})
+      loadAllStatusCounts() // Load counts separately
+          loadAllApplicationsForPipeline()  // ← ADD THIS
     }
-  }, [permLoading])
+  }, [permLoading, includeRejected, includeWithdrawn, includeHired, includeActive]) // Reload when any status filter changes
 
   useEffect(() => {
     filterApplications()
@@ -209,11 +322,46 @@ export default function RecruiterApplications() {
           reference_number,
           public_token,
           submitted_at,
+          test_attempt_number,
+          test_max_attempts,
           application_data (
             data
           )
         `)
         .not('submitted_at', 'is', null)
+
+      // Comprehensive status filtering based on checkboxes
+      const statusesToInclude = []
+      
+      if (includeActive) {
+        // Active statuses = not terminal (not hired, rejected, withdrawn)
+        statusesToInclude.push(
+          'new', 'under_review', 'test_scheduled', 'test_completed', 'test_passed', 
+          'test_failed', 'interview_scheduled', 'interview_completed', 'interview_passed',
+          'second_interview_scheduled', 'second_interview_completed', 
+          'offered', 'offer_accepted', 'documents_pending'
+        )
+      }
+      
+      if (includeHired) {
+        statusesToInclude.push('hired')
+      }
+      
+      if (includeRejected) {
+        statusesToInclude.push('rejected')
+      }
+      
+      if (includeWithdrawn) {
+        statusesToInclude.push('withdrawn')
+      }
+      
+      // Apply status filter - if no statuses selected, show nothing
+      if (statusesToInclude.length > 0) {
+        query = query.in('status', statusesToInclude)
+      } else {
+        // No statuses selected - return empty result
+        query = query.eq('status', 'non_existent_status')
+      }
 
       if (appliedFilters.position) {
         query = query.eq('applied_rank', appliedFilters.position)
@@ -229,10 +377,7 @@ export default function RecruiterApplications() {
 
       const { data: appsData, error: appsError } = await query.order('created_at', { ascending: false })
 
-      if (appsError) {
-        console.error('Applications error:', appsError)
-        throw appsError
-      }
+      if (appsError) throw appsError
 
       if (!appsData || appsData.length === 0) {
         setApplications([])
@@ -245,10 +390,7 @@ export default function RecruiterApplications() {
         .select('id, full_name, email')
         .in('id', applicantIds)
 
-      if (profilesError) {
-        console.error('Profiles error:', profilesError)
-        throw profilesError
-      }
+      if (profilesError) throw profilesError
 
       let formattedData = appsData.map(app => {
         const profile = profilesData.find(p => p.id === app.user_id)
@@ -294,33 +436,19 @@ export default function RecruiterApplications() {
 
       // Apply client-side filters
       if (appliedFilters.nationality) {
-        formattedData = formattedData.filter(app => 
-          app.nationality === appliedFilters.nationality
-        )
+        formattedData = formattedData.filter(app => app.nationality === appliedFilters.nationality)
       }
-
       if (appliedFilters.vesselType) {
-        formattedData = formattedData.filter(app => 
-          app.vessel_type === appliedFilters.vesselType
-        )
+        formattedData = formattedData.filter(app => app.vessel_type === appliedFilters.vesselType)
       }
-
       if (appliedFilters.experienceRange) {
-        formattedData = formattedData.filter(app => 
-          matchesExperienceFilter(app.experience_years, appliedFilters.experienceRange)
-        )
+        formattedData = formattedData.filter(app => matchesExperienceFilter(app.experience_years, appliedFilters.experienceRange))
       }
-
       if (appliedFilters.ageRange) {
-        formattedData = formattedData.filter(app => 
-          app.age !== null && matchesAgeRange(app.age, appliedFilters.ageRange)
-        )
+        formattedData = formattedData.filter(app => app.age !== null && matchesAgeRange(app.age, appliedFilters.ageRange))
       }
-
       if (appliedFilters.availability) {
-        formattedData = formattedData.filter(app => 
-          app.available_from && matchesAvailability(app.available_from, appliedFilters.availability)
-        )
+        formattedData = formattedData.filter(app => app.available_from && matchesAvailability(app.available_from, appliedFilters.availability))
       }
 
       setApplications(formattedData)
@@ -330,6 +458,88 @@ export default function RecruiterApplications() {
       setLoading(false)
     }
   }
+
+  const loadAllStatusCounts = async () => {
+    try {
+      // Fetch ALL applications (including rejected) just for counting
+      const { data, error } = await supabase
+        .from('applications')
+        .select('status')
+        .not('submitted_at', 'is', null)
+
+      if (error) throw error
+
+      const counts = {
+        all: data?.length || 0,
+        new: 0,
+        under_review: 0,
+        test_scheduled: 0,
+        test_completed: 0,
+        test_passed: 0,
+        test_failed: 0,
+        interview_scheduled: 0,
+        interview_completed: 0,
+        interview_passed: 0,
+        offered: 0,
+        hired: 0,
+        rejected: 0,
+        withdrawn: 0
+      }
+
+      data?.forEach(app => {
+        if (counts.hasOwnProperty(app.status)) {
+          counts[app.status]++
+        }
+      })
+
+      setAllStatusCounts(counts)
+    } catch (error) {
+      console.error('Error loading status counts:', error)
+    }
+  }
+
+  const loadAllApplicationsForPipeline = async () => {
+  try {
+    // Load ALL applications without any filters for pipeline view
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        user_id,
+        applied_rank,
+        status,
+        created_at,
+        updated_at,
+        reference_number,
+        public_token,
+        submitted_at,
+        application_data (
+          data
+        )
+      `)
+      .not('submitted_at', 'is', null)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    // Transform data same as loadApplications
+    const transformed = data.map(app => ({
+      ...app,
+      full_name: `${app.application_data?.data?.section2?.firstName || ''} ${app.application_data?.data?.section2?.surname || ''}`.trim(),
+      email: app.application_data?.data?.section2?.email || app.application_data?.data?.section4?.email || '',
+      phone: app.application_data?.data?.section2?.phoneNumber || app.application_data?.data?.section4?.phoneNumber || '',
+      desired_rank: app.application_data?.data?.section2?.desiredRank || app.applied_rank || '',
+      vessel_type: app.application_data?.data?.section2?.typeOfVessel || '',
+      nationality: app.application_data?.data?.section2?.nationality || '',
+      available_from: app.application_data?.data?.section2?.availableFrom || '',
+      date_of_birth: app.application_data?.data?.section2?.dateOfBirth || ''
+    }))
+
+    setAllApplicationsForPipeline(transformed)
+  } catch (error) {
+    console.error('Error loading all applications for pipeline:', error)
+  }
+}
 
   const filterApplications = () => {
     let filtered = [...applications]
@@ -354,39 +564,50 @@ export default function RecruiterApplications() {
   }
 
   const getStatusCounts = () => {
-    const counts = {
-      all: applications.length,
-      new: 0,
-      under_review: 0,
-      test_scheduled: 0,
-      test_completed: 0,
-      test_passed: 0,
-      test_failed: 0,
-      interview_scheduled: 0,
-      interview_completed: 0,
-      offered: 0,
-      hired: 0,
-      rejected: 0,
-      withdrawn: 0
-    }
-
-    applications.forEach(app => {
-      if (counts.hasOwnProperty(app.status)) {
-        counts[app.status]++
-      }
-    })
-
-    return counts
+    // Return the separately fetched counts that include ALL applications
+    return allStatusCounts
   }
 
-  const handleStatusChange = (applicationId, newStatus) => {
+ // --- CHANGED: STATUS CHANGE HANDLER WITH MODAL LOGIC & DB UPDATE ---
+const handleStatusChange = async (applicationId, newStatus) => {
+  const appToUpdate = applications.find(a => a.id === applicationId)
+  if (!appToUpdate) return
+
+  // DELETED: Rejection intercept (now handled by TestResultModal)
+  
+  // 2. Handle "Simple" statuses (Direct DB Update)
+  try {
+    const { error } = await supabase
+      .from('applications')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', applicationId)
+
+    if (error) throw error
+
+    // Update local state
     setApplications(prev =>
       prev.map(app =>
         app.id === applicationId ? { ...app, status: newStatus } : app
       )
     )
+  } catch (error) {
+    console.error('Error updating status:', error)
+    alert('Failed to update status')
+  }
+}
+
+  // --- MODAL CALLBACKS ---
+  const handleRejectConfirm = async (rejectionData) => {
+    const appId = rejectionData.applicationId
+    // Update local UI to reflect rejection (DB update handled by Modal/Service)
+    setApplications(prev => prev.map(app => 
+      app.id === appId ? { ...app, status: 'rejected' } : app
+    ))
+    setIsRejectionModalOpen(false)
+    setIsRetakeModalOpen(false) 
   }
 
+  
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
   }
@@ -489,15 +710,18 @@ export default function RecruiterApplications() {
                   Relevance
                 </th>
               )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                View
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200 overflow-visible">
             {apps.length === 0 ? (
               <tr>
-                <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan="11" className="px-6 py-12 text-center text-gray-500">
                   No applications found
                 </td>
               </tr>
@@ -547,21 +771,33 @@ export default function RecruiterApplications() {
                       </div>
                     </td>
                   )}
-                  <td className="px-6 py-4 relative">
-                    <div className="flex items-center gap-2 relative z-10">
-                      <SequentialStatusControl
-                        applicationId={app.id}
-                        currentStatus={app.status}
-                        onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-                      />
-                      <button
-                        onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View application"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                  {/* Actions Column */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+<SequentialStatusControl
+  applicationId={app.id}
+  currentStatus={app.status}
+  onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+  application={app}
+  autoOpenInterview={autoOpenInterviewForApp === app.id}
+    onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}  // ← ADD THIS
+
+/>
+                      {/* Show dash for terminal statuses (rejected, withdrawn, hired) */}
+                      {(app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'hired') && (
+                        <span className="text-gray-400 text-sm">—</span>
+                      )}
                     </div>
+                  </td>
+                  {/* View Column */}
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
+                      className="inline-flex p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="View application"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -612,7 +848,7 @@ export default function RecruiterApplications() {
             const isExpanded = expandedGroups.includes(group.id)
             const groupTotal = group.statuses.reduce((sum, status) => 
               sum + (statusCounts[status.value] || 0), 0
-            ) - (statusCounts.all || 0) // Don't double count "all"
+            ) - (group.id === 'initial' ? (statusCounts.all || 0) : 0) // Only subtract "all" from initial stage
 
             return (
               <div key={group.id} className="space-y-1">
@@ -645,7 +881,7 @@ export default function RecruiterApplications() {
                     {group.statuses.map(status => (
                       <button
                         key={status.value}
-                        onClick={() => setStatusFilter(status.value)}
+                        onClick={() => updateStatusFilter(status.value)}
                         className={`
                           w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
                           ${statusFilter === status.value
@@ -711,7 +947,7 @@ export default function RecruiterApplications() {
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => {
-                setActiveTab('all')
+                updateActiveTab('all')
                 setCurrentPage(1)
               }}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -731,7 +967,7 @@ export default function RecruiterApplications() {
             
             <button
               onClick={() => {
-                setActiveTab('search')
+                updateActiveTab('search')
                 setCurrentPage(1)
               }}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -746,7 +982,7 @@ export default function RecruiterApplications() {
             
             <button
               onClick={() => {
-                setActiveTab('pipeline')
+                updateActiveTab('pipeline')
                 setCurrentPage(1)
               }}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
@@ -764,10 +1000,15 @@ export default function RecruiterApplications() {
         {/* Search Bar (Only in All Applications Tab) */}
         {activeTab === 'all' && (
           <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
-              </p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-gray-600">
+                  {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
+                </p>
+                <span className="text-xs text-gray-500">
+                  {includeRejected ? '(All candidates visible)' : '(Rejected candidates hidden)'}
+                </span>
+              </div>
 
               <div className="relative w-96">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -780,6 +1021,22 @@ export default function RecruiterApplications() {
                 />
               </div>
             </div>
+            
+            {/* Include Rejected Checkbox - Only show when viewing "All Applications" */}
+            {statusFilter === 'all' && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="includeRejected"
+                  checked={includeRejected}
+                  onChange={(e) => setIncludeRejected(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="includeRejected" className="text-sm text-gray-700 cursor-pointer">
+                  Include Rejected Candidates
+                </label>
+              </div>
+            )}
           </div>
         )}
 
@@ -835,6 +1092,82 @@ export default function RecruiterApplications() {
                     >
                       🎛️ Manual Filters
                     </button>
+                  </div>
+
+                  {/* Comprehensive Status Filters for Candidate Database */}
+                  <div className="bg-white rounded-lg border p-4">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-2">📋 Filter by Candidate Status</h3>
+                      <p className="text-xs text-gray-600">Search candidates by their application history and current status</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includeActive}
+                          onChange={(e) => setIncludeActive(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-lg">🔵</span>
+                          <span className="text-sm text-gray-700 font-medium">Active</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includeHired}
+                          onChange={(e) => setIncludeHired(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-lg">✅</span>
+                          <span className="text-sm text-gray-700 font-medium">Hired</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includeRejected}
+                          onChange={(e) => setIncludeRejected(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-lg">❌</span>
+                          <span className="text-sm text-gray-700 font-medium">Rejected</span>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includeWithdrawn}
+                          onChange={(e) => setIncludeWithdrawn(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-lg">⚪</span>
+                          <span className="text-sm text-gray-700 font-medium">Withdrawn</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs text-gray-500">
+                        {!includeRejected && !includeWithdrawn && !includeHired && !includeActive && 
+                          "⚠️ Select at least one status to see results"}
+                        {(includeRejected || includeWithdrawn || includeHired || includeActive) && 
+                          `Showing: ${[
+                            includeActive && 'Active',
+                            includeHired && 'Hired', 
+                            includeRejected && 'Rejected',
+                            includeWithdrawn && 'Withdrawn'
+                          ].filter(Boolean).join(', ')} candidates`}
+                      </p>
+                    </div>
                   </div>
 
                   {searchMode === 'ai' && (
@@ -898,7 +1231,10 @@ export default function RecruiterApplications() {
                       {group.statuses
                         .filter(s => s.value !== 'all')
                         .map(status => {
-                          const statusApps = applications.filter(app => app.status === status.value)
+const statusApps = (activeTab === 'pipeline' 
+  ? allApplicationsForPipeline 
+  : applications
+).filter(app => app.status === status.value)
                           const isExpanded = expandedStatuses.includes(status.value)
                           
                           return (
@@ -953,11 +1289,14 @@ export default function RecruiterApplications() {
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-2 ml-4 relative z-10">
-                                          <SequentialStatusControl
-                                            applicationId={app.id}
-                                            currentStatus={app.status}
-                                            onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-                                          />
+<SequentialStatusControl
+  applicationId={app.id}
+  currentStatus={app.status}
+  onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+  application={app}
+  autoOpenInterview={autoOpenInterviewForApp === app.id}
+    onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}  // ← ADD THIS
+/>
                                           <button
                                             onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
                                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -982,6 +1321,15 @@ export default function RecruiterApplications() {
           )}
         </div>
       </div>
+      
+      {/* --- ADD MODALS AT THE END --- */}
+      <RejectionModal
+        isOpen={isRejectionModalOpen}
+        onClose={() => setIsRejectionModalOpen(false)}
+        applicant={selectedApplication}
+        onConfirm={handleRejectConfirm}
+      />
+
     </div>
   )
 }

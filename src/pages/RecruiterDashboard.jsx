@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatDisplayValue } from '../utils/formatUtils'
 import { supabase } from '../lib/supabase'
 import RejectionModal from '../components/recruiter/RejectionModal'
-import TestRetakeModal from '../components/recruiter/TestRetakeModal'
 import StatusBadge from '../components/StatusBadge'
 import { 
   FileText, 
@@ -17,16 +16,18 @@ import {
   Eye,
   Calendar,
   AlertCircle,
-  UserX,  // For Reject button
-  AlertTriangle  // For Test Retake button
+  UserX,
+  AlertTriangle
 } from 'lucide-react'
 
 export default function RecruiterDashboard() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user, signOut } = useAuth()
   const { permissions, role, loading: permLoading } = usePermissions(user)
   
-  const [activeTab, setActiveTab] = useState('needs-review')
+  // Initialize activeTab from URL parameter or default to 'needs-review'
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'needs-review')
   const [applications, setApplications] = useState([])
   const [stats, setStats] = useState({
     total: 0,
@@ -43,11 +44,22 @@ export default function RecruiterDashboard() {
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState(null)
   
-  // Test Retake Modal State
-  const [isRetakeModalOpen, setIsRetakeModalOpen] = useState(false)
-  const [selectedRetakeApplication, setSelectedRetakeApplication] = useState(null)
   
   const itemsPerPage = 20
+  
+  // Helper function to update tab and URL
+  const updateActiveTab = (newTab) => {
+    setActiveTab(newTab)
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('tab', newTab)
+    setSearchParams(newParams, { replace: true })
+  }
+  
+  // Sync state with URL when navigating back
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'needs-review'
+    setActiveTab(prev => prev !== tabFromUrl ? tabFromUrl : prev)
+  }, [searchParams])
 
   useEffect(() => {
     if (user && !permLoading) {
@@ -58,35 +70,29 @@ export default function RecruiterDashboard() {
 
   const loadStats = async () => {
     try {
-      // Total applications (excluding drafts)
       const { count: total } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
         .not('submitted_at', 'is', null)
 
-      // Needs Review (status = new)
       const { count: needsReview } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'new')
         .not('submitted_at', 'is', null)
 
-      // In Progress (interview and test stages - UPDATED with new statuses)
       const { count: inProgress } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
-        .in('status', [
-          'under_review',
-          'test_scheduled', 
-          'test_completed',
-          'test_passed',
-          'test_failed',  // Added - needs recruiter decision
-          'interview_scheduled', 
-          'interview_completed'
-        ])
+   .in('status', [
+    'under_review',
+    'test_scheduled',
+    'test_passed',
+    'interview_scheduled', 
+    'interview_completed'
+  ]) 
         .not('submitted_at', 'is', null)
 
-      // Completed (hired/rejected/withdrawn)
       const { count: completed } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
@@ -118,31 +124,26 @@ export default function RecruiterDashboard() {
         `, { count: 'exact' })
         .not('submitted_at', 'is', null)
 
-      // Apply tab filters - UPDATED with new statuses
       switch (activeTab) {
         case 'needs-review':
           query = query.eq('status', 'new')
           break
         case 'in-progress':
-          query = query.in('status', [
-            'under_review',
-            'test_scheduled',
-            'test_completed',
-            'test_passed',
-            'test_failed',  // Added - needs recruiter decision
-            'interview_scheduled',
-            'interview_completed'
-          ])
-          break
+  query = query.in('status', [
+    'under_review',
+    'test_scheduled',
+    'test_passed',
+    'interview_scheduled',
+    'interview_completed'
+  ])
+  break
         case 'archive':
           query = query.in('status', ['hired', 'rejected', 'withdrawn'])
           break
         case 'all':
-          // No filter
           break
       }
 
-      // Pagination
       const from = (currentPage - 1) * itemsPerPage
       const to = from + itemsPerPage - 1
 
@@ -152,8 +153,6 @@ export default function RecruiterDashboard() {
 
       if (error) throw error
 
-      console.log('Dashboard applications loaded:', data?.length || 0)
-      
       setApplications(data || [])
       setTotalPages(Math.ceil((count || 0) / itemsPerPage))
     } catch (error) {
@@ -163,17 +162,12 @@ export default function RecruiterDashboard() {
     }
   }
 
-  // Handle Rejection - FIXED VERSION
+  // Handle Rejection (Updates DB & triggers Modal callback)
   const handleReject = async (rejectionData) => {
     try {
-      // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser()
-      
-      if (!currentUser) {
-        throw new Error('Not authenticated')
-      }
+      if (!currentUser) throw new Error('Not authenticated')
 
-      // Update Supabase
       const { error } = await supabase
         .from('applications')
         .update({
@@ -190,22 +184,14 @@ export default function RecruiterDashboard() {
 
       if (error) throw error
 
-      // Optional: Send rejection email to candidate
-      // await sendRejectionEmail(rejectionData)
-
-      // Refresh applications and stats
       await loadApplications()
       await loadStats()
-
-      // Close modal
       setIsRejectionModalOpen(false)
       setSelectedApplication(null)
-
-      // Show success message
       alert('Application rejected successfully')
     } catch (error) {
       console.error('Error rejecting application:', error)
-      throw error // Modal will handle the error
+      throw error
     }
   }
 
@@ -215,22 +201,17 @@ export default function RecruiterDashboard() {
       const { error } = await supabase
         .from('applications')
         .update({
-          status: 'test_scheduled',  // Back to test_scheduled
-          test_attempt_number: retakeData.nextAttempt,  // Increment attempt
+          status: 'test_scheduled',
+          test_attempt_number: retakeData.nextAttempt,
         })
         .eq('id', retakeData.applicationId)
 
       if (error) throw error
 
-      // Refresh applications and stats
       await loadApplications()
       await loadStats()
-
-      // Close modal
       setIsRetakeModalOpen(false)
       setSelectedRetakeApplication(null)
-
-      // Show success message
       alert('Test retake approved! Candidate will be notified.')
     } catch (error) {
       console.error('Error approving retake:', error)
@@ -242,16 +223,13 @@ export default function RecruiterDashboard() {
   const handleRejectFromRetake = async (rejectionData) => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
-      
-      if (!currentUser) {
-        throw new Error('Not authenticated')
-      }
+      if (!currentUser) throw new Error('Not authenticated')
 
       const { error } = await supabase
         .from('applications')
         .update({
           status: 'rejected',
-          rejection_category: rejectionData.rejectionCategory,  // 'failed_assessment'
+          rejection_category: rejectionData.rejectionCategory,
           rejection_notes: rejectionData.rejectionNotes,
           rejected_at: new Date().toISOString(),
           rejected_by: currentUser.id,
@@ -260,15 +238,10 @@ export default function RecruiterDashboard() {
 
       if (error) throw error
 
-      // Refresh applications and stats
       await loadApplications()
       await loadStats()
-
-      // Close modal
       setIsRetakeModalOpen(false)
       setSelectedRetakeApplication(null)
-
-      // Show success message
       alert('Application rejected successfully')
     } catch (error) {
       console.error('Error rejecting application:', error)
@@ -291,7 +264,6 @@ export default function RecruiterDashboard() {
         alert('Application not found with reference number: ' + searchRef)
         return
       }
-
       navigate(`/application/view/${data.public_token}`)
     } catch (error) {
       alert('Application not found')
@@ -299,124 +271,55 @@ export default function RecruiterDashboard() {
   }
 
   const getApplicantData = (app) => {
-    console.log('=== DEBUG APPLICATION DATA ===')
-    console.log('App ID:', app.id)
-    console.log('Full app object:', app)
-    console.log('application_data:', app.application_data)
-    console.log('application_data.data:', app.application_data?.data)
-    
     const section1 = app.application_data?.data?.section1 || {}
     const section2 = app.application_data?.data?.section2 || {}
     
-    console.log('Section1:', section1)
-    console.log('Section2:', section2)
-    console.log('firstName:', section2.firstName)
-    console.log('phoneNumber:', section2.phoneNumber)
-    console.log('==============================')
-    
     return {
-      // From section2 - Personal Info
       firstName: section2.firstName || '',
       middleName: section2.middleName || '',
       lastName: section2.surname || '',
       fullName: [section2.firstName, section2.middleName, section2.surname].filter(Boolean).join(' ').trim() || 'Unknown',
-      email: section2.email || '',
+      email: section2.email || '', // Ensure email is present
       phoneNumber: section2.phoneNumber || section2.phone || '',
       nationality: section2.nationality || '',
       dateOfBirth: section2.dateOfBirth || '',
       placeOfBirth: section2.placeOfBirth || '',
-      
-      // From section1 - Application Info
       appliedForRank: section1.appliedForRank || '',
       vesselType: section1.vesselType || '',
       availableFrom: section1.availableFrom || ''
     }
   }
 
-  // Updated status badge with new statuses
-  // Determine which actions to show based on status
   const getActionButtons = (app) => {
     const applicantData = getApplicantData(app)
     
+    const ViewButton = () => (
+      <button
+        onClick={() => navigate(`/application/view/${app.public_token}`)}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <Eye className="w-4 h-4" />
+        View
+      </button>
+    )
+
     switch (app.status) {
       case 'new':
       case 'under_review':
-        return (
-          <>
-            <button
-              onClick={() => navigate(`/application/view/${app.public_token}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              View
-            </button>
-            <button
-              onClick={() => {
-                setSelectedApplication({
-                  id: app.id,
-                  applicant_name: applicantData.fullName,
-                  reference_number: app.reference_number,
-                  status: app.status
-                })
-                setIsRejectionModalOpen(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <UserX className="w-4 h-4" />
-              Reject
-            </button>
-          </>
-        )
-      
-      case 'test_failed':
-        return (
-          <>
-            <button
-              onClick={() => navigate(`/application/view/${app.public_token}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              View
-            </button>
-            <button
-              onClick={() => {
-                setSelectedRetakeApplication({
-                  id: app.id,
-                  applicant_name: applicantData.fullName,
-                  reference_number: app.reference_number,
-                  status: app.status,
-                  test_attempt_number: app.test_attempt_number || 1,
-                  test_max_attempts: app.test_max_attempts || 2,
-                  test_score: app.test_score,  // Optional
-                  passing_score: 70,  // Optional
-                })
-                setIsRetakeModalOpen(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              Decide Retake
-            </button>
-          </>
-        )
-      
       case 'interview_completed':
         return (
           <>
-            <button
-              onClick={() => navigate(`/application/view/${app.public_token}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              View
-            </button>
+            <ViewButton />
             <button
               onClick={() => {
                 setSelectedApplication({
                   id: app.id,
-                  applicant_name: applicantData.fullName,
+                  name: applicantData.fullName, // FIX: Standardized name
+                  applicant_name: applicantData.fullName, // Legacy support
+                  email: applicantData.email, // FIX: Added email for service
                   reference_number: app.reference_number,
-                  status: app.status
+                  status: app.status,
+                  position: applicantData.appliedForRank
                 })
                 setIsRejectionModalOpen(true)
               }}
@@ -429,16 +332,7 @@ export default function RecruiterDashboard() {
         )
       
       default:
-        // For all other statuses, just show View button
-        return (
-          <button
-            onClick={() => navigate(`/application/view/${app.public_token}`)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-            View
-          </button>
-        )
+        return <ViewButton />
     }
   }
 
@@ -460,18 +354,52 @@ export default function RecruiterDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        
+        {/* HEADER - FIXED WITH BUTTONS */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Recruiter Dashboard</h1>
             <p className="text-gray-600 mt-1">Manage and review seafarer applications</p>
           </div>
-          <button
-            onClick={signOut}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            Sign Out
-          </button>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Icon Navigation */}
+            <button 
+              onClick={() => navigate('/recruiter/calendar')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Calendar - Scheduled Interviews & Events"
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="hidden sm:inline">Calendar</span>
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard/expiry')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+              title="Document Expiry Tracking"
+            >
+              <AlertCircle className="w-5 h-5" />
+              <span className="hidden sm:inline">Expiry</span>
+            </button>
+            {(role === 'Master Recruiter') && (
+              <button 
+                onClick={() => navigate('/recruiter/team')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                title="Team Management"
+              >
+                <Users className="w-5 h-5" />
+                <span className="hidden sm:inline">Team</span>
+              </button>
+            )}
+            
+            <div className="h-8 w-px bg-gray-300 mx-1"></div>
+
+            <button
+              onClick={signOut}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm font-medium"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -525,47 +453,6 @@ export default function RecruiterDashboard() {
           </div>
         </div>
 
-        {/* Dashboard Navigation - Only for Recruiters */}
-        {(role === 'recruiter' || role === 'master_recruiter') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Expiry Dashboard Card */}
-            <button
-              onClick={() => navigate('/dashboard/expiry')}
-              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-lg">Document Expiry Dashboard</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Monitor expiring passports, certificates, and documents
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* Calendar Dashboard Card */}
-            <button
-              onClick={() => navigate('/dashboard/calendar')}
-              className="bg-white border-2 border-gray-200 rounded-lg p-6 text-left hover:border-blue-500 hover:shadow-lg transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <Calendar className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-lg">Calendar Dashboard</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    View and manage scheduled interviews and events
-                  </p>
-                </div>
-              </div>
-            </button>
-          </div>
-        )}
-
         {/* Quick Actions Banner */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">
@@ -615,7 +502,7 @@ export default function RecruiterDashboard() {
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id)
+                      updateActiveTab(tab.id)
                       setCurrentPage(1)
                     }}
                     className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-colors whitespace-nowrap ${
@@ -721,28 +608,17 @@ export default function RecruiterDashboard() {
         </div>
       </div>
 
-      {/* Rejection Modal */}
+      {/* FIXED MODAL PROPS: Using 'applicant' and 'onConfirm' */}
       <RejectionModal
         isOpen={isRejectionModalOpen}
         onClose={() => {
           setIsRejectionModalOpen(false)
           setSelectedApplication(null)
         }}
-        application={selectedApplication}
-        onReject={handleReject}
+        applicant={selectedApplication} 
+        onConfirm={handleReject} 
       />
 
-      {/* Test Retake Modal */}
-      <TestRetakeModal
-        isOpen={isRetakeModalOpen}
-        onClose={() => {
-          setIsRetakeModalOpen(false)
-          setSelectedRetakeApplication(null)
-        }}
-        application={selectedRetakeApplication}
-        onApproveRetake={handleApproveRetake}
-        onRejectApplication={handleRejectFromRetake}
-      />
     </div>
   )
 }

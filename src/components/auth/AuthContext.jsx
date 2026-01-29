@@ -16,100 +16,81 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
 
-  // Add this useEffect to restore session on page load
-useEffect(() => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      setUser(session?.user || null)
-    } else if (event === 'SIGNED_OUT') {
-      setUser(null)
-    }
-  })
-
-  return () => subscription.unsubscribe()
-}, [])
-
-  // Inside AuthProvider component, add this useEffect
-useEffect(() => {
-  // Refresh session every 5 minutes to prevent timeout
-  const interval = setInterval(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      await supabase.auth.refreshSession()
-    }
-  }, 5 * 60 * 1000) // 5 minutes
-
-  return () => clearInterval(interval)
-}, [])
-
   useEffect(() => {
-    // Get initial session
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // 1. Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession()
         
-        if (error) {
-          console.error('Session error:', error)
+        if (error) throw error
+        
+        if (mounted) {
+          setSession(initialSession)
+          setUser(initialSession?.user ?? null)
         }
-        
-        setSession(session)
-        setUser(session?.user ?? null)
       } catch (error) {
         console.error('Auth initialization error:', error)
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
     initializeAuth()
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', session ? 'exists' : 'null')
-      
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (mounted) {
+        setSession(newSession)
+        setUser(newSession?.user ?? null)
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    // 3. Periodic session refresh (Every 5 mins)
+    const refreshInterval = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        await supabase.auth.refreshSession()
+      }
+    }, 5 * 60 * 1000)
+
+    // Cleanup
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+      clearInterval(refreshInterval)
+    }
   }, [])
 
-const signInWithGoogle = async () => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
+  const signInWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
-      },
-    })
-    
-    if (error) {
-      console.error('OAuth error:', error)
+      })
+      
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Sign in error:', error)
       throw error
     }
-    
-    console.log('OAuth initiated:', data)
-    return data
-  } catch (error) {
-    console.error('Sign in error:', error)
-    throw error
   }
-}
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('Error signing out:', error)
-        throw error
-      }
+      if (error) throw error
+      setUser(null)
+      setSession(null)
     } catch (error) {
       console.error('Sign out error:', error)
       throw error
@@ -126,3 +107,5 @@ const signInWithGoogle = async () => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+
+export default AuthContext;

@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, Tag, UserX, Clock, CheckCircle } from 'lucide-react';
-import { sendRejectionEmail } from '../services/emailService';
-
+import { X, AlertCircle, Tag, UserX, CheckCircle } from 'lucide-react';
+// FIX: Import the named export directly since we are using it that way
+import { sendRejectionEmail } from '../../services/emailService';
 
 /**
  * RejectionModal Component
- * 
  * Allows recruiters to reject applications with rich metadata:
  * - Rejection category (9 options)
  * - Predefined tags (15 maritime-specific tags)
  * - Custom tags (free text)
  * - Contact for future roles flag
  * - Detailed notes
- * 
- * Usage:
- * <RejectionModal
- *   isOpen={isOpen}
- *   onClose={() => setIsOpen(false)}
- *   application={selectedApplication}
- *   onReject={handleReject}
- * />
  */
 
 const RejectionModal = ({ 
   isOpen, 
   onClose, 
-  application, 
-  onReject 
+  applicant, // FIX: Renamed from 'application' to match Dashboard
+  onConfirm  // FIX: Renamed from 'onReject' to match Dashboard
 }) => {
   // State
   const [rejectionCategory, setRejectionCategory] = useState('');
@@ -40,21 +31,17 @@ const RejectionModal = ({
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      // Save current scroll position
       const scrollY = window.scrollY;
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
     } else {
-      // Restore scroll position
       const scrollY = document.body.style.top;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
       window.scrollTo(0, parseInt(scrollY || '0') * -1);
     }
-
-    // Cleanup on unmount
     return () => {
       document.body.style.position = '';
       document.body.style.top = '';
@@ -136,10 +123,24 @@ const RejectionModal = ({
     }
 
     setIsSubmitting(true);
-
+    
     try {
-      await onReject({
-        applicationId: application.id,
+      // FIX: Robust name handling
+      const applicantName = applicant?.name || applicant?.firstName || 'Applicant';
+
+      // FIX: Call service with merged object pattern
+      await sendRejectionEmail({
+        to: applicant.email,
+        name: applicantName,
+        reason: rejectionCategory,
+        customMessage: notes,
+        position: applicant.position || 'N/A',
+        contactForFutureRoles: contactForFutureRoles
+      });
+
+      // FIX: Call onConfirm (renamed from onReject)
+      await onConfirm({
+        applicationId: applicant.id,
         status: 'rejected',
         rejectionCategory,
         predefinedTags: selectedPredefinedTags,
@@ -149,7 +150,6 @@ const RejectionModal = ({
         rejectedAt: new Date().toISOString(),
       });
       
-      // Reset form
       resetForm();
       onClose();
     } catch (error) {
@@ -170,8 +170,12 @@ const RejectionModal = ({
   };
 
   const handleClose = () => {
-    if (window.confirm('Are you sure you want to close? All changes will be lost.')) {
-      resetForm();
+    if (rejectionCategory || notes) {
+      if (window.confirm('Are you sure you want to close? All changes will be lost.')) {
+        resetForm();
+        onClose();
+      }
+    } else {
       onClose();
     }
   };
@@ -191,7 +195,8 @@ const RejectionModal = ({
             <div>
               <h2 className="text-xl font-semibold text-white">Reject Application</h2>
               <p className="text-red-100 text-sm">
-                {application?.applicant_name || 'Unknown Candidate'}
+                {/* FIX: Use applicant prop */}
+                {applicant?.name || applicant?.applicant_name || 'Unknown Candidate'}
               </p>
             </div>
           </div>
@@ -381,7 +386,7 @@ const RejectionModal = ({
 
         </div>
 
-        {/* Footer - Fixed */}
+        {/* Footer */}
         <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between">
           <button
             onClick={handleClose}

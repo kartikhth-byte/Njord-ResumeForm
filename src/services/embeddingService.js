@@ -1,40 +1,41 @@
 import { supabase } from '../lib/supabase'
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-
 /**
- * Generate embedding for text using Gemini API
+ * Generate embedding for text using Gemini API (via secure proxy)
  */
 export async function generateEmbedding(text) {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY not configured')
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GEMINI_API_KEY}`
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'models/text-embedding-004',
-      content: {
-        parts: [{
-          text: text
-        }]
+  try {
+    // Call secure edge function instead of direct API ✅
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-embedding-proxy`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ text })
       }
-    })
-  })
+    )
 
-  if (!response.ok) {
-    const error = await response.text()
-    console.error('Gemini API error:', error)
-    throw new Error(`Failed to generate embedding: ${response.statusText}`)
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('Proxy error:', error)
+      throw new Error(`Failed to generate embedding: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Embedding generation failed')
+    }
+    
+    return data.embedding
+    
+  } catch (error) {
+    console.error('Error generating embedding:', error)
+    throw error
   }
-
-  const data = await response.json()
-  return data.embedding.values
 }
 
 /**

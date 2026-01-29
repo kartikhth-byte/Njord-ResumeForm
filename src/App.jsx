@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
 import { supabase } from './lib/supabase'
+import { usePermissions } from './hooks/usePermissions'
+
 import ApplicantRoute from './components/auth/ApplicantRoute'
 import RecruiterRoute from './components/auth/RecruiterRoute'
 import LoginPage from './pages/LoginPage'
@@ -24,18 +26,25 @@ import RecruiterApplications from './pages/RecruiterApplications'
 import CleanupDrafts from './pages/CleanupDrafts'
 import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
-
+import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth()
   const { role, loading } = usePermissions(user)
 
-  if (loading) return <div>Loading...</div>
+    console.log('🔍 ProtectedRoute Debug:', { role, allowedRoles, loading })  // ← ADD THIS
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+
+  // FIX: Redirect to /unauthorized to prevent loop with ApplicantRoute
   if (!allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />
+        console.log('❌ Access Denied:', role, 'not in', allowedRoles)  // ← ADD THIS
+
+    return <Navigate to="/unauthorized" replace />
   }
+
+    console.log('✅ Access Granted:', role)  // ← ADD THIS
 
   return children
 }
@@ -87,12 +96,10 @@ function RootRedirect() {
       if (loading) return
 
       if (!user) {
-        // Not logged in - show applicant login
         navigate('/login', { replace: true })
         return
       }
 
-      // Check user type
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -134,7 +141,7 @@ function App() {
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
-<Route path="/" element={<RootRedirect />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -142,102 +149,90 @@ function App() {
             <Route path="/recruiter/login" element={<RecruiterLogin />} />
             <Route path="/recruiter/setup" element={<RecruiterSetup />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="/cleanup-drafts" element={<CleanupDrafts />} />
-            <Route path="/expiry-dashboard" element={<ExpiryDashboardPage />} />
-            <Route path="/calendar-dashboard" element={<CalendarDashboardPage />} />
+            <Route path="/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
+            
 
+<Route path="/cleanup-drafts" element={
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+    <CleanupDrafts />
+  </ProtectedRoute>
+} />
 
-// In routes:
-<Route 
-  path="/dashboard/expiry" 
-  element={
-    <ProtectedRoute allowedRoles={['recruiter', 'master_recruiter']}>
-      <ExpiryDashboardPage />
-    </ProtectedRoute>
-  } 
-/>
+<Route path="/dashboard/expiry" element={
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+    <ExpiryDashboardPage />
+  </ProtectedRoute>
+} />
 
-<Route 
-  path="/dashboard/calendar" 
-  element={
-    <ProtectedRoute allowedRoles={['recruiter', 'master_recruiter']}>
-      <CalendarDashboardPage />
-    </ProtectedRoute>
-  } 
-/>
-            <Route
-                   path="/recruiter/applications"
-                   element={
-                    <RecruiterRoute>
-                     <RecruiterApplications />
-                    </RecruiterRoute>
-                   }
-                />
+<Route path="/recruiter/calendar" element={
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+    <CalendarDashboardPage />
+  </ProtectedRoute>
+} />
 
-            {/* Public View Application Route (No Auth Required) */}
+<Route path="/recruiter/events" element={
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+    <CalendarDashboardPage />
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/calendar" element={
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+    <CalendarDashboardPage />
+  </ProtectedRoute>
+} />
+            
+            <Route path="/recruiter/applications" element={
+              <RecruiterRoute>
+                <RecruiterApplications />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/dashboard" element={
+              <RecruiterRoute>
+                <RecruiterDashboard />
+              </RecruiterRoute>
+            } />
+            
+            <Route path="/recruiter/team" element={
+              <RecruiterRoute>
+                <RecruiterTeam />
+              </RecruiterRoute>
+            } />
+
+            {/* Public View Application Route */}
             <Route path="/application/view/:publicToken" element={<ViewApplication />} />
             
             {/* Applicant Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ApplicantRoute>
-                  <Dashboard />
-                </ApplicantRoute>
-              }
-            />
+            <Route path="/dashboard" element={
+              <ApplicantRoute>
+                <Dashboard />
+              </ApplicantRoute>
+            } />
             
-            <Route
-              path="/application/form/section/:sectionId"
-              element={
-                <ApplicantRoute>
-                  <ErrorBoundary>
-                    <FormLayout>
-                      <FormSection />
-                    </FormLayout>
-                  </ErrorBoundary>
-                </ApplicantRoute>
-              }
-            />
+            <Route path="/application/form/section/:sectionId" element={
+              <ApplicantRoute>
+                <ErrorBoundary>
+                  <FormLayout>
+                    <FormSection />
+                  </FormLayout>
+                </ErrorBoundary>
+              </ApplicantRoute>
+            } />
             
-            <Route
-              path="/application/review"
-              element={
-                <ApplicantRoute>
-                  <ReviewSubmit />
-                </ApplicantRoute>
-              }
-            />
+            <Route path="/application/review" element={
+              <ApplicantRoute>
+                <ReviewSubmit />
+              </ApplicantRoute>
+            } />
             
-            <Route
-              path="/application/success"
-              element={
-                <ApplicantRoute>
-                  <SubmissionSuccess />
-                </ApplicantRoute>
-              }
-            />
+            <Route path="/application/success" element={
+              <ApplicantRoute>
+                <SubmissionSuccess />
+              </ApplicantRoute>
+            } />
 
-            {/* Recruiter Protected Routes */}
-            <Route
-              path="/recruiter/dashboard"
-              element={
-                <RecruiterRoute>
-                  <RecruiterDashboard />
-                </RecruiterRoute>
-              }
-            />
-            
-            <Route
-              path="/recruiter/team"
-              element={
-                <RecruiterRoute>
-                  <RecruiterTeam />
-                </RecruiterRoute>
-              }
-            />
-            
-            {/* Catch-All Route - Must be LAST */}
+            {/* Catch-All Route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>

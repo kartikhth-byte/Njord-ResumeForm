@@ -1,14 +1,11 @@
 // src/components/dashboard/ExpiryDashboard.jsx
-// Dashboard to view all expiring documents grouped by urgency
-
 import { useState, useEffect } from 'react'
-import { Navigate } from 'react-router-dom'  // ADD THIS
-import { useAuth } from '../auth/AuthContext'  // ADD THIS
-import { usePermissions } from '../../hooks/usePermissions'  // ADD THIS
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { usePermissions } from '../../hooks/usePermissions'
 import { supabase } from '../../lib/supabase'
 import DashboardHeader from './DashboardHeader'
 import { AlertCircle, Calendar, FileText, Clock, CheckCircle, RefreshCw } from 'lucide-react'
-
 
 const URGENCY_CONFIG = {
   expired: {
@@ -54,8 +51,10 @@ const URGENCY_CONFIG = {
 }
 
 export default function ExpiryDashboard() {
-  const { user } = useAuth()  // ADD THIS
-  const { role, loading: permLoading } = usePermissions(user)  // ADD THIS
+  const { user } = useAuth()
+  const { role, loading: permLoading } = usePermissions(user)
+  
+  // ✅ ALL STATE HOOKS AT THE TOP
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [documents, setDocuments] = useState([])
@@ -67,12 +66,14 @@ export default function ExpiryDashboard() {
   })
   const [selectedUrgency, setSelectedUrgency] = useState('all')
 
-  // PERMISSION CHECK: Block non-recruiters
-  if (!permLoading && role !== 'recruiter' && role !== 'master_recruiter') {
-    return <Navigate to="/recruiter" replace />
-  }
+  // ✅ ALL useEffect HOOKS AT THE TOP (before any returns)
+  useEffect(() => {
+    if (!permLoading) {
+      fetchExpiringDocuments()
+    }
+  }, [permLoading])
 
-  // Show loading while checking permissions
+  // ✅ NOW conditional returns AFTER all hooks
   if (permLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -84,18 +85,15 @@ export default function ExpiryDashboard() {
     )
   }
 
-  useEffect(() => {
-    if (!permLoading) {  // ADD THIS CHECK
-      fetchExpiringDocuments()
-    }
-  }, [permLoading])  // ADD permLoading DEPENDENCY
+  if (role !== 'Recruiter' && role !== 'Master Recruiter') {
+    return <Navigate to="/recruiter" replace />
+  }
 
   const fetchExpiringDocuments = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch expiring documents from the view
       const { data: docs, error: docsError } = await supabase
         .from('v_expiring_documents')
         .select('*')
@@ -105,7 +103,6 @@ export default function ExpiryDashboard() {
 
       setDocuments(docs || [])
 
-      // Calculate summary
       const summary = {
         expired: 0,
         critical: 0,
@@ -191,13 +188,13 @@ export default function ExpiryDashboard() {
   const totalDocuments = documents.length
 
   return (
-  <div className="space-y-6">
-    {/* Header with Back Navigation */}
-    <DashboardHeader
-      title="Document Expiry Dashboard"
-      description="Monitor and manage document expiry dates for all applicants"
-      onRefresh={fetchExpiringDocuments}
-    />
+    <div className="space-y-6">
+      <DashboardHeader
+        title="Document Expiry Dashboard"
+        description="Monitor and manage document expiry dates for all applicants"
+        onRefresh={fetchExpiringDocuments}
+      />
+      
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Object.entries(URGENCY_CONFIG).map(([key, config]) => (
@@ -268,11 +265,10 @@ export default function ExpiryDashboard() {
             
             return (
               <div
-                key={doc.id}
+                key={`${doc.application_id}-${doc.document_type}`}
                 className={`${config.bgColor} ${config.borderColor} border rounded-lg p-5 hover:shadow-md transition-shadow`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  {/* Left: Document Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-2xl">{config.icon}</span>
@@ -313,7 +309,6 @@ export default function ExpiryDashboard() {
                     </div>
                   </div>
 
-                  {/* Right: Urgency Badge */}
                   <span className={`${config.badgeColor} px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap`}>
                     {config.label}
                   </span>

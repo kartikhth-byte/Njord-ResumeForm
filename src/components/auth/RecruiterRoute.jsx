@@ -9,6 +9,16 @@ export default function RecruiterRoute({ children }) {
   const [checkingType, setCheckingType] = useState(true)
 
   useEffect(() => {
+    console.log('👤 RecruiterRoute - User state:', { 
+      hasUser: !!user, 
+      loading, 
+      userType,
+      checkingType,
+      timestamp: new Date().toLocaleTimeString()
+    })
+  }, [user, loading, userType, checkingType])
+
+  useEffect(() => {
     const checkUserType = async () => {
       if (!user) {
         setCheckingType(false)
@@ -48,6 +58,7 @@ export default function RecruiterRoute({ children }) {
 
   // Not authenticated - redirect to recruiter login
   if (!user) {
+    console.log('🚨 RecruiterRoute REDIRECT: No user, going to /recruiter/login')
     return <Navigate to="/recruiter/login" replace />
   }
 

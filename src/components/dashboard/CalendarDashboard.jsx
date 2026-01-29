@@ -1,10 +1,7 @@
-// src/components/dashboard/CalendarDashboard.jsx
-// Dashboard to view all scheduled interviews and tests
-
 import { useState, useEffect } from 'react'
-import { Navigate } from 'react-router-dom'  // ADD THIS
-import { useAuth } from '../auth/AuthContext'  // ADD THIS
-import { usePermissions } from '../../hooks/usePermissions'  // ADD THIS
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { usePermissions } from '../../hooks/usePermissions'
 import { supabase } from '../../lib/supabase'
 import DashboardHeader from './DashboardHeader'
 import { 
@@ -18,7 +15,8 @@ import {
   RefreshCw,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react'
 
 const EVENT_TYPE_CONFIG = {
@@ -43,8 +41,10 @@ const EVENT_TYPE_CONFIG = {
 }
 
 export default function CalendarDashboard() {
-  const { user } = useAuth()  // ADD THIS
-  const { role, loading: permLoading } = usePermissions(user)  // ADD THIS
+  // ✅ STEP 1: ALL HOOKS AT THE TOP
+  const { user } = useAuth()
+  const { role, loading: permLoading } = usePermissions(user)
+  
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
@@ -56,71 +56,10 @@ export default function CalendarDashboard() {
     interviews: 0,
     tests: 0
   })
-  const [selectedFilter, setSelectedFilter] = useState('upcoming') // upcoming, today, week, all
-  const [selectedType, setSelectedType] = useState('all') // all, interview, test
+  const [selectedFilter, setSelectedFilter] = useState('upcoming')
+  const [selectedType, setSelectedType] = useState('all')
 
-    // PERMISSION CHECK: Block non-recruiters
-  if (!permLoading && role !== 'recruiter' && role !== 'master_recruiter') {
-    return <Navigate to="/recruiter" replace />
-  }
-
-  // Show loading while checking permissions
-  if (permLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  useEffect(() => {
-    if (!permLoading) {  // ADD THIS CHECK
-      fetchScheduledEvents()
-      }
-  }, [permLoading])  // ADD permLoading DEPENDENCY)
-
-  useEffect(() => {
-    applyFilters()
-  }, [events, selectedFilter, selectedType])
-
-  const fetchScheduledEvents = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Fetch all scheduled events
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('scheduled_events')
-        .select(`
-          *,
-          applications (
-            reference_number,
-            applied_rank
-          ),
-          profiles!scheduled_events_scheduled_by_fkey (
-            full_name,
-            email
-          )
-        `)
-        .order('scheduled_date', { ascending: true })
-        .order('scheduled_time', { ascending: true })
-
-      if (eventsError) throw eventsError
-
-      setEvents(eventsData || [])
-      calculateSummary(eventsData || [])
-
-    } catch (err) {
-      console.error('Error fetching scheduled events:', err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // ✅ Helper functions BEFORE useEffect hooks
   const combineDateTime = (date, time) => {
     if (!date) return null
     // Combine date and time into a single Date object
@@ -164,6 +103,40 @@ export default function CalendarDashboard() {
     })
 
     setSummary(summary)
+  }
+
+  const fetchScheduledEvents = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('scheduled_events')
+        .select(`
+          *,
+          applications (
+            reference_number,
+            applied_rank
+          ),
+          profiles!scheduled_events_scheduled_by_fkey (
+            full_name,
+            email
+          )
+        `)
+        .order('scheduled_date', { ascending: true })
+        .order('scheduled_time', { ascending: true })
+
+      if (eventsError) throw eventsError
+
+      setEvents(eventsData || [])
+      calculateSummary(eventsData || [])
+
+    } catch (err) {
+      console.error('Error fetching scheduled events:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const applyFilters = () => {
@@ -214,6 +187,36 @@ export default function CalendarDashboard() {
     setFilteredEvents(filtered)
   }
 
+  // ✅ BOTH useEffect hooks BEFORE any conditional returns
+  useEffect(() => {
+    if (!permLoading) {
+      fetchScheduledEvents()
+    }
+  }, [permLoading])
+
+  useEffect(() => {
+    applyFilters()
+  }, [events, selectedFilter, selectedType])
+
+  // ✅ STEP 2: NOW conditional returns (AFTER all hooks)
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Check permissions - handle both formats (Title Case and lowercase with underscore)
+  const normalizedRole = role?.toLowerCase().replace(/\s+/g, '_')
+  if (normalizedRole !== 'recruiter' && normalizedRole !== 'master_recruiter') {
+    return <Navigate to="/recruiter" replace />
+  }
+
+  // ✅ STEP 3: Function definitions AFTER conditional returns
   const formatDateTime = (dateString, timeString) => {
     const eventDate = combineDateTime(dateString, timeString)
     if (!eventDate) return { date: 'N/A', time: 'N/A', dayOfWeek: '' }
@@ -476,9 +479,21 @@ export default function CalendarDashboard() {
                       {event.location_details && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-500" />
-                          <span className="text-gray-700 truncate">
-                            {event.location_details}
-                          </span>
+                          {event.location_details.startsWith('http') ? (
+                            <a 
+                              href={event.location_details}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center gap-1.5 group"
+                            >
+                              <span className="truncate">{event.location_details}</span>
+                              <ExternalLink className="w-3.5 h-3.5 flex-shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            </a>
+                          ) : (
+                            <span className="text-gray-700 truncate">
+                              {event.location_details}
+                            </span>
+                          )}
                         </div>
                       )}
 

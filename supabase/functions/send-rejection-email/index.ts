@@ -1,23 +1,22 @@
 // supabase/functions/send-rejection-email/index.ts
-// Sends rejection email with customizable reason
+// Sends rejection notification at any stage (test, interview, or direct rejection)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-
-interface RejectionRequest {
+interface RejectionEmailRequest {
   applicantEmail: string
   applicantName: string
   referenceNumber: string
   position: string
   reason: string
-  futureContact: boolean
-  rejectionCategory: string
+  additionalFeedback?: string
 }
 
 serve(async (req) => {
@@ -32,110 +31,139 @@ serve(async (req) => {
       referenceNumber,
       position,
       reason,
-      futureContact,
-      rejectionCategory
-    }: RejectionRequest = await req.json()
+      additionalFeedback
+    }: RejectionEmailRequest = await req.json()
 
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          
-          <tr>
-            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">NJORD Ships</h1>
-              <p style="margin: 5px 0 0 0; color: #e0e7ff; font-size: 14px;">Maritime Recruitment Excellence</p>
-            </td>
-          </tr>
-          
-          <tr>
-            <td style="padding: 40px 30px;">
-              <h2 style="margin: 0 0 20px 0; color: #1e293b; font-size: 24px;">Application Update</h2>
-              
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">Dear ${applicantName},</p>
-              
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">Thank you for your interest in the <strong>${position}</strong> position at NJORD Ships.</p>
-              
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">After careful consideration, we have decided not to move forward with your application at this time. ${reason}</p>
-              
-              <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0 0 10px 0; color: #334155; font-size: 14px;"><strong>Application Reference:</strong> ${referenceNumber}</p>
-                <p style="margin: 0; color: #64748b; font-size: 14px;"><strong>Status:</strong> Not Selected</p>
-              </div>
-              
-              ${futureContact ? `
-              <div style="background-color: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <p style="margin: 0; color: #166534; font-size: 14px;">✓ <strong>Good News:</strong> We've added you to our talent pool for future opportunities that match your profile.</p>
-              </div>
-              ` : ''}
-              
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">We appreciate the time and effort you invested in your application. We encourage you to:</p>
-              
-              <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #475569; font-size: 15px; line-height: 1.8;">
-                <li>Keep an eye on our career page for new openings</li>
-                <li>Continue building your maritime experience</li>
-                <li>Connect with us on LinkedIn for updates</li>
-              </ul>
-              
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">We wish you all the best in your career journey.</p>
-              
-              <p style="margin: 30px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">Best regards,<br><strong>NJORD Ships Recruitment Team</strong></p>
-            </td>
-          </tr>
-          
-          <tr>
-            <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">NJORD Ships - Your Partner in Maritime Excellence</p>
-              <p style="margin: 0; color: #94a3b8; font-size: 12px;"><a href="https://njordships.com" style="color: #3b82f6; text-decoration: none;">Website</a> | <a href="mailto:hr@njordships.com" style="color: #3b82f6; text-decoration: none;">Contact Support</a></p>
-              <p style="margin: 15px 0 0 0; color: #cbd5e1; font-size: 11px;">© ${new Date().getFullYear()} NJORD Ships. All rights reserved.</p>
-            </td>
-          </tr>
-          
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
+    console.log('Sending rejection email to:', applicantEmail)
 
+    // Send email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
         from: 'NJORD Ships <onboarding@resend.dev>',
         to: [applicantEmail],
         subject: `Application Update - ${referenceNumber}`,
-        html: html,
-      }),
+        html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Update</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Application Update</h1>
+              <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 14px; opacity: 0.9;">${referenceNumber}</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 20px 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                Dear <strong>${applicantName}</strong>,
+              </p>
+
+              <p style="margin: 0 0 20px 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                Thank you for your interest in the <strong>${position}</strong> position with NJORD Ships and for taking the time to participate in our recruitment process.
+              </p>
+
+              <p style="margin: 0 0 20px 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.
+              </p>
+
+              <!-- Rejection Reason -->
+              ${reason ? `
+              <div style="background-color: #f3f4f6; border-left: 4px solid #9ca3af; padding: 20px; margin: 25px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #374151; font-size: 15px; line-height: 1.5;">
+                  <strong>Reason:</strong><br>
+                  ${reason}
+                </p>
+              </div>
+              ` : ''}
+
+              <!-- Additional Feedback -->
+              ${additionalFeedback ? `
+              <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 25px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #1e40af; font-size: 15px; line-height: 1.5;">
+                  <strong>Feedback:</strong><br>
+                  ${additionalFeedback}
+                </p>
+              </div>
+              ` : ''}
+
+              <p style="margin: 25px 0 0 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                We appreciate the effort you put into your application and the time you spent with us during the recruitment process. We encourage you to apply for other positions with NJORD Ships in the future that match your qualifications and experience.
+              </p>
+
+              <p style="margin: 25px 0 0 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
+                We wish you all the best in your career endeavors and future maritime opportunities.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; font-weight: 600;">Best regards,</p>
+              <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 15px;">NJORD Ships Recruitment Team</p>
+              
+              <div style="margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                  NJORD Ships Maritime Recruitment<br>
+                  <a href="mailto:recruitment@njordships.com" style="color: #3b82f6; text-decoration: none;">recruitment@njordships.com</a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      })
     })
 
     if (!emailResponse.ok) {
-      const error = await emailResponse.json()
-      throw new Error(`Email send failed: ${JSON.stringify(error)}`)
+      const errorText = await emailResponse.text()
+      console.error('Resend API error:', errorText)
+      throw new Error(`Failed to send email: ${errorText}`)
     }
 
-    const result = await emailResponse.json()
+    const emailData = await emailResponse.json()
+    console.log('Email sent successfully:', emailData)
 
     return new Response(
-      JSON.stringify({ success: true, emailId: result.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ success: true, emailId: emailData.id }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
     )
 
   } catch (error) {
+    console.error('Error in send-rejection-email:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      }
     )
   }
 })

@@ -1,17 +1,36 @@
 // src/pages/CalendarDashboardPage.jsx
-// Page wrapper for Calendar Dashboard (for routing)
-
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
+import { usePermissions } from '../hooks/usePermissions'
 import CalendarDashboard from '../components/dashboard/CalendarDashboard'
 
 export default function CalendarDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { role, loading } = usePermissions(user)
 
-    // Block access for applicants
-  if (!loading && role !== 'recruiter' && role !== 'master_recruiter') {
+  useEffect(() => {
+    // Only allow recruiters to access this page
+    if (!user && !loading) {
+      navigate('/login')
+      return
+    }
+  }, [user, loading, navigate])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ FIXED: Use correct role names matching database
+  if (role !== 'Recruiter' && role !== 'Master Recruiter') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -22,25 +41,6 @@ export default function CalendarDashboardPage() {
           <Link to="/dashboard" className="mt-4 text-blue-600 hover:underline">
             Return to Dashboard
           </Link>
-        </div>
-      </div>
-    )
-  }
-
-  useEffect(() => {
-    // Only allow recruiters to access this page
-    if (!user) {
-      navigate('/login')
-      return
-    }
-  }, [user, navigate])
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     )
