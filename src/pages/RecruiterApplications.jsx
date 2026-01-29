@@ -617,12 +617,86 @@ const handleStatusChange = async (applicationId, newStatus) => {
     loadApplications(activeFilters)
   }
 
-  const handleAISearchResults = (results, query) => {
-    setAiSearchResults(results)
-    setAiSearchQuery(query)
-    setAiSearchActive(true)
+const handleAISearchResults = async (results, query) => {
+  console.log('🔍 AI Search results received:', results.length)
+  
+  setAiSearchResults(results)
+  setAiSearchQuery(query)
+  setAiSearchActive(true)
+
+  if (results.length === 0) {
+    setFilteredApplications([])
+    return
+  }
+
+  try {
+    // Extract application IDs from search results
+    const applicationIds = results.map(r => r.application_id)
+    
+    console.log('📊 Fetching full application data for IDs:', applicationIds)
+
+    // Fetch full application data with metadata
+    const { data: fullApps, error } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        user_id,
+        applied_rank,
+        status,
+        created_at,
+        updated_at,
+        reference_number,
+        public_token,
+        submitted_at,
+        test_attempt_number,
+        test_max_attempts,
+        application_data (
+          data
+        )
+      `)
+      .in('id', applicationIds)
+
+    if (error) {
+      console.error('Error fetching full applications:', error)
+      setFilteredApplications(results)
+      return
+    }
+
+    console.log('✅ Fetched full application data:', fullApps.length)
+
+    // Transform with metadata (same as loadApplications)
+    const enrichedResults = fullApps.map(app => {
+      const appData = app.application_data?.data || {}
+      
+      return {
+        ...app,
+        full_name: `${appData.section2?.firstName || ''} ${appData.section2?.surname || ''}`.trim(),
+        email: appData.section2?.email || appData.section4?.email || '',
+        phone: appData.section2?.phoneNumber || appData.section4?.phoneNumber || '',
+        desired_rank: appData.section2?.desiredRank || app.applied_rank || '',
+        vessel_type: appData.section2?.typeOfVessel || '',
+        nationality: appData.section2?.nationality || '',
+        available_from: appData.section2?.availableFrom || '',
+        date_of_birth: appData.section2?.dateOfBirth || '',
+        // Add similarity score from search results
+        similarity: results.find(r => r.application_id === app.id)?.similarity || 0,
+        // Add matched chunk for debugging
+        matched_chunk: results.find(r => r.application_id === app.id)?.chunk_text || ''
+      }
+    })
+
+    // Sort by similarity (highest first)
+    enrichedResults.sort((a, b) => b.similarity - a.similarity)
+
+    console.log('✅ Enriched results with metadata:', enrichedResults.length)
+    
+    setFilteredApplications(enrichedResults)
+
+  } catch (error) {
+    console.error('Error enriching search results:', error)
     setFilteredApplications(results)
   }
+}
 
   const handleClearAISearch = () => {
     setAiSearchActive(false)

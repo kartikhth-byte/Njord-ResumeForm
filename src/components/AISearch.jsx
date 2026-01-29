@@ -27,7 +27,7 @@ export default function AISearch({ onResults, onLoading, onClearSearch }) {
 
       console.log('✅ Search results:', results.length)
       
-      onResults(results, {}, query)
+      onResults(results, query)
     } catch (err) {
       console.error('Search error:', err)
       setError(err.message || 'Search failed. Please try again.')
