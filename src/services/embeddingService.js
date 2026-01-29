@@ -207,8 +207,6 @@ export async function searchBySemanticSimilarity(query, threshold = 0.3, limit =
     })
     
     return finalResults
-    
-    return finalResults
   } catch (error) {
     console.error('Enhanced semantic search error:', error)
     throw error

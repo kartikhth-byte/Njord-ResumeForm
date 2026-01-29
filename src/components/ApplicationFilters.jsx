@@ -5,16 +5,7 @@ import { VESSEL_TYPE_OPTIONS } from '../utils/vesselOptions'
 
 export default function ApplicationFilters({ onFilterChange, onApplyFilters, activeFilters = {} }) {
 const [isFiltersOpen, setIsFiltersOpen] = useState(true)
-  const [showPositionDropdown, setShowPositionDropdown] = useState(false)
-  const [showVesselDropdown, setShowVesselDropdown] = useState(false)
-  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false)
-  const [showExperienceDropdown, setShowExperienceDropdown] = useState(false)
-  const [showCertificateDropdown, setShowCertificateDropdown] = useState(false)
-  const [showAgeDropdown, setShowAgeDropdown] = useState(false)
-  const [showAvailabilityDropdown, setShowAvailabilityDropdown] = useState(false)
-  const [showVisaDropdown, setShowVisaDropdown] = useState(false)
-  const [showEndorsementDropdown, setShowEndorsementDropdown] = useState(false)
-  const [showDateDropdown, setShowDateDropdown] = useState(false)
+const [openDropdown, setOpenDropdown] = useState(null) // ✅ Single state for all dropdowns
 
   // Common nationalities (as stored in database - lowercase adjectives)
   const commonNationalities = [
@@ -97,7 +88,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
       from: fromDate.toISOString().split('T')[0],
       to: toDate.toISOString().split('T')[0]
     })
-    setShowDateDropdown(false)
+    setOpenDropdown(null)
   }
 
   return (
@@ -170,7 +161,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Rank Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowPositionDropdown(!showPositionDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "position" ? null : "position")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.position ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -182,9 +173,9 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showPositionDropdown && (
+          {openDropdown === "position" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowPositionDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border max-h-96 overflow-y-auto">
                 <div className="p-2">
                   <input
@@ -198,7 +189,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                   <button
                     onClick={() => {
                       handleFilterChange('position', null)
-                      setShowPositionDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -210,7 +201,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('position', option.value)
-                        setShowPositionDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.position === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -228,7 +219,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Vessel Type Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowVesselDropdown(!showVesselDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "vessel" ? null : "vessel")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.vesselType ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -240,15 +231,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showVesselDropdown && (
+          {openDropdown === "vessel" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowVesselDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border max-h-96 overflow-y-auto">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('vesselType', null)
-                      setShowVesselDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -260,7 +251,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('vesselType', option.value)
-                        setShowVesselDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.vesselType === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -278,7 +269,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Nationality Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowNationalityDropdown(!showNationalityDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "nationality" ? null : "nationality")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.nationality ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -290,9 +281,9 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showNationalityDropdown && (
+          {openDropdown === "nationality" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowNationalityDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border max-h-96 overflow-y-auto">
                 <div className="p-2 border-b">
                   <p className="text-xs font-semibold text-gray-500 uppercase px-2 mb-2">Common Countries</p>
@@ -301,7 +292,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                   <button
                     onClick={() => {
                       handleFilterChange('nationality', null)
-                      setShowNationalityDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -313,7 +304,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={nationality}
                       onClick={() => {
                         handleFilterChange('nationality', nationality)
-                        setShowNationalityDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.nationality === nationality ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -331,27 +322,27 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Experience Level Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowExperienceDropdown(!showExperienceDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "experience" ? null : "experience")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
-              activeFilters.experience ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+              activeFilters.experienceRange ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
           >
             <span className="text-sm font-medium">
-              {activeFilters.experience 
-                ? experienceOptions.find(e => e.value === activeFilters.experience)?.label || 'Experience'
+              {activeFilters.experienceRange 
+                ? experienceOptions.find(e => e.value === activeFilters.experienceRange)?.label || 'Experience'
                 : 'Experience'}
             </span>
           </button>
 
-          {showExperienceDropdown && (
+          {openDropdown === "experience" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowExperienceDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('experienceRange', null)
-                      setShowExperienceDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -362,10 +353,10 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('experienceRange', option.value)
-                        setShowExperienceDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                        activeFilters.experience === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
+                        activeFilters.experienceRange === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
                       }`}
                     >
                       {option.label}
@@ -380,7 +371,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Certificate Grade Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowCertificateDropdown(!showCertificateDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "certificate" ? null : "certificate")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.certificateGrade ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -392,15 +383,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showCertificateDropdown && (
+          {openDropdown === "certificate" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowCertificateDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border max-h-64 overflow-y-auto">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('certificateGrade', null)
-                      setShowCertificateDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -411,7 +402,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('certificateGrade', option.value)
-                        setShowCertificateDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.certificateGrade === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -429,7 +420,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Age Range Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowAgeDropdown(!showAgeDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "age" ? null : "age")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.ageRange ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -441,15 +432,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showAgeDropdown && (
+          {openDropdown === "age" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowAgeDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('ageRange', null)
-                      setShowAgeDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -460,7 +451,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('ageRange', option.value)
-                        setShowAgeDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.ageRange === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -478,7 +469,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Availability Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowAvailabilityDropdown(!showAvailabilityDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "availability" ? null : "availability")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.availability ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -490,15 +481,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showAvailabilityDropdown && (
+          {openDropdown === "availability" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowAvailabilityDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('availability', null)
-                      setShowAvailabilityDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -509,7 +500,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={option.value}
                       onClick={() => {
                         handleFilterChange('availability', option.value)
-                        setShowAvailabilityDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.availability === option.value ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -527,7 +518,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Visa Types Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowVisaDropdown(!showVisaDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "visa" ? null : "visa")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.visaType ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -537,15 +528,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showVisaDropdown && (
+          {openDropdown === "visa" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowVisaDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border max-h-64 overflow-y-auto">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('visaType', null)
-                      setShowVisaDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -556,7 +547,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={visa}
                       onClick={() => {
                         handleFilterChange('visaType', visa)
-                        setShowVisaDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.visaType === visa ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -574,7 +565,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Flag State Endorsements Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowEndorsementDropdown(!showEndorsementDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "endorsement" ? null : "endorsement")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors ${
               activeFilters.flagState ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -584,15 +575,15 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showEndorsementDropdown && (
+          {openDropdown === "endorsement" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowEndorsementDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border max-h-64 overflow-y-auto">
                 <div className="py-1">
                   <button
                     onClick={() => {
                       handleFilterChange('flagState', null)
-                      setShowEndorsementDropdown(false)
+                      setOpenDropdown(null)
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-500 italic border-b"
                   >
@@ -603,7 +594,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
                       key={state}
                       onClick={() => {
                         handleFilterChange('flagState', state)
-                        setShowEndorsementDropdown(false)
+                        setOpenDropdown(null)
                       }}
                       className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
                         activeFilters.flagState === state ? 'bg-blue-50 text-blue-600 font-medium' : ''
@@ -621,7 +612,7 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
         {/* Date Range Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowDateDropdown(!showDateDropdown)}
+            onClick={() => setOpenDropdown(openDropdown === "date" ? null : "date")}
             className={`w-full px-4 py-2 text-left border rounded-lg hover:border-blue-500 transition-colors flex items-center gap-2 ${
               activeFilters.dateRange ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
             }`}
@@ -634,9 +625,9 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           </button>
 
-          {showDateDropdown && (
+          {openDropdown === "date" && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowDateDropdown(false)} />
+              <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)} />
               <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border p-4">
                 <div className="space-y-3">
                   <div>
@@ -738,9 +729,9 @@ const [isFiltersOpen, setIsFiltersOpen] = useState(true)
             </span>
           )}
 
-          {activeFilters.experience && (
+          {activeFilters.experienceRange && (
             <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium flex items-center gap-1">
-              Experience: {experienceOptions.find(e => e.value === activeFilters.experience)?.label}
+              Experience: {experienceOptions.find(e => e.value === activeFilters.experienceRange)?.label}
               <X 
                 className="w-3 h-3 cursor-pointer hover:text-indigo-900" 
                 onClick={() => handleFilterChange('experienceRange', null)} 
