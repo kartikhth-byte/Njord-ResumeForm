@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -11,6 +11,8 @@ import Pagination from '../components/Pagination'
 import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
 import OfferModal from '../components/recruiter/OfferModal'
+import ConfidenceBadge from '../components/ConfidenceBadge'
+
 
 // --- ADDED MODAL IMPORTS ---
 import RejectionModal from '../components/recruiter/RejectionModal'
@@ -42,6 +44,7 @@ export default function RecruiterApplications() {
   const [applications, setApplications] = useState([])
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)  // ← ADD THIS
 const [allApplicationsForPipeline, setAllApplicationsForPipeline] = useState([])  // ← ADD THIS
+const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
 
 
   // Add this useEffect near the top of RecruiterApplications component
@@ -109,6 +112,9 @@ const [offerApplication, setOfferApplication] = useState(null)
   
   // Helper function to update tab and URL
   const updateActiveTab = (newTab) => {
+      console.log('🔄 Switching tab:', activeTab, '→', newTab)
+  console.log('  - aiSearchResults before switch:', aiSearchResults.length)
+
     setActiveTab(newTab)
     const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', newTab)
@@ -116,6 +122,8 @@ const [offerApplication, setOfferApplication] = useState(null)
       newParams.set('status', statusFilter)
     }
     setSearchParams(newParams, { replace: true })
+      console.log('  - aiSearchResults after switch:', aiSearchResults.length)
+
   }
   
   // Helper function to update status filter and URL
@@ -154,6 +162,7 @@ const [offerApplication, setOfferApplication] = useState(null)
     })
   }, [searchParams])
   
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
@@ -176,7 +185,7 @@ const [offerApplication, setOfferApplication] = useState(null)
   // --- MODAL STATES ---
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState(null)
-  
+
   
   // Handle sidebar state based on screen size
   useEffect(() => {
@@ -248,9 +257,17 @@ const [offerApplication, setOfferApplication] = useState(null)
     }
   }, [permLoading, includeRejected, includeWithdrawn, includeHired, includeActive]) // Reload when any status filter changes
 
-  useEffect(() => {
-    filterApplications()
-  }, [applications, searchTerm, statusFilter])
+useEffect(() => {
+    console.log('🔄 useEffect triggered - activeTab:', activeTab, 'aiSearchActive:', aiSearchActive)
+
+  // Only filter for "All Applications" tab when NOT doing AI search
+  if (activeTab === 'all' && !aiSearchActive) {
+        console.log('✅ Calling filterApplications()')
+            filterApplications()
+   } else {
+    console.log('❌ NOT calling filterApplications()')
+  }
+}, [activeTab, applications, statusFilter, searchTerm, includeRejected, aiSearchActive])
   
   useEffect(() => {
     setCurrentPage(1)
@@ -269,6 +286,45 @@ const [offerApplication, setOfferApplication] = useState(null)
     })
     return Math.floor(totalDays / 365)
   }
+
+
+  // Restore AI search results from localStorage on mount
+useEffect(() => {
+  console.log('🔄 Checking for saved AI search results...')
+  
+  const savedSearch = localStorage.getItem('aiSearchResults')
+  if (!savedSearch) {
+    console.log('❌ No saved search results found')
+    return
+  }
+
+  try {
+    const { results, query, timestamp } = JSON.parse(savedSearch)
+    
+    // Only restore if less than 30 minutes old
+    const THIRTY_MINUTES = 30 * 60 * 1000
+    const age = Date.now() - timestamp
+    
+    if (age < THIRTY_MINUTES) {
+      console.log(`✅ Restoring ${results.length} AI search results (${Math.round(age / 1000 / 60)} minutes old)`)
+      
+      setAiSearchResults(results)
+      setAiSearchQuery(query)
+      setAiSearchActive(true)
+      
+      // Switch to search tab if we have results
+      if (results.length > 0 && activeTab !== 'search') {
+        updateActiveTab('search')
+      }
+    } else {
+      console.log(`⏰ Saved results too old (${Math.round(age / 1000 / 60)} minutes), clearing...`)
+      localStorage.removeItem('aiSearchResults')
+    }
+  } catch (error) {
+    console.error('❌ Error restoring search results:', error)
+    localStorage.removeItem('aiSearchResults')
+  }
+}, []) // Empty dependency array - run once on mount
 
   const matchesExperienceFilter = (years, filterValue) => {
     switch (filterValue) {
@@ -486,7 +542,7 @@ const [offerApplication, setOfferApplication] = useState(null)
           )
         })
       }
-      
+
       setApplications(formattedData)
     } catch (error) {
       console.error('Error loading applications:', error)
@@ -565,7 +621,7 @@ const [offerApplication, setOfferApplication] = useState(null)
       email: app.application_data?.data?.section2?.email || app.application_data?.data?.section4?.email || '',
       phone: app.application_data?.data?.section2?.phoneNumber || app.application_data?.data?.section4?.phoneNumber || '',
       desired_rank: app.application_data?.data?.section2?.desiredRank || app.applied_rank || '',
-      vessel_type: app.application_data?.data?.section2?.typeOfVessel || '',
+      vessel_type: app.application_data?.data?.section2?.vesselType || '',
       nationality: app.application_data?.data?.section2?.nationality || '',
       available_from: app.application_data?.data?.section2?.availableFrom || '',
       date_of_birth: app.application_data?.data?.section2?.dateOfBirth || ''
@@ -578,6 +634,11 @@ const [offerApplication, setOfferApplication] = useState(null)
 }
 
   const filterApplications = () => {
+      console.log('🔍 filterApplications called')
+  console.log('📊 applications.length:', applications.length)
+  console.log('📊 statusFilter:', statusFilter)
+  console.log('📊 searchTerm:', searchTerm)
+
     let filtered = [...applications]
 
     if (statusFilter && statusFilter !== 'all') {
@@ -595,6 +656,8 @@ const [offerApplication, setOfferApplication] = useState(null)
         app.nationality?.toLowerCase().includes(term)
       )
     }
+
+      console.log('✅ Filtered results:', filtered.length)
 
     setFilteredApplications(filtered)
   }
@@ -653,25 +716,25 @@ const handleStatusChange = async (applicationId, newStatus) => {
     loadApplications(activeFilters)
   }
 
-const handleAISearchResults = async (results, query) => {
+const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   console.log('🔍 AI Search results received:', results.length)
   
   setAiSearchResults(results)
   setAiSearchQuery(query)
   setAiSearchActive(true)
+  setAnalyzingWithLLM(isAnalyzing)
 
   if (results.length === 0) {
-    setFilteredApplications([])
+    setAiSearchResults([])
+    localStorage.removeItem('aiSearchResults')
     return
   }
 
   try {
-    // Extract application IDs from search results
     const applicationIds = results.map(r => r.application_id)
     
     console.log('📊 Fetching full application data for IDs:', applicationIds)
 
-    // Fetch full application data with metadata
     const { data: fullApps, error } = await supabase
       .from('applications')
       .select(`
@@ -694,13 +757,12 @@ const handleAISearchResults = async (results, query) => {
 
     if (error) {
       console.error('Error fetching full applications:', error)
-      setFilteredApplications(results)
+      setAiSearchResults(results)
       return
     }
 
     console.log('✅ Fetched full application data:', fullApps.length)
 
-    // Transform with metadata (same as loadApplications)
     const enrichedResults = fullApps.map(app => {
       const appData = app.application_data?.data || {}
       
@@ -710,36 +772,48 @@ const handleAISearchResults = async (results, query) => {
         email: appData.section2?.email || appData.section4?.email || '',
         phone: appData.section2?.phoneNumber || appData.section4?.phoneNumber || '',
         desired_rank: appData.section2?.desiredRank || app.applied_rank || '',
-        vessel_type: appData.section2?.typeOfVessel || '',
+        vessel_type: appData.section1?.vesselType || '',
         nationality: appData.section2?.nationality || '',
         available_from: appData.section2?.availableFrom || '',
         date_of_birth: appData.section2?.dateOfBirth || '',
-        // Add similarity score from search results
         similarity: results.find(r => r.application_id === app.id)?.similarity || 0,
-        // Add matched chunk for debugging
-        matched_chunk: results.find(r => r.application_id === app.id)?.chunk_text || ''
+        matched_chunk: results.find(r => r.application_id === app.id)?.chunk_text || '',
+        llmAnalysis: results.find(r => r.application_id === app.id)?.llmAnalysis
       }
     })
 
-    // Sort by similarity (highest first)
     enrichedResults.sort((a, b) => b.similarity - a.similarity)
 
     console.log('✅ Enriched results with metadata:', enrichedResults.length)
     
-    setFilteredApplications(enrichedResults)
+    setAiSearchResults(enrichedResults)
+    
+    // ✅ SAVE TO LOCALSTORAGE HERE - AFTER ENRICHMENT
+    localStorage.setItem('aiSearchResults', JSON.stringify({
+      results: enrichedResults,  // ← Save enriched results!
+      query,
+      timestamp: Date.now()
+    }))
+    console.log('💾 Saved enriched AI search results to localStorage')
 
   } catch (error) {
     console.error('Error enriching search results:', error)
-    setFilteredApplications(results)
+    setAiSearchResults(results)
   }
 }
 
   const handleClearAISearch = () => {
-    setAiSearchActive(false)
-    setAiSearchResults([])
-    setAiSearchQuery('')
-    filterApplications()
-  }
+  console.log('🧹 Clearing AI search results')
+  
+  setAiSearchActive(false)
+  setAiSearchResults([])
+  setAiSearchQuery('')
+  filterApplications()
+  
+  // Clear from localStorage
+  localStorage.removeItem('aiSearchResults')
+  console.log('💾 Cleared AI search results from localStorage')
+}
 
   const toggleStatus = (statusValue) => {
     setExpandedStatuses(prev =>
@@ -758,9 +832,17 @@ const handleAISearchResults = async (results, query) => {
   }
 
   const getPaginatedData = (data) => {
+    console.log('📄 getPaginatedData called')
+  console.log('📊 Input data length:', data.length)
+  console.log('📊 currentPage:', currentPage)
+  console.log('📊 itemsPerPage:', itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    return data.slice(startIndex, endIndex)
+      console.log('📊 startIndex:', startIndex, 'endIndex:', endIndex)
+        const result = data.slice(startIndex, endIndex)
+
+        console.log('📊 Paginated result length:', result.length)
+  return result
   }
 
   if (permLoading) {
@@ -785,7 +867,10 @@ const handleAISearchResults = async (results, query) => {
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage)
   const paginatedApplications = getPaginatedData(filteredApplications)
 
-  const ApplicationTable = ({ apps, showRelevance = false }) => (
+const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
+    console.log('🎨 ApplicationTable rendering - apps:', apps.length, 'showRelevance:', showRelevance)
+
+  return (
     <div className="bg-white rounded-lg shadow-sm border overflow-visible">
       <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full overflow-visible">
@@ -815,14 +900,19 @@ const handleAISearchResults = async (results, query) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Submitted
               </th>
-              {showRelevance && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Relevance
-                </th>
-              )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+{showRelevance && (
+  <>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Relevance
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      AI Match
+    </th>
+  </>
+)}
+<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+  Actions
+</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 View
               </th>
@@ -856,7 +946,9 @@ const handleAISearchResults = async (results, query) => {
                     <div className="text-sm text-gray-900">{formatDisplayValue(app.desired_rank)}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{formatDisplayValue(app.vessel_type)}</div>
+<div className="flex items-center gap-2">
+  <div className="text-sm text-gray-900">{formatDisplayValue(app.vessel_type)}</div>
+</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <StatusBadge status={app.status} />
@@ -866,39 +958,56 @@ const handleAISearchResults = async (results, query) => {
                       {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '-'}
                     </div>
                   </td>
-                  {showRelevance && (
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full"
-                            style={{ width: `${app.similarity * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-gray-600">
-                          {(app.similarity * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                    </td>
-                  )}
-                  {/* Actions Column */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-<SequentialStatusControl
-  applicationId={app.id}
-  currentStatus={app.status}
-  onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-  application={app}
-  autoOpenInterview={autoOpenInterviewForApp === app.id}
-    onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}  // ← ADD THIS
+{showRelevance && (
+  <>
+    {/* Relevance Column */}
+    <td className="px-6 py-4 whitespace-nowrap">
+      <div className="flex items-center gap-2">
+        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full"
+            style={{ width: `${app.similarity * 100}%` }}
+          />
+        </div>
+        <span className="text-xs font-medium text-gray-600">
+          {(app.similarity * 100).toFixed(0)}%
+        </span>
+      </div>
+    </td>
+    
+{/* AI Match Column */}
+<td className="px-6 py-4">
+  {analyzingWithLLM && !app.llmAnalysis ? (
+    <div className="flex items-center gap-2 text-purple-600">
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+      <span className="text-xs font-medium">Analyzing...</span>
+    </div>
+  ) : app.llmAnalysis ? (
+    <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
+  ) : (
+    <span className="text-xs text-gray-400">—</span>
+  )}
+</td>
+  </>
+)}
 
-/>
-                      {/* Show dash for terminal statuses (rejected, withdrawn, hired) */}
-                      {(app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'hired') && (
-                        <span className="text-gray-400 text-sm">—</span>
-                      )}
-                    </div>
-                  </td>
+{/* Actions Column */}
+<td className="px-6 py-4">
+  <div className="flex items-center gap-2">
+    <SequentialStatusControl
+      applicationId={app.id}
+      currentStatus={app.status}
+      onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+      application={app}
+      autoOpenInterview={autoOpenInterviewForApp === app.id}
+      onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
+    />
+    {/* Show dash for terminal statuses (rejected, withdrawn, hired) */}
+    {(app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'hired') && (
+      <span className="text-gray-400 text-sm">—</span>
+    )}
+  </div>
+</td>
                   {/* View Column */}
                   <td className="px-6 py-4 text-center">
                     <button
@@ -917,6 +1026,7 @@ const handleAISearchResults = async (results, query) => {
       </div>
     </div>
   )
+}
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -1055,12 +1165,15 @@ const handleAISearchResults = async (results, query) => {
         {/* Tab Navigation */}
         <div className="bg-white border-b border-gray-200 px-6">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => {
-                updateActiveTab('all')
-                setCurrentPage(1)
-              }}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+<button
+  onClick={() => {
+    updateActiveTab('all')
+    setCurrentPage(1)
+    setAiSearchActive(false)
+    filterApplications()
+    // Don't clear localStorage here - let users return to search results
+  }}
+                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                 activeTab === 'all'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1161,6 +1274,11 @@ const handleAISearchResults = async (results, query) => {
               {/* All Applications Tab */}
               {activeTab === 'all' && (
                 <div className="space-y-6">
+   {console.log('📊 Rendering All Applications:')}
+    {console.log('  - filteredApplications:', filteredApplications.length)}
+    {console.log('  - paginatedApplications:', paginatedApplications.length)}
+    {console.log('  - paginatedApplications data:', paginatedApplications)}
+
                   <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
 
                   {filteredApplications.length > 0 && (
@@ -1178,6 +1296,10 @@ const handleAISearchResults = async (results, query) => {
               {/* Advanced Search Tab */}
               {activeTab === 'search' && (
                 <div className="space-y-6">
+                      {console.log('🔍 Advanced Search Tab Rendering')}
+    {console.log('  - aiSearchResults.length:', aiSearchResults.length)}
+    {console.log('  - aiSearchResults:', aiSearchResults)}
+    {console.log('  - searchMode:', searchMode)}
                   <EmbeddingGenerator />
 
                   <div className="flex items-center gap-4 bg-white rounded-lg border p-4">
@@ -1280,27 +1402,60 @@ const handleAISearchResults = async (results, query) => {
                     </div>
                   </div>
 
-                  {searchMode === 'ai' && (
-                    <>
-                      <AISearch 
-                        onResults={handleAISearchResults}
-                        onLoading={setLoading}
-                        onClearSearch={handleClearAISearch}
-                      />
-                      {aiSearchActive && (
-                        <>
-                          <ApplicationTable apps={paginatedApplications} showRelevance={true} />
-                          {filteredApplications.length > 0 && (
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={totalPages}
-                              onPageChange={setCurrentPage}
-                              itemsPerPage={itemsPerPage}
-                              totalItems={filteredApplications.length}
-                            />
-                          )}
-                        </>
-                      )}
+              {searchMode === 'ai' && (
+  <>
+    <AISearch 
+  onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
+  onLoading={setLoading}
+  onClearSearch={handleClearAISearch}
+    />
+{/* Clear Button - Show when results exist */}
+{aiSearchResults.length > 0 && !analyzingWithLLM && (
+  <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+    <div className="flex items-center gap-2 text-sm text-blue-700">
+      <span className="font-semibold">📋 {aiSearchResults.length} results found</span>
+      {aiSearchQuery && <span className="text-blue-600">for "{aiSearchQuery}"</span>}
+    </div>
+    <button
+      onClick={handleClearAISearch}
+      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors font-medium"
+    >
+      ✕ Clear Search
+    </button>
+  </div>
+)}    
+{aiSearchResults.length > 0 && (
+  <>
+    {/* Progress Banner */}
+    {analyzingWithLLM && (
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-purple-900">
+              🧠 AI Analysis in Progress...
+            </p>
+            <p className="text-xs text-purple-700 mt-1">
+              Analyzing {aiSearchResults.filter(app => !app.llmAnalysis).length} of {aiSearchResults.length} applications with advanced reasoning. 
+              Confidence scores will appear shortly (10-15 seconds).
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <ApplicationTable apps={aiSearchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} showRelevance={true} />
+    {aiSearchResults.length > 0 && (
+      <Pagination
+       currentPage={currentPage}
+        totalPages={Math.ceil(aiSearchResults.length / itemsPerPage)}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={aiSearchResults.length}
+      />
+    )}
+  </>
+)}
                     </>
                   )}
 
@@ -1397,6 +1552,12 @@ const statusApps = (activeTab === 'pipeline'
                                               <span className="text-gray-900">{app.phone}</span>
                                             </div>
                                           </div>
+                                                    {app.llmAnalysis && (
+              <div className="mt-4 px-4 py-3 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">🧠 AI Match Analysis</h4>
+                <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={false} />
+              </div>
+            )}
                                         </div>
                                         <div className="flex items-center gap-2 ml-4 relative z-10">
 <SequentialStatusControl

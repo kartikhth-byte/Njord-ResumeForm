@@ -1,35 +1,94 @@
-import { useState } from 'react'
-import { Sparkles, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 import { generateMissingEmbeddings } from '../services/embeddingService'
+
+const COOLDOWN_MINUTES = 5 // 5 minute cooldown
+const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000
 
 export default function EmbeddingGenerator() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [cooldownRemaining, setCooldownRemaining] = useState(0)
+
+  // Check cooldown on mount and set up interval
+  useEffect(() => {
+    checkCooldown()
+    
+    // Update cooldown timer every second
+    const interval = setInterval(() => {
+      checkCooldown()
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const checkCooldown = () => {
+    const lastGeneration = localStorage.getItem('lastEmbeddingGeneration')
+    
+    if (!lastGeneration) {
+      setCooldownRemaining(0)
+      return
+    }
+
+    const lastTime = parseInt(lastGeneration)
+    const now = Date.now()
+    const elapsed = now - lastTime
+    const remaining = COOLDOWN_MS - elapsed
+
+    if (remaining > 0) {
+      setCooldownRemaining(Math.ceil(remaining / 1000)) // Convert to seconds
+    } else {
+      setCooldownRemaining(0)
+    }
+  }
+
+  const formatCooldown = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   const handleGenerate = async () => {
+    // Check cooldown
+    if (cooldownRemaining > 0) {
+      setError(`Please wait ${formatCooldown(cooldownRemaining)} before generating again`)
+      return
+    }
+
     setIsGenerating(true)
     setError(null)
     setResult(null)
     setProgress({ current: 0, total: 0 })
 
     try {
+      // Store generation start time
+      localStorage.setItem('lastEmbeddingGeneration', Date.now().toString())
+      
       const result = await generateMissingEmbeddings((current, total) => {
         setProgress({ current, total })
       })
 
       if (result.success) {
         setResult(result)
+        // Start cooldown timer
+        checkCooldown()
       } else {
         setError(result.error || 'Failed to generate embeddings')
+        // Remove timestamp on failure so user can retry
+        localStorage.removeItem('lastEmbeddingGeneration')
       }
     } catch (err) {
       setError(err.message)
+      // Remove timestamp on error so user can retry
+      localStorage.removeItem('lastEmbeddingGeneration')
     } finally {
       setIsGenerating(false)
     }
   }
+
+  const isDisabled = isGenerating || cooldownRemaining > 0
 
   return (
     <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200 p-6 mb-6">
@@ -46,12 +105,30 @@ export default function EmbeddingGenerator() {
           <p className="text-sm text-gray-700">
             Click the button below to generate AI embeddings for all applications. This is a one-time setup required for semantic search to work.
           </p>
+          
+          {cooldownRemaining > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <Clock className="w-4 h-4 text-orange-600" />
+              <span className="text-sm text-orange-700">
+                Rate limit active. Try again in {formatCooldown(cooldownRemaining)}
+              </span>
+            </div>
+          )}
+
           <button
             onClick={handleGenerate}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            disabled={isDisabled}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              isDisabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-purple-600 text-white hover:bg-purple-700'
+            }`}
           >
             <Sparkles className="w-4 h-4" />
             Generate Embeddings
+            {cooldownRemaining > 0 && (
+              <span className="text-xs">({formatCooldown(cooldownRemaining)})</span>
+            )}
           </button>
         </div>
       )}
@@ -87,6 +164,9 @@ export default function EmbeddingGenerator() {
                 Note: {result.failed} embeddings failed. Check console for details.
               </p>
             )}
+            <p className="text-xs text-gray-500 mt-2">
+              Rate limit: {COOLDOWN_MINUTES} minute cooldown active
+            </p>
           </div>
         </div>
       )}
@@ -97,12 +177,14 @@ export default function EmbeddingGenerator() {
           <div>
             <p className="font-medium text-red-900">Error</p>
             <p className="text-sm text-red-700">{error}</p>
-            <button
-              onClick={handleGenerate}
-              className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
-            >
-              Try Again
-            </button>
+            {cooldownRemaining === 0 && (
+              <button
+                onClick={handleGenerate}
+                className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+              >
+                Try Again
+              </button>
+            )}
           </div>
         </div>
       )}

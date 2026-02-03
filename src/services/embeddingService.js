@@ -1,11 +1,27 @@
+// src/services/embeddingService.js
+// UPDATED: Two-stage analysis with LLM reasoning and confidence scoring
+
 import { supabase } from '../lib/supabase'
 
 /**
- * Generate embedding for text using Gemini API (via secure proxy)
+ * Helper to normalize RPC response (maps text_content to chunk_text)
+ */
+function normalizeSearchResults(data) {
+  if (!data) return []
+  return data.map(item => ({
+    ...item,
+    chunk_text: item.text_content || item.chunk_text,
+    // Keep both for compatibility
+    text_content: item.text_content
+  }))
+}
+
+
+/**
+ * Generate embedding for text using secure proxy
  */
 export async function generateEmbedding(text) {
   try {
-    // Call secure edge function instead of direct API ✅
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-embedding-proxy`,
       {
@@ -19,9 +35,7 @@ export async function generateEmbedding(text) {
     )
 
     if (!response.ok) {
-      const error = await response.text()
-      console.error('Proxy error:', error)
-      throw new Error(`Failed to generate embedding: ${response.statusText}`)
+      throw new Error(`Embedding generation failed: ${response.statusText}`)
     }
 
     const data = await response.json()
@@ -38,9 +52,107 @@ export async function generateEmbedding(text) {
   }
 }
 
+
+/**
+ * Analyze candidate with LLM reasoning (NEW - Two-stage analysis)
+ */
+async function analyzeWithLLM(query, application, matchedChunks) {
+  try {
+    // Build application context
+    const appData = application.application_data?.data || {}
+    
+    const applicationContext = `
+Application ID: ${application.reference_number}
+Candidate: ${appData.section2?.firstName} ${appData.section2?.surname}
+Nationality: ${appData.section2?.nationality || 'Not specified'}
+Date of Birth: ${appData.section2?.dateOfBirth || 'Not specified'}
+Email: ${appData.section2?.email || 'Not specified'}
+Phone: ${appData.section2?.phoneNumber || 'Not specified'}
+
+Applied Rank: ${application.applied_rank || 'Not specified'}
+Desired Rank: ${appData.section2?.desiredRank || 'Not specified'}
+Type of Vessel: ${appData.section2?.typeOfVessel || 'Not specified'}
+Available From: ${appData.section2?.availableFrom || 'Not specified'}
+
+Certificate of Competency:
+- Rank: ${appData.section5?.cocRank || 'Not specified'}
+- Number: ${appData.section5?.cocNumber || 'Not specified'}
+- Issue Date: ${appData.section5?.cocIssueDate || 'Not specified'}
+- Expiry Date: ${appData.section5?.cocExpiryDate || 'Not specified'}
+
+Sea Service History:
+${appData.section12?.seaService?.map((service, i) => `
+  ${i + 1}. ${service.vesselName || 'Unknown vessel'} (${service.vesselType || 'Unknown type'})
+     Rank: ${service.rank || 'Not specified'}
+     Period: ${service.signOnDate || '?'} to ${service.signOffDate || '?'}
+     Flag: ${service.flag || 'Not specified'}
+`).join('\n') || 'No sea service data'}
+
+STCW Certificates:
+- Medical First Aid: ${appData.section10?.medicalFirstAid?.expiryDate || 'Not specified'}
+- Basic Safety: ${appData.section10?.stcwBasicSafety?.expiryDate || 'Not specified'}
+- Advanced Fire Fighting: ${appData.section10?.advancedFireFighting?.expiryDate || 'Not specified'}
+
+Visas/Endorsements:
+${appData.section15?.endorsements?.map((end, i) => `
+  ${i + 1}. ${end.flagState || 'Unknown'} ${end.endorsementType || 'Endorsement'}
+     Number: ${end.endorsementNumber || 'Not specified'}
+     Expiry: ${end.expiryDate || 'Not specified'}
+`).join('\n') || 'No endorsements listed'}
+`.trim()
+
+    // Get past feedback for learning (TODO: implement feedback store)
+    const pastFeedback = [] // Will be populated from feedback system
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-reasoning-proxy`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          query,
+          applicationContext,
+          matchedChunks,
+          pastFeedback
+        })
+      }
+    )
+
+    if (!response.ok) {
+      console.error('LLM reasoning failed:', response.statusText)
+      return {
+        isMatch: null,
+        reason: 'Unable to perform LLM analysis',
+        confidence: 0.5,
+        isUncertain: true
+      }
+    }
+
+    const data = await response.json()
+    
+    return {
+      isMatch: data.is_match,
+      reason: data.reason,
+      confidence: data.confidence,
+      isUncertain: data.confidence < 0.7
+    }
+
+  } catch (error) {
+    console.error('LLM analysis error:', error)
+    return {
+      isMatch: null,
+      reason: 'LLM analysis unavailable',
+      confidence: 0.5,
+      isUncertain: true
+    }
+  }
+}
+
 /**
  * Parse compound queries (AND/OR logic)
- * Returns: { isCompound, operator, subQueries }
  */
 function parseCompoundQuery(query) {
   const queryLower = query.toLowerCase()
@@ -57,7 +169,6 @@ function parseCompoundQuery(query) {
     return { isCompound: true, operator: 'OR', subQueries }
   }
   
-  // Simple query
   return { isCompound: false, operator: null, subQueries: [query] }
 }
 
@@ -65,235 +176,369 @@ function parseCompoundQuery(query) {
  * Search for a single sub-query
  */
 async function searchSubQuery(subQuery, threshold = 0.3, limit = 30) {
-  console.log(`[SUBQUERY] Searching: "${subQuery}"`)
-  
-  // Generate embedding
-  const queryEmbedding = await generateEmbedding(subQuery)
-  
-  // Search database
-  const { data, error } = await supabase.rpc('search_similar_applications', {
-    query_embedding: queryEmbedding,
-    match_threshold: threshold,
-    match_count: limit
-  })
-  
-  if (error) throw error
-  
-  console.log('[SUBQUERY] Raw database response:', data?.[0]) // Debug: see what database returns
-  
-  // Group by application_id
-  const resultsByApp = {}
-  for (const match of data || []) {
-    const appId = match.application_id
-    if (!resultsByApp[appId]) {
-      resultsByApp[appId] = []
-    }
-    resultsByApp[appId].push(match)
+  try {
+    const embedding = await generateEmbedding(subQuery)
+    
+    // FIXED: Use correct RPC function name
+    const { data, error } = await supabase.rpc('search_similar_applications', {
+      query_embedding: embedding,
+      match_threshold: threshold,
+      match_count: limit,
+      filter_status: null,
+      filter_position: null,
+      filter_nationality: null,
+      filter_vessel_type: null
+    })
+
+    if (error) throw error
+        return normalizeSearchResults(data)  // ✅ ADD THIS
+    
+    // FIXED: Map text_content to chunk_text for consistency
+//    return (data || []).map(item => ({
+//      ...item,
+//      chunk_text: item.text_content || item.chunk_text  // Fallback for compatibility
+//    }))
+    
+  } catch (error) {
+    console.error(`Error searching sub-query "${subQuery}":`, error)
+    return []
   }
-  
-  console.log(`[SUBQUERY] Found ${Object.keys(resultsByApp).length} applications`)
-  return resultsByApp
 }
 
 /**
- * Merge results from multiple sub-queries based on operator
+ * Merge results from multiple sub-queries (IMPROVED from ai_analyzer.py)
  */
 function mergeCompoundResults(operator, subQueryResults) {
-  if (subQueryResults.length === 0) return {}
-  if (subQueryResults.length === 1) return subQueryResults[0]
-  
-  // Get application IDs from each sub-query
-  const appIdSets = subQueryResults.map(results => new Set(Object.keys(results)))
-  
-  let candidateAppIds
   if (operator === 'AND') {
-    // Intersection: Only apps in ALL sub-queries
-    candidateAppIds = appIdSets[0]
-    for (let i = 1; i < appIdSets.length; i++) {
-      candidateAppIds = new Set([...candidateAppIds].filter(id => appIdSets[i].has(id)))
-    }
-    console.log(`[MERGE AND] ${candidateAppIds.size} applications match ALL conditions`)
-  } else {
-    // Union: Apps in ANY sub-query
-    candidateAppIds = new Set()
-    appIdSets.forEach(set => {
-      set.forEach(id => candidateAppIds.add(id))
-    })
-    console.log(`[MERGE OR] ${candidateAppIds.size} applications match ANY condition`)
-  }
-  
-  // Collect all chunks for each candidate application
-  const merged = {}
-  for (const appId of candidateAppIds) {
-    merged[appId] = []
-    const seenChunkIds = new Set()
+    // For AND: Only return applications that appear in ALL sub-query results
+    // Group by application_id
+    const applicationMatches = {}
     
-    // Gather chunks from all sub-queries
-    for (const results of subQueryResults) {
-      if (results[appId]) {
-        for (const chunk of results[appId]) {
-          if (!seenChunkIds.has(chunk.id)) {
-            merged[appId].push(chunk)
-            seenChunkIds.add(chunk.id)
+    subQueryResults.forEach((results, queryIndex) => {
+      results.forEach(match => {
+        const appId = match.application_id
+        if (!applicationMatches[appId]) {
+          applicationMatches[appId] = {
+            count: 0,
+            matches: [],
+            minSimilarity: 1.0
           }
         }
-      }
-    }
+        applicationMatches[appId].count++
+        applicationMatches[appId].matches.push(match)
+        applicationMatches[appId].minSimilarity = Math.min(
+          applicationMatches[appId].minSimilarity,
+          match.similarity
+        )
+      })
+    })
     
-    // Calculate combined similarity score (average of top matches)
-    if (merged[appId].length > 0) {
-      const topScores = merged[appId]
-        .map(c => c.similarity)
-        .sort((a, b) => b - a)
-        .slice(0, 3) // Average top 3 scores
-      
-      merged[appId].combinedScore = topScores.reduce((a, b) => a + b, 0) / topScores.length
-    }
+    // Filter: Keep only apps that matched ALL sub-queries
+    const requiredMatches = subQueryResults.length
+    const andResults = {}
+    
+    Object.entries(applicationMatches).forEach(([appId, data]) => {
+      if (data.count >= requiredMatches) {
+        // Use minimum similarity (weakest link)
+        andResults[appId] = {
+          matches: data.matches,
+          combinedScore: data.minSimilarity
+        }
+      }
+    })
+    
+    console.log(`[AND] ${Object.keys(andResults).length} apps matched all ${requiredMatches} conditions`)
+    return andResults
+    
+  } else if (operator === 'OR') {
+    // For OR: Return applications from ANY sub-query
+    // Use maximum similarity (best match)
+    const applicationMatches = {}
+    
+    subQueryResults.forEach((results, queryIndex) => {
+      results.forEach(match => {
+        const appId = match.application_id
+        if (!applicationMatches[appId]) {
+          applicationMatches[appId] = {
+            matches: [],
+            maxSimilarity: 0.0
+          }
+        }
+        applicationMatches[appId].matches.push(match)
+        applicationMatches[appId].maxSimilarity = Math.max(
+          applicationMatches[appId].maxSimilarity,
+          match.similarity
+        )
+      })
+    })
+    
+    const orResults = {}
+    Object.entries(applicationMatches).forEach(([appId, data]) => {
+      orResults[appId] = {
+        matches: data.matches,
+        combinedScore: data.maxSimilarity
+      }
+    })
+    
+    console.log(`[OR] ${Object.keys(orResults).length} apps matched at least one condition`)
+    return orResults
   }
   
-  return merged
+  return {}
 }
 
 /**
- * Enhanced semantic search with compound query support
+ * Enhanced semantic search with compound query support and LLM reasoning
+ * NEW: Two-stage analysis (vector search + LLM reasoning)
  */
-export async function searchBySemanticSimilarity(query, threshold = 0.3, limit = 20) {
-  console.log('=== ENHANCED SEMANTIC SEARCH ===')
-  console.log('Query:', query)
-  console.log('Threshold:', threshold)
-
+export async function searchBySemanticSimilarity(query, threshold = 0.3, limit = 20, enableLLM = true) {
   try {
+    console.log('[SEARCH] Query:', query)
+    console.log('[SEARCH] LLM reasoning:', enableLLM ? 'ENABLED' : 'DISABLED')
+    
     // Parse query for compound logic
     const { isCompound, operator, subQueries } = parseCompoundQuery(query)
     
-    let resultsByApp
+    let candidates = {}
     
     if (isCompound) {
-      console.log(`[COMPOUND QUERY] Operator: ${operator}, Sub-queries: ${subQueries.length}`)
+      console.log(`[COMPOUND] Detected ${operator} query with ${subQueries.length} conditions`)
+      console.log('[COMPOUND] Sub-queries:', subQueries)
       
-      // Search each sub-query separately
+      // Multi-stage retrieval: Search each condition separately
       const subQueryResults = []
       for (const subQuery of subQueries) {
-        const results = await searchSubQuery(subQuery, threshold, limit * 2)
+        console.log(`[COMPOUND] Searching: "${subQuery}"`)
+        const results = await searchSubQuery(subQuery, threshold, 60)
         subQueryResults.push(results)
+        console.log(`[COMPOUND] Found ${results.length} matches for "${subQuery}"`)
       }
       
-      // Merge based on operator (AND/OR)
-      resultsByApp = mergeCompoundResults(operator, subQueryResults)
-    } else {
-      // Simple query
-      console.log('[SIMPLE QUERY]')
-      resultsByApp = await searchSubQuery(query, threshold, limit)
-    }
-    
-    // Convert to flat array - return in same format as database
-    const results = []
-    for (const [appId, chunks] of Object.entries(resultsByApp)) {
-      // Sort chunks by similarity (best first)
-      const sortedChunks = chunks.sort((a, b) => b.similarity - a.similarity)
+      // Merge based on AND/OR logic
+      candidates = mergeCompoundResults(operator, subQueryResults)
       
-      // For each application, return the best matching chunk
-      // This maintains compatibility with RecruiterApplications
-      results.push(sortedChunks[0]) // Just return the best chunk for this app
+} else {
+  // Simple query: Standard vector search
+  const embedding = await generateEmbedding(query)
+  
+  // FIXED: Use correct RPC function name
+  const { data, error } = await supabase.rpc('search_similar_applications', {
+    query_embedding: embedding,
+    match_threshold: threshold,
+    match_count: 50,
+    filter_status: null,
+    filter_position: null,
+    filter_nationality: null,
+    filter_vessel_type: null
+  })
+
+  if (error) throw error
+        const normalizedData = normalizeSearchResults(data)  // ✅ ADD THIS
+   
+  // Group by application_id
+  normalizedData.forEach(match => {
+    const appId = match.application_id
+    if (!candidates[appId]) {
+      candidates[appId] = { matches: [] }
+    }
+    candidates[appId].matches.push(match)
+  })
+}
+
+    console.log(`[SEARCH] Found ${Object.keys(candidates).length} candidate applications`)
+    
+    // Get full application data
+    const applicationIds = Object.keys(candidates)
+    
+    if (applicationIds.length === 0) {
+      return []
     }
     
-    // Sort by similarity and limit
-    results.sort((a, b) => b.similarity - a.similarity)
-    const finalResults = results.slice(0, limit)
+    const { data: applications, error: appError } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        user_id,
+        applied_rank,
+        status,
+        reference_number,
+        application_data (
+          data
+        )
+      `)
+      .in('id', applicationIds)
+
+    if (appError) throw appError
     
-    console.log(`Search complete: ${finalResults.length} applications`)
-    finalResults.slice(0, 3).forEach((r, i) => {
-      console.log(`  ${i + 1}. App ${r.application_id.substring(0, 8)}: ${(r.similarity * 100).toFixed(1)}%`)
+    // Build final results with metadata
+    const results = applications.map(app => {
+      const candidateData = candidates[app.id]
+      const matches = candidateData.matches
+      
+      // Calculate similarity (average or combined score)
+      const similarity = candidateData.combinedScore !== undefined
+        ? candidateData.combinedScore
+        : matches.reduce((sum, m) => sum + m.similarity, 0) / matches.length
+      
+      // Get matched chunks for context
+      const matchedChunks = matches.map(m => ({
+        chunk_text: m.chunk_text,
+        similarity: m.similarity
+      }))
+      
+      return {
+        application_id: app.id,
+        reference_number: app.reference_number,
+        similarity,
+          chunk_text: matchedChunks[0]?.chunk_text || '',  // ✅ Add this for backward compatibility
+        application_data: app.application_data?.data,
+        matched_chunks: matchedChunks,
+        // Metadata for UI
+        full_application: app
+      }
     })
     
-    return finalResults
+    // Sort by similarity
+    results.sort((a, b) => b.similarity - a.similarity)
+    
+    // STAGE 2: LLM Reasoning on top results (NEW!)
+    if (enableLLM) {
+      console.log('[LLM] Starting two-stage analysis on top results...')
+      const topResults = results.slice(0, Math.min(10, results.length))
+      
+      for (const result of topResults) {
+        console.log(`[LLM] Analyzing ${result.reference_number}...`)
+        
+        const llmAnalysis = await analyzeWithLLM(
+          query,
+          result.full_application,
+          result.matched_chunks.map(c => c.chunk_text)
+        )
+        
+        result.llmAnalysis = llmAnalysis
+        
+        console.log(`[LLM] ${result.reference_number}: ${llmAnalysis.isMatch ? 'MATCH' : 'NO MATCH'} (${(llmAnalysis.confidence * 100).toFixed(0)}% confidence)`)
+        
+        // Rate limiting between LLM calls
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+      
+      // Sort again by confidence if available
+      results.sort((a, b) => {
+        const confA = a.llmAnalysis?.confidence ?? a.similarity
+        const confB = b.llmAnalysis?.confidence ?? b.similarity
+        return confB - confA
+      })
+    }
+    
+    return results.slice(0, limit)
+    
   } catch (error) {
-    console.error('Enhanced semantic search error:', error)
+    console.error('[SEARCH] Error:', error)
     throw error
   }
 }
 
 /**
- * Generate embeddings for applications that don't have them yet
+ * Generate missing embeddings (with progress callback fix)
  */
-export async function generateMissingEmbeddings() {
+export async function generateMissingEmbeddings(progressCallback) {
   try {
-    console.log('Checking for applications without embeddings...')
-
-    // Get all applications with their data
-    const { data: applications, error: appsError } = await supabase
+    console.log('[EMBEDDING] Starting generation process...')
+    
+    // Get all applications without embeddings
+    const { data: applications, error } = await supabase
       .from('applications')
       .select(`
         id,
-        user_id,
-        application_data!inner (
+        reference_number,
+        application_data (
           data
         )
       `)
-      .not('application_data', 'is', null)
+        // Generate embeddings for all applications regardless of status
+  .not('reference_number', 'is', null)  // Only applications with reference numbers
 
-    if (appsError) throw appsError
+    if (error) throw error
 
-    console.log(`Found ${applications.length} total applications`)
+    const total = applications.length
+    let processed = 0
+    let failed = 0
 
-    // Check which ones already have embeddings
-    const { data: existingEmbeddings, error: embError } = await supabase
-      .from('application_embeddings')
-      .select('application_id')
+    console.log(`[EMBEDDING] Found ${total} applications to process`)
 
-    if (embError) throw embError
-
-    const existingIds = new Set(existingEmbeddings.map(e => e.application_id))
-    const missingApps = applications.filter(app => !existingIds.has(app.id))
-
-    console.log(`${missingApps.length} applications need embeddings`)
-
-    if (missingApps.length === 0) {
-      return { success: true, count: 0, message: 'All applications already have embeddings' }
-    }
-
-    // Generate embeddings for missing applications
-    let successCount = 0
-    let errorCount = 0
-
-    for (const app of missingApps) {
+    for (const app of applications) {
       try {
-        const text = extractTextForEmbedding(app.application_data.data)
-        const embedding = await generateEmbedding(text)
-
-        const { error: insertError } = await supabase
+        // Check if embeddings already exist
+        const { data: existing } = await supabase
           .from('application_embeddings')
-          .insert({
-            application_id: app.id,
-            embedding: embedding,
-            embedded_text: text,
-            model_version: 'text-embedding-004'
-          })
+          .select('id')
+          .eq('application_id', app.id)
+          .limit(1)
 
-        if (insertError) throw insertError
+        if (existing && existing.length > 0) {
+          processed++
+          if (progressCallback) progressCallback(processed, total)
+          continue
+        }
 
-        successCount++
-        console.log(`✅ Generated embedding for application ${app.id} (${successCount}/${missingApps.length})`)
+        // Extract text and generate embeddings
+        const text = extractTextForEmbedding(app.application_data?.data || {})
+        
+        if (!text || text.length < 50) {
+          console.warn(`[EMBEDDING] Skipping ${app.reference_number}: insufficient text`)
+          failed++
+          processed++
+          if (progressCallback) progressCallback(processed, total)
+          continue
+        }
 
-        // Rate limiting - wait 1 second between requests
+        const embedding = await generateEmbedding(text)
+        
+        // Store embedding
+const { error: insertError } = await supabase
+  .from('application_embeddings')
+  .insert({
+    application_id: app.id,
+    embedding,
+    text_content: text.substring(0, 1000),  // FIXED: Use correct column name
+  })
+
+        if (insertError) {
+          console.error(`[EMBEDDING] Failed to store ${app.reference_number}:`, insertError)
+          failed++
+        } else {
+          console.log(`[EMBEDDING] ✓ ${app.reference_number}`)
+        }
+
+        processed++
+        if (progressCallback) progressCallback(processed, total)
+        
+        // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000))
+
       } catch (error) {
-        console.error(`❌ Failed to generate embedding for application ${app.id}:`, error)
-        errorCount++
+        console.error(`[EMBEDDING] Error processing ${app.reference_number}:`, error)
+        failed++
+        processed++
+        if (progressCallback) progressCallback(processed, total)
       }
     }
 
     return {
       success: true,
-      count: successCount,
-      errors: errorCount,
-      message: `Generated ${successCount} embeddings${errorCount > 0 ? `, ${errorCount} failed` : ''}`
+      message: `Processed ${processed} applications. ${failed} failed.`,
+      processed,
+      failed
     }
+
   } catch (error) {
-    console.error('Error in generateMissingEmbeddings:', error)
+    console.error('[EMBEDDING] Generation failed:', error)
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      processed: 0,
+      failed: 0
     }
   }
 }
@@ -303,54 +548,37 @@ export async function generateMissingEmbeddings() {
  */
 function extractTextForEmbedding(applicationData) {
   const sections = []
-
-  // Section 1: Availability & Application
-  if (applicationData.section1) {
-    const s = applicationData.section1
-    sections.push(`Position: ${s.appliedForRank || ''}`)
-    sections.push(`Vessel type: ${s.vesselType || ''}`)
-    sections.push(`Available from: ${s.availableFrom || ''}`)
-  }
-
-  // Section 2: Personal & Contact Details
+  
+  // Section 2: Personal Info
   if (applicationData.section2) {
     const s = applicationData.section2
-    sections.push(`Name: ${s.firstName || ''} ${s.middleName || ''} ${s.surname || ''}`)
-    sections.push(`Nationality: ${s.nationality || ''}`)
-    sections.push(`Age: ${s.age || ''}`)
+    sections.push(`
+      Name: ${s.firstName} ${s.surname}
+      Nationality: ${s.nationality}
+      Desired Rank: ${s.desiredRank}
+      Vessel Type: ${s.typeOfVessel}
+    `)
   }
-
-  // Section 8: Certificates
-  if (applicationData.section8?.certificates) {
-    const certs = applicationData.section8.certificates
-      .map(c => `${c.name} (${c.grade || ''})`)
-      .join(', ')
-    sections.push(`Certificates: ${certs}`)
+  
+  // Section 5: Certificate of Competency
+  if (applicationData.section5) {
+    const s = applicationData.section5
+    sections.push(`
+      Certificate of Competency: ${s.cocRank}
+      CoC Number: ${s.cocNumber}
+    `)
   }
-
-  // Section 16: Sea Service
-  if (applicationData.section16?.seaService) {
-    const vessels = applicationData.section16.seaService
-      .map(v => `${v.rank || ''} on ${v.vesselName || ''} (${v.vesselType || ''})`)
-      .join('; ')
-    sections.push(`Experience: ${vessels}`)
+  
+  // Section 12: Sea Service
+  if (applicationData.section12?.seaService) {
+    applicationData.section12.seaService.forEach(service => {
+      sections.push(`
+        Vessel: ${service.vesselName} (${service.vesselType})
+        Rank: ${service.rank}
+        Period: ${service.signOnDate} to ${service.signOffDate}
+      `)
+    })
   }
-
-  // Section 17: Experience Summary
-  if (applicationData.section17) {
-    const s = applicationData.section17
-    sections.push(`Total sea time: ${s.totalSeaTime || ''}`)
-    sections.push(`Vessel types: ${s.vesselTypesWorked || ''}`)
-    sections.push(`Cargo handled: ${s.cargoTypes || ''}`)
-  }
-
-  // Section 18: References
-  if (applicationData.section18?.references) {
-    const refs = applicationData.section18.references
-      .map(r => `Reference from ${r.name} (${r.company})`)
-      .join('; ')
-    sections.push(`References: ${refs}`)
-  }
-
-  return sections.filter(Boolean).join('. ')
+  
+  return sections.join('\n\n').trim()
 }
