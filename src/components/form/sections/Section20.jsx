@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 

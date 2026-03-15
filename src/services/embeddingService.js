@@ -16,6 +16,28 @@ function normalizeSearchResults(data) {
   }))
 }
 
+function getApplicationSearchProfile(applicationData = {}) {
+  const section1 = applicationData.section1 || {}
+  const section2 = applicationData.section2 || {}
+  const section8 = applicationData.section8 || {}
+  const section10 = applicationData.section10 || {}
+  const section14 = applicationData.section14 || {}
+  const section15 = applicationData.section15 || {}
+  const section16 = applicationData.section16 || {}
+
+  return {
+    desiredRank: section1.appliedForRank || '',
+    vesselType: section1.vesselType || '',
+    availableFrom: section1.availableFrom || '',
+    certificates: Array.isArray(section8.certificates) ? section8.certificates : [],
+    medicalFitness: Array.isArray(section10.medicalFitness) ? section10.medicalFitness : [],
+    stcwCertificates: Array.isArray(section14.certificates) ? section14.certificates : [],
+    endorsements: Array.isArray(section15.endorsements) ? section15.endorsements : [],
+    seaService: Array.isArray(section16.seaService) ? section16.seaService : [],
+    section2
+  }
+}
+
 
 /**
  * Generate embedding for text using secure proxy
@@ -60,44 +82,49 @@ async function analyzeWithLLM(query, application, matchedChunks) {
   try {
     // Build application context
     const appData = application.application_data?.data || {}
+    const profile = getApplicationSearchProfile(appData)
     
     const applicationContext = `
 Application ID: ${application.reference_number}
-Candidate: ${appData.section2?.firstName} ${appData.section2?.surname}
-Nationality: ${appData.section2?.nationality || 'Not specified'}
-Date of Birth: ${appData.section2?.dateOfBirth || 'Not specified'}
-Email: ${appData.section2?.email || 'Not specified'}
-Phone: ${appData.section2?.phoneNumber || 'Not specified'}
+Candidate: ${profile.section2?.firstName} ${profile.section2?.surname}
+Nationality: ${profile.section2?.nationality || 'Not specified'}
+Date of Birth: ${profile.section2?.dateOfBirth || 'Not specified'}
+Email: ${profile.section2?.email || 'Not specified'}
+Phone: ${profile.section2?.phoneNumber || 'Not specified'}
 
 Applied Rank: ${application.applied_rank || 'Not specified'}
-Desired Rank: ${appData.section2?.desiredRank || 'Not specified'}
-Type of Vessel: ${appData.section2?.typeOfVessel || 'Not specified'}
-Available From: ${appData.section2?.availableFrom || 'Not specified'}
+Desired Rank: ${profile.desiredRank || 'Not specified'}
+Type of Vessel: ${profile.vesselType || 'Not specified'}
+Available From: ${profile.availableFrom || 'Not specified'}
 
 Certificate of Competency:
-- Rank: ${appData.section5?.cocRank || 'Not specified'}
-- Number: ${appData.section5?.cocNumber || 'Not specified'}
-- Issue Date: ${appData.section5?.cocIssueDate || 'Not specified'}
-- Expiry Date: ${appData.section5?.cocExpiryDate || 'Not specified'}
+${profile.certificates.map((certificate, i) => `
+  ${i + 1}. ${certificate.grade || 'Not specified'}
+     Number: ${certificate.certificateNumber || 'Not specified'}
+     Issue Date: ${certificate.dateOfIssue || 'Not specified'}
+     Expiry Date: ${certificate.dateOfExpiry || 'Not specified'}
+`).join('\n') || 'No CoC data'}
 
 Sea Service History:
-${appData.section12?.seaService?.map((service, i) => `
+${profile.seaService.map((service, i) => `
   ${i + 1}. ${service.vesselName || 'Unknown vessel'} (${service.vesselType || 'Unknown type'})
-     Rank: ${service.rank || 'Not specified'}
+     Rank: ${service.rankHeld || 'Not specified'}
      Period: ${service.signOnDate || '?'} to ${service.signOffDate || '?'}
      Flag: ${service.flag || 'Not specified'}
 `).join('\n') || 'No sea service data'}
 
 STCW Certificates:
-- Medical First Aid: ${appData.section10?.medicalFirstAid?.expiryDate || 'Not specified'}
-- Basic Safety: ${appData.section10?.stcwBasicSafety?.expiryDate || 'Not specified'}
-- Advanced Fire Fighting: ${appData.section10?.advancedFireFighting?.expiryDate || 'Not specified'}
+${profile.stcwCertificates.map((certificate, i) => `
+  ${i + 1}. ${certificate.certificateName || certificate.courseName || 'Certificate'}
+     Number: ${certificate.certificateNumber || 'Not specified'}
+     Expiry: ${certificate.dateOfExpiry || 'Not specified'}
+`).join('\n') || 'No STCW certificates listed'}
 
 Visas/Endorsements:
-${appData.section15?.endorsements?.map((end, i) => `
+${profile.endorsements.map((end, i) => `
   ${i + 1}. ${end.flagState || 'Unknown'} ${end.endorsementType || 'Endorsement'}
      Number: ${end.endorsementNumber || 'Not specified'}
-     Expiry: ${end.expiryDate || 'Not specified'}
+     Expiry: ${end.dateOfExpiry || 'Not specified'}
 `).join('\n') || 'No endorsements listed'}
 `.trim()
 
@@ -214,7 +241,7 @@ function mergeCompoundResults(operator, subQueryResults) {
     // Group by application_id
     const applicationMatches = {}
     
-    subQueryResults.forEach((results, queryIndex) => {
+    subQueryResults.forEach((results) => {
       results.forEach(match => {
         const appId = match.application_id
         if (!applicationMatches[appId]) {
@@ -255,7 +282,7 @@ function mergeCompoundResults(operator, subQueryResults) {
     // Use maximum similarity (best match)
     const applicationMatches = {}
     
-    subQueryResults.forEach((results, queryIndex) => {
+    subQueryResults.forEach((results) => {
       results.forEach(match => {
         const appId = match.application_id
         if (!applicationMatches[appId]) {
@@ -548,37 +575,46 @@ const { error: insertError } = await supabase
  */
 function extractTextForEmbedding(applicationData) {
   const sections = []
+  const profile = getApplicationSearchProfile(applicationData)
   
   // Section 2: Personal Info
-  if (applicationData.section2) {
-    const s = applicationData.section2
+  if (profile.section2) {
+    const s = profile.section2
     sections.push(`
       Name: ${s.firstName} ${s.surname}
       Nationality: ${s.nationality}
-      Desired Rank: ${s.desiredRank}
-      Vessel Type: ${s.typeOfVessel}
+      Desired Rank: ${profile.desiredRank}
+      Vessel Type: ${profile.vesselType}
+      Available From: ${profile.availableFrom}
     `)
   }
   
-  // Section 5: Certificate of Competency
-  if (applicationData.section5) {
-    const s = applicationData.section5
+  profile.certificates.forEach(certificate => {
     sections.push(`
-      Certificate of Competency: ${s.cocRank}
-      CoC Number: ${s.cocNumber}
+      Certificate of Competency: ${certificate.grade}
+      CoC Number: ${certificate.certificateNumber}
+      Issuing Authority: ${certificate.issuingAuthority}
+      Expiry Date: ${certificate.dateOfExpiry}
     `)
-  }
+  })
   
-  // Section 12: Sea Service
-  if (applicationData.section12?.seaService) {
-    applicationData.section12.seaService.forEach(service => {
-      sections.push(`
-        Vessel: ${service.vesselName} (${service.vesselType})
-        Rank: ${service.rank}
-        Period: ${service.signOnDate} to ${service.signOffDate}
-      `)
-    })
-  }
+  profile.endorsements.forEach(endorsement => {
+    sections.push(`
+      Flag State Endorsement: ${endorsement.flagState}
+      Endorsement Type: ${endorsement.endorsementType}
+      Rank Endorsed: ${endorsement.rankEndorsed}
+    `)
+  })
+
+  profile.seaService.forEach(service => {
+    sections.push(`
+      Vessel: ${service.vesselName} (${service.vesselType})
+      Rank: ${service.rankHeld}
+      Period: ${service.signOnDate} to ${service.signOffDate}
+      Company: ${service.companyName}
+      Trade Route: ${service.tradeRoute}
+    `)
+  })
   
   return sections.join('\n\n').trim()
 }

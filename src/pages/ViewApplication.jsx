@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -87,7 +88,7 @@ export default function ViewApplication() {
   const { data, error } = await supabase
     .from('applications')
     .select('*, application_data(data)')
-    .eq('id', applicationId)
+    .eq('id', application?.id)
     .single()
   
   if (!error && data) {

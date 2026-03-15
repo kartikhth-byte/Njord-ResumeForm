@@ -24,14 +24,14 @@ const [openDropdown, setOpenDropdown] = useState(null) // ✅ Single state for a
 
   // Certificate grade options (based on maritime ranks)
   const certificateGrades = [
-    { value: 'master', label: 'Master' },
-    { value: 'chief_officer', label: 'Chief Officer' },
-    { value: 'second_officer', label: 'Second Officer' },
-    { value: 'third_officer', label: 'Third Officer' },
-    { value: 'chief_engineer', label: 'Chief Engineer' },
-    { value: 'second_engineer', label: 'Second Engineer' },
-    { value: 'third_engineer', label: 'Third Engineer' },
-    { value: 'fourth_engineer', label: 'Fourth Engineer' }
+    { value: 'Master', label: 'Master' },
+    { value: 'Chief Officer', label: 'Chief Officer' },
+    { value: 'Second Officer', label: 'Second Officer' },
+    { value: 'Third Officer', label: 'Third Officer' },
+    { value: 'Chief Engineer', label: 'Chief Engineer' },
+    { value: 'Second Engineer', label: 'Second Engineer' },
+    { value: 'Third Engineer', label: 'Third Engineer' },
+    { value: 'Fourth Engineer', label: 'Fourth Engineer' }
   ]
 
   // Availability options

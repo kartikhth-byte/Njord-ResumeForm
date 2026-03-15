@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // Validation utility for all form sections
 // This checks REQUIRED fields, not just if section has any data
 

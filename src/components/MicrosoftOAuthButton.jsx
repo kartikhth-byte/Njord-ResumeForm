@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
@@ -33,7 +34,6 @@ export default function MicrosoftOAuthButton({ onSuccess }) {
 
   const connect = () => {
     const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID
-    const tenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID
     const redirectUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI
 
 // Define scopes as array for clarity

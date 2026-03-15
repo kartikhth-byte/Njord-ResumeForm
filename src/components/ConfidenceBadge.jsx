@@ -10,7 +10,7 @@ export default function ConfidenceBadge({ llmAnalysis, compact = false }) {
     return null
   }
 
-  const { is_match, isMatch, confidence, reason, isUncertain } = llmAnalysis
+  const { is_match, isMatch, confidence, reason } = llmAnalysis
   
   // Support both snake_case and camelCase field names
   const matchStatus = is_match ?? isMatch

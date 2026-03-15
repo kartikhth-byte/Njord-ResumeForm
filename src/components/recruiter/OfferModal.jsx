@@ -67,8 +67,8 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
         const fileExt = uploadedFile.name.split('.').pop()
         const fileName = `${application.id}/offer-letter-${Date.now()}.${fileExt}`
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('offer-letters')
+      const { error: uploadError } = await supabase.storage
+        .from('offer-letters')
           .upload(fileName, uploadedFile)
 
         if (uploadError) throw uploadError

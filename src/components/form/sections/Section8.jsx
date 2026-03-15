@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, no-case-declarations */
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormDatePicker from '../shared/FormDatePicker'

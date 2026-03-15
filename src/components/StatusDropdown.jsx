@@ -72,8 +72,6 @@ export default function StatusDropdown({ applicationId, currentStatus, onStatusC
     }
   }
 
-  const currentStatusLabel = statuses.find(s => s.value === currentStatus)?.label || currentStatus
-
   return (
     <>
       <div className="relative">

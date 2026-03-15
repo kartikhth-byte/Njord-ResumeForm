@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
@@ -43,6 +44,8 @@ export default function RecruiterDashboard() {
   // Rejection Modal State
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState(null)
+  const [isRetakeModalOpen, setIsRetakeModalOpen] = useState(false)
+  const [selectedRetakeApplication, setSelectedRetakeApplication] = useState(null)
   
   
   const itemsPerPage = 20

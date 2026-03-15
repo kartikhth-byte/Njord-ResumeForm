@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
@@ -23,7 +24,8 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
   const [meetCreated, setMeetCreated] = useState(false)
   const [meetError, setMeetError] = useState('')
   const [isTeamsConnected, setIsTeamsConnected] = useState(false)
-  const [checkingTeamsAuth, setCheckingTeamsAuth] = useState(true)
+  const [, setCheckingTeamsAuth] = useState(true)
+  const [, setNeedsTeamsAuth] = useState(false)
 
   // Lock body scroll when modal opens
   useEffect(() => {

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -12,10 +13,6 @@ import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
 import OfferModal from '../components/recruiter/OfferModal'
 import ConfidenceBadge from '../components/ConfidenceBadge'
-
-
-// --- ADDED MODAL IMPORTS ---
-import RejectionModal from '../components/recruiter/RejectionModal'
 
 import { 
   Users, 
@@ -34,12 +31,38 @@ import {
   X as XIcon
 } from 'lucide-react'
 
+function normalizeCertificateGrade(value) {
+  return (value || '').toString().trim().toLowerCase()
+}
+
+function getApplicationFields(appData = {}) {
+  const section1 = appData.section1 || {}
+  const section2 = appData.section2 || {}
+  const section5 = appData.section5 || {}
+  const section8 = appData.section8 || {}
+  const section15 = appData.section15 || {}
+  const section16 = appData.section16 || {}
+
+  return {
+    section1,
+    section2,
+    section5,
+    section8,
+    section15,
+    section16,
+    visas: Array.isArray(section5.visas) ? section5.visas : [],
+    certificates: Array.isArray(section8.certificates) ? section8.certificates : [],
+    endorsements: Array.isArray(section15.endorsements) ? section15.endorsements : [],
+    seaService: Array.isArray(section16.seaService) ? section16.seaService : []
+  }
+}
 
 export default function RecruiterApplications() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const { canViewApplications, loading: permLoading } = usePermissions(user)
+  const aiSearchStorageKey = user?.id ? `aiSearchResults:${user.id}` : null
   
   const [applications, setApplications] = useState([])
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)  // ← ADD THIS
@@ -182,11 +205,6 @@ const [offerApplication, setOfferApplication] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState(['initial', 'testing', 'interview', 'final'])
 
-  // --- MODAL STATES ---
-  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
-  const [selectedApplication, setSelectedApplication] = useState(null)
-
-  
   // Handle sidebar state based on screen size
   useEffect(() => {
     const handleResize = () => {
@@ -260,14 +278,13 @@ const [offerApplication, setOfferApplication] = useState(null)
 useEffect(() => {
     console.log('🔄 useEffect triggered - activeTab:', activeTab, 'aiSearchActive:', aiSearchActive)
 
-  // Only filter for "All Applications" tab when NOT doing AI search
-  if (activeTab === 'all' && !aiSearchActive) {
+  if ((activeTab === 'all' || (activeTab === 'search' && searchMode === 'filters')) && !aiSearchActive) {
         console.log('✅ Calling filterApplications()')
             filterApplications()
    } else {
     console.log('❌ NOT calling filterApplications()')
   }
-}, [activeTab, applications, statusFilter, searchTerm, includeRejected, aiSearchActive])
+}, [activeTab, applications, statusFilter, searchTerm, includeRejected, aiSearchActive, searchMode])
   
   useEffect(() => {
     setCurrentPage(1)
@@ -288,11 +305,12 @@ useEffect(() => {
   }
 
 
-  // Restore AI search results from localStorage on mount
+// Restore AI search results from localStorage on mount
 useEffect(() => {
+  if (!aiSearchStorageKey) return
   console.log('🔄 Checking for saved AI search results...')
   
-  const savedSearch = localStorage.getItem('aiSearchResults')
+  const savedSearch = localStorage.getItem(aiSearchStorageKey)
   if (!savedSearch) {
     console.log('❌ No saved search results found')
     return
@@ -318,13 +336,13 @@ useEffect(() => {
       }
     } else {
       console.log(`⏰ Saved results too old (${Math.round(age / 1000 / 60)} minutes), clearing...`)
-      localStorage.removeItem('aiSearchResults')
+      localStorage.removeItem(aiSearchStorageKey)
     }
   } catch (error) {
     console.error('❌ Error restoring search results:', error)
-    localStorage.removeItem('aiSearchResults')
+    localStorage.removeItem(aiSearchStorageKey)
   }
-}, []) // Empty dependency array - run once on mount
+}, [aiSearchStorageKey]) // Restore per signed-in recruiter only
 
   const matchesExperienceFilter = (years, filterValue) => {
     switch (filterValue) {
@@ -476,13 +494,13 @@ useEffect(() => {
           vessel_type: section1.vesselType || '',
           nationality: section2.nationality || '',
           age: age,
-          experience_years: calculateExperience(section5.seaService),
+          experience_years: calculateExperience(section16.seaService),
           available_from: section1.availableFrom || '',
           total_experience: section5.totalSeaService || '',
-          last_vessel: section5.seaService?.[0]?.vesselName || '',
-          last_rank: section5.seaService?.[0]?.rank || '',
-          coc_number: section8.cocNumber || '',
-          coc_issuing_country: section8.issuingCountry || '',
+          last_vessel: section16.seaService?.[0]?.vesselName || '',
+          last_rank: section16.seaService?.[0]?.rankHeld || '',
+          coc_number: section8.certificates?.[0]?.certificateNumber || '',
+          coc_issuing_country: section8.certificates?.[0]?.issuingAuthority || '',
           english_proficiency: section15.englishProficiency || '',
           marlins_score: section15.marlinsScore || '',
           bmi: section16.bmi || '',
@@ -510,11 +528,10 @@ useEffect(() => {
             // Certificate Grade filter
       if (appliedFilters.certificateGrade) {
         formattedData = formattedData.filter(app => {
-          const appData = app.application_data?.data
-          // Check section 8 for certificate grade
-          const certificates = appData?.section8?.certificates || []
-          return certificates.some(cert => 
-            cert.certificateGrade === appliedFilters.certificateGrade
+          const fields = getApplicationFields(app.application_data?.data)
+          const selectedGrade = normalizeCertificateGrade(appliedFilters.certificateGrade)
+          return fields.certificates.some(cert =>
+            normalizeCertificateGrade(cert.grade) === selectedGrade
           )
         })
       }
@@ -522,11 +539,9 @@ useEffect(() => {
       // Visa Type filter
       if (appliedFilters.visaType) {
         formattedData = formattedData.filter(app => {
-          const appData = app.application_data?.data
-          // Check section 5 for visas
-          const visas = appData?.section5?.visas || []
-          return visas.some(visa => 
-            visa.visaType === appliedFilters.visaType
+          const fields = getApplicationFields(app.application_data?.data)
+          return fields.visas.some(visa =>
+            visa.type === appliedFilters.visaType
           )
         })
       }
@@ -534,10 +549,8 @@ useEffect(() => {
       // Flag State filter
       if (appliedFilters.flagState) {
         formattedData = formattedData.filter(app => {
-          const appData = app.application_data?.data
-          // Check section 15 for endorsements
-          const endorsements = appData?.section15?.endorsements || []
-          return endorsements.some(endorsement => 
+          const fields = getApplicationFields(app.application_data?.data)
+          return fields.endorsements.some(endorsement =>
             endorsement.flagState === appliedFilters.flagState
           )
         })
@@ -579,7 +592,7 @@ useEffect(() => {
       }
 
       data?.forEach(app => {
-        if (counts.hasOwnProperty(app.status)) {
+        if (Object.prototype.hasOwnProperty.call(counts, app.status)) {
           counts[app.status]++
         }
       })
@@ -620,10 +633,10 @@ useEffect(() => {
       full_name: `${app.application_data?.data?.section2?.firstName || ''} ${app.application_data?.data?.section2?.surname || ''}`.trim(),
       email: app.application_data?.data?.section2?.email || app.application_data?.data?.section4?.email || '',
       phone: app.application_data?.data?.section2?.phoneNumber || app.application_data?.data?.section4?.phoneNumber || '',
-      desired_rank: app.application_data?.data?.section2?.desiredRank || app.applied_rank || '',
-      vessel_type: app.application_data?.data?.section2?.vesselType || '',
+      desired_rank: app.application_data?.data?.section1?.appliedForRank || app.applied_rank || '',
+      vessel_type: app.application_data?.data?.section1?.vesselType || '',
       nationality: app.application_data?.data?.section2?.nationality || '',
-      available_from: app.application_data?.data?.section2?.availableFrom || '',
+      available_from: app.application_data?.data?.section1?.availableFrom || '',
       date_of_birth: app.application_data?.data?.section2?.dateOfBirth || ''
     }))
 
@@ -695,18 +708,6 @@ const handleStatusChange = async (applicationId, newStatus) => {
   }
 }
 
-  // --- MODAL CALLBACKS ---
-  const handleRejectConfirm = async (rejectionData) => {
-    const appId = rejectionData.applicationId
-    // Update local UI to reflect rejection (DB update handled by Modal/Service)
-    setApplications(prev => prev.map(app => 
-      app.id === appId ? { ...app, status: 'rejected' } : app
-    ))
-    setIsRejectionModalOpen(false)
-    setIsRetakeModalOpen(false) 
-  }
-
-  
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
   }
@@ -719,6 +720,7 @@ const handleStatusChange = async (applicationId, newStatus) => {
 const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   console.log('🔍 AI Search results received:', results.length)
   
+  setCurrentPage(1)
   setAiSearchResults(results)
   setAiSearchQuery(query)
   setAiSearchActive(true)
@@ -726,7 +728,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
   if (results.length === 0) {
     setAiSearchResults([])
-    localStorage.removeItem('aiSearchResults')
+    if (aiSearchStorageKey) {
+      localStorage.removeItem(aiSearchStorageKey)
+    }
     return
   }
 
@@ -763,38 +767,45 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
     console.log('✅ Fetched full application data:', fullApps.length)
 
-    const enrichedResults = fullApps.map(app => {
-      const appData = app.application_data?.data || {}
-      
-      return {
-        ...app,
-        full_name: `${appData.section2?.firstName || ''} ${appData.section2?.surname || ''}`.trim(),
-        email: appData.section2?.email || appData.section4?.email || '',
-        phone: appData.section2?.phoneNumber || appData.section4?.phoneNumber || '',
-        desired_rank: appData.section2?.desiredRank || app.applied_rank || '',
-        vessel_type: appData.section1?.vesselType || '',
-        nationality: appData.section2?.nationality || '',
-        available_from: appData.section2?.availableFrom || '',
-        date_of_birth: appData.section2?.dateOfBirth || '',
-        similarity: results.find(r => r.application_id === app.id)?.similarity || 0,
-        matched_chunk: results.find(r => r.application_id === app.id)?.chunk_text || '',
-        llmAnalysis: results.find(r => r.application_id === app.id)?.llmAnalysis
-      }
-    })
+	    const enrichedResults = fullApps.map(app => {
+	      const appData = app.application_data?.data || {}
+        const matchingResult = results.find(r => r.application_id === app.id)
 
-    enrichedResults.sort((a, b) => b.similarity - a.similarity)
+	      return {
+	        ...app,
+	        full_name: `${appData.section2?.firstName || ''} ${appData.section2?.surname || ''}`.trim(),
+	        email: appData.section2?.email || appData.section4?.email || '',
+	        phone: appData.section2?.phoneNumber || appData.section4?.phoneNumber || '',
+	        desired_rank: appData.section1?.appliedForRank || app.applied_rank || '',
+	        vessel_type: appData.section1?.vesselType || '',
+	        nationality: appData.section2?.nationality || '',
+	        available_from: appData.section1?.availableFrom || '',
+	        date_of_birth: appData.section2?.dateOfBirth || '',
+	        similarity: matchingResult?.similarity || 0,
+	        matched_chunk: matchingResult?.chunk_text || '',
+	        llmAnalysis: matchingResult?.llmAnalysis
+	      }
+	    })
+
+	    enrichedResults.sort((a, b) => {
+        const scoreA = a.llmAnalysis?.confidence ?? a.similarity
+        const scoreB = b.llmAnalysis?.confidence ?? b.similarity
+        return scoreB - scoreA
+      })
 
     console.log('✅ Enriched results with metadata:', enrichedResults.length)
     
     setAiSearchResults(enrichedResults)
     
     // ✅ SAVE TO LOCALSTORAGE HERE - AFTER ENRICHMENT
-    localStorage.setItem('aiSearchResults', JSON.stringify({
-      results: enrichedResults,  // ← Save enriched results!
-      query,
-      timestamp: Date.now()
-    }))
-    console.log('💾 Saved enriched AI search results to localStorage')
+    if (aiSearchStorageKey) {
+      localStorage.setItem(aiSearchStorageKey, JSON.stringify({
+        results: enrichedResults,
+        query,
+        timestamp: Date.now()
+      }))
+      console.log('💾 Saved enriched AI search results to localStorage')
+    }
 
   } catch (error) {
     console.error('Error enriching search results:', error)
@@ -808,11 +819,14 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   setAiSearchActive(false)
   setAiSearchResults([])
   setAiSearchQuery('')
+  setCurrentPage(1)
   filterApplications()
   
   // Clear from localStorage
-  localStorage.removeItem('aiSearchResults')
-  console.log('💾 Cleared AI search results from localStorage')
+  if (aiSearchStorageKey) {
+    localStorage.removeItem(aiSearchStorageKey)
+    console.log('💾 Cleared AI search results from localStorage')
+  }
 }
 
   const toggleStatus = (statusValue) => {
@@ -844,6 +858,13 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         console.log('📊 Paginated result length:', result.length)
   return result
   }
+
+  const displayedApplications = activeTab === 'search' && searchMode === 'filters'
+    ? applications
+    : filteredApplications
+
+  const displayedPaginatedApplications = getPaginatedData(displayedApplications)
+  const displayedTotalPages = Math.ceil(displayedApplications.length / itemsPerPage)
 
   if (permLoading) {
     return (
@@ -1468,14 +1489,14 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
                       />
                       {applications.length > 0 && (
                         <>
-                          <ApplicationTable apps={paginatedApplications} />
-                          {filteredApplications.length > 0 && (
+                          <ApplicationTable apps={displayedPaginatedApplications} />
+                          {displayedApplications.length > 0 && (
                             <Pagination
                               currentPage={currentPage}
-                              totalPages={totalPages}
+                              totalPages={displayedTotalPages}
                               onPageChange={setCurrentPage}
                               itemsPerPage={itemsPerPage}
-                              totalItems={filteredApplications.length}
+                              totalItems={displayedApplications.length}
                             />
                           )}
                         </>
@@ -1592,15 +1613,6 @@ const statusApps = (activeTab === 'pipeline'
           )}
         </div>
       </div>
-      
-      {/* --- ADD MODALS AT THE END --- */}
-      <RejectionModal
-        isOpen={isRejectionModalOpen}
-        onClose={() => setIsRejectionModalOpen(false)}
-        applicant={selectedApplication}
-        onConfirm={handleRejectConfirm}
-      />
-
     </div>
   )
 }

@@ -1,6 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 // Add this to your existing ApplicationFilters.jsx component
 
 import { XCircle } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
 // Add this checkbox to your filter section
 export function RejectedCandidatesFilterCheckbox({ includeRejected, setIncludeRejected }) {

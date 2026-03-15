@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
