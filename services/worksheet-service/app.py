@@ -21,6 +21,7 @@ from scripts.client_forms.cma_cgm_writer import generate_workbook
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 APP_URL = os.environ.get("APP_URL", "*")
+ALLOWED_ORIGINS = [origin.strip() for origin in APP_URL.split(",") if origin.strip()]
 TEMPLATE_BUCKET = "worksheet-templates"
 PHOTO_BUCKET = "application-photos"
 
@@ -29,9 +30,10 @@ app = Flask(__name__)
 
 @app.after_request
 def add_cors_headers(response: Response) -> Response:
-    response.headers["Access-Control-Allow-Origin"] = APP_URL or "*"
+    response.headers["Access-Control-Allow-Origin"] = resolve_allowed_origin(request.headers.get("Origin"))
     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type"
     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Vary"] = "Origin"
     return response
 
 
@@ -224,6 +226,14 @@ def extract_http_error(exc: requests.HTTPError) -> str:
     except Exception:  # noqa: BLE001
         pass
     return f"Request failed with status {response.status_code}"
+
+
+def resolve_allowed_origin(request_origin: str | None) -> str:
+    if not ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS:
+        return request_origin or "*"
+    if request_origin and request_origin in ALLOWED_ORIGINS:
+        return request_origin
+    return ALLOWED_ORIGINS[0]
 
 
 if __name__ == "__main__":
