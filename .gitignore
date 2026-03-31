@@ -54,3 +54,20 @@ playwright/.auth/
 # Misc
 .eslintcache
 .stylelintcache
+
+# local env
+.env
+.env.*
+!.env.example
+!.env.playwright.example
+
+# local python deps
+.python-packages/
+
+# temp and generated files
+tmp/
+supabase/.temp/
+
+# OS/editor noise
+.DS_Store
+.vscode/
