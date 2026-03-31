@@ -1,8 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle, AlertCircle, Circle } from 'lucide-react'
 import { validateSection } from '../../utils/sectionValidation'
-
-const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20]
+import { FORM_SECTION_NUMBERS, MANDATORY_SECTION_NUMBERS } from '../../constants/formSections'
 
 export default function FormNavigation({ applicationData }) {
   const navigate = useNavigate()
@@ -14,7 +13,7 @@ export default function FormNavigation({ applicationData }) {
     if (!applicationData) return 'empty'
     
     const sectionData = applicationData[`section${sectionNum}`]
-    const isMandatory = MANDATORY_SECTIONS.includes(sectionNum)
+    const isMandatory = MANDATORY_SECTION_NUMBERS.includes(sectionNum)
     
     // Empty section
     if (!sectionData || Object.keys(sectionData).length === 0) {
@@ -37,9 +36,9 @@ export default function FormNavigation({ applicationData }) {
 
   return (
     <div className="bg-white px-4 py-3 border-b overflow-x-auto">
-      {/* Progress circles for mobile - Now 20 sections */}
+      {/* Progress circles for mobile */}
       <div className="flex items-center gap-2 min-w-max">
-        {Array.from({ length: 20 }, (_, i) => i + 1).map((section) => {
+        {FORM_SECTION_NUMBERS.map((section) => {
           const status = getSectionStatus(section)
           const isCurrent = currentSection === section
 
@@ -74,7 +73,7 @@ export default function FormNavigation({ applicationData }) {
       {/* Section title */}
       <div className="mt-2">
         <p className="text-xs text-gray-500">
-          Section {currentSection} of 20
+          Section {currentSection} of {FORM_SECTION_NUMBERS.length}
         </p>
       </div>
     </div>

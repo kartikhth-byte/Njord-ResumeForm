@@ -108,7 +108,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
       {/* Reopen Button */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
+        className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-800 transition hover:bg-amber-100"
       >
         <RotateCcw className="w-4 h-4" />
         Reopen Application
@@ -116,31 +116,33 @@ export default function ReopenApplicationButton({ application, onReopened }) {
 
       {/* Confirmation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            {/* Header */}
-            <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+        <div className="recruiter-modal-backdrop">
+          <div className="absolute inset-0" onClick={() => setIsModalOpen(false)} />
+          <div className="recruiter-modal recruiter-modal--narrow relative">
+            <div className="recruiter-modal__header">
+              <div className="recruiter-modal__header-main">
+                <div className="recruiter-modal__icon">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="recruiter-modal__eyebrow">Status Management</p>
+                  <h2 className="recruiter-modal__title">{getTitle()}</h2>
+                  <p className="recruiter-modal__subtitle">
+                    Move this candidate back to under review while preserving historical context.
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900">{getTitle()}</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  This will move the application back to "Under Review" status. {getDescription()}
+            </div>
+
+            <div className="recruiter-modal__body">
+              <div className={`recruiter-note mb-4 ${isRejected ? 'recruiter-note--danger' : 'recruiter-note--warning'}`}>
+                <p className="recruiter-note__title">
+                  Original {isRejected ? 'rejection' : 'withdrawal'} reason
                 </p>
+                <p className="recruiter-note__body">{getReasonText()}</p>
               </div>
-            </div>
 
-            {/* Warning Message */}
-            <div className={`${isRejected ? 'bg-red' : 'bg-orange'}-50 border border-${isRejected ? 'red' : 'orange'}-200 rounded-lg p-4 mb-4`}>
-              <p className="text-sm text-gray-900">
-                <strong>ℹ️ Original {isRejected ? 'Rejection' : 'Withdrawal'} Reason:</strong><br />
-                {getReasonText()}
-              </p>
-            </div>
-
-            {/* Application Info */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <div className="recruiter-surface mb-4">
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Reference:</span>
@@ -155,41 +157,47 @@ export default function ReopenApplicationButton({ application, onReopened }) {
                   <span className="font-medium text-gray-900">{application.applied_rank}</span>
                 </div>
               </div>
-            </div>
+              </div>
 
-            {/* Notes Field */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="recruiter-form-field">
+                <label className="recruiter-form-label">
                 Reason for Reopening <span className="text-gray-400">(Optional)</span>
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={`e.g., '${isWithdrawn ? 'Candidate available again' : 'Better fit for Chief Engineer role'}' or 'New position available that matches their experience'`}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                This note will be visible to other recruiters when viewing this application
-              </p>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={`e.g., '${isWithdrawn ? 'Candidate available again' : 'Better fit for Chief Engineer role'}' or 'New position available that matches their experience'`}
+                  rows={3}
+                  className="recruiter-form-textarea"
+                />
+                <p className="recruiter-form-hint">
+                  This note stays visible to other recruiters reviewing the application history.
+                </p>
+              </div>
+
+              <div className="recruiter-note recruiter-note--info mt-4">
+                <p className="recruiter-note__title">What happens next</p>
+                <p className="recruiter-note__body">
+                  {getDescription()} The applicant will show back up in active review queues.
+                </p>
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="recruiter-modal__footer">
               <button
                 onClick={() => {
                   setIsModalOpen(false)
                   setNotes('')
                 }}
                 disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+                className="workspace-action-button workspace-action-button--secondary disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReopen}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="workspace-action-button bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
               >
                 {loading ? (
                   <>

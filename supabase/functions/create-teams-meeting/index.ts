@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,11 @@ serve(async (req) => {
 
   try {
     const { userId, subject, startDateTime, endDateTime } = await req.json()
+    const runtimeSettings = await getRuntimeSettings([
+      'MICROSOFT_TENANT_ID',
+      'MICROSOFT_CLIENT_ID',
+      'MICROSOFT_CLIENT_SECRET',
+    ])
 
     // Get user's access token
     const supabase = createClient(
@@ -37,7 +43,7 @@ serve(async (req) => {
     let accessToken = tokenData.access_token
     if (new Date(tokenData.expires_at) <= new Date()) {
       // Refresh token
-      const refreshed = await refreshToken(tokenData.refresh_token, userId, supabase)
+      const refreshed = await refreshToken(tokenData.refresh_token, userId, supabase, runtimeSettings)
       if (!refreshed) {
         return new Response(
           JSON.stringify({ error: 'Token expired, please reconnect' }),
@@ -89,16 +95,16 @@ serve(async (req) => {
   }
 })
 
-async function refreshToken(refreshToken: string, userId: string, supabase: any) {
+async function refreshToken(refreshToken: string, userId: string, supabase: any, runtimeSettings: Record<string, string>) {
   try {
-    const tokenUrl = `https://login.microsoftonline.com/${Deno.env.get('MICROSOFT_TENANT_ID')}/oauth2/v2.0/token`
+    const tokenUrl = `https://login.microsoftonline.com/${runtimeSettings.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`
     
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: Deno.env.get('MICROSOFT_CLIENT_ID')!,
-        client_secret: Deno.env.get('MICROSOFT_CLIENT_SECRET')!,
+        client_id: runtimeSettings.MICROSOFT_CLIENT_ID,
+        client_secret: runtimeSettings.MICROSOFT_CLIENT_SECRET,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }),

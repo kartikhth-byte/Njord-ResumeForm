@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
 import { Calendar, Clock, Link as LinkIcon, Video, Phone, MapPin, Loader2, X, CheckCircle } from 'lucide-react'
+import { getClientRuntimeSettings } from '../services/runtimeSettingsService'
 
 export default function InterviewSchedulingModal({ application, onScheduled, onCancel }) {
   const { user } = useAuth()
@@ -26,6 +27,10 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
   const [isTeamsConnected, setIsTeamsConnected] = useState(false)
   const [, setCheckingTeamsAuth] = useState(true)
   const [, setNeedsTeamsAuth] = useState(false)
+  const [microsoftConfig, setMicrosoftConfig] = useState({
+    MICROSOFT_CLIENT_ID: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
+    MICROSOFT_REDIRECT_URI: import.meta.env.VITE_MICROSOFT_REDIRECT_URI || '',
+  })
 
   // Lock body scroll when modal opens
   useEffect(() => {
@@ -41,6 +46,27 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
   useEffect(() => {
     checkTeamsConnection()
   }, [user])
+
+  useEffect(() => {
+    let mounted = true
+
+    getClientRuntimeSettings()
+      .then(config => {
+        if (mounted) {
+          setMicrosoftConfig(current => ({
+            ...current,
+            ...config,
+          }))
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load Microsoft runtime config:', error)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
 // Check Microsoft Teams connection status with auto-refresh
   const checkTeamsConnection = async () => {
@@ -127,8 +153,13 @@ const handleTeamsAuth = () => {
     // Save application ID so we can reopen modal after OAuth
   localStorage.setItem('reopen_interview_modal', application.id)  // ← ADD THIS LINE!
  
-  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID
-  const redirectUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI
+  const clientId = microsoftConfig.MICROSOFT_CLIENT_ID
+  const redirectUri = microsoftConfig.MICROSOFT_REDIRECT_URI
+
+  if (!clientId || !redirectUri) {
+    setMeetError('Microsoft Teams configuration is incomplete. Check Integrations & Secrets in Settings.')
+    return
+  }
 
 const scopes = [
   'OnlineMeetings.ReadWrite',
@@ -413,22 +444,22 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
   const today = new Date().toISOString().split('T')[0]
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" />
-      
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[9999] p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Schedule Interview
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
-            </p>
-            <p className="text-sm text-gray-600">
-              Position: {application.applied_rank}
-            </p>
+    <div className="recruiter-modal-backdrop">
+      <div className="recruiter-modal max-w-2xl">
+        <div className="recruiter-modal__header">
+          <div className="recruiter-modal__header-main">
+            <div className="recruiter-modal__icon">
+              <Calendar className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="recruiter-modal__eyebrow">Interview workflow</p>
+              <h3 className="recruiter-modal__title">Schedule interview</h3>
+              <p className="recruiter-modal__subtitle">
+                Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
+                <br />
+                Position: {application.applied_rank}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -436,14 +467,14 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
               onCancel()
             }}
             disabled={loading}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="recruiter-modal__close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-5">
+          <div className="recruiter-modal__body space-y-5">
             {/* Interview Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -681,7 +712,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="recruiter-modal__footer">
               <button
                 type="button"
                 onClick={() => {
@@ -689,14 +720,14 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                   onCancel()
                 }}
                 disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>

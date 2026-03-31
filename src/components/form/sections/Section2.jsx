@@ -196,40 +196,69 @@ const autoCapitalize = (value) => {
   }
 
   const handleChange = (e) => {
-  const { name, value } = e.target
-  
-  // If country changes, clear city and state
-  if (name === 'country') {
-    setFormData(prev => ({
+    const { name, value, type, checked } = e.target
+    const fieldValue = type === 'checkbox' ? checked : value
+
+    setFormData(prev => {
+      let newFormData
+
+      if (name.includes('.')) {
+        const [parent, child] = name.split('.')
+        newFormData = {
+          ...prev,
+          [parent]: {
+            ...prev[parent],
+            [child]: fieldValue,
+          },
+        }
+      } else if (name === 'country') {
+        newFormData = {
+          ...prev,
+          [name]: fieldValue,
+          city: '',
+          state: '',
+        }
+      } else {
+        newFormData = {
+          ...prev,
+          [name]: fieldValue,
+        }
+      }
+
+      onUpdate({ section2: newFormData })
+      return newFormData
+    })
+
+    setTouched(prev => ({ ...prev, [name]: true }))
+
+    const error = validateField(name, fieldValue)
+    setErrors(prev => ({
       ...prev,
-      [name]: value,
-      city: '',
-      state: ''
+      [name]: error,
     }))
-  } else {
-    setFormData(prev => ({ ...prev, [name]: value }))
   }
-  
-  setTouched(prev => ({ ...prev, [name]: true }))
-}
 
   const handlePhoneChange = (countryCode, number) => {
-    const newFormData = {
-      ...formData,
-      phoneCountryCode: countryCode,
-      phoneNumber: number
-    }
-    setFormData(newFormData)
-    onUpdate({ section2: newFormData })
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        phoneCountryCode: countryCode,
+        phoneNumber: number
+      }
+      onUpdate({ section2: newFormData })
+      return newFormData
+    })
   }
 
   const handlePhotoUploaded = (photoPath) => {
-    const newFormData = {
-      ...formData,
-      photoStoragePath: photoPath || ''
-    }
-    setFormData(newFormData)
-    onUpdate({ section2: newFormData })
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        photoStoragePath: photoPath || ''
+      }
+      onUpdate({ section2: newFormData })
+      return newFormData
+    })
   }
 
   const handleBlur = (e) => {

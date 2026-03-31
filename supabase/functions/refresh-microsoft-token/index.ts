@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const runtimeSettings = await getRuntimeSettings([
+      'MICROSOFT_CLIENT_ID',
+      'MICROSOFT_CLIENT_SECRET',
+    ])
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -56,8 +62,8 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/x-www-form-urlencoded' 
         },
         body: new URLSearchParams({
-          client_id: Deno.env.get('MICROSOFT_CLIENT_ID') ?? '',
-          client_secret: Deno.env.get('MICROSOFT_CLIENT_SECRET') ?? '',
+          client_id: runtimeSettings.MICROSOFT_CLIENT_ID ?? '',
+          client_secret: runtimeSettings.MICROSOFT_CLIENT_SECRET ?? '',
           refresh_token: tokenData.refresh_token,
           grant_type: 'refresh_token',
           scope: 'OnlineMeetings.ReadWrite User.Read offline_access',

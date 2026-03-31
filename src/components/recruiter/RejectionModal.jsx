@@ -183,42 +183,42 @@ const RejectionModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden my-auto">
+    <div className="recruiter-modal-backdrop overflow-y-auto">
+      <div className="recruiter-modal my-auto max-w-4xl">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <UserX className="w-6 h-6 text-white" />
+        <div className="recruiter-modal__header">
+          <div className="recruiter-modal__header-main">
+            <div className="recruiter-modal__icon">
+              <UserX className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Reject Application</h2>
-              <p className="text-red-100 text-sm">
-                {/* FIX: Use applicant prop */}
+              <p className="recruiter-modal__eyebrow">Candidate outcome</p>
+              <h2 className="recruiter-modal__title">Reject application</h2>
+              <p className="recruiter-modal__subtitle">
                 {applicant?.name || applicant?.applicant_name || 'Unknown Candidate'}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+            className="recruiter-modal__close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content - Scrollable */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <div className="recruiter-modal__body max-h-[calc(90vh-176px)]">
           
           {/* Warning Banner */}
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <div className="recruiter-note recruiter-note--danger mb-6 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-red-900 font-medium">
+              <p className="recruiter-note__title">
                 This action cannot be undone
               </p>
-              <p className="text-sm text-red-700 mt-1">
+              <p className="recruiter-note__body">
                 The candidate will be notified via email. Please provide detailed feedback to help maintain a positive candidate experience.
               </p>
             </div>
@@ -387,10 +387,10 @@ const RejectionModal = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex items-center justify-between">
+        <div className="recruiter-modal__footer justify-between">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+            className="workspace-action-button workspace-action-button--secondary"
           >
             Cancel
           </button>

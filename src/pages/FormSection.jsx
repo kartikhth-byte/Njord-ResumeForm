@@ -18,7 +18,6 @@ import Section16 from '../components/form/sections/Section16'
 import Section17 from '../components/form/sections/Section17'
 import Section18 from '../components/form/sections/Section18'
 import Section19 from '../components/form/sections/Section19'
-import Section20 from '../components/form/sections/Section20'
 
 export default function FormSection({ onDataUpdate, currentData }) {
   const { sectionId } = useParams()
@@ -70,8 +69,6 @@ export default function FormSection({ onDataUpdate, currentData }) {
         return <Section18 data={currentData?.section18 || {}} onUpdate={handleUpdate} />
       case 19:
         return <Section19 data={currentData?.section19 || {}} onUpdate={handleUpdate} />
-      case 20:
-        return <Section20 data={currentData?.section20 || {}} onUpdate={handleUpdate} />
       default:
         return (
           <div className="text-center py-12">

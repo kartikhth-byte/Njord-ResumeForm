@@ -9,10 +9,10 @@ const FormTextArea = forwardRef(({
   ...props 
 }, ref) => {
   return (
-    <div className="space-y-1.5">
+    <div className="applicant-field">
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="applicant-field__label">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -22,22 +22,22 @@ const FormTextArea = forwardRef(({
       <textarea
         ref={ref}
         rows={rows}
-        className={`w-full px-4 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 resize-y ${
+        className={`applicant-field__input resize-y ${
           error
             ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-            : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+            : ''
         }`}
         {...props}
       />
 
       {/* Help Text */}
       {helpText && !error && (
-        <p className="text-xs text-gray-500">{helpText}</p>
+        <p className="applicant-field__help">{helpText}</p>
       )}
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600 flex items-start gap-1">
+        <p className="applicant-field__error">
           <span className="text-red-500">⚠</span>
           <span>{error}</span>
         </p>

@@ -143,9 +143,10 @@ shoeSizeUnit: data.shoeSizeUnit || '',
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 13: Physical & Uniform Details</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Deployment readiness</p>
+        <h2 className="applicant-section-title">Physical and uniform details</h2>
+        <p className="applicant-section-copy">
           Provide your physical characteristics and uniform sizes for proper equipment fitting
         </p>
       </div>

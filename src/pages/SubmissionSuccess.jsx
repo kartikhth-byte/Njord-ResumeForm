@@ -40,14 +40,12 @@ export default function SubmissionSuccess() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
-        {/* Success Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          {/* Success Header */}
-          <div className="bg-gradient-to-r from-green-500 to-green-600 p-8 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 shadow-lg">
-              <CheckCircle className="w-12 h-12 text-green-500" />
+    <div className="applicant-shell flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        <div className="applicant-panel overflow-hidden">
+          <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-8 text-center">
+            <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-lg">
+              <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">
               Application Submitted Successfully!
@@ -57,22 +55,20 @@ export default function SubmissionSuccess() {
             </p>
           </div>
 
-          {/* Content */}
           <div className="p-8">
-            {/* Reference Number Box */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 mb-6 shadow-lg">
+            <div className="applicant-hero mb-6">
               <div className="text-center">
-                <p className="text-blue-100 text-sm font-semibold uppercase tracking-wider mb-2">
+                <p className="text-blue-700 text-sm font-semibold uppercase tracking-wider mb-2">
                   Your Application Reference Number
                 </p>
-                <div className="bg-white bg-opacity-20 rounded-lg p-4 mb-4 backdrop-blur-sm">
-                  <p className="text-white text-4xl font-bold tracking-wider font-mono">
+                <div className="mb-4 rounded-2xl bg-slate-900 p-4">
+                  <p className="text-4xl font-bold tracking-wider text-white font-mono">
                     {referenceNumber}
                   </p>
                 </div>
                 <button
                   onClick={handleCopyReference}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg transition-all text-sm font-medium backdrop-blur-sm"
+                  className="applicant-action applicant-action--primary"
                 >
                   {copied ? (
                     <>
@@ -89,8 +85,7 @@ export default function SubmissionSuccess() {
               </div>
             </div>
 
-            {/* Important Notice */}
-            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-lg">
+            <div className="mb-6 rounded-[24px] border border-amber-200 bg-amber-50 p-5">
               <div className="flex gap-3">
                 <div className="flex-shrink-0">
                   <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -108,15 +103,13 @@ export default function SubmissionSuccess() {
               </div>
             </div>
 
-            {/* Application Summary */}
             {position && (
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="mb-6 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm text-gray-600 mb-1">Position Applied For</p>
                 <p className="text-lg font-semibold text-gray-900">{position}</p>
               </div>
             )}
 
-            {/* What's Next */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">What Happens Next?</h3>
               <ul className="space-y-2 text-gray-600">
@@ -141,18 +134,17 @@ export default function SubmissionSuccess() {
               </ul>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg shadow-blue-200"
+                className="applicant-action applicant-action--primary flex-1"
               >
                 <Home className="w-5 h-5" />
                 Go to Dashboard
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="applicant-action applicant-action--secondary flex-1"
               >
                 <LogOut className="w-5 h-5" />
                 Log Out
@@ -161,7 +153,6 @@ export default function SubmissionSuccess() {
           </div>
         </div>
 
-        {/* Footer Note */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
             Need help? Contact us at{' '}

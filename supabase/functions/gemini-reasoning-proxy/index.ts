@@ -2,6 +2,7 @@
 // LLM reasoning for candidate matching with confidence scoring
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,7 +40,8 @@ serve(async (req) => {
       throw new Error('Missing required fields: query, applicationContext')
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY')
+    const runtimeSettings = await getRuntimeSettings(['GEMINI_API_KEY'])
+    const apiKey = runtimeSettings.GEMINI_API_KEY
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY not configured')
     }

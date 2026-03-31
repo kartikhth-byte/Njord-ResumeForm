@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars, no-case-declarations */
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
@@ -19,10 +18,23 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'Other', label: 'Other' },
 ]
 
+const YES_NO_OPTIONS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+]
+
+const emptyCurrentEmployer = {
+  company: '',
+  contactPerson: '',
+  address: '',
+  phoneNumber: '',
+}
+
 const emptyReference = {
   name: '',
   position: '',
   company: '',
+  address: '',
   relationship: '',
   phoneNumber: '',
   email: '',
@@ -31,21 +43,34 @@ const emptyReference = {
 }
 
 export default function Section18({ data = {}, onUpdate }) {
+  const [objectionToContactLastEmployer, setObjectionToContactLastEmployer] = useState(data.objectionToContactLastEmployer || '')
+  const [currentEmployer, setCurrentEmployer] = useState(data.currentEmployer || emptyCurrentEmployer)
   const [references, setReferences] = useState(data.references || [])
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
 
+  const buildSection18Payload = (overrides = {}) => ({
+    objectionToContactLastEmployer,
+    currentEmployer,
+    references,
+    ...overrides,
+  })
+
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.references) {
-      setReferences(data.references)
+    if (data) {
+      setObjectionToContactLastEmployer(data.objectionToContactLastEmployer || '')
+      setCurrentEmployer(data.currentEmployer || emptyCurrentEmployer)
+      if (Array.isArray(data.references)) {
+        setReferences(prevReferences => (
+          data.references.length === 0 && prevReferences.length > 0 ? prevReferences : data.references
+        ))
+      }
     }
   }, [data])
 
   // Validation function for reference fields
   const validateReferenceField = (index, field, value) => {
-    const key = `reference-${index}-${field}`
-    
     switch (field) {
       case 'name':
         return !value ? 'Name is required' : ''
@@ -53,6 +78,8 @@ export default function Section18({ data = {}, onUpdate }) {
         return !value ? 'Position is required' : ''
       case 'company':
         return !value ? 'Company is required' : ''
+      case 'address':
+        return !value ? 'Address is required' : ''
       case 'relationship':
         return !value ? 'Relationship is required' : ''
       case 'phoneNumber':
@@ -63,14 +90,18 @@ export default function Section18({ data = {}, onUpdate }) {
       case 'email':
         if (!value) return 'Email is required'
         // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(value)) return 'Please enter a valid email address'
+        {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(value)) return 'Please enter a valid email address'
+        }
         return ''
       case 'yearsKnown':
         if (!value) return 'Years known is required'
-        const years = parseInt(value, 10)
-        if (years < 0) return 'Years known must be 0 or greater'
-        if (years > 50) return 'Years known must be 50 or less'
+        {
+          const years = parseInt(value, 10)
+          if (years < 0) return 'Years known must be 0 or greater'
+          if (years > 50) return 'Years known must be 50 or less'
+        }
         return ''
       // Optional field - no validation
       case 'additionalNotes':
@@ -80,16 +111,67 @@ export default function Section18({ data = {}, onUpdate }) {
     }
   }
 
+  const validateCurrentEmployerField = (field, value) => {
+    switch (field) {
+      case 'company':
+        return !value ? 'Company is required' : ''
+      case 'contactPerson':
+        return !value ? 'Contact person is required' : ''
+      case 'address':
+        return !value ? 'Address is required' : ''
+      case 'phoneNumber':
+        if (!value) return 'Phone number is required'
+        if (value.length < 8) return 'Please enter a valid phone number'
+        return ''
+      default:
+        return ''
+    }
+  }
+
+  const handleObjectionChange = (value) => {
+    setObjectionToContactLastEmployer(value)
+    setTouched(prev => ({ ...prev, objectionToContactLastEmployer: true }))
+    setErrors(prev => ({
+      ...prev,
+      objectionToContactLastEmployer: value ? '' : 'Please select Yes or No',
+    }))
+    onUpdate({ section18: buildSection18Payload({ objectionToContactLastEmployer: value }) })
+  }
+
+  const handleCurrentEmployerChange = (field, value) => {
+    const nextCurrentEmployer = {
+      ...currentEmployer,
+      [field]: value,
+    }
+    setCurrentEmployer(nextCurrentEmployer)
+    const key = `currentEmployer-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    setErrors(prev => ({
+      ...prev,
+      [key]: validateCurrentEmployerField(field, value),
+    }))
+    onUpdate({ section18: buildSection18Payload({ currentEmployer: nextCurrentEmployer }) })
+  }
+
+  const handleCurrentEmployerBlur = (field) => {
+    const key = `currentEmployer-${field}`
+    setTouched(prev => ({ ...prev, [key]: true }))
+    setErrors(prev => ({
+      ...prev,
+      [key]: validateCurrentEmployerField(field, currentEmployer[field]),
+    }))
+  }
+
   const handleAddReference = () => {
     const newReferences = [...references, { ...emptyReference }]
     setReferences(newReferences)
-    onUpdate({ section18: { references: newReferences } })
+    onUpdate({ section18: buildSection18Payload({ references: newReferences }) })
   }
 
   const handleRemoveReference = (index) => {
     const newReferences = references.filter((_, i) => i !== index)
     setReferences(newReferences)
-    onUpdate({ section18: { references: newReferences } })
+    onUpdate({ section18: buildSection18Payload({ references: newReferences }) })
   }
 
   const handleReferenceChange = (index, field, value) => {
@@ -108,7 +190,7 @@ export default function Section18({ data = {}, onUpdate }) {
     const error = validateReferenceField(index, field, value)
     setErrors(prev => ({ ...prev, [key]: error }))
     
-    onUpdate({ section18: { references: newReferences } })
+    onUpdate({ section18: buildSection18Payload({ references: newReferences }) })
   }
 
   const handleBlur = (index, field) => {
@@ -123,17 +205,115 @@ export default function Section18({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 18: Professional References</h2>
-        <p className="text-gray-600 mt-1">
-          Provide at least 2-3 professional references who can vouch for your work performance
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">References</p>
+        <h2 className="applicant-section-title">Professional references</h2>
+        <p className="applicant-section-copy">
+          Provide your current or immediate past employer details first, then add at least 2-3 professional references.
         </p>
+      </div>
+
+      <div className="applicant-record-card">
+        <div className="applicant-record-card__header">
+          <div>
+            <h3 className="applicant-record-card__title">Employer Contact Permission</h3>
+            <p className="applicant-record-card__subtitle">
+              Let us know whether we may contact your last employer for reference checks.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <FormSelect
+            label="Do you have any objection if we contact your last employer for reference?"
+            name="objectionToContactLastEmployer"
+            required
+            value={objectionToContactLastEmployer}
+            onChange={(e) => handleObjectionChange(e.target.value)}
+            onBlur={() => {
+              setTouched(prev => ({ ...prev, objectionToContactLastEmployer: true }))
+              setErrors(prev => ({
+                ...prev,
+                objectionToContactLastEmployer: objectionToContactLastEmployer ? '' : 'Please select Yes or No',
+              }))
+            }}
+            options={YES_NO_OPTIONS}
+            error={touched.objectionToContactLastEmployer ? errors.objectionToContactLastEmployer : ''}
+          />
+        </div>
+      </div>
+
+      <div className="applicant-record-card">
+        <div className="applicant-record-card__header">
+          <div>
+            <h3 className="applicant-record-card__title">
+              Current or Immediate Past Employer
+            </h3>
+            <p className="applicant-record-card__subtitle">
+              Please provide the name and address of your current or immediate past employer.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <FormInput
+            label="Name of Company"
+            name="currentEmployer-company"
+            required
+            value={currentEmployer.company}
+            onChange={(e) => handleCurrentEmployerChange('company', e.target.value)}
+            onBlur={() => handleCurrentEmployerBlur('company')}
+            placeholder="e.g., Anglo-Eastern, Maersk"
+            error={touched['currentEmployer-company'] ? errors['currentEmployer-company'] : ''}
+          />
+
+          <FormInput
+            label="Contact Person"
+            name="currentEmployer-contactPerson"
+            required
+            value={currentEmployer.contactPerson}
+            onChange={(e) => handleCurrentEmployerChange('contactPerson', e.target.value)}
+            onBlur={() => handleCurrentEmployerBlur('contactPerson')}
+            placeholder="e.g., Crewing Manager"
+            error={touched['currentEmployer-contactPerson'] ? errors['currentEmployer-contactPerson'] : ''}
+          />
+
+          <div>
+            <label className="applicant-field__label">
+              Address <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="currentEmployer-address"
+              value={currentEmployer.address}
+              onChange={(e) => handleCurrentEmployerChange('address', e.target.value)}
+              onBlur={() => handleCurrentEmployerBlur('address')}
+              rows={3}
+              className="applicant-field__input"
+              placeholder="Complete employer address"
+            />
+            {touched['currentEmployer-address'] && errors['currentEmployer-address'] && (
+              <p className="applicant-field__error">{errors['currentEmployer-address']}</p>
+            )}
+          </div>
+
+          <FormInput
+            label="Tel Number"
+            name="currentEmployer-phoneNumber"
+            required
+            type="tel"
+            value={currentEmployer.phoneNumber}
+            onChange={(e) => handleCurrentEmployerChange('phoneNumber', e.target.value)}
+            onBlur={() => handleCurrentEmployerBlur('phoneNumber')}
+            placeholder="e.g., +65 6123 4567"
+            error={touched['currentEmployer-phoneNumber'] ? errors['currentEmployer-phoneNumber'] : ''}
+          />
+        </div>
       </div>
 
       {/* References List */}
       <div className="space-y-6">
         {references.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -151,7 +331,7 @@ export default function Section18({ data = {}, onUpdate }) {
             <p className="text-sm text-gray-500 mb-4">Add references from former supervisors or colleagues</p>
             <button
               onClick={handleAddReference}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Professional Reference
@@ -160,16 +340,21 @@ export default function Section18({ data = {}, onUpdate }) {
         ) : (
           <>
             {references.map((reference, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Reference Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">
                     Reference {index + 1}
                     {reference.name && ` - ${reference.name}`}
-                  </h3>
+                    </h3>
+                    <p className="applicant-record-card__subtitle">
+                      Choose supervisors or senior colleagues who can speak directly to your maritime performance.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveReference(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -212,6 +397,24 @@ export default function Section18({ data = {}, onUpdate }) {
                     placeholder="e.g., Maersk, V.Ships, Anglo-Eastern"
                     error={touched[`reference-${index}-company`] ? errors[`reference-${index}-company`] : ''}
                   />
+
+                  <div>
+                    <label className="applicant-field__label">
+                      Address <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name={`reference-${index}-address`}
+                      value={reference.address}
+                      onChange={(e) => handleReferenceChange(index, 'address', e.target.value)}
+                      onBlur={() => handleBlur(index, 'address')}
+                      rows={3}
+                      className="applicant-field__input"
+                      placeholder="Complete reference address"
+                    />
+                    {touched[`reference-${index}-address`] && errors[`reference-${index}-address`] && (
+                      <p className="applicant-field__error">{errors[`reference-${index}-address`]}</p>
+                    )}
+                  </div>
 
                   <FormSelect
                     label="Relationship to You"
@@ -268,7 +471,7 @@ export default function Section18({ data = {}, onUpdate }) {
                   />
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="applicant-field__label">
                       Additional Notes (Optional)
                     </label>
                     <textarea
@@ -276,10 +479,10 @@ export default function Section18({ data = {}, onUpdate }) {
                       value={reference.additionalNotes}
                       onChange={(e) => handleReferenceChange(index, 'additionalNotes', e.target.value)}
                       rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="applicant-field__input"
                       placeholder="Any additional context about your working relationship..."
                     />
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="applicant-field__help">
                       e.g., Worked together on MV Atlantic Explorer, Reported directly to this person
                     </p>
                   </div>
@@ -290,7 +493,7 @@ export default function Section18({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddReference}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Reference</span>
@@ -302,7 +505,7 @@ export default function Section18({ data = {}, onUpdate }) {
       {/* Info Boxes */}
       <div className="space-y-4">
         {/* Best Practices */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="applicant-section-card applicant-section-card--muted">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
               <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">

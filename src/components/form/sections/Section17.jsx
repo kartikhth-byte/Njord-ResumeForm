@@ -129,9 +129,10 @@ export default function Section17({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 17: Technical Experience & Skills</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Capability profile</p>
+        <h2 className="applicant-section-title">Technical experience and skills</h2>
+        <p className="applicant-section-copy">
           Detail your technical skills, equipment experience, and specialized competencies
         </p>
       </div>

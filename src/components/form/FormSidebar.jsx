@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { 
   Calendar,
   User,
@@ -21,47 +21,51 @@ import {
   DollarSign,
   FileText,
   CheckCircle,
-  AlertCircle,
-  Circle
+  AlertCircle
 } from 'lucide-react'
 import { validateSection } from '../../utils/sectionValidation'
+import { FORM_SECTIONS, MANDATORY_SECTION_NUMBERS } from '../../constants/formSections'
 
-const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20]
+const SECTION_ICONS = {
+  1: Calendar,
+  2: User,
+  3: FileCheck,
+  4: Briefcase,
+  5: Globe,
+  6: GraduationCap,
+  7: Users,
+  8: Award,
+  9: Shield,
+  10: Heart,
+  11: Activity,
+  12: Languages,
+  13: Ruler,
+  14: Book,
+  15: Flag,
+  16: Anchor,
+  17: BarChart3,
+  18: MessageSquare,
+  19: FileText,
+}
 
-const SECTIONS = [
-  { id: 1, title: 'Availability & Application', icon: Calendar, shortTitle: 'Availability' },
-  { id: 2, title: 'Personal & Contact Details', icon: User, shortTitle: 'Personal' },
-  { id: 3, title: 'Passport Details', icon: FileCheck, shortTitle: 'Passport' },
-  { id: 4, title: 'CDC / Seaman\'s Book', icon: Briefcase, shortTitle: 'CDC' },
-  { id: 5, title: 'Visas', icon: Globe, shortTitle: 'Visas' },
-  { id: 6, title: 'Education Background', icon: GraduationCap, shortTitle: 'Education' },
-  { id: 7, title: 'Dependents', icon: Users, shortTitle: 'Dependents' },
-  { id: 8, title: 'Certificates of Competency', icon: Award, shortTitle: 'Certificates' },
-  { id: 9, title: 'GMDSS Certificates', icon: Shield, shortTitle: 'GMDSS' },
-  { id: 10, title: 'Medical & Vaccination', icon: Heart, shortTitle: 'Medical' },
-  { id: 11, title: 'Medical History', icon: Activity, shortTitle: 'Med History' },
-  { id: 12, title: 'Foreign Languages', icon: Languages, shortTitle: 'Languages' },
-  { id: 13, title: 'Physical & Uniform Details', icon: Ruler, shortTitle: 'Physical' },
-  { id: 14, title: 'STCW & Marine Courses', icon: Book, shortTitle: 'STCW' },
-  { id: 15, title: 'Flag State Documents', icon: Flag, shortTitle: 'Flag State' },
-  { id: 16, title: 'Sea Service', icon: Anchor, shortTitle: 'Sea Service' },
-  { id: 17, title: 'Experience Summary', icon: BarChart3, shortTitle: 'Experience' },
-  { id: 18, title: 'References', icon: MessageSquare, shortTitle: 'References' },
-{ id: 19, title: 'Emergency Contact', icon: Users, shortTitle: 'Emergency' },
-  { id: 20, title: 'Declaration & Consent', icon: FileText, shortTitle: 'Declaration' },
-]
+const SECTIONS = FORM_SECTIONS.map((section) => ({
+  ...section,
+  icon: SECTION_ICONS[section.id],
+}))
 
 export default function FormSidebar({ applicationData }) {
   const navigate = useNavigate()
   const { sectionId } = useParams()
+  const [searchParams] = useSearchParams()
   const currentSection = parseInt(sectionId) || 1
+  const returnToReview = searchParams.get('return') === 'review'
 
   // Get section status using validation
   const getSectionStatus = (sectionNum) => {
     if (!applicationData) return 'empty'
     
     const sectionData = applicationData[`section${sectionNum}`]
-    const isMandatory = MANDATORY_SECTIONS.includes(sectionNum)
+    const isMandatory = MANDATORY_SECTION_NUMBERS.includes(sectionNum)
     
     // Empty section
     if (!sectionData || Object.keys(sectionData).length === 0) {
@@ -86,25 +90,27 @@ export default function FormSidebar({ applicationData }) {
   }
 
   const handleSectionClick = (sectionId) => {
-    navigate(`/application/form/section/${sectionId}`)
+    const suffix = returnToReview ? '?return=review' : ''
+    navigate(`/application/form/section/${sectionId}${suffix}`)
   }
 
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
+    <aside className="w-80 border-r border-gray-200 bg-white/90 backdrop-blur flex flex-col h-screen sticky top-0">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <button
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          onClick={() => navigate(returnToReview ? '/application/review' : '/dashboard')}
+          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-sm font-medium">Back to Dashboard</span>
+          <span className="text-sm font-medium">{returnToReview ? 'Back to Review' : 'Back to Dashboard'}</span>
         </button>
         
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Application Form</h1>
-        <p className="text-sm text-gray-600">Complete all 20 sections</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Resume Application</p>
+        <h1 className="mt-2 text-xl font-bold text-gray-900 mb-1">Complete your profile</h1>
+        <p className="text-sm text-gray-600">Work through the guided sections, then review everything before submitting.</p>
         
         {/* Progress Bar */}
         <div className="mt-4">
@@ -112,9 +118,9 @@ export default function FormSidebar({ applicationData }) {
             <span className="text-xs font-medium text-gray-700">Overall Progress</span>
             <span className="text-xs font-bold text-blue-600">{calculateProgress()}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
               style={{ width: `${calculateProgress()}%` }}
             />
           </div>
@@ -133,11 +139,11 @@ export default function FormSidebar({ applicationData }) {
               <button
                 key={section.id}
                 onClick={() => handleSectionClick(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
+                className={`applicant-step w-full text-left ${
                   isCurrent
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'is-current'
                     : status === 'complete'
-                    ? 'bg-green-50 text-green-900 hover:bg-green-100'
+                    ? 'is-complete text-green-900 hover:bg-green-100'
                     : status === 'incomplete'
                     ? 'bg-red-50 text-red-900 hover:bg-red-100'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -150,11 +156,13 @@ export default function FormSidebar({ applicationData }) {
                   ) : status === 'incomplete' && !isCurrent ? (
                     <AlertCircle className="w-5 h-5 text-red-600" />
                   ) : isCurrent ? (
-                    <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                      <span className="text-xs font-bold text-blue-600">{section.id}</span>
+                    <div className="applicant-step__number">
+                      <span className="text-xs font-bold">{section.id}</span>
                     </div>
                   ) : (
-                    <Circle className="w-5 h-5 text-gray-400" />
+                    <div className="applicant-step__number">
+                      <span className="text-xs font-bold">{section.id}</span>
+                    </div>
                   )}
                 </div>
 
@@ -200,10 +208,10 @@ export default function FormSidebar({ applicationData }) {
       <div className="p-4 border-t border-gray-200">
         <button
           onClick={() => navigate('/application/review')}
-          className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium shadow-sm flex items-center justify-center gap-2"
+          className="applicant-action applicant-action--primary w-full"
         >
           <FileText className="w-4 h-4" />
-          Review & Submit
+          {returnToReview ? 'Return to Review' : 'Review & Submit'}
         </button>
       </div>
     </aside>

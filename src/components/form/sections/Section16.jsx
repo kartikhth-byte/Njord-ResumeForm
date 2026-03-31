@@ -6,26 +6,13 @@ import FormDatePicker from '../shared/FormDatePicker'
 import { Plus, Trash2 } from 'lucide-react'
 
 const VESSEL_TYPE_OPTIONS = [
-  { value: 'Container', label: 'Container' },
-  { value: 'Tanker - Oil', label: 'Tanker - Oil' },
-  { value: 'Tanker - Chemical', label: 'Tanker - Chemical' },
-  { value: 'Tanker - LNG', label: 'Tanker - LNG' },
-  { value: 'Tanker - LPG', label: 'Tanker - LPG' },
-  { value: 'Bulk Carrier', label: 'Bulk Carrier' },
-  { value: 'General Cargo', label: 'General Cargo' },
-  { value: 'RoRo', label: 'RoRo (Roll on/Roll off)' },
-  { value: 'Car Carrier', label: 'Car Carrier' },
-  { value: 'Passenger', label: 'Passenger Ship' },
-  { value: 'Cruise', label: 'Cruise Ship' },
-  { value: 'Ferry', label: 'Ferry' },
-  { value: 'Offshore Supply', label: 'Offshore Supply Vessel' },
-  { value: 'Platform Supply', label: 'Platform Supply Vessel' },
-  { value: 'AHTS', label: 'AHTS (Anchor Handling)' },
-  { value: 'Tug', label: 'Tug' },
-  { value: 'Dredger', label: 'Dredger' },
-  { value: 'Research', label: 'Research Vessel' },
-  { value: 'Fishing', label: 'Fishing Vessel' },
-  { value: 'Other', label: 'Other' },
+  { value: 'PC', label: 'PC' },
+  { value: 'GC', label: 'GC' },
+  { value: 'BC', label: 'BC' },
+  { value: 'LNG', label: 'LNG' },
+  { value: 'LPG', label: 'LPG' },
+  { value: 'Chem', label: 'Chem' },
+  { value: 'RoRo', label: 'RoRo' },
 ]
 
 const ENGINE_TYPE_OPTIONS = [
@@ -36,6 +23,16 @@ const ENGINE_TYPE_OPTIONS = [
   { value: 'Electric', label: 'Electric' },
   { value: 'Hybrid', label: 'Hybrid' },
   { value: 'Other', label: 'Other' },
+]
+
+const ENGINE_FAMILY_OPTIONS = [
+  { value: 'Sulzer RTA', label: 'Sulzer RTA' },
+  { value: 'Sulzer RND', label: 'Sulzer RND' },
+  { value: 'B & W', label: 'B & W' },
+  { value: 'MAN', label: 'MAN' },
+  { value: 'SEMT Pielstick', label: 'SEMT Pielstick' },
+  { value: 'Steam Turbine', label: 'Steam Turbine' },
+  { value: 'Others', label: 'Others' },
 ]
 
 const TRADE_ROUTE_OPTIONS = [
@@ -49,19 +46,34 @@ const TRADE_ROUTE_OPTIONS = [
   { value: 'Other', label: 'Other' },
 ]
 
+const REASON_FOR_LEAVING_OPTIONS = [
+  { value: 'MR', label: 'MR' },
+  { value: 'VS', label: 'VS' },
+  { value: 'EOC', label: 'EOC' },
+]
+
 const emptySeaService = {
   vesselName: '',
   vesselType: '',
   flag: '',
   grt: '',
   dwt: '',
+  teu: '',
+  yearBuilt: '',
   mainEngine: '',
+  engineFamily: '',
+  mainEngineMake: '',
   engineKw: '',
   rankHeld: '',
+  position: '',
+  company: '',
+  manning: '',
   companyName: '',
   signOnDate: '',
   signOffDate: '',
+  tradingArea: '',
   tradeRoute: '',
+  totalMmDd: '',
   reasonForLeaving: '',
 }
 
@@ -72,8 +84,10 @@ export default function Section16({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.seaService) {
-      setSeaService(data.seaService)
+    if (data && Array.isArray(data.seaService)) {
+      setSeaService(prevSeaService => (
+        data.seaService.length === 0 && prevSeaService.length > 0 ? prevSeaService : data.seaService
+      ))
     }
   }, [data])
 
@@ -102,10 +116,29 @@ export default function Section16({ data = {}, onUpdate }) {
         if (!value) return 'GRT is required'
         if (parseInt(value) < 0) return 'GRT must be positive'
         return ''
+      case 'teu':
+        if (!value) return 'TEU is required'
+        if (parseInt(value) < 0) return 'TEU must be positive'
+        return ''
+      case 'yearBuilt':
+        if (!value) return 'Year built is required'
+        if (!/^\d{4}$/.test(value)) return 'Year built must be 4 digits'
+        if (parseInt(value, 10) < 1900 || parseInt(value, 10) > 2100) return 'Year built must be between 1900 and 2100'
+        return ''
       case 'mainEngine':
         return !value ? 'Main engine type is required' : ''
+      case 'engineFamily':
+        return !value ? 'Engine family is required' : ''
+      case 'mainEngineMake':
+        return !value ? 'Main engine make is required' : ''
       case 'rankHeld':
         return !value ? 'Rank held is required' : ''
+      case 'position':
+        return !value ? 'Position is required' : ''
+      case 'company':
+        return !value ? 'Company is required' : ''
+      case 'manning':
+        return !value ? 'Manning is required' : ''
       case 'companyName':
         return !value ? 'Company name is required' : ''
       case 'signOnDate':
@@ -123,10 +156,12 @@ export default function Section16({ data = {}, onUpdate }) {
         return ''
       case 'tradeRoute':
         return !value ? 'Trade route is required' : ''
+      case 'tradingArea':
+        return !value ? 'Trading area is required' : ''
+      case 'totalMmDd':
+        return !value ? 'Total mm/dd is required' : ''
       case 'reasonForLeaving':
-        if (!value) return 'Reason for leaving is required'
-        if (value.trim().length < 5) return 'Please provide more detail (at least 5 characters)'
-        return ''
+        return !value ? 'Reason for leaving is required' : ''
       // Optional fields - no validation
       case 'dwt':
       case 'engineKw':
@@ -150,8 +185,10 @@ export default function Section16({ data = {}, onUpdate }) {
 
   const handleServiceChange = (index, field, value) => {
     const newSeaService = [...seaService]
+    const legacyCompanyValue = field === 'company' ? { companyName: value } : {}
     newSeaService[index] = {
       ...newSeaService[index],
+      ...legacyCompanyValue,
       [field]: value
     }
     setSeaService(newSeaService)
@@ -200,16 +237,17 @@ export default function Section16({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 16: Sea Service / Employment History</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Experience</p>
+        <h2 className="applicant-section-title">Sea service and employment history</h2>
+        <p className="applicant-section-copy">
           List all your sea service experience in chronological order (most recent first)
         </p>
       </div>
 
       {/* Total Service Summary */}
       {seaService.length > 0 && totalService.totalDays > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+        <div className="applicant-summary-banner">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,8 +255,8 @@ export default function Section16({ data = {}, onUpdate }) {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-blue-900">Total Sea Service</h3>
-              <p className="text-2xl font-bold text-blue-700 mt-1">
+              <p className="applicant-summary-banner__label">Total sea service</p>
+              <p className="applicant-summary-banner__value mt-1">
                 {totalService.years > 0 && `${totalService.years} ${totalService.years === 1 ? 'year' : 'years'} `}
                 {totalService.months > 0 && `${totalService.months} ${totalService.months === 1 ? 'month' : 'months'} `}
                 {totalService.days > 0 && `${totalService.days} ${totalService.days === 1 ? 'day' : 'days'}`}
@@ -234,7 +272,7 @@ export default function Section16({ data = {}, onUpdate }) {
       {/* Sea Service List */}
       <div className="space-y-6">
         {seaService.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -252,7 +290,7 @@ export default function Section16({ data = {}, onUpdate }) {
             <p className="text-sm text-gray-500 mb-4">Add your vessel experience starting with most recent</p>
             <button
               onClick={handleAddService}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Sea Service Record
@@ -261,16 +299,16 @@ export default function Section16({ data = {}, onUpdate }) {
         ) : (
           <>
             {seaService.map((service, index) => (
-              <div key={index} className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Service Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="applicant-record-card__header">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="applicant-record-card__title">
                       Vessel {index + 1}
                       {service.vesselName && ` - ${service.vesselName}`}
                     </h3>
                     {service.signOnDate && service.signOffDate && (
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="applicant-record-card__subtitle">
                         {new Date(service.signOnDate).toLocaleDateString()} - {new Date(service.signOffDate).toLocaleDateString()}
                         {(() => {
                           const days = Math.floor((new Date(service.signOffDate) - new Date(service.signOnDate)) / (1000 * 60 * 60 * 24))
@@ -282,7 +320,7 @@ export default function Section16({ data = {}, onUpdate }) {
                   </div>
                   <button
                     onClick={() => handleRemoveService(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -356,6 +394,31 @@ export default function Section16({ data = {}, onUpdate }) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput
+                        label="TEU"
+                        name={`service-${index}-teu`}
+                        required
+                        type="number"
+                        value={service.teu || ''}
+                        onChange={(e) => handleServiceChange(index, 'teu', e.target.value)}
+                        onBlur={() => handleBlur(index, 'teu')}
+                        placeholder="e.g., 4500"
+                        error={touched[`service-${index}-teu`] ? errors[`service-${index}-teu`] : ''}
+                      />
+
+                      <FormInput
+                        label="Year Built"
+                        name={`service-${index}-yearBuilt`}
+                        required
+                        value={service.yearBuilt || ''}
+                        onChange={(e) => handleServiceChange(index, 'yearBuilt', e.target.value)}
+                        onBlur={() => handleBlur(index, 'yearBuilt')}
+                        placeholder="e.g., 2018"
+                        error={touched[`service-${index}-yearBuilt`] ? errors[`service-${index}-yearBuilt`] : ''}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormSelect
                         label="Main Engine Type"
                         name={`service-${index}-mainEngine`}
@@ -365,6 +428,31 @@ export default function Section16({ data = {}, onUpdate }) {
                         onBlur={() => handleBlur(index, 'mainEngine')}
                         options={ENGINE_TYPE_OPTIONS}
                         error={touched[`service-${index}-mainEngine`] ? errors[`service-${index}-mainEngine`] : ''}
+                      />
+
+                      <FormSelect
+                        label="Engine Family"
+                        name={`service-${index}-engineFamily`}
+                        required
+                        value={service.engineFamily || ''}
+                        onChange={(e) => handleServiceChange(index, 'engineFamily', e.target.value)}
+                        onBlur={() => handleBlur(index, 'engineFamily')}
+                        options={ENGINE_FAMILY_OPTIONS}
+                        helpText="Normalized engine family for engineer experience reporting"
+                        error={touched[`service-${index}-engineFamily`] ? errors[`service-${index}-engineFamily`] : ''}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput
+                        label="Main Engine Make"
+                        name={`service-${index}-mainEngineMake`}
+                        required
+                        value={service.mainEngineMake || ''}
+                        onChange={(e) => handleServiceChange(index, 'mainEngineMake', e.target.value)}
+                        onBlur={() => handleBlur(index, 'mainEngineMake')}
+                        placeholder="e.g., MAN B&W, Wartsila"
+                        error={touched[`service-${index}-mainEngineMake`] ? errors[`service-${index}-mainEngineMake`] : ''}
                       />
 
                       <FormInput
@@ -396,14 +484,38 @@ export default function Section16({ data = {}, onUpdate }) {
                       />
 
                       <FormInput
-                        label="Company / Manning Agent"
-                        name={`service-${index}-companyName`}
+                        label="Position"
+                        name={`service-${index}-position`}
                         required
-                        value={service.companyName}
-                        onChange={(e) => handleServiceChange(index, 'companyName', e.target.value)}
-                        onBlur={() => handleBlur(index, 'companyName')}
-                        placeholder="e.g., Maersk, V.Ships"
-                        error={touched[`service-${index}-companyName`] ? errors[`service-${index}-companyName`] : ''}
+                        value={service.position || ''}
+                        onChange={(e) => handleServiceChange(index, 'position', e.target.value)}
+                        onBlur={() => handleBlur(index, 'position')}
+                        placeholder="e.g., Chief Officer"
+                        error={touched[`service-${index}-position`] ? errors[`service-${index}-position`] : ''}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput
+                        label="Company"
+                        name={`service-${index}-company`}
+                        required
+                        value={service.company || service.companyName || ''}
+                        onChange={(e) => handleServiceChange(index, 'company', e.target.value)}
+                        onBlur={() => handleBlur(index, 'company')}
+                        placeholder="e.g., Maersk Tankers"
+                        error={touched[`service-${index}-company`] ? errors[`service-${index}-company`] : ''}
+                      />
+
+                      <FormInput
+                        label="Manning"
+                        name={`service-${index}-manning`}
+                        required
+                        value={service.manning || ''}
+                        onChange={(e) => handleServiceChange(index, 'manning', e.target.value)}
+                        onBlur={() => handleBlur(index, 'manning')}
+                        placeholder="e.g., V.Ships, Anglo-Eastern"
+                        error={touched[`service-${index}-manning`] ? errors[`service-${index}-manning`] : ''}
                       />
                     </div>
 
@@ -433,43 +545,53 @@ export default function Section16({ data = {}, onUpdate }) {
                       />
                     </div>
 
-                    <FormSelect
-                      label="Trade Route"
-                      name={`service-${index}-tradeRoute`}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormInput
+                        label="Trading Area"
+                        name={`service-${index}-tradingArea`}
+                        required
+                        value={service.tradingArea || service.tradeRoute || ''}
+                        onChange={(e) => handleServiceChange(index, 'tradingArea', e.target.value)}
+                        onBlur={() => handleBlur(index, 'tradingArea')}
+                        placeholder="e.g., Worldwide, Asia-Europe, Coastal India"
+                        error={touched[`service-${index}-tradingArea`] ? errors[`service-${index}-tradingArea`] : ''}
+                      />
+
+                      <FormSelect
+                        label="Trade Route"
+                        name={`service-${index}-tradeRoute`}
+                        required
+                        value={service.tradeRoute}
+                        onChange={(e) => handleServiceChange(index, 'tradeRoute', e.target.value)}
+                        onBlur={() => handleBlur(index, 'tradeRoute')}
+                        options={TRADE_ROUTE_OPTIONS}
+                        error={touched[`service-${index}-tradeRoute`] ? errors[`service-${index}-tradeRoute`] : ''}
+                      />
+                    </div>
+
+                    <FormInput
+                      label="Total mm/dd"
+                      name={`service-${index}-totalMmDd`}
                       required
-                      value={service.tradeRoute}
-                      onChange={(e) => handleServiceChange(index, 'tradeRoute', e.target.value)}
-                      onBlur={() => handleBlur(index, 'tradeRoute')}
-                      options={TRADE_ROUTE_OPTIONS}
-                      error={touched[`service-${index}-tradeRoute`] ? errors[`service-${index}-tradeRoute`] : ''}
+                      value={service.totalMmDd || ''}
+                      onChange={(e) => handleServiceChange(index, 'totalMmDd', e.target.value)}
+                      onBlur={() => handleBlur(index, 'totalMmDd')}
+                      placeholder="e.g., 08/15"
+                      helpText="Enter total contract period in months/days"
+                      error={touched[`service-${index}-totalMmDd`] ? errors[`service-${index}-totalMmDd`] : ''}
                     />
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Reason for Leaving
-                        <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <textarea
-                        name={`service-${index}-reasonForLeaving`}
-                        value={service.reasonForLeaving}
-                        onChange={(e) => handleServiceChange(index, 'reasonForLeaving', e.target.value)}
-                        onBlur={() => handleBlur(index, 'reasonForLeaving')}
-                        rows={2}
-                        required
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          touched[`service-${index}-reasonForLeaving`] && errors[`service-${index}-reasonForLeaving`]
-                            ? 'border-red-500'
-                            : 'border-gray-300'
-                        }`}
-                        placeholder="e.g., End of contract, Promotion, Career advancement"
-                      />
-                      {touched[`service-${index}-reasonForLeaving`] && errors[`service-${index}-reasonForLeaving`] && (
-                        <p className="mt-1 text-sm text-red-600">{errors[`service-${index}-reasonForLeaving`]}</p>
-                      )}
-                      <p className="mt-1 text-sm text-gray-500">
-                        Brief explanation for leaving this position
-                      </p>
-                    </div>
+                    <FormSelect
+                      label="Reason for Leaving"
+                      name={`service-${index}-reasonForLeaving`}
+                      required
+                      value={service.reasonForLeaving}
+                      onChange={(e) => handleServiceChange(index, 'reasonForLeaving', e.target.value)}
+                      onBlur={() => handleBlur(index, 'reasonForLeaving')}
+                      options={REASON_FOR_LEAVING_OPTIONS}
+                      helpText="MR = Medical Reason, VS = Vessel Sold, EOC = End of Contract"
+                      error={touched[`service-${index}-reasonForLeaving`] ? errors[`service-${index}-reasonForLeaving`] : ''}
+                    />
                   </div>
                 </div>
               </div>
@@ -478,7 +600,7 @@ export default function Section16({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddService}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Sea Service Record</span>
@@ -488,7 +610,7 @@ export default function Section16({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">

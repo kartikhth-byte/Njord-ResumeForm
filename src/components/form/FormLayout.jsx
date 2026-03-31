@@ -1,19 +1,26 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // FINAL FIXED FormLayout.jsx - Correct updateData usage
 import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useAutoSave } from '../../hooks/useAutoSave'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../layout/Navbar'
+import MobileMenu from '../layout/MobileMenu'
 import FormSidebar from './FormSidebar'
 import FormNavigation from './FormNavigation'
+import { validateSection } from '../../utils/sectionValidation'
+import { clearActiveDraftId, getActiveDraftId, setActiveDraftId } from '../../utils/draftSession'
+import { FORM_SECTION_NUMBERS } from '../../constants/formSections'
 
 export default function FormLayout({ children }) {
+  const navigate = useNavigate()
   const { sectionId } = useParams()
+  const currentSection = parseInt(sectionId) || 1
   const { user } = useAuth()
   const [applicationId, setApplicationId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // ✅ Use useAutoSave hook with correct variable names
   const {
@@ -35,39 +42,51 @@ export default function FormLayout({ children }) {
     try {
       setLoading(true)
 
-      // Look for in-progress application
-      let { data: app, error: appError } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'new')
-        .is('submitted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const persistedDraftId = getActiveDraftId()
+      let app = null
 
-      if (appError) throw appError
-
-      // Create application if it doesn't exist
-      if (!app) {
-        console.log('📝 Creating new draft application...')
-        const { data: newApp, error: createError } = await supabase
+      if (persistedDraftId) {
+        const { data: persistedApp, error: persistedError } = await supabase
           .from('applications')
-          .insert({
-            user_id: user.id,
-            status: 'new',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single()
+          .select('*')
+          .eq('id', persistedDraftId)
+          .eq('user_id', user.id)
+          .eq('status', 'new')
+          .is('submitted_at', null)
+          .maybeSingle()
 
-        if (createError) throw createError
-        app = newApp
-        console.log('✅ Application created:', app.id)
-      } else {
-        console.log('✅ Found existing in-progress application:', app.id)
+        if (persistedError && persistedError.code !== 'PGRST116') throw persistedError
+        app = persistedApp
       }
+
+      if (!app && persistedDraftId) {
+        clearActiveDraftId()
+      }
+
+      if (!app) {
+        const { data: latestApp, error: appError } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'new')
+          .is('submitted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (appError) throw appError
+        app = latestApp
+      }
+
+      if (!app) {
+        clearActiveDraftId()
+        navigate('/dashboard')
+        return
+      }
+
+      console.log('✅ Found existing in-progress application:', app.id)
+
+      setActiveDraftId(app.id)
 
       // Ensure application_data row exists
       let { data: appData, error: dataError } = await supabase
@@ -114,12 +133,22 @@ export default function FormLayout({ children }) {
 
   // Provide context to children
   const contextValue = {
-    applicationData,
-    handleDataUpdate,
+    currentData: applicationData,
+    onDataUpdate: handleDataUpdate,
     applicationId,
     saveStatus,
     lastSaved
   }
+
+  const completedSections = FORM_SECTION_NUMBERS.filter(sectionNumber => {
+    const sectionData = applicationData?.[`section${sectionNumber}`]
+
+    if (!sectionData || Object.keys(sectionData).length === 0) {
+      return false
+    }
+
+    return validateSection(sectionNumber, sectionData).isValid
+  })
 
   if (loading || autoSaveLoading) {
     return (
@@ -133,21 +162,35 @@ export default function FormLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="applicant-shell">
+      <Navbar
+        currentSection={currentSection}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(true)}
+      />
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        currentSection={currentSection}
+        completedSections={completedSections}
+      />
       
-      <div className="flex">
+      <div className="flex min-w-0">
         {/* Sidebar */}
         <FormSidebar 
-          currentSection={parseInt(sectionId) || 1} 
+          currentSection={currentSection} 
           applicationData={applicationData}
         />
         
         {/* Main Content */}
-        <div className="flex-1 lg:ml-64">
-          <div className="max-w-4xl mx-auto p-6">
+        <div className="min-w-0 flex-1">
+          <div className="mx-auto max-w-5xl p-6">
             {/* Auto-Save Status Indicator */}
-            <div className="mb-4 flex items-center justify-end space-x-2 text-sm">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white/80 px-5 py-4 text-sm shadow-sm">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Guided Form</p>
+                <p className="mt-1 text-sm text-gray-600">Complete one section at a time. Your draft saves automatically as you work.</p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
               {saveStatus === 'saving' && (
                 <div className="flex items-center text-blue-600">
                   <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
@@ -177,17 +220,22 @@ export default function FormLayout({ children }) {
                   <span>Save failed - please try again</span>
                 </div>
               )}
+              </div>
             </div>
 
             {/* Section Content */}
-            {React.Children.map(children, child =>
-              React.cloneElement(child, contextValue)
-            )}
+            <div className="applicant-panel p-6 md:p-8">
+              {React.Children.map(children, child =>
+                React.cloneElement(child, contextValue)
+              )}
+            </div>
             
             {/* Navigation */}
-            <FormNavigation 
-              currentSection={parseInt(sectionId) || 1}
-            />
+            <div className="mt-6">
+              <FormNavigation 
+                currentSection={currentSection}
+              />
+            </div>
           </div>
         </div>
       </div>

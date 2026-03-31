@@ -1,70 +1,32 @@
-/* eslint-disable no-unused-vars, no-case-declarations */
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
 import { Plus, Trash2 } from 'lucide-react'
-
-const STCW_COURSE_OPTIONS = [
-  { value: 'Basic Training (VI/1)', label: 'Basic Training (VI/1)' },
-  { value: 'Personal Survival Techniques', label: 'Personal Survival Techniques' },
-  { value: 'Fire Prevention and Fire Fighting', label: 'Fire Prevention and Fire Fighting' },
-  { value: 'Elementary First Aid', label: 'Elementary First Aid' },
-  { value: 'Personal Safety and Social Responsibilities', label: 'Personal Safety and Social Responsibilities' },
-  { value: 'Security Awareness (VI/6-1)', label: 'Security Awareness (VI/6-1)' },
-  { value: 'Designated Security Duties (VI/6-2)', label: 'Designated Security Duties (VI/6-2)' },
-  { value: 'Ship Security Officer (VI/5)', label: 'Ship Security Officer (VI/5)' },
-  { value: 'Proficiency in Survival Craft and Rescue Boats (VI/2-1)', label: 'Proficiency in Survival Craft and Rescue Boats (VI/2-1)' },
-  { value: 'Advanced Fire Fighting (VI/3)', label: 'Advanced Fire Fighting (VI/3)' },
-  { value: 'Medical First Aid (VI/4-1)', label: 'Medical First Aid (VI/4-1)' },
-  { value: 'Medical Care (VI/4-2)', label: 'Medical Care (VI/4-2)' },
-  { value: 'GMDSS/GOC', label: 'GMDSS General Operator Certificate (GOC)' },
-  { value: 'GMDSS/ROC', label: 'GMDSS Restricted Operator Certificate (ROC)' },
-  { value: 'Bridge Resource Management (BRM)', label: 'Bridge Resource Management (BRM)' },
-  { value: 'Engine Resource Management (ERM)', label: 'Engine Resource Management (ERM)' },
-  { value: 'Bridge Team Management (BTM)', label: 'Bridge Team Management (BTM)' },
-  { value: 'Electronic Chart Display and Information System (ECDIS)', label: 'ECDIS' },
-  { value: 'Radar Navigation (Operational Level)', label: 'Radar Navigation (Operational Level)' },
-  { value: 'Radar Navigation (Management Level)', label: 'Radar Navigation (Management Level)' },
-  { value: 'ARPA (Automatic Radar Plotting Aids)', label: 'ARPA (Automatic Radar Plotting Aids)' },
-  { value: 'High Voltage Safety', label: 'High Voltage Safety' },
-  { value: 'Tanker Familiarization', label: 'Tanker Familiarization' },
-  { value: 'Oil Tanker - Cargo Operations (Advanced)', label: 'Oil Tanker - Cargo Operations (Advanced)' },
-  { value: 'Chemical Tanker - Cargo Operations (Advanced)', label: 'Chemical Tanker - Cargo Operations (Advanced)' },
-  { value: 'Liquefied Gas Tanker - Cargo Operations (Advanced)', label: 'Liquefied Gas Tanker - Cargo Operations (Advanced)' },
-  { value: 'Crowd Management', label: 'Crowd Management' },
-  { value: 'Crisis Management and Human Behavior', label: 'Crisis Management and Human Behavior' },
-  { value: 'Passenger Ship Safety', label: 'Passenger Ship Safety' },
-  { value: 'Ro-Ro Passenger Ship Safety', label: 'Ro-Ro Passenger Ship Safety' },
-  { value: 'Dynamic Positioning (Basic)', label: 'Dynamic Positioning (Basic)' },
-  { value: 'Dynamic Positioning (Advanced)', label: 'Dynamic Positioning (Advanced)' },
-  { value: 'Offshore Installation Manager', label: 'Offshore Installation Manager' },
-  { value: 'Offshore Crane Operator', label: 'Offshore Crane Operator' },
-  { value: 'Proficiency in Crisis Management and Human Behavior', label: 'Proficiency in Crisis Management and Human Behavior' },
-  { value: 'Leadership and Managerial Skills', label: 'Leadership and Managerial Skills' },
-  { value: 'Other', label: 'Other (Please specify in comments)' },
-]
-
-const emptyCourse = {
-  courseName: '',
-  issuingAuthority: '',
-  certificateNumber: '',
-  placeOfIssue: '',
-  dateOfIssue: '',
-  dateOfExpiry: '',
-}
+import {
+  createEmptySection14Course,
+  getSection14CourseMetadata,
+  normalizeSection14Courses,
+  SECTION14_COURSE_OPTIONS,
+} from '../../../constants/section14Courses'
 
 export default function Section14({ data = {}, onUpdate }) {
-  const [courses, setCourses] = useState(data.courses || [])
+  const [courses, setCourses] = useState(normalizeSection14Courses(data.courses))
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
 
-  // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.courses) {
-      setCourses(data.courses)
+    if (data && Array.isArray(data.courses)) {
+      const normalizedCourses = normalizeSection14Courses(data.courses)
+      setCourses(prevCourses => (
+        normalizedCourses.length === 0 && prevCourses.length > 0 ? prevCourses : normalizedCourses
+      ))
+
+      if (JSON.stringify(data.courses) !== JSON.stringify(normalizedCourses)) {
+        onUpdate({ section14: { courses: normalizedCourses } })
+      }
     }
-  }, [data])
+  }, [data, onUpdate])
 
   // Helper function to validate year in date
   const validateYear = (dateString) => {
@@ -76,25 +38,19 @@ export default function Section14({ data = {}, onUpdate }) {
     return null
   }
 
-  // Validation function for course fields
   const validateCourseField = (index, field, value) => {
-    const key = `course-${index}-${field}`
-    
     switch (field) {
       case 'courseName':
         return !value ? 'Course name is required' : ''
-      case 'issuingAuthority':
-        return !value ? 'Issuing authority is required' : ''
       case 'certificateNumber':
         return !value ? 'Certificate number is required' : ''
-      case 'placeOfIssue':
-        return !value ? 'Place of issue is required' : ''
-      case 'dateOfIssue':
+      case 'dateOfIssue': {
         if (!value) return 'Date of issue is required'
         const issueYearError = validateYear(value)
         if (issueYearError) return issueYearError
         return ''
-      case 'dateOfExpiry':
+      }
+      case 'dateOfExpiry': {
         if (!value) return 'Date of expiry is required'
         const expiryYearError = validateYear(value)
         if (expiryYearError) return expiryYearError
@@ -102,13 +58,14 @@ export default function Section14({ data = {}, onUpdate }) {
           return 'Expiry date must be after issue date'
         }
         return ''
+      }
       default:
         return ''
     }
   }
 
   const handleAddCourse = () => {
-    const newCourses = [...courses, { ...emptyCourse }]
+    const newCourses = [...courses, createEmptySection14Course()]
     setCourses(newCourses)
     onUpdate({ section14: { courses: newCourses } })
   }
@@ -121,20 +78,31 @@ export default function Section14({ data = {}, onUpdate }) {
 
   const handleCourseChange = (index, field, value) => {
     const newCourses = [...courses]
-    newCourses[index] = {
-      ...newCourses[index],
-      [field]: value
+    const currentCourse = newCourses[index] || createEmptySection14Course()
+
+    if (field === 'courseName') {
+      const metadata = getSection14CourseMetadata(value)
+      newCourses[index] = {
+        ...currentCourse,
+        courseName: value,
+        imoModelCourse: metadata.imoModelCourse,
+        referenceRegulation: metadata.referenceRegulation,
+      }
+    } else {
+      newCourses[index] = {
+        ...currentCourse,
+        [field]: value
+      }
     }
+
     setCourses(newCourses)
-    
-    // Mark field as touched
+
     const key = `course-${index}-${field}`
     setTouched(prev => ({ ...prev, [key]: true }))
-    
-    // Validate field
+
     const error = validateCourseField(index, field, value)
     setErrors(prev => ({ ...prev, [key]: error }))
-    
+
     onUpdate({ section14: { courses: newCourses } })
   }
 
@@ -150,9 +118,10 @@ export default function Section14({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 14: STCW Courses & Competencies</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Training</p>
+        <h2 className="applicant-section-title">STCW courses and competencies</h2>
+        <p className="applicant-section-copy">
           List all your STCW certificates and maritime training courses
         </p>
       </div>
@@ -160,7 +129,7 @@ export default function Section14({ data = {}, onUpdate }) {
       {/* Courses List */}
       <div className="space-y-6">
         {courses.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -178,7 +147,7 @@ export default function Section14({ data = {}, onUpdate }) {
             <p className="text-sm text-gray-500 mb-4">Add your mandatory and additional training certificates</p>
             <button
               onClick={handleAddCourse}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add STCW Course
@@ -187,15 +156,18 @@ export default function Section14({ data = {}, onUpdate }) {
         ) : (
           <>
             {courses.map((course, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Course Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    STCW Course {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">STCW Course {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Select a course and enter the certificate number and validity dates.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveCourse(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -211,24 +183,34 @@ export default function Section14({ data = {}, onUpdate }) {
                     value={course.courseName}
                     onChange={(e) => handleCourseChange(index, 'courseName', e.target.value)}
                     onBlur={() => handleBlur(index, 'courseName')}
-                    options={STCW_COURSE_OPTIONS}
-                    helpText="Select from the list or choose 'Other' to specify"
+                    options={SECTION14_COURSE_OPTIONS}
+                    helpText="Select the course that matches the certificate you are entering"
                     error={touched[`course-${index}-courseName`] ? errors[`course-${index}-courseName`] : ''}
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormInput
-                      label="Issuing Authority"
-                      name={`course-${index}-issuingAuthority`}
-                      required
-                      value={course.issuingAuthority}
-                      onChange={(e) => handleCourseChange(index, 'issuingAuthority', e.target.value)}
-                      onBlur={() => handleBlur(index, 'issuingAuthority')}
-                      placeholder="e.g., MAERSK Training, MCA, DG Shipping"
-                      helpText="Training institution or authority"
-                      error={touched[`course-${index}-issuingAuthority`] ? errors[`course-${index}-issuingAuthority`] : ''}
+                      label="IMO Model Course"
+                      name={`course-${index}-imoModelCourse`}
+                      value={course.imoModelCourse || ''}
+                      readOnly
+                      aria-readonly="true"
+                      placeholder="Auto-filled from selected course"
+                      helpText={course.imoModelCourse ? 'Auto-filled from selected course' : 'No mapped IMO model course for this selection'}
                     />
 
+                    <FormInput
+                      label="Reference- Regulation"
+                      name={`course-${index}-referenceRegulation`}
+                      value={course.referenceRegulation || ''}
+                      readOnly
+                      aria-readonly="true"
+                      placeholder="Auto-filled from selected course"
+                      helpText={course.referenceRegulation ? 'Auto-filled from selected course' : 'No mapped reference regulation for this selection'}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormInput
                       label="Certificate Number"
                       name={`course-${index}-certificateNumber`}
@@ -239,20 +221,7 @@ export default function Section14({ data = {}, onUpdate }) {
                       placeholder="e.g., STCW123456"
                       error={touched[`course-${index}-certificateNumber`] ? errors[`course-${index}-certificateNumber`] : ''}
                     />
-                  </div>
 
-                  <FormInput
-                    label="Place of Issue"
-                    name={`course-${index}-placeOfIssue`}
-                    required
-                    value={course.placeOfIssue}
-                    onChange={(e) => handleCourseChange(index, 'placeOfIssue', e.target.value)}
-                    onBlur={() => handleBlur(index, 'placeOfIssue')}
-                    placeholder="e.g., Mumbai, India"
-                    error={touched[`course-${index}-placeOfIssue`] ? errors[`course-${index}-placeOfIssue`] : ''}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormDatePicker
                       label="Date of Issue"
                       name={`course-${index}-dateOfIssue`}
@@ -283,7 +252,7 @@ export default function Section14({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddCourse}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another STCW Course</span>
@@ -295,7 +264,7 @@ export default function Section14({ data = {}, onUpdate }) {
       {/* Info Boxes */}
       <div className="space-y-4">
         {/* Mandatory Courses Info */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="applicant-section-card applicant-section-card--muted">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
               <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -321,7 +290,7 @@ export default function Section14({ data = {}, onUpdate }) {
         </div>
 
         {/* General Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="applicant-section-card applicant-section-card--muted">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
               <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -333,7 +302,7 @@ export default function Section14({ data = {}, onUpdate }) {
                 Important Information
               </h3>
               <p className="text-sm text-blue-800">
-                Most STCW certificates are valid for 5 years and must be revalidated before expiry. Ensure all your certificates are current and upload copies during the documentation phase. Advanced courses like Medical Care, Advanced Fire Fighting, and ECDIS may be required depending on your rank and vessel type.
+                Course reference fields are managed automatically from the selected course. Enter the certificate number and validity dates exactly as shown on the certificate.
               </p>
             </div>
           </div>

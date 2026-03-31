@@ -1,53 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
-import { Ship } from 'lucide-react'
+import { Ship, Briefcase, ShieldCheck, FileText } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, userType, loading, authorizationLoading, signInWithGoogle } = useAuth()
   const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
-    const checkUserAndRedirect = async () => {
-      if (user) {
-        try {
-          // Get user type before redirecting
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('user_type')
-            .eq('id', user.id)
-            .single()
+    if (loading || (user && authorizationLoading && !userType)) return
 
-          if (profile?.user_type === 'recruiter') {
-            // Recruiter trying to access applicant login - redirect to recruiter dashboard
-            navigate('/recruiter/dashboard', { replace: true })
-            return
-          } else {
-            // Applicant - go to applicant dashboard
-            navigate('/dashboard', { replace: true })
-            return
-          }
-        } catch (error) {
-          console.error('Error checking user type:', error)
-        }
+    if (user) {
+      if (userType === 'recruiter') {
+        navigate('/recruiter/dashboard', { replace: true })
+        return
       }
-      setCheckingSession(false)
+
+      if (userType === 'applicant') {
+        navigate('/dashboard', { replace: true })
+        return
+      }
     }
 
-    checkUserAndRedirect()
-  }, [user, navigate])
+    setCheckingSession(false)
+  }, [user, userType, loading, authorizationLoading, navigate])
 
   const handleGoogleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-      if (error) throw error
+      window.sessionStorage.setItem('njord-login-intent', 'applicant')
+      await signInWithGoogle()
     } catch (error) {
       console.error('Error logging in with Google:', error)
       alert('Failed to login with Google')
@@ -56,36 +38,74 @@ export default function Login() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+      <div className="public-shell flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white">Checking session...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-slate-900"></div>
+          <p className="text-slate-600">Checking session...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
-            <Ship className="w-8 h-8 text-blue-600" />
+    <div className="public-shell public-auth-shell">
+      <div className="public-auth-grid">
+        <section className="public-hero-card">
+          <div className="public-eyebrow text-blue-100">Njordships Careers</div>
+          <h1 className="public-title">Maritime applications, handled with more confidence.</h1>
+          <p className="public-copy">
+            Sign in with Google to complete, update, and track your seafarer profile from one place.
+          </p>
+
+          <div className="public-feature-list">
+            <div className="public-feature-item">
+              <div className="public-feature-item__icon">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="public-feature-item__title">One guided application</p>
+                <p className="public-feature-item__copy">
+                  Save progress automatically and return whenever you need to update documents or sea service.
+                </p>
+              </div>
+            </div>
+            <div className="public-feature-item">
+              <div className="public-feature-item__icon">
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="public-feature-item__title">Professional recruiter review</p>
+                <p className="public-feature-item__copy">
+                  Recruiters review qualifications, certificates, and availability directly from your submitted profile.
+                </p>
+              </div>
+            </div>
+            <div className="public-feature-item">
+              <div className="public-feature-item__icon">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="public-feature-item__title">Secure account access</p>
+                <p className="public-feature-item__copy">
+                  Your application history and documents stay tied to your Google account for easy return access.
+                </p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Njordships</h1>
-          <p className="text-blue-100">Maritime Recruitment Portal</p>
-        </div>
+        </section>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Applicant Login</h2>
-          <p className="text-gray-600 mb-8">Sign in to manage your maritime job applications</p>
+        <section className="public-card">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+            <Ship className="h-7 w-7" />
+          </div>
+          <h2 className="public-form-title mt-6">Applicant login</h2>
+          <p className="public-form-copy">
+            Sign in to manage your maritime job applications, complete your profile, and track status updates.
+          </p>
 
-          {/* Google Login Button */}
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all font-medium text-gray-700"
+            className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -108,33 +128,25 @@ export default function Login() {
             Continue with Google
           </button>
 
-          {/* Info Text */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Use your Google account to sign in. Your application data is securely stored and accessible anytime.
+          <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-900">
+              <strong>Note:</strong> Use your Google account to sign in. Your application data stays available any time you return.
             </p>
           </div>
 
-          {/* Recruiter Login Link */}
-          <div className="mt-6 pt-6 border-t text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-6 border-t border-slate-200 pt-6 text-center">
+            <p className="text-sm text-slate-600">
               Are you a recruiter?{' '}
-              <Link
-                to="/recruiter/login"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
+              <Link to="/recruiter/login" className="public-inline-link">
                 Sign in here
               </Link>
             </p>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-blue-100">
+          <p className="mt-8 text-sm text-slate-500">
             New to Njordships? Sign in with Google to create your account automatically.
           </p>
-        </div>
+        </section>
       </div>
     </div>
   )

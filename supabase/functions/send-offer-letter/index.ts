@@ -2,8 +2,7 @@
 // Sends offer letter to candidate - supports both form details and uploaded documents
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +40,9 @@ serve(async (req) => {
   }
 
   try {
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const resendApiKey = runtimeSettings.RESEND_API_KEY
+    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
     const payload: OfferLetterRequest = await req.json()
     const { mode, applicantEmail, applicantName, referenceNumber } = payload
 
@@ -62,7 +64,7 @@ serve(async (req) => {
       const docBase64 = btoa(String.fromCharCode(...new Uint8Array(docBuffer)))
 
       emailBody = {
-        from: 'NJORD Ships <onboarding@resend.dev>',
+        from: emailFrom,
         to: [applicantEmail],
         subject: `🎉 Job Offer from NJORD Ships - ${referenceNumber}`,
         html: `
@@ -183,7 +185,7 @@ serve(async (req) => {
       })
 
       emailBody = {
-        from: 'NJORD Ships <onboarding@resend.dev>',
+        from: emailFrom,
         to: [applicantEmail],
         subject: `🎉 Job Offer - ${position} Position - ${referenceNumber}`,
         html: `
@@ -330,7 +332,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`
+        'Authorization': `Bearer ${resendApiKey}`
       },
       body: JSON.stringify(emailBody)
     })

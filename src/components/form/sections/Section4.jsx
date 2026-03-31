@@ -91,9 +91,10 @@ const autoCapitalize = (value) => {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 4: CDC / National Seaman's Book</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Identity documents</p>
+        <h2 className="applicant-section-title">CDC / National Seaman&apos;s Book</h2>
+        <p className="applicant-section-copy">
           Provide your Continuous Discharge Certificate or Seaman's Book details
         </p>
       </div>
@@ -170,7 +171,7 @@ const autoCapitalize = (value) => {
       </div>
 
       {/* Info Box */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -178,9 +179,7 @@ const autoCapitalize = (value) => {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-amber-900 mb-1">
-              ⚠️ Note
-            </h3>
+            <h3 className="text-sm font-semibold text-amber-900 mb-1">Note</h3>
             <p className="text-sm text-amber-800">
               Also known as "Continuous Discharge Certificate" (CDC) or "Seaman's Book" depending on your country. This is a mandatory document for all seafarers. Ensure it is valid and up-to-date.
             </p>

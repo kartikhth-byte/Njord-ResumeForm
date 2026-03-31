@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,11 @@ serve(async (req) => {
 
   try {
     const { code, userId } = await req.json()
+    const runtimeSettings = await getRuntimeSettings([
+      'MICROSOFT_CLIENT_ID',
+      'MICROSOFT_CLIENT_SECRET',
+      'MICROSOFT_REDIRECT_URI',
+    ])
 
     if (!code) {
       return new Response(
@@ -31,10 +37,10 @@ serve(async (req) => {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: Deno.env.get('MICROSOFT_CLIENT_ID') || '',
-        client_secret: Deno.env.get('MICROSOFT_CLIENT_SECRET') || '',
+        client_id: runtimeSettings.MICROSOFT_CLIENT_ID || '',
+        client_secret: runtimeSettings.MICROSOFT_CLIENT_SECRET || '',
         code: code,
-        redirect_uri: Deno.env.get('MICROSOFT_REDIRECT_URI') || '',
+        redirect_uri: runtimeSettings.MICROSOFT_REDIRECT_URI || '',
         grant_type: 'authorization_code',
       }),
     })

@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { generateICS } from '../_shared/ics-generator.ts'
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,7 @@ serve(async (req) => {
   }
 
   try {
+    const runtimeSettings = await getRuntimeSettings(['APP_URL', 'RESEND_API_KEY', 'EMAIL_FROM'])
     const { eventId, isReminder = false } = await req.json() as NotificationRequest
 
     if (!eventId) {
@@ -109,7 +111,7 @@ serve(async (req) => {
       .eq('id', event.scheduled_by)
       .single()
 
-    const recruiterEmail = recruiterProfile?.email || Deno.env.get('EMAIL_FROM') || 'recruitment@njordships.com'
+    const recruiterEmail = recruiterProfile?.email || runtimeSettings.EMAIL_FROM || 'recruitment@njordships.com'
     const recruiterName = recruiterProfile?.full_name || 'NJORD Ships Recruitment'
 
     // Format date and time
@@ -127,9 +129,9 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
     })
 
     // Get environment variables
-    const appUrl = Deno.env.get('APP_URL')
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    const emailFrom = Deno.env.get('EMAIL_FROM') || 'Njordships Recruitment <onboarding@resend.dev>'
+    const appUrl = runtimeSettings.APP_URL
+    const resendApiKey = runtimeSettings.RESEND_API_KEY
+    const emailFrom = runtimeSettings.EMAIL_FROM || 'Njordships Recruitment <onboarding@resend.dev>'
 
     if (!appUrl || !resendApiKey) {
       throw new Error('Missing required environment variables')

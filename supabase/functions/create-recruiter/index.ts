@@ -4,7 +4,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
+
+const ALLOWED_RECRUITER_ROLES = new Set(['Master Recruiter', 'Recruiter', 'Coordinator'])
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -23,6 +26,171 @@ serve(async (req) => {
     const { action, full_name, email, password, role_id, user_id } = await req.json()
 
     console.log('Request received:', { action, email, role_id, user_id })
+
+    const getValidatedRole = async (requestedRoleId: string | null | undefined) => {
+      if (!requestedRoleId) {
+        throw new Error('role_id is required')
+      }
+
+      const { data: roleRecord, error: roleLookupError } = await supabaseClient
+        .from('roles')
+        .select('id, name')
+        .eq('id', requestedRoleId)
+        .maybeSingle()
+
+      if (roleLookupError || !roleRecord) {
+        throw new Error('Selected role was not found')
+      }
+
+      if (!ALLOWED_RECRUITER_ROLES.has(roleRecord.name)) {
+        throw new Error('Selected role is not allowed for recruiter accounts')
+      }
+
+      return roleRecord
+    }
+
+    const countMasterRecruiters = async (excludeUserId?: string) => {
+      const { data: masterRole, error: masterRoleError } = await supabaseClient
+        .from('roles')
+        .select('id')
+        .eq('name', 'Master Recruiter')
+        .maybeSingle()
+
+      if (masterRoleError || !masterRole) {
+        throw new Error('Master Recruiter role is not configured')
+      }
+
+      let query = supabaseClient
+        .from('user_roles')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('role_id', masterRole.id)
+
+      if (excludeUserId) {
+        query = query.neq('user_id', excludeUserId)
+      }
+
+      const { count, error: countError } = await query
+
+      if (countError) {
+        throw new Error('Unable to verify master recruiter coverage')
+      }
+
+      return count ?? 0
+    }
+
+    const createRecruiterAccount = async ({
+      fullName,
+      emailAddress,
+      rawPassword,
+      roleId,
+      assignedBy,
+    }: {
+      fullName: string
+      emailAddress: string
+      rawPassword: string
+      roleId: string
+      assignedBy: string
+    }) => {
+      const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+        email: emailAddress,
+        password: rawPassword,
+        email_confirm: true,
+        user_metadata: { full_name: fullName }
+      })
+
+      if (authError) {
+        throw new Error(authError.message)
+      }
+
+      const newUserId = authData.user.id
+
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: newUserId,
+          full_name: fullName,
+          email: emailAddress,
+          user_type: 'recruiter'
+        }, {
+          onConflict: 'id'
+        })
+
+      if (profileError) {
+        await supabaseClient.auth.admin.deleteUser(newUserId)
+        throw new Error('Failed to create profile: ' + profileError.message)
+      }
+
+      const { error: roleError } = await supabaseClient
+        .from('user_roles')
+        .insert({
+          user_id: newUserId,
+          role_id: roleId,
+          assigned_by: assignedBy ?? null
+        })
+
+      if (roleError) {
+        await supabaseClient.auth.admin.deleteUser(newUserId)
+        throw new Error('Failed to assign role: ' + roleError.message)
+      }
+
+      return newUserId
+    }
+
+    if (action === 'status') {
+      const existingMasterRecruiters = await countMasterRecruiters()
+
+      return new Response(
+        JSON.stringify({
+          setup_complete: existingMasterRecruiters > 0,
+          master_recruiter_count: existingMasterRecruiters,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    if (action === 'bootstrap') {
+      const existingMasterRecruiters = await countMasterRecruiters()
+
+      if (existingMasterRecruiters > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Initial setup is already complete.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      const { data: masterRole, error: masterRoleError } = await supabaseClient
+        .from('roles')
+        .select('id')
+        .eq('name', 'Master Recruiter')
+        .maybeSingle()
+
+      if (masterRoleError || !masterRole) {
+        return new Response(
+          JSON.stringify({ error: 'Recruiter roles are not configured. Seed the roles table first.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      try {
+        const newUserId = await createRecruiterAccount({
+          fullName: full_name,
+          emailAddress: email,
+          rawPassword: password,
+          roleId: masterRole.id,
+          assignedBy: null,
+        })
+
+        return new Response(
+          JSON.stringify({ success: true, user_id: newUserId }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+    }
 
     // Get the authenticated user from the request
     const authHeader = req.headers.get('Authorization')
@@ -66,60 +234,31 @@ serve(async (req) => {
     if (action === 'create') {
       console.log('Creating user with email:', email)
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name }
-      })
+      let validatedRole
 
-      if (authError) {
-        console.error('Auth creation error:', authError)
+      try {
+        validatedRole = await getValidatedRole(role_id)
+      } catch (error) {
         return new Response(
-          JSON.stringify({ error: authError.message }),
+          JSON.stringify({ error: error.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
 
-      const newUserId = authData.user.id
-      console.log('User created:', newUserId)
+      let newUserId
 
-      // Create profile
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .insert({
-          id: newUserId,
-          full_name,
-          email,
-          user_type: 'recruiter'
+      try {
+        newUserId = await createRecruiterAccount({
+          fullName: full_name,
+          emailAddress: email,
+          rawPassword: password,
+          roleId: validatedRole.id,
+          assignedBy: caller.id,
         })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-        await supabaseClient.auth.admin.deleteUser(newUserId)
+      } catch (error) {
+        console.error('Recruiter creation error:', error)
         return new Response(
-          JSON.stringify({ error: 'Failed to create profile: ' + profileError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
-      }
-
-      console.log('Profile created')
-
-      // Assign role
-      const { error: roleError } = await supabaseClient
-  .from('user_roles')
-        .insert({
-          user_id: newUserId,
-          role_id,
-          assigned_by: caller.id
-        })
-
-      if (roleError) {
-        console.error('Role assignment error:', roleError)
-        await supabaseClient.auth.admin.deleteUser(newUserId)
-        return new Response(
-          JSON.stringify({ error: 'Failed to assign role: ' + roleError.message }),
+          JSON.stringify({ error: error.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
@@ -186,6 +325,39 @@ serve(async (req) => {
 
         // Update role if provided
         if (role_id) {
+          const validatedRole = await getValidatedRole(role_id)
+
+          const { data: existingRoleRows, error: existingRoleError } = await supabaseClient
+            .from('user_roles')
+            .select(`
+              role_id,
+              roles (
+                name
+              )
+            `)
+            .eq('user_id', user_id)
+
+          if (existingRoleError) {
+            return new Response(
+              JSON.stringify({ error: 'Failed to load current role assignments: ' + existingRoleError.message }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            )
+          }
+
+          const isCurrentlyMasterRecruiter = (existingRoleRows || []).some(
+            row => row.roles?.name === 'Master Recruiter'
+          )
+
+          if (isCurrentlyMasterRecruiter && validatedRole.name !== 'Master Recruiter') {
+            const remainingMasterRecruiters = await countMasterRecruiters(user_id)
+            if (remainingMasterRecruiters === 0) {
+              return new Response(
+                JSON.stringify({ error: 'You cannot demote the last Master Recruiter. Promote another user first.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+              )
+            }
+          }
+
           console.log('Starting role update. New role_id:', role_id)
           
           // Delete old role assignments
@@ -212,7 +384,7 @@ serve(async (req) => {
   .from('user_roles')
             .insert({
               user_id,
-              role_id,
+              role_id: validatedRole.id,
               assigned_by: caller.id
             })
 
@@ -242,6 +414,84 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: error.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+    }
+
+    if (action === 'delete') {
+      if (!user_id) {
+        return new Response(
+          JSON.stringify({ error: 'user_id is required for delete' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      try {
+        const { data: existingRoleRows, error: existingRoleError } = await supabaseClient
+          .from('user_roles')
+          .select(`
+            role_id,
+            roles (
+              name
+            )
+          `)
+          .eq('user_id', user_id)
+
+        if (existingRoleError) {
+          throw new Error('Failed to load recruiter role assignments: ' + existingRoleError.message)
+        }
+
+        const isMasterRecruiter = (existingRoleRows || []).some(
+          row => row.roles?.name === 'Master Recruiter'
+        )
+
+        if (isMasterRecruiter) {
+          const remainingMasterRecruiters = await countMasterRecruiters(user_id)
+          if (remainingMasterRecruiters === 0) {
+            throw new Error('You cannot delete the last Master Recruiter. Promote another user first.')
+          }
+        }
+
+        const { error: roleDeleteError } = await supabaseClient
+          .from('user_roles')
+          .delete()
+          .eq('user_id', user_id)
+
+        if (roleDeleteError) {
+          throw new Error('Failed to remove role assignments: ' + roleDeleteError.message)
+        }
+
+        const { error: profileDeleteError } = await supabaseClient
+          .from('profiles')
+          .delete()
+          .eq('id', user_id)
+
+        if (profileDeleteError) {
+          throw new Error('Failed to remove recruiter profile: ' + profileDeleteError.message)
+        }
+
+        const { error: authDeleteError } = await supabaseClient.auth.admin.deleteUser(user_id)
+
+        if (authDeleteError) {
+          throw new Error('Recruiter profile was removed, but auth deletion failed: ' + authDeleteError.message)
+        }
+
+        await supabaseClient.from('audit_log').insert({
+          user_id: caller.id,
+          action: 'delete_recruiter',
+          resource_type: 'user',
+          resource_id: user_id,
+          details: { deleted_user_id: user_id },
+        })
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
     }

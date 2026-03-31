@@ -33,11 +33,13 @@ export default function RejectionHistory({ application }) {
   }
 
   return (
-    <div className={`border-2 rounded-lg p-5 mb-6 ${
-      isCurrentlyRejected 
-        ? 'bg-red-50 border-red-200' 
-        : 'bg-yellow-50 border-yellow-200'
-    }`}>
+    <div
+      className={`mb-6 rounded-[24px] border p-5 shadow-sm ${
+        isCurrentlyRejected
+          ? 'border-red-200 bg-red-50/90'
+          : 'border-amber-200 bg-amber-50/90'
+      }`}
+    >
       <div className="flex items-start gap-3">
         {isCurrentlyRejected ? (
           <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
@@ -53,9 +55,9 @@ export default function RejectionHistory({ application }) {
           </h3>
 
           {wasReopened && (
-            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+            <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm text-blue-900 font-medium">
-                ℹ️ This application was reopened on {formatDate(application.reopened_at)}
+                This application was reopened on {formatDate(application.reopened_at)}
               </p>
               {application.reopened_notes && (
                 <p className="text-sm text-blue-800 mt-1">
@@ -85,14 +87,14 @@ export default function RejectionHistory({ application }) {
             )}
 
             {/* Rejection Reason */}
-            <div className="mt-3 p-3 bg-white border border-gray-200 rounded">
+            <div className="mt-3 rounded-2xl border border-white/70 bg-white/90 p-4">
               <p className="text-gray-700 font-medium mb-1">Rejection Reason:</p>
               <p className="text-gray-800">{rejectionData.rejection_reason}</p>
             </div>
 
             {/* Additional Feedback */}
             {rejectionData.rejection_feedback && (
-              <div className="mt-2 p-3 bg-white border border-gray-200 rounded">
+              <div className="mt-2 rounded-2xl border border-white/70 bg-white/90 p-4">
                 <p className="text-gray-700 font-medium mb-1">Detailed Feedback:</p>
                 <p className="text-gray-800">{rejectionData.rejection_feedback}</p>
               </div>
@@ -100,7 +102,7 @@ export default function RejectionHistory({ application }) {
 
             {/* Interview Ratings if available */}
             {application.interview_feedback?.ratings && (
-              <div className="mt-3 p-3 bg-white border border-gray-200 rounded">
+              <div className="mt-3 rounded-2xl border border-white/70 bg-white/90 p-4">
                 <p className="text-gray-700 font-medium mb-2">Interview Ratings:</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {Object.entries(application.interview_feedback.ratings).map(([key, value]) => {
@@ -119,9 +121,9 @@ export default function RejectionHistory({ application }) {
           </div>
 
           {!isCurrentlyRejected && (
-            <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded">
+            <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-100 p-4">
               <p className="text-sm text-yellow-900">
-                <strong>⚠️ Recruiter Note:</strong> This candidate was previously rejected. 
+                <strong>Recruiter Note:</strong> This candidate was previously rejected.
                 Review the feedback above before proceeding. Consider if circumstances have changed 
                 or if this role is a better fit than the previous one.
               </p>

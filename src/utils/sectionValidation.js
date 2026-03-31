@@ -339,11 +339,12 @@ export const validateSection14 = (data) => {
   
   data.courses.forEach((course, index) => {
     if (!course.courseName) errors.push(`Course ${index + 1}: Name is required`)
-    if (!course.issuingAuthority) errors.push(`Course ${index + 1}: Issuing authority is required`)
     if (!course.certificateNumber) errors.push(`Course ${index + 1}: Certificate number is required`)
-    if (!course.placeOfIssue) errors.push(`Course ${index + 1}: Place of issue is required`)
     if (!course.dateOfIssue) errors.push(`Course ${index + 1}: Date of issue is required`)
     if (!course.dateOfExpiry) errors.push(`Course ${index + 1}: Date of expiry is required`)
+    if (course.dateOfIssue && course.dateOfExpiry && course.dateOfExpiry <= course.dateOfIssue) {
+      errors.push(`Course ${index + 1}: Expiry date must be after issue date`)
+    }
   })
   
   return {
@@ -369,12 +370,20 @@ export const validateSection16 = (data) => {
     if (!service.vesselType) errors.push(`Sea Service ${index + 1}: Vessel type is required`)
     if (!service.flag) errors.push(`Sea Service ${index + 1}: Flag is required`)
     if (!service.grt) errors.push(`Sea Service ${index + 1}: GRT is required`)
+    if (!service.teu) errors.push(`Sea Service ${index + 1}: TEU is required`)
+    if (!service.yearBuilt) errors.push(`Sea Service ${index + 1}: Year built is required`)
     if (!service.mainEngine) errors.push(`Sea Service ${index + 1}: Main engine type is required`)
+    if (!service.engineFamily) errors.push(`Sea Service ${index + 1}: Engine family is required`)
+    if (!service.mainEngineMake) errors.push(`Sea Service ${index + 1}: Main engine make is required`)
     if (!service.rankHeld) errors.push(`Sea Service ${index + 1}: Rank held is required`)
-    if (!service.companyName) errors.push(`Sea Service ${index + 1}: Company name is required`)
+    if (!service.position) errors.push(`Sea Service ${index + 1}: Position is required`)
+    if (!service.company && !service.companyName) errors.push(`Sea Service ${index + 1}: Company is required`)
+    if (!service.manning) errors.push(`Sea Service ${index + 1}: Manning is required`)
     if (!service.signOnDate) errors.push(`Sea Service ${index + 1}: Sign on date is required`)
     if (!service.signOffDate) errors.push(`Sea Service ${index + 1}: Sign off date is required`)
+    if (!service.tradingArea && !service.tradeRoute) errors.push(`Sea Service ${index + 1}: Trading area is required`)
     if (!service.tradeRoute) errors.push(`Sea Service ${index + 1}: Trade route is required`)
+    if (!service.totalMmDd) errors.push(`Sea Service ${index + 1}: Total mm/dd is required`)
     if (!service.reasonForLeaving) errors.push(`Sea Service ${index + 1}: Reason for leaving is required`)
   })
   
@@ -390,6 +399,15 @@ export const validateSection16 = (data) => {
  */
 export const validateSection18 = (data) => {
   const errors = []
+
+  if (!data.objectionToContactLastEmployer) {
+    errors.push('Please specify whether we may contact your last employer')
+  }
+
+  if (!data.currentEmployer?.company) errors.push('Current or immediate past employer: Company is required')
+  if (!data.currentEmployer?.contactPerson) errors.push('Current or immediate past employer: Contact person is required')
+  if (!data.currentEmployer?.address) errors.push('Current or immediate past employer: Address is required')
+  if (!data.currentEmployer?.phoneNumber) errors.push('Current or immediate past employer: Phone number is required')
   
   if (!data.references || !Array.isArray(data.references) || data.references.length < 2) {
     errors.push('At least two professional references are required')
@@ -400,6 +418,7 @@ export const validateSection18 = (data) => {
     if (!ref.name) errors.push(`Reference ${index + 1}: Name is required`)
     if (!ref.position) errors.push(`Reference ${index + 1}: Position is required`)
     if (!ref.company) errors.push(`Reference ${index + 1}: Company is required`)
+    if (!ref.address) errors.push(`Reference ${index + 1}: Address is required`)
     if (!ref.relationship) errors.push(`Reference ${index + 1}: Relationship is required`)
     if (!ref.phoneNumber) errors.push(`Reference ${index + 1}: Phone number is required`)
     if (!ref.email) errors.push(`Reference ${index + 1}: Email is required`)
@@ -413,44 +432,10 @@ export const validateSection18 = (data) => {
 }
 
 /**
- * Validates Section 19: Emergency Contact Information
- * (Already validated in Section 2, but check if standalone)
- */
-/**
- * Validates Section 19: Emergency Contact Information
- * Required: At least one emergency contact with all required fields
- * Data structure: { contacts: [...] } (not emergencyContacts!)
- */
-export const validateSection19 = (data) => {
-  const errors = []
-  
-  if (!data.contacts || !Array.isArray(data.contacts) || data.contacts.length === 0) {
-    errors.push('At least one emergency contact is required')
-    return { isValid: false, errors }
-  }
-  
-  data.contacts.forEach((contact, index) => {
-    if (!contact.fullName) errors.push(`Contact ${index + 1}: Full name is required`)
-    if (!contact.relationship) errors.push(`Contact ${index + 1}: Relationship is required`)
-    if (!contact.phoneNumber) errors.push(`Contact ${index + 1}: Phone number is required`)
-    if (!contact.email) errors.push(`Contact ${index + 1}: Email is required`)
-    if (!contact.address) errors.push(`Contact ${index + 1}: Address is required`)
-    if (!contact.city) errors.push(`Contact ${index + 1}: City is required`)
-    if (!contact.country) errors.push(`Contact ${index + 1}: Country is required`)
-    if (!contact.postalCode) errors.push(`Contact ${index + 1}: Postal code is required`)
-  })
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
-}
-
-/**
- * Validates Section 20: Additional Information & Declarations
+ * Validates Section 19: Additional Information & Declarations
  * Required: All declarations must be checked, signature fields must be filled
  */
-export const validateSection20 = (data) => {
+export const validateSection19 = (data) => {
   const errors = []
   
   // Declarations
@@ -500,7 +485,6 @@ export const validateSection = (sectionNumber, data) => {
     case 16: return validateSection16(data)
     case 18: return validateSection18(data)
     case 19: return validateSection19(data)
-    case 20: return validateSection20(data)
     
     // Optional sections (5, 7, 9, 12, 15, 17) - always valid
     default:
@@ -515,7 +499,7 @@ export const validateSection = (sectionNumber, data) => {
  * Validates all mandatory sections
  */
 export const validateAllMandatorySections = (applicationData) => {
-  const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20]
+  const MANDATORY_SECTIONS = [1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19]
   
   const invalidSections = []
   const allErrors = {}

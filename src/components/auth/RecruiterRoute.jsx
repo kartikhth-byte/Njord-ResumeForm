@@ -1,51 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
-import { supabase } from '../../lib/supabase'
 
 export default function RecruiterRoute({ children }) {
-  const { user, loading } = useAuth()
-  const [userType, setUserType] = useState(null)
-  const [checkingType, setCheckingType] = useState(true)
+  const { user, loading, userType, authorizationLoading } = useAuth()
 
-  useEffect(() => {
-    console.log('👤 RecruiterRoute - User state:', { 
-      hasUser: !!user, 
-      loading, 
-      userType,
-      checkingType,
-      timestamp: new Date().toLocaleTimeString()
-    })
-  }, [user, loading, userType, checkingType])
-
-  useEffect(() => {
-    const checkUserType = async () => {
-      if (!user) {
-        setCheckingType(false)
-        return
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .single()
-
-        if (error) throw error
-        setUserType(data?.user_type)
-      } catch (error) {
-        console.error('Error checking user type:', error)
-      } finally {
-        setCheckingType(false)
-      }
-    }
-
-    checkUserType()
-  }, [user])
-
-  // Still loading auth or user type
-  if (loading || checkingType) {
+  if (loading || (user && authorizationLoading && !userType)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -56,22 +15,16 @@ export default function RecruiterRoute({ children }) {
     )
   }
 
-  // Not authenticated - redirect to recruiter login
   if (!user) {
-    console.log('🚨 RecruiterRoute REDIRECT: No user, going to /recruiter/login')
     return <Navigate to="/recruiter/login" replace />
   }
 
-  // Wrong user type - show unauthorized
-if (userType !== 'recruiter') {
-  // Auto-redirect applicants to their dashboard
+  if (userType !== 'recruiter') {
   if (userType === 'applicant') {
     return <Navigate to="/dashboard" replace />
   }
-  // Unknown user type - sign out and go to login
   return <Navigate to="/login" replace />
-}
+  }
 
-  // Correct user type - render the route
   return children
 }

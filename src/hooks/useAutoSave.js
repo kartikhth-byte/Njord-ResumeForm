@@ -8,6 +8,12 @@ export function useAutoSave(applicationId, initialData = {}) {
   const [isLoading, setIsLoading] = useState(true)
   const debounceTimerRef = useRef(null)
   const isSavingRef = useRef(false)
+  const latestDataRef = useRef(initialData)
+  const hasLocalEditsRef = useRef(false)
+
+  useEffect(() => {
+    latestDataRef.current = data
+  }, [data])
 
   // Load initial data from database
   useEffect(() => {
@@ -28,7 +34,12 @@ export function useAutoSave(applicationId, initialData = {}) {
 
         if (appData && appData.data) {
           console.log('useAutoSave: Loaded data from DB:', appData.data)
-          setData(appData.data)
+          const mergedData = hasLocalEditsRef.current
+            ? { ...appData.data, ...latestDataRef.current }
+            : appData.data
+
+          setData(mergedData)
+          latestDataRef.current = mergedData
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -37,6 +48,7 @@ export function useAutoSave(applicationId, initialData = {}) {
       }
     }
 
+    hasLocalEditsRef.current = false
     loadData()
   }, [applicationId])
 
@@ -73,6 +85,7 @@ export function useAutoSave(applicationId, initialData = {}) {
 
       setSaveStatus('saved')
       setLastSaved(new Date())
+      hasLocalEditsRef.current = false
       
       console.log('useAutoSave: Save successful')
     } catch (error) {
@@ -109,9 +122,10 @@ export function useAutoSave(applicationId, initialData = {}) {
     debounceTimerRef.current = setTimeout(() => {
       console.log('useAutoSave: Debounce timer fired, saving...')
       saveToDatabase(newData)
-    }, 30000) // 30 seconds
+      debounceTimerRef.current = null
+    }, 2000) // 2 seconds
 
-    console.log('useAutoSave: Auto-save scheduled in 30 seconds')
+    console.log('useAutoSave: Auto-save scheduled in 2 seconds')
   }, [saveToDatabase])
 
   // Update data and trigger debounced save
@@ -120,6 +134,7 @@ export function useAutoSave(applicationId, initialData = {}) {
     
     setData(prevData => {
       const newData = { ...prevData, ...updates }
+      hasLocalEditsRef.current = true
       console.log('useAutoSave: New data state:', newData)
       debouncedSave(newData)
       return newData
@@ -162,9 +177,13 @@ export function useAutoSave(applicationId, initialData = {}) {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+        if (applicationId && Object.keys(latestDataRef.current || {}).length > 0) {
+          saveToDatabase(latestDataRef.current)
+        }
       }
     }
-  }, [])
+  }, [applicationId, saveToDatabase])
 
   return {
     data,

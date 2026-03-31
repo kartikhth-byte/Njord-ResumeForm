@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, ShieldPlus, Wand2 } from 'lucide-react'
+
+const ALLOWED_RECRUITER_ROLES = ['Master Recruiter', 'Recruiter', 'Coordinator']
 
 export default function CreateRecruiterModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -23,15 +25,18 @@ export default function CreateRecruiterModal({ isOpen, onClose, onSuccess }) {
   const loadRoles = async () => {
     try {
       const { data, error } = await supabase
-        .from('roles')  // ✅ Fixed table name
+        .from('roles')
         .select('*')
-        .order('name')  // ✅ Fixed order column
+        .in('name', ALLOWED_RECRUITER_ROLES)
 
       if (error) throw error
-      setRoles(data || [])
+      const orderedRoles = ALLOWED_RECRUITER_ROLES
+        .map(roleName => (data || []).find(role => role.name === roleName))
+        .filter(Boolean)
+
+      setRoles(orderedRoles)
       
-      // Set default role to 'Recruiter'
-      const defaultRole = data?.find(r => r.name === 'Recruiter')
+      const defaultRole = orderedRoles.find(r => r.name === 'Recruiter')
       if (defaultRole) {
         setFormData(prev => ({ ...prev, roleId: defaultRole.id }))
       }
@@ -120,138 +125,142 @@ const handleSubmit = async (e) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-black bg-opacity-50" onClick={handleClose}></div>
-      
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-          <button
-            onClick={handleClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-5 h-5" />
+    <div className="recruiter-modal-backdrop overflow-y-auto">
+      <div className="absolute inset-0" onClick={handleClose} />
+
+      <div className="recruiter-modal recruiter-modal--narrow relative my-auto flex flex-col">
+        <div className="recruiter-modal__header">
+          <div className="recruiter-modal__header-main">
+            <div className="recruiter-modal__icon">
+              <ShieldPlus className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
+              <h2 className="recruiter-modal__title">Add Team Member</h2>
+              <p className="recruiter-modal__subtitle">
+                Create a recruiter login and assign the right access level before sharing credentials.
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={handleClose} className="recruiter-modal__close">
+            <X className="h-5 w-5" />
           </button>
+        </div>
 
-          <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Add Team Member</h2>
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+          <div className="recruiter-modal__body flex-1">
+            <div className="recruiter-note recruiter-note--info mb-5">
+              <p className="recruiter-note__title">Credential handoff</p>
+              <p className="recruiter-note__body">
+                A password is generated and shown after creation. Share it securely with the new recruiter.
+              </p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
+            <div className="recruiter-form-grid">
+              <div className="recruiter-form-field recruiter-form-field--full">
+                <label className="recruiter-form-label">Email *</label>
                 <input
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  className="recruiter-form-input"
                   placeholder="recruiter@example.com"
                 />
               </div>
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name *
-                </label>
+              <div className="recruiter-form-field recruiter-form-field--full">
+                <label className="recruiter-form-label">Full Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                  className="recruiter-form-input"
                   placeholder="John Doe"
                 />
               </div>
 
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password *
-                </label>
+              <div className="recruiter-form-field recruiter-form-field--full">
+                <label className="recruiter-form-label">Password *</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     required
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                    placeholder="Enter password"
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    className="recruiter-form-input font-mono text-sm"
+                    placeholder="Generate or enter a secure password"
                   />
                   <button
                     type="button"
                     onClick={generatePassword}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                    className="workspace-action-button workspace-action-button--secondary whitespace-nowrap"
                   >
+                    <Wand2 className="h-4 w-4" />
                     Generate
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                <p className="recruiter-form-hint">Minimum 6 characters. Generated passwords are easiest to onboard with.</p>
               </div>
 
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role *
-                </label>
+              <div className="recruiter-form-field recruiter-form-field--full">
+                <label className="recruiter-form-label">Role *</label>
                 <select
                   required
                   value={formData.roleId}
-                  onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={e => setFormData({ ...formData, roleId: e.target.value })}
+                  className="recruiter-form-select"
                 >
                   <option value="">Select role</option>
-{roles
-  .filter(role => role.name !== 'Applicant')
-  .map(role => (
-    <option key={role.id} value={role.id}>
-      {role.name}
-    </option>
-  ))}
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
                 </select>
-                {formData.roleId && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {roles.find(r => r.id === formData.roleId)?.description}
+                {formData.roleId ? (
+                  <p className="recruiter-form-hint">
+                    {roles.find(role => role.id === formData.roleId)?.description}
                   </p>
-                )}
+                ) : null}
               </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{error}</p>
+              {error ? (
+                <div className="recruiter-form-field recruiter-form-field--full">
+                  <div className="recruiter-note recruiter-note--danger">
+                    <p className="recruiter-note__title">Unable to create recruiter</p>
+                    <p className="recruiter-note__body">{error}</p>
+                  </div>
                 </div>
-              )}
-
-              {/* Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    'Create Recruiter'
-                  )}
-                </button>
-              </div>
-            </form>
+              ) : null}
+            </div>
           </div>
-        </div>
+
+          <div className="recruiter-modal__footer">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="workspace-action-button workspace-action-button--secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="workspace-action-button workspace-action-button--primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Recruiter'
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormDatePicker from '../shared/FormDatePicker'
+import FormTextArea from '../shared/FormTextArea'
+import FormCheckbox from '../shared/FormCheckbox'
 
 export default function Section11({ data = {}, onUpdate }) {
   // Fix: Read from data.medicalHistory to match what we're saving
@@ -121,9 +123,10 @@ export default function Section11({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 11: Medical History</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Health disclosure</p>
+        <h2 className="applicant-section-title">Medical history</h2>
+        <p className="applicant-section-copy">
           Provide information about any medical-related incidents at sea
         </p>
       </div>
@@ -131,31 +134,20 @@ export default function Section11({ data = {}, onUpdate }) {
       {/* Form Fields */}
       <div className="space-y-5">
         {/* Main Question */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="signedOffMedical"
-              name="signedOffMedical"
-              checked={formData.signedOffMedical}
-              onChange={handleChange}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="signedOffMedical" className="ml-3 block">
-              <span className="text-sm font-medium text-gray-900">
-                Have you ever been signed off from a vessel due to medical reasons?
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                This includes illness, injury, or any medical condition that required you to leave the vessel before the end of your contract
-              </p>
-            </label>
-          </div>
+        <div className="applicant-section-card applicant-section-card--muted">
+          <FormCheckbox
+            label="Have you ever been signed off from a vessel due to medical reasons?"
+            name="signedOffMedical"
+            checked={formData.signedOffMedical}
+            onChange={handleChange}
+            helpText="This includes illness, injury, or any medical condition that required you to leave the vessel before the end of your contract."
+          />
         </div>
 
         {/* Conditional Fields */}
         {formData.signedOffMedical && (
           <div className="space-y-5 pl-4 border-l-4 border-blue-500">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="applicant-section-card applicant-section-card--muted">
               <p className="text-sm text-blue-800">
                 Please provide details about the incident below. This information is treated confidentially and is used only for safety and assessment purposes.
               </p>
@@ -185,42 +177,24 @@ export default function Section11({ data = {}, onUpdate }) {
               error={touched.dateOfOccurrence ? errors.dateOfOccurrence : ''}
             />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description of Medical Condition
-                <span className="text-red-500 ml-1">*</span>
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                onBlur={() => handleBlur('description')}
-                rows={5}
-                className={`w-full px-4 py-3 border rounded-lg transition-colors focus:outline-none focus:ring-2 ${
-                  touched.description && errors.description
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                }`}
-                placeholder="Please provide details about the medical condition, treatment received, and current health status..."
-                required={formData.signedOffMedical}
-              />
-              {!touched.description || !errors.description ? (
-                <p className="mt-1 text-sm text-gray-500">
-                  Include the nature of the condition, any treatment you received, and your current health status
-                </p>
-              ) : (
-                <p className="mt-1 text-sm text-red-600 flex items-start gap-1">
-                  <span className="text-red-500">⚠</span>
-                  <span>{errors.description}</span>
-                </p>
-              )}
-            </div>
+            <FormTextArea
+              label="Description of Medical Condition"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              onBlur={() => handleBlur('description')}
+              rows={5}
+              required={formData.signedOffMedical}
+              placeholder="Please provide details about the medical condition, treatment received, and current health status..."
+              helpText="Include the nature of the condition, any treatment you received, and your current health status."
+              error={touched.description ? errors.description : ''}
+            />
           </div>
         )}
 
         {/* No Medical History Message */}
         {!formData.signedOffMedical && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="applicant-section-card applicant-section-card--muted">
             <div className="flex gap-3">
               <div className="flex-shrink-0">
                 <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -228,9 +202,7 @@ export default function Section11({ data = {}, onUpdate }) {
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-green-900 mb-1">
-                  ✓ No Medical History Reported
-                </h3>
+                <h3 className="text-sm font-semibold text-green-900 mb-1">No Medical History Reported</h3>
                 <p className="text-sm text-green-800">
                   You have indicated that you have not been signed off from a vessel due to medical reasons.
                 </p>
@@ -241,7 +213,7 @@ export default function Section11({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -249,9 +221,7 @@ export default function Section11({ data = {}, onUpdate }) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-amber-900 mb-1">
-              🏥 Confidentiality Notice
-            </h3>
+            <h3 className="text-sm font-semibold text-amber-900 mb-1">Confidentiality Notice</h3>
             <p className="text-sm text-amber-800">
               All medical information is kept strictly confidential and is used solely for the purpose of ensuring the safety and well-being of seafarers. This information helps us provide appropriate support and assess fitness for duty.
             </p>

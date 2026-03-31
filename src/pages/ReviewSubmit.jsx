@@ -5,37 +5,26 @@ import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import Navbar from '../components/layout/Navbar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
-import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronDown, ChevronUp, Eye } from 'lucide-react'
+import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronUp, Eye, X, ArrowLeft } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
 import { generateReferenceNumber } from '../utils/referenceGenerator' // ← ADD THIS LINE
+import PageHeader from '../components/ui/PageHeader'
+import { clearActiveDraftId, getActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
+import { FORM_SECTION_NAME_MAP, FORM_SECTION_NUMBERS, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
 
 const SECTION_NAMES = {
+  ...FORM_SECTION_NAME_MAP,
   1: 'Availability & Application Details',
-  2: 'Personal & Contact Details',
-  3: 'Passport Details',
-  4: 'CDC / National Seaman\'s Book',
-  5: 'Visas',
-  6: 'Education Background',
-  7: 'Dependents',
+  4: "CDC / National Seaman's Book",
   8: 'National Certificates of Competency',
-  9: 'GMDSS Certificates',
   10: 'Medical Fitness & Vaccination',
-  11: 'Medical History',
-  12: 'Foreign Languages',
-  13: 'Physical & Uniform Details',
   14: 'STCW Courses & Competencies',
   15: 'Flag State Endorsements',
   16: 'Sea Service / Employment History',
   17: 'Technical Experience & Skills',
   18: 'Professional References',
-  19: 'Emergency Contact Information',
-  20: 'Additional Information & Declarations',
+  19: 'Additional Information & Declarations',
 }
-
-// Define which sections are mandatory
-const MANDATORY_SECTIONS = [
-  1, 2, 3, 4, 6, 8, 10, 11, 13, 14, 16, 18, 19, 20
-]
 
 export default function ReviewSubmit() {
   const navigate = useNavigate()
@@ -60,21 +49,47 @@ export default function ReviewSubmit() {
     try {
       setLoading(true)
 
-      const { data: app, error: appError } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'draft')
-        .maybeSingle()
+      const persistedDraftId = getActiveDraftId()
+      let app = null
 
-      if (appError) throw appError
+      if (persistedDraftId) {
+        const { data: persistedApp, error: persistedError } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('id', persistedDraftId)
+          .eq('user_id', user.id)
+          .eq('status', 'new')
+          .is('submitted_at', null)
+          .maybeSingle()
+
+        if (persistedError && persistedError.code !== 'PGRST116') throw persistedError
+        app = persistedApp
+      }
 
       if (!app) {
+        const { data: latestApp, error: appError } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'new')
+          .is('submitted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (appError) throw appError
+        app = latestApp
+      }
+
+      if (!app) {
+        clearActiveDraftId()
         navigate('/dashboard')
         return
       }
 
       setApplicationId(app.id)
+      setActiveDraftId(app.id)
+      markActiveDraftExplicit(false)
 
       const { data: appData, error: dataError } = await supabase
         .from('application_data')
@@ -97,12 +112,12 @@ export default function ReviewSubmit() {
   const calculateCompletionStatus = (data) => {
     const status = {}
     
-    for (let i = 1; i <= 20; i++) {
-      const sectionKey = `section${i}`
+    for (const sectionNumber of FORM_SECTION_NUMBERS) {
+      const sectionKey = `section${sectionNumber}`
       const sectionData = data[sectionKey]
       
       if (!sectionData || Object.keys(sectionData).length === 0) {
-        status[i] = 'empty'
+        status[sectionNumber] = 'empty'
       } else {
         const hasData = Object.values(sectionData).some(value => {
           if (Array.isArray(value)) return value.length > 0
@@ -110,7 +125,7 @@ export default function ReviewSubmit() {
           if (typeof value === 'boolean') return true
           return value !== '' && value !== null && value !== undefined
         })
-        status[i] = hasData ? 'complete' : 'empty'
+        status[sectionNumber] = hasData ? 'complete' : 'empty'
       }
     }
     
@@ -118,21 +133,38 @@ export default function ReviewSubmit() {
     return status
   }
 
+  const findAvailableReferenceNumber = async () => {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const candidate = generateReferenceNumber()
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('reference_number', candidate)
+        .neq('id', applicationId)
+        .maybeSingle()
+
+      if (error && error.code !== 'PGRST116') throw error
+      if (!data) return candidate
+    }
+
+    throw new Error('Failed to generate a unique reference number after multiple attempts')
+  }
+
   const validateApplication = () => {
     const incomplete = []
 
-    MANDATORY_SECTIONS.forEach(section => {
+    MANDATORY_SECTION_NUMBERS.forEach(section => {
       if (completionStatus[section] !== 'complete') {
         incomplete.push(section)
       }
     })
 
-    const section20 = applicationData.section20 || {}
-    if (!section20.accuracyDeclaration || !section20.backgroundCheckConsent || !section20.dataProcessingConsent) {
-      if (!incomplete.includes(20)) incomplete.push(20)
+    const section19 = applicationData.section19 || {}
+    if (!section19.accuracyDeclaration || !section19.backgroundCheckConsent || !section19.dataProcessingConsent) {
+      if (!incomplete.includes(19)) incomplete.push(19)
     }
-    if (!section20.fullName || !section20.signatureDate || !section20.placeOfSigning) {
-      if (!incomplete.includes(20)) incomplete.push(20)
+    if (!section19.fullName || !section19.signatureDate || !section19.placeOfSigning) {
+      if (!incomplete.includes(19)) incomplete.push(19)
     }
 
     return incomplete
@@ -153,26 +185,28 @@ const handleConfirmSubmit = async () => {
   try {
     setSubmitting(true)
 
-    // Generate reference number
-    const referenceNumber = generateReferenceNumber()
-    console.log('Generated reference number:', referenceNumber)
-
     // Get position for success page
     const position = applicationData?.section1?.appliedForRank || 'Maritime Position'
     console.log('Position:', position)
 
-    // Ensure public_token exists (generate if null)
+    // Reuse existing identifiers when present to avoid uniqueness conflicts on resubmission.
     const { data: currentApp, error: fetchError } = await supabase
       .from('applications')
-      .select('public_token')
+      .select('public_token, reference_number')
       .eq('id', applicationId)
       .single()
 
     if (fetchError) throw fetchError
 
+    let referenceNumber = currentApp?.reference_number
+    if (!referenceNumber) {
+      referenceNumber = await findAvailableReferenceNumber()
+      console.log('Generated unique reference number:', referenceNumber)
+    } else {
+      console.log('Using existing reference number:', referenceNumber)
+    }
+
     let publicToken = currentApp?.public_token
-    
-    // Generate public_token if it doesn't exist
     if (!publicToken) {
       publicToken = crypto.randomUUID()
       console.log('Generated new public_token:', publicToken)
@@ -180,18 +214,47 @@ const handleConfirmSubmit = async () => {
       console.log('Using existing public_token:', publicToken)
     }
 
-   // Update application with ALL required fields
-const { error: updateError } = await supabase
-  .from('applications')
-  .update({
-    status: 'submitted',
-    submitted_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    reference_number: referenceNumber,
-    public_token: publicToken,
-    applied_rank: position  // ← ADD THIS LINE
-  })
-  .eq('id', applicationId)
+    const updatePayload = {
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      reference_number: referenceNumber,
+      public_token: publicToken,
+      applied_rank: position,
+    }
+
+    let { error: updateError } = await supabase
+      .from('applications')
+      .update(updatePayload)
+      .eq('id', applicationId)
+
+    if (updateError?.code === '23505' || updateError?.status === 409) {
+      referenceNumber = await findAvailableReferenceNumber()
+      console.warn('Reference number collision detected, retrying with:', referenceNumber)
+
+      ;({ error: updateError } = await supabase
+        .from('applications')
+        .update({
+          ...updatePayload,
+          reference_number: referenceNumber,
+        })
+        .eq('id', applicationId))
+    }
+
+    if (updateError?.message?.includes('unique_user_position')) {
+      console.warn('Applied rank conflicts with an existing application, retrying submit without applications.applied_rank')
+
+      ;({ error: updateError } = await supabase
+        .from('applications')
+        .update({
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          reference_number: referenceNumber,
+          public_token: publicToken,
+        })
+        .eq('id', applicationId))
+    }
 
     if (updateError) {
       console.error('Error updating application:', updateError)
@@ -237,6 +300,8 @@ const { error: updateError } = await supabase
     }
 
     // Navigate to success page with reference number
+    markActiveDraftExplicit(false)
+    clearActiveDraftId()
     navigate('/application/success', {
       state: {
         referenceNumber,
@@ -296,7 +361,7 @@ const { error: updateError } = await supabase
       case 2:
         return (
           <div className="space-y-1">
-            {renderField('Full Name', `${sectionData.firstName || ''} ${sectionData.middleName || ''} ${sectionData.lastName || ''}`)}
+            {renderField('Full Name', `${sectionData.firstName || ''} ${sectionData.middleName || ''} ${sectionData.surname || ''}`.trim())}
             {renderField('Date of Birth', sectionData.dateOfBirth)}
             {renderField('Email', sectionData.email)}
             {renderField('Phone', sectionData.phoneNumber)}
@@ -333,6 +398,42 @@ const { error: updateError } = await supabase
           </div>
         )
 
+      case 6:
+        if (!sectionData.education || sectionData.education.length === 0) {
+          return <p className="text-gray-500 italic">No education added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.education.map((entry, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">Education {idx + 1}</p>
+                {renderField('Institution', entry.institution)}
+                {renderField('Qualification', entry.qualification)}
+                {renderField('From', entry.from)}
+                {renderField('To', entry.to)}
+              </div>
+            ))}
+          </div>
+        )
+
+      case 7:
+        if (!sectionData.dependents || sectionData.dependents.length === 0) {
+          return <p className="text-gray-500 italic">No dependents added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.dependents.map((dependent, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{dependent.name || `Dependent ${idx + 1}`}</p>
+                {renderField('Relationship', dependent.relationship)}
+                {renderField('Gender', dependent.gender)}
+                {renderField('Date of Birth', dependent.dateOfBirth)}
+                {renderField('Age', dependent.age)}
+              </div>
+            ))}
+          </div>
+        )
+
       case 8:
         if (!sectionData.certificates || sectionData.certificates.length === 0) {
           return <p className="text-gray-500 italic">No certificates added</p>
@@ -351,6 +452,134 @@ const { error: updateError } = await supabase
           </div>
         )
 
+      case 9:
+        if (!sectionData.gmdss || sectionData.gmdss.length === 0) {
+          return <p className="text-gray-500 italic">No GMDSS certificates added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.gmdss.map((entry, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">GMDSS Certificate {idx + 1}</p>
+                {renderField('Issuing Authority', entry.issuingAuthority)}
+                {renderField('Number', entry.number)}
+                {renderField('Place of Issue', entry.placeOfIssue)}
+                {renderField('Date of Issue', entry.dateOfIssue)}
+                {renderField('Date of Expiry', entry.dateOfExpiry)}
+              </div>
+            ))}
+          </div>
+        )
+
+      case 10:
+        return (
+          <div className="space-y-3">
+            {sectionData.medicalFitness?.length ? (
+              sectionData.medicalFitness.map((entry, idx) => (
+                <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                  <p className="font-semibold text-gray-900 mb-2">Medical Certificate {idx + 1}</p>
+                  {renderField('Type', entry.type)}
+                  {renderField('Date of Issue', entry.dateOfIssue)}
+                  {renderField('Date of Expiry', entry.dateOfExpiry)}
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">No medical certificates added</p>
+            )}
+            {sectionData.vaccinations && (
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">Vaccinations</p>
+                {renderField('Yellow Fever Received', sectionData.vaccinations.yellowFever?.received)}
+                {renderField('Yellow Fever Date of Issue', sectionData.vaccinations.yellowFever?.dateOfIssue)}
+                {renderField('Yellow Fever Date of Expiry', sectionData.vaccinations.yellowFever?.dateOfExpiry)}
+                {renderField('Yellow Fever Lifetime Validity', sectionData.vaccinations.yellowFever?.lifetimeValidity)}
+                {renderField('COVID Vaccinated', sectionData.vaccinations.covidVaccinated)}
+                {renderField('COVID Doses', sectionData.vaccinations.covidDoses)}
+                {renderField('COVID Last Dose Date', sectionData.vaccinations.covidLastDoseDate)}
+                {renderField('Hepatitis A', sectionData.vaccinations.hepatitisA)}
+                {renderField('Hepatitis A Date', sectionData.vaccinations.hepatitisADate)}
+                {renderField('Hepatitis B', sectionData.vaccinations.hepatitisB)}
+                {renderField('Hepatitis B Date', sectionData.vaccinations.hepatitisBDate)}
+                {renderField('Typhoid', sectionData.vaccinations.typhoid)}
+                {renderField('Typhoid Date', sectionData.vaccinations.typhoidDate)}
+                {renderField('Tetanus', sectionData.vaccinations.tetanus)}
+                {renderField('Tetanus Date', sectionData.vaccinations.tetanusDate)}
+                {renderField('Measles', sectionData.vaccinations.measles)}
+                {renderField('Measles Date', sectionData.vaccinations.measlesDate)}
+                {renderField('Polio', sectionData.vaccinations.polio)}
+                {renderField('Polio Date', sectionData.vaccinations.polioDate)}
+                {renderField('Other Vaccinations', sectionData.vaccinations.otherVaccinations)}
+              </div>
+            )}
+          </div>
+        )
+
+      case 11:
+        return (
+          <div className="space-y-1">
+            {renderField('Signed Off Medical', sectionData.medicalHistory?.signedOffMedical)}
+            {renderField('Vessel Name', sectionData.medicalHistory?.vesselName)}
+            {renderField('Date of Occurrence', sectionData.medicalHistory?.dateOfOccurrence)}
+            {renderField('Description', sectionData.medicalHistory?.description)}
+          </div>
+        )
+
+      case 12:
+        if (!sectionData.languages || sectionData.languages.length === 0) {
+          return <p className="text-gray-500 italic">No languages added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.languages.map((entry, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">Language {idx + 1}</p>
+                {renderField('Language', entry.language)}
+                {renderField('Level', entry.level)}
+              </div>
+            ))}
+          </div>
+        )
+
+      case 14:
+        if (!sectionData.courses || sectionData.courses.length === 0) {
+          return <p className="text-gray-500 italic">No STCW courses added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.courses.map((course, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{course.courseName || `Course ${idx + 1}`}</p>
+                {renderField('IMO Model Course', course.imoModelCourse)}
+                {renderField('Reference - Regulation', course.referenceRegulation)}
+                {renderField('Certificate Number', course.certificateNumber)}
+                {renderField('Date of Issue', course.dateOfIssue)}
+                {renderField('Date of Expiry', course.dateOfExpiry)}
+              </div>
+            ))}
+          </div>
+        )
+
+      case 15:
+        if (!sectionData.endorsements || sectionData.endorsements.length === 0) {
+          return <p className="text-gray-500 italic">No endorsements added</p>
+        }
+        return (
+          <div className="space-y-3">
+            {sectionData.endorsements.map((entry, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">Endorsement {idx + 1}</p>
+                {renderField('Flag State', entry.flagState)}
+                {renderField('Endorsement Type', entry.endorsementType)}
+                {renderField('Rank Endorsed', entry.rankEndorsed)}
+                {renderField('Endorsement Number', entry.endorsementNumber)}
+                {renderField('Place of Issue', entry.placeOfIssue)}
+                {renderField('Date of Issue', entry.dateOfIssue)}
+                {renderField('Date of Expiry', entry.dateOfExpiry)}
+              </div>
+            ))}
+          </div>
+        )
+
       case 16:
         if (!sectionData.seaService || sectionData.seaService.length === 0) {
           return <p className="text-gray-500 italic">No sea service added</p>
@@ -361,8 +590,16 @@ const { error: updateError } = await supabase
               <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
                 <p className="font-semibold text-gray-900 mb-2">{service.vesselName || `Vessel ${idx + 1}`}</p>
                 {renderField('Rank', formatDisplayValue(service.rankHeld))}
-                {renderField('Company', service.companyName)}
+                {renderField('Position', service.position)}
+                {renderField('Company', service.company || service.companyName)}
+                {renderField('Manning', service.manning)}
+                {renderField('Trading Area', service.tradingArea || service.tradeRoute)}
                 {renderField('Vessel Type', formatDisplayValue(service.vesselType))}
+                {renderField('TEU', service.teu)}
+                {renderField('Year Built', service.yearBuilt)}
+                {renderField('Engine Family', service.engineFamily)}
+                {renderField('Main Engine Make', service.mainEngineMake)}
+                {renderField('Total mm/dd', service.totalMmDd)}
                 {renderField('Sign On', service.signOnDate)}
                 {renderField('Sign Off', service.signOffDate)}
               </div>
@@ -370,7 +607,136 @@ const { error: updateError } = await supabase
           </div>
         )
 
-      case 20:
+      case 17: {
+        const buildSkillList = (items) => items
+          .filter((item) => Boolean(item.enabled || item.value))
+          .map((item) => {
+            if (item.value) {
+              return `${item.label}: ${item.value}`
+            }
+            return item.label
+          })
+
+        const navigationSkills = buildSkillList([
+          { label: 'ECDIS', enabled: sectionData.ecdis, value: sectionData.ecdisTypes },
+          { label: 'Radar Navigation', enabled: sectionData.radar, value: sectionData.radarTypes },
+          { label: 'ARPA', enabled: sectionData.arpa },
+          { label: 'GPS / GNSS', enabled: sectionData.gps },
+          { label: 'Gyro Compass', enabled: sectionData.gyroCompass },
+          { label: 'Autopilot Systems', enabled: sectionData.autopilot },
+          { label: 'VHF / GMDSS Equipment', enabled: sectionData.vhf },
+        ])
+
+        const cargoSkills = buildSkillList([
+          { label: 'Cargo Computer Systems', enabled: sectionData.cargoComputers, value: sectionData.cargoComputerTypes },
+          { label: 'Loadmaster / Loading Instruments', enabled: sectionData.loadmaster, value: sectionData.loadmasterTypes },
+          { label: 'Inert Gas System', enabled: sectionData.inertGasSystem },
+          { label: 'Cargo Pump Operations', enabled: sectionData.cargoPumps },
+          { label: 'Ballast System Operations', enabled: sectionData.ballastSystem },
+        ])
+
+        const engineSkills = buildSkillList([
+          { label: 'Main Engine Experience', value: sectionData.mainEngineExperience },
+          { label: 'Auxiliary Engine Experience', value: sectionData.auxiliaryEngineExperience },
+          { label: 'Boiler Operations & Maintenance', enabled: sectionData.boilerExperience },
+          { label: 'Purifiers', enabled: sectionData.purifierExperience },
+          { label: 'Air Compressors', enabled: sectionData.compressorExperience },
+          { label: 'Refrigeration Systems', enabled: sectionData.refrigerationExperience },
+          { label: 'Pneumatic Control Systems', enabled: sectionData.pneumaticControls },
+          { label: 'Hydraulic Systems', enabled: sectionData.hydraulicSystems },
+        ])
+
+        const electricalSkills = buildSkillList([
+          { label: 'Electrical Systems Experience', enabled: sectionData.electricalExperience, value: sectionData.electricalVoltage },
+          { label: 'Generator Operations & Maintenance', enabled: sectionData.generatorExperience },
+          { label: 'High Voltage Systems', enabled: sectionData.highVoltageExperience },
+          { label: 'PLC Experience', enabled: sectionData.plcExperience },
+        ])
+
+        const softwareSkills = buildSkillList([
+          { label: 'Microsoft Office', enabled: sectionData.msOffice, value: sectionData.msOfficeLevel },
+          { label: 'Maintenance Software', enabled: sectionData.maintenanceSoftware, value: sectionData.maintenanceSoftwareTypes },
+          { label: 'Weather Routing Software', enabled: sectionData.weatherSoftware, value: sectionData.weatherSoftwareTypes },
+        ])
+
+        const specialSkills = buildSkillList([
+          { label: 'Welding', enabled: sectionData.welding, value: sectionData.weldingTypes },
+          { label: 'Rigging & Lifting Operations', enabled: sectionData.rigging },
+          { label: 'Crane Operation', enabled: sectionData.craneOperation, value: sectionData.craneTypes },
+          { label: 'ROV', enabled: sectionData.rov },
+          { label: 'Dynamic Positioning', enabled: sectionData.dynamicPositioning, value: sectionData.dpLevel },
+        ])
+
+        const skillGroups = [
+          { title: 'Navigation Equipment', items: navigationSkills },
+          { title: 'Cargo Operations', items: cargoSkills },
+          { title: 'Engine Room Equipment', items: engineSkills },
+          { title: 'Electrical Systems', items: electricalSkills },
+          { title: 'Software & Computer Skills', items: softwareSkills },
+          { title: 'Special Skills & Qualifications', items: specialSkills },
+        ].filter((group) => group.items.length > 0)
+
+        if (skillGroups.length === 0 && !sectionData.additionalSkills) {
+          return <p className="text-gray-500 italic">No technical skills added</p>
+        }
+
+        return (
+          <div className="space-y-3">
+            {skillGroups.map((group) => (
+              <div key={group.title} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{group.title}</p>
+                <ul className="space-y-1 text-gray-900">
+                  {group.items.map((item) => (
+                    <li key={item} className="border-b border-gray-100 py-2 last:border-b-0">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {sectionData.additionalSkills && (
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">Additional Skills & Experience</p>
+                <p className="text-gray-900 whitespace-pre-wrap">{sectionData.additionalSkills}</p>
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      case 18:
+        return (
+          <div className="space-y-3">
+            <div className="bg-gray-50 p-3 rounded border border-gray-200">
+              {renderField(
+                'Objection To Contact Last Employer',
+                sectionData.objectionToContactLastEmployer
+                  ? sectionData.objectionToContactLastEmployer.toUpperCase()
+                  : ''
+              )}
+              {renderField('Current Employer Company', sectionData.currentEmployer?.company)}
+              {renderField('Current Employer Contact Person', sectionData.currentEmployer?.contactPerson)}
+              {renderField('Current Employer Address', sectionData.currentEmployer?.address)}
+              {renderField('Current Employer Phone Number', sectionData.currentEmployer?.phoneNumber)}
+            </div>
+            {(!sectionData.references || sectionData.references.length === 0) && (
+              <p className="text-gray-500 italic">No references added</p>
+            )}
+            {(sectionData.references || []).map((entry, idx) => (
+              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="font-semibold text-gray-900 mb-2">{entry.name || `Reference ${idx + 1}`}</p>
+                {renderField('Position', entry.position)}
+                {renderField('Company', entry.company)}
+                {renderField('Address', entry.address)}
+                {renderField('Relationship', entry.relationship)}
+                {renderField('Phone Number', entry.phoneNumber)}
+                {renderField('Email', entry.email)}
+                {renderField('Years Known', entry.yearsKnown)}
+                {renderField('Additional Notes', entry.additionalNotes)}
+              </div>
+            ))}
+          </div>
+        )
+
+      case 19:
         return (
           <div className="space-y-1">
             {renderField('Accuracy Declaration', sectionData.accuracyDeclaration)}
@@ -447,8 +813,6 @@ const { error: updateError } = await supabase
       case 18:
         return sectionData.references?.length ? `${sectionData.references.length} reference(s)` : 'No references'
       case 19:
-        return sectionData.contacts?.length ? `${sectionData.contacts.length} emergency contact(s)` : 'No contacts'
-      case 20:
         return sectionData.accuracyDeclaration ? 'Declarations complete' : 'Declarations incomplete'
       default:
         return 'Data provided'
@@ -456,7 +820,7 @@ const { error: updateError } = await supabase
   }
 
   const completedSections = Object.values(completionStatus).filter(s => s === 'complete').length
-  const totalSections = 20
+  const totalSections = FORM_SECTION_NUMBERS.length
   const completionPercentage = Math.round((completedSections / totalSections) * 100)
   const canSubmit = validateApplication().length === 0
 
@@ -472,30 +836,31 @@ const { error: updateError } = await supabase
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="applicant-shell">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </button>
+        <div className="applicant-hero mb-8">
+          <div className="mb-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </button>
+          </div>
 
-          <h1 className="text-3xl font-bold text-gray-900">Review & Submit Application</h1>
-          <p className="text-gray-600 mt-2">
-            Review all sections and submit your application
-          </p>
+          <PageHeader
+            eyebrow="Final Review"
+            title="Review your application before submission"
+            description="Check every required section, confirm the declarations, and submit only when the application is complete and accurate."
+          />
         </div>
 
         {/* Progress Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="applicant-panel p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Application Progress</h2>
             <span className="text-2xl font-bold text-blue-600">{completionPercentage}%</span>
@@ -512,7 +877,7 @@ const { error: updateError } = await supabase
         </div>
 
         {/* Section List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="applicant-panel mb-6">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">Application Sections</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -524,13 +889,13 @@ const { error: updateError } = await supabase
             {Object.keys(SECTION_NAMES).map((sectionNum) => {
               const num = parseInt(sectionNum)
               const isComplete = completionStatus[num] === 'complete'
-              const isMandatory = MANDATORY_SECTIONS.includes(num)
+              const isMandatory = MANDATORY_SECTION_NUMBERS.includes(num)
               const isExpanded = expandedSections[num]
               
               return (
                 <div key={num} className="transition-colors">
-                  <div className="p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
+                  <div className="p-4">
+                    <div className={`applicant-review-row ${!isComplete && isMandatory ? 'is-incomplete' : ''}`}>
                       <div className="flex items-center gap-3 flex-1">
                         {isComplete ? (
                           <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
@@ -571,7 +936,7 @@ const { error: updateError } = await supabase
                           )}
                         </button>
                         <button
-                          onClick={() => navigate(`/application/form/section/${num}`)}
+                          onClick={() => navigate(`/application/form/section/${num}?return=review`)}
                           className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                         >
                           <Edit className="w-4 h-4" />
@@ -584,7 +949,7 @@ const { error: updateError } = await supabase
                   {/* Expanded Section Details */}
                   {isExpanded && (
                     <div className="px-4 pb-4 bg-gray-50">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="rounded-2xl border border-gray-200 bg-white p-4">
                         {renderSectionDetails(num)}
                       </div>
                     </div>
@@ -596,7 +961,7 @@ const { error: updateError } = await supabase
         </div>
 
         {/* Submit Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="applicant-panel p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Ready to Submit?</h2>
           
           {canSubmit ? (
@@ -633,7 +998,7 @@ const { error: updateError } = await supabase
             <button
               onClick={handleSubmitClick}
               disabled={submitting || !canSubmit}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg transition-colors font-semibold text-lg ${
+              className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl transition-colors font-semibold text-lg ${
                 canSubmit
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -694,7 +1059,7 @@ const { error: updateError } = await supabase
                       key={sectionNum}
                       onClick={() => {
                         setShowIncompleteModal(false)
-                        navigate(`/application/form/section/${sectionNum}`)
+                        navigate(`/application/form/section/${sectionNum}?return=review`)
                       }}
                       className="w-full flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                     >

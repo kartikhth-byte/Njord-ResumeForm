@@ -3,6 +3,25 @@
 
 import { supabase } from '../lib/supabase'
 
+const AI_SEARCH_ACTIVE_STATUSES = [
+  'submitted',
+  'new',
+  'under_review',
+  'test_scheduled',
+  'test_completed',
+  'test_passed',
+  'test_failed',
+  'interview_scheduled',
+  'interview_completed',
+  'interview_passed',
+  'second_interview_scheduled',
+  'second_interview_completed',
+  'offered',
+  'offer_accepted',
+  'documents_pending'
+]
+const MAX_EMBEDDING_TEXT_LENGTH = 10000
+
 /**
  * Helper to normalize RPC response (maps text_content to chunk_text)
  */
@@ -24,6 +43,7 @@ function getApplicationSearchProfile(applicationData = {}) {
   const section14 = applicationData.section14 || {}
   const section15 = applicationData.section15 || {}
   const section16 = applicationData.section16 || {}
+  const section18 = applicationData.section18 || {}
 
   return {
     desiredRank: section1.appliedForRank || '',
@@ -31,10 +51,88 @@ function getApplicationSearchProfile(applicationData = {}) {
     availableFrom: section1.availableFrom || '',
     certificates: Array.isArray(section8.certificates) ? section8.certificates : [],
     medicalFitness: Array.isArray(section10.medicalFitness) ? section10.medicalFitness : [],
-    stcwCertificates: Array.isArray(section14.certificates) ? section14.certificates : [],
+    stcwCertificates: Array.isArray(section14.courses) ? section14.courses : [],
     endorsements: Array.isArray(section15.endorsements) ? section15.endorsements : [],
     seaService: Array.isArray(section16.seaService) ? section16.seaService : [],
+    references: Array.isArray(section18.references) ? section18.references : [],
+    section18,
     section2
+  }
+}
+
+function getEmbeddingSourceText(applicationData = {}) {
+  return extractTextForEmbedding(applicationData).substring(0, 1000)
+}
+
+async function fetchActiveSearchApplications() {
+  const { data, error } = await supabase
+    .from('applications')
+    .select(`
+      id,
+      status,
+      reference_number,
+      updated_at,
+      application_data (
+        data
+      )
+    `)
+    .not('reference_number', 'is', null)
+    .in('status', AI_SEARCH_ACTIVE_STATUSES)
+
+  if (error) throw error
+  return data || []
+}
+
+async function fetchEmbeddingRows(applicationIds) {
+  if (!applicationIds.length) return []
+
+  const { data, error } = await supabase
+    .from('application_embeddings')
+    .select('id, application_id, text_content')
+    .in('application_id', applicationIds)
+
+  if (error) throw error
+  return data || []
+}
+
+function buildEmbeddingStatus(applications, embeddings) {
+  const embeddingByApplicationId = new Map(
+    embeddings.map((row) => [row.application_id, row])
+  )
+
+  const missing = []
+  const stale = []
+
+  applications.forEach((application) => {
+    const expectedText = getEmbeddingSourceText(application.application_data?.data || {})
+    const existingEmbedding = embeddingByApplicationId.get(application.id)
+
+    if (!existingEmbedding) {
+      missing.push(application.id)
+      return
+    }
+
+    if ((existingEmbedding.text_content || '') !== expectedText) {
+      stale.push(application.id)
+    }
+  })
+
+  return {
+    totalApplications: applications.length,
+    missing,
+    stale,
+    ready: missing.length === 0 && stale.length === 0,
+  }
+}
+
+export async function getEmbeddingReadiness() {
+  const applications = await fetchActiveSearchApplications()
+  const embeddings = await fetchEmbeddingRows(applications.map((app) => app.id))
+  const status = buildEmbeddingStatus(applications, embeddings)
+
+  return {
+    ...status,
+    needsGeneration: !status.ready,
   }
 }
 
@@ -44,6 +142,7 @@ function getApplicationSearchProfile(applicationData = {}) {
  */
 export async function generateEmbedding(text) {
   try {
+    const safeText = (text || '').substring(0, MAX_EMBEDDING_TEXT_LENGTH)
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-embedding-proxy`,
       {
@@ -52,12 +151,23 @@ export async function generateEmbedding(text) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text: safeText })
       }
     )
 
     if (!response.ok) {
-      throw new Error(`Embedding generation failed: ${response.statusText}`)
+      let detail = response.statusText
+      try {
+        const errorBody = await response.json()
+        detail = errorBody?.error || errorBody?.message || detail
+      } catch {
+        try {
+          detail = await response.text()
+        } catch {
+          // Ignore parsing failures and keep statusText fallback.
+        }
+      }
+      throw new Error(`Embedding generation failed: ${detail || `HTTP ${response.status}`}`)
     }
 
     const data = await response.json()
@@ -111,6 +221,7 @@ ${profile.seaService.map((service, i) => `
      Rank: ${service.rankHeld || 'Not specified'}
      Period: ${service.signOnDate || '?'} to ${service.signOffDate || '?'}
      Flag: ${service.flag || 'Not specified'}
+     Engine Family: ${service.engineFamily || 'Not specified'}
 `).join('\n') || 'No sea service data'}
 
 STCW Certificates:
@@ -322,6 +433,11 @@ export async function searchBySemanticSimilarity(query, threshold = 0.3, limit =
   try {
     console.log('[SEARCH] Query:', query)
     console.log('[SEARCH] LLM reasoning:', enableLLM ? 'ENABLED' : 'DISABLED')
+
+    const readiness = await getEmbeddingReadiness()
+    if (!readiness.ready) {
+      throw new Error('Embeddings must be generated before AI Search can run.')
+    }
     
     // Parse query for compound logic
     const { isCompound, operator, subQueries } = parseCompoundQuery(query)
@@ -394,6 +510,7 @@ export async function searchBySemanticSimilarity(query, threshold = 0.3, limit =
         )
       `)
       .in('id', applicationIds)
+      .in('status', AI_SEARCH_ACTIVE_STATUSES)
 
     if (appError) throw appError
     
@@ -472,45 +589,36 @@ export async function searchBySemanticSimilarity(query, threshold = 0.3, limit =
 export async function generateMissingEmbeddings(progressCallback) {
   try {
     console.log('[EMBEDDING] Starting generation process...')
-    
-    // Get all applications without embeddings
-    const { data: applications, error } = await supabase
-      .from('applications')
-      .select(`
-        id,
-        reference_number,
-        application_data (
-          data
-        )
-      `)
-        // Generate embeddings for all applications regardless of status
-  .not('reference_number', 'is', null)  // Only applications with reference numbers
 
-    if (error) throw error
+    const applications = await fetchActiveSearchApplications()
+    const embeddings = await fetchEmbeddingRows(applications.map((app) => app.id))
+    const readiness = buildEmbeddingStatus(applications, embeddings)
+    const embeddingsByApplicationId = new Map(
+      embeddings.map((row) => [row.application_id, row])
+    )
+    const applicationIdsToProcess = new Set([...readiness.missing, ...readiness.stale])
+    const applicationsToProcess = applications.filter((app) => applicationIdsToProcess.has(app.id))
 
-    const total = applications.length
+    const total = applicationsToProcess.length
     let processed = 0
     let failed = 0
 
     console.log(`[EMBEDDING] Found ${total} applications to process`)
 
-    for (const app of applications) {
+    if (total === 0) {
+      return {
+        success: true,
+        message: 'Embeddings are already up to date for active applications.',
+        processed: 0,
+        failed: 0
+      }
+    }
+
+    for (const app of applicationsToProcess) {
       try {
-        // Check if embeddings already exist
-        const { data: existing } = await supabase
-          .from('application_embeddings')
-          .select('id')
-          .eq('application_id', app.id)
-          .limit(1)
-
-        if (existing && existing.length > 0) {
-          processed++
-          if (progressCallback) progressCallback(processed, total)
-          continue
-        }
-
         // Extract text and generate embeddings
         const text = extractTextForEmbedding(app.application_data?.data || {})
+        const truncatedText = text.substring(0, 1000)
         
         if (!text || text.length < 50) {
           console.warn(`[EMBEDDING] Skipping ${app.reference_number}: insufficient text`)
@@ -521,18 +629,31 @@ export async function generateMissingEmbeddings(progressCallback) {
         }
 
         const embedding = await generateEmbedding(text)
-        
-        // Store embedding
-const { error: insertError } = await supabase
-  .from('application_embeddings')
-  .insert({
-    application_id: app.id,
-    embedding,
-    text_content: text.substring(0, 1000),  // FIXED: Use correct column name
-  })
 
-        if (insertError) {
-          console.error(`[EMBEDDING] Failed to store ${app.reference_number}:`, insertError)
+        const existingEmbedding = embeddingsByApplicationId.get(app.id)
+        const writeQuery = existingEmbedding
+          ? supabase
+              .from('application_embeddings')
+              .update({
+                embedding,
+                text_content: truncatedText,
+              })
+              .eq('id', existingEmbedding.id)
+          : supabase
+              .from('application_embeddings')
+              .insert({
+                application_id: app.id,
+                embedding,
+                text_content: truncatedText,
+              })
+
+        const { error: writeError } = await writeQuery
+
+        if (writeError) {
+          console.error(
+            `[EMBEDDING] Failed to store ${app.reference_number}:`,
+            JSON.stringify(writeError, null, 2)
+          )
           failed++
         } else {
           console.log(`[EMBEDDING] ✓ ${app.reference_number}`)
@@ -606,13 +727,55 @@ function extractTextForEmbedding(applicationData) {
     `)
   })
 
+  profile.stcwCertificates.forEach(certificate => {
+    sections.push(`
+      STCW Course: ${certificate.courseName}
+      IMO Model Course: ${certificate.imoModelCourse}
+      Reference Regulation: ${certificate.referenceRegulation}
+      Certificate Number: ${certificate.certificateNumber}
+      Issue Date: ${certificate.dateOfIssue}
+      Expiry Date: ${certificate.dateOfExpiry}
+    `)
+  })
+
   profile.seaService.forEach(service => {
     sections.push(`
       Vessel: ${service.vesselName} (${service.vesselType})
       Rank: ${service.rankHeld}
+      Position: ${service.position}
       Period: ${service.signOnDate} to ${service.signOffDate}
-      Company: ${service.companyName}
+      Company: ${service.company || service.companyName}
+      Manning: ${service.manning}
+      Trading Area: ${service.tradingArea || service.tradeRoute}
+      TEU: ${service.teu}
+      Year Built: ${service.yearBuilt}
+      Engine Family: ${service.engineFamily}
+      Main Engine Make: ${service.mainEngineMake}
+      Total mm/dd: ${service.totalMmDd}
       Trade Route: ${service.tradeRoute}
+    `)
+  })
+
+  if (profile.section18) {
+    sections.push(`
+      Last Employer Contact Objection: ${profile.section18.objectionToContactLastEmployer || 'Not specified'}
+      Current Employer Company: ${profile.section18.currentEmployer?.company || 'Not specified'}
+      Current Employer Contact Person: ${profile.section18.currentEmployer?.contactPerson || 'Not specified'}
+      Current Employer Address: ${profile.section18.currentEmployer?.address || 'Not specified'}
+      Current Employer Phone: ${profile.section18.currentEmployer?.phoneNumber || 'Not specified'}
+    `)
+  }
+
+  profile.references.forEach(reference => {
+    sections.push(`
+      Professional Reference: ${reference.name}
+      Position: ${reference.position}
+      Company: ${reference.company}
+      Address: ${reference.address}
+      Relationship: ${reference.relationship}
+      Phone Number: ${reference.phoneNumber}
+      Email: ${reference.email}
+      Years Known: ${reference.yearsKnown}
     `)
   })
   

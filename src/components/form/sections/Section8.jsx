@@ -22,8 +22,10 @@ export default function Section8({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.certificates) {
-      setCertificates(data.certificates)
+    if (data && Array.isArray(data.certificates)) {
+      setCertificates(prevCertificates => (
+        data.certificates.length === 0 && prevCertificates.length > 0 ? prevCertificates : data.certificates
+      ))
     }
   }, [data])
 
@@ -129,9 +131,10 @@ export default function Section8({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 8: National Certificates of Competency</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Qualifications</p>
+        <h2 className="applicant-section-title">National certificates of competency</h2>
+        <p className="applicant-section-copy">
           List all your Certificates of Competency (CoC) including revalidation details
         </p>
       </div>
@@ -139,7 +142,7 @@ export default function Section8({ data = {}, onUpdate }) {
       {/* Certificates List */}
       <div className="space-y-6">
         {certificates.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -156,7 +159,7 @@ export default function Section8({ data = {}, onUpdate }) {
             <p className="text-gray-600 mb-4">No certificates added yet</p>
             <button
               onClick={handleAddCertificate}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Certificate
@@ -165,15 +168,18 @@ export default function Section8({ data = {}, onUpdate }) {
         ) : (
           <>
             {certificates.map((cert, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Certificate Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Certificate {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">Certificate {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Capture the issuing authority, validity period, and any revalidation details for this certificate.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveCertificate(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -254,7 +260,7 @@ export default function Section8({ data = {}, onUpdate }) {
                   </div>
 
                   {/* Revalidation Section */}
-                  <div className="border-t border-gray-300 pt-4 mt-4">
+                  <div className="applicant-record-card__divider">
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">Revalidation Details (if applicable)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormDatePicker
@@ -287,7 +293,7 @@ export default function Section8({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddCertificate}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Certificate</span>
@@ -297,7 +303,7 @@ export default function Section8({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">

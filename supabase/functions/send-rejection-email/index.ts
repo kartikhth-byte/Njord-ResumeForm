@@ -2,8 +2,7 @@
 // Sends rejection notification at any stage (test, interview, or direct rejection)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +24,10 @@ serve(async (req) => {
   }
 
   try {
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const resendApiKey = runtimeSettings.RESEND_API_KEY
+    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+
     const {
       applicantEmail,
       applicantName,
@@ -41,10 +44,10 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`
+        'Authorization': `Bearer ${resendApiKey}`
       },
       body: JSON.stringify({
-        from: 'NJORD Ships <onboarding@resend.dev>',
+        from: emailFrom,
         to: [applicantEmail],
         subject: `Application Update - ${referenceNumber}`,
         html: `

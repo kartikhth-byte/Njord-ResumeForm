@@ -53,8 +53,10 @@ export default function Section12({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.languages) {
-      setLanguages(data.languages)
+    if (data && Array.isArray(data.languages)) {
+      setLanguages(prevLanguages => (
+        data.languages.length === 0 && prevLanguages.length > 0 ? prevLanguages : data.languages
+      ))
     }
   }, [data])
 
@@ -115,9 +117,10 @@ export default function Section12({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 12: Foreign Languages</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Communication</p>
+        <h2 className="applicant-section-title">Foreign languages</h2>
+        <p className="applicant-section-copy">
           List all foreign languages you can speak and your proficiency level
         </p>
       </div>
@@ -125,7 +128,7 @@ export default function Section12({ data = {}, onUpdate }) {
       {/* Languages List */}
       <div className="space-y-6">
         {languages.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -143,7 +146,7 @@ export default function Section12({ data = {}, onUpdate }) {
             <p className="text-sm text-gray-500 mb-4">English is assumed as the primary working language</p>
             <button
               onClick={handleAddLanguage}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Language
@@ -152,15 +155,18 @@ export default function Section12({ data = {}, onUpdate }) {
         ) : (
           <>
             {languages.map((lang, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Language Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Language {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">Language {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Add spoken languages that could be relevant onboard or in international crew environments.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveLanguage(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -197,7 +203,7 @@ export default function Section12({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddLanguage}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Language</span>
@@ -207,7 +213,7 @@ export default function Section12({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -215,9 +221,7 @@ export default function Section12({ data = {}, onUpdate }) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              🌐 Tip
-            </h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">Tip</h3>
             <p className="text-sm text-blue-800">
               English is the international maritime language and is required for all seafarers. Additional language skills are a valuable asset and can increase your employment opportunities, especially for vessels trading in specific regions.
             </p>

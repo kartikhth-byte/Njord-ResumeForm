@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 import { Shield, CheckCircle, AlertCircle, Loader2, Lock } from 'lucide-react'
 
 export default function RecruiterSetup() {
@@ -25,28 +24,26 @@ export default function RecruiterSetup() {
   const checkSetupStatus = async () => {
     try {
       setLoading(true)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-recruiter`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ action: 'status' }),
+        }
+      )
 
-      // Check if any Master Recruiter exists
-      const { data: masterRecruiterRole, error: roleError } = await supabase
-        .from('roles')
-        .select('id')
-        .eq('name', 'Master Recruiter')
-        .single()
+      const data = await response.json().catch(() => ({}))
 
-      if (roleError) throw roleError
-
-      // Check if anyone has the Master Recruiter role
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('role_assignments')
-        .select('id')
-        .eq('role_id', masterRecruiterRole.id)
-        .limit(1)
-
-      if (assignmentError) throw assignmentError
-
-      if (assignments && assignments.length > 0) {
-        setSetupComplete(true)
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to check setup status')
       }
+
+      setSetupComplete(Boolean(data?.setup_complete))
     } catch (error) {
       console.error('Error checking setup status:', error)
       setError('Failed to check setup status. Please try again.')
@@ -70,59 +67,43 @@ export default function RecruiterSetup() {
         throw new Error('Password must be at least 8 characters')
       }
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-recruiter`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: 'bootstrap',
             full_name: formData.fullName,
-          }
+            email: formData.email,
+            password: formData.password,
+          }),
         }
-      })
+      )
 
-      if (authError) throw authError
+      const data = await response.json().catch(() => ({}))
 
-      const userId = authData.user.id
+      if (!response.ok) {
+        if (data?.error === 'Initial setup is already complete.') {
+          setSetupComplete(true)
+          return
+        }
 
-   // Update or create profile with user_type='recruiter'
-const { error: profileError } = await supabase
-  .from('profiles')
-  .upsert([
-    {
-      id: userId,
-      full_name: formData.fullName,
-      email: formData.email,  // ← ADD THIS LINE
-      user_type: 'recruiter'
-    }
-  ], {
-    onConflict: 'id'
-  })
+        throw new Error(data?.error || 'Failed to create the initial master recruiter')
+      }
 
-if (profileError) throw profileError
+      if (data?.error) {
+        if (data.error === 'Initial setup is already complete.') {
+          setSetupComplete(true)
+          return
+        }
 
-      if (profileError) throw profileError
-
-      // Get Master Recruiter role ID
-      const { data: masterRole, error: roleError } = await supabase
-        .from('roles')
-        .select('id')
-        .eq('name', 'Master Recruiter')
-        .single()
-
-      if (roleError) throw roleError
-
-      // Assign Master Recruiter role
-      const { error: assignmentError } = await supabase
-        .from('role_assignments')
-        .insert([
-          {
-            user_id: userId,
-            role_id: masterRole.id
-          }
-        ])
-
-      if (assignmentError) throw assignmentError
+        throw new Error(data.error)
+      }
 
       // Success!
       setSuccess(true)
@@ -149,10 +130,17 @@ if (profileError) throw profileError
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
-          <p className="text-white">Checking setup status...</p>
+      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="recruiter-panel w-full max-w-lg p-10 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-900 text-white shadow-lg">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">
+            Preparing recruiter setup
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Checking whether the initial master recruiter account has already been configured.
+          </p>
         </div>
       </div>
     )
@@ -160,18 +148,29 @@ if (profileError) throw profileError
 
   if (setupComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <Lock className="w-8 h-8 text-green-600" />
+      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="recruiter-panel w-full max-w-xl p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
+            <Lock className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Setup Already Complete</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Recruiter Access Locked
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+            Setup already complete
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-600">
             The Master Recruiter account has already been created. This setup page is now locked.
           </p>
+          <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
+            <p className="recruiter-note__title">Next step</p>
+            <p className="recruiter-note__body">
+              Sign in with your recruiter account to manage candidate review, search, and status workflows.
+            </p>
+          </div>
           <button
             onClick={() => navigate('/recruiter/login')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="workspace-action-button workspace-action-button--primary mt-8"
           >
             Go to Recruiter Login
           </button>
@@ -182,21 +181,27 @@ if (profileError) throw profileError
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="recruiter-panel w-full max-w-xl p-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
+            <CheckCircle className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Setup Complete!</h2>
-          <p className="text-gray-600 mb-4">
+          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Recruiter Setup
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+            Setup complete
+          </h2>
+          <p className="mt-4 text-sm leading-6 text-slate-600">
             Master Recruiter account created successfully.
           </p>
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
+          <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
+            <p className="recruiter-note__title">Account ready</p>
+            <p className="recruiter-note__body">
               <strong>Email:</strong> {formData.email}
             </p>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="mt-6 text-sm text-slate-500">
             Redirecting to login page in 3 seconds...
           </p>
         </div>
@@ -205,137 +210,142 @@ if (profileError) throw profileError
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
-            <Shield className="w-8 h-8 text-blue-600" />
+    <div className="recruiter-shell min-h-screen px-4 py-10">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="recruiter-panel p-8 lg:p-10">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-900 text-white shadow-lg">
+            <Shield className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Initial Setup</h1>
-          <p className="text-blue-100">Create your Master Recruiter account</p>
-        </div>
+          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            One-time configuration
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
+            Create the master recruiter account
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
+            This is the administrative entry point for the recruiting system. The first account created
+            here becomes the master recruiter with permission to manage access, workflows, and team setup.
+          </p>
 
-        {/* Setup Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Master Recruiter Setup</h2>
-            <p className="text-sm text-gray-600">
-              This is a one-time setup to create the first Master Recruiter account. 
-              This page will be locked after completion.
+          <div className="mt-8 space-y-4">
+            <div className="recruiter-note recruiter-note--info">
+              <p className="recruiter-note__title">What this account controls</p>
+              <p className="recruiter-note__body">
+                Recruiter access management, candidate review workflows, search, and downstream status actions.
+              </p>
+            </div>
+            <div className="recruiter-note recruiter-note--warning">
+              <p className="recruiter-note__title">Locked after completion</p>
+              <p className="recruiter-note__body">
+                Once the first master recruiter is created, this setup screen is no longer available.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="recruiter-panel p-8">
+          <div className="border-b border-slate-200/70 pb-5">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Account details</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Use a team-owned email address so future access and alerts remain under recruiter control.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <div className="recruiter-form-field">
+              <label className="recruiter-form-label" htmlFor="fullName">Full name</label>
               <input
+                id="fullName"
                 type="text"
                 name="fullName"
                 required
                 value={formData.fullName}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="recruiter-form-input"
                 placeholder="John Doe"
               />
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
+            <div className="recruiter-form-field">
+              <label className="recruiter-form-label" htmlFor="email">Email address</label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="recruiter-form-input"
                 placeholder="admin@njordships.com"
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Minimum 8 characters"
-              />
+            <div className="recruiter-form-grid">
+              <div className="recruiter-form-field">
+                <label className="recruiter-form-label" htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  required
+                  minLength={8}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="recruiter-form-input"
+                  placeholder="Minimum 8 characters"
+                />
+              </div>
+
+              <div className="recruiter-form-field">
+                <label className="recruiter-form-label" htmlFor="confirmPassword">Confirm password</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  name="confirmPassword"
+                  required
+                  minLength={8}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="recruiter-form-input"
+                  placeholder="Re-enter password"
+                />
+              </div>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                required
-                minLength={8}
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Re-enter password"
-              />
-            </div>
-
-            {/* Error Message */}
             {error && (
-              <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-800">Setup Failed</p>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
-                </div>
+              <div className="recruiter-note recruiter-note--danger">
+                <p className="recruiter-note__title">Setup failed</p>
+                <p className="recruiter-note__body">{error}</p>
               </div>
             )}
 
-            {/* Info Box */}
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> This account will have full access to the recruitment system, 
-                including the ability to create and manage other recruiter accounts.
+            <div className="recruiter-note recruiter-note--info">
+              <p className="recruiter-note__title">Access level</p>
+              <p className="recruiter-note__body">
+                This account will have full recruiter administration permissions, including the ability to create and manage other recruiter accounts.
               </p>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="workspace-action-button workspace-action-button--primary w-full justify-center"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating Account...
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Creating account...
                 </span>
               ) : (
                 'Create Master Recruiter'
               )}
             </button>
           </form>
-        </div>
 
-        {/* Footer Info */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-blue-100">
-            This page will self-lock after the first Master Recruiter is created.
+          <p className="mt-5 text-xs leading-6 text-slate-500">
+            This page will self-lock after the first master recruiter is created.
           </p>
-        </div>
+        </section>
       </div>
     </div>
   )

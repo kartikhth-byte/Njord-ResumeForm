@@ -2,13 +2,12 @@
 // Sends expiry warning emails to applicant and recruiter
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
 interface NotificationRequest {
   documentExpiryId: string
@@ -30,6 +29,9 @@ serve(async (req) => {
   }
 
   try {
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const resendApiKey = runtimeSettings.RESEND_API_KEY
+    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
     const payload: NotificationRequest = await req.json()
 
     const {
@@ -217,11 +219,11 @@ serve(async (req) => {
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'NJORD Ships <onboarding@resend.dev>',
+        from: emailFrom,
         to: [applicantEmail],
         subject: subject,
         html: applicantHtml,

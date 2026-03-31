@@ -3,15 +3,41 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
 import { CheckCircle, Loader2 } from 'lucide-react'
+import { getClientRuntimeSettings } from '../services/runtimeSettingsService'
 
 export default function MicrosoftOAuthButton({ onSuccess }) {
   const { user } = useAuth()
   const [isConnected, setIsConnected] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [microsoftConfig, setMicrosoftConfig] = useState({
+    MICROSOFT_CLIENT_ID: import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
+    MICROSOFT_REDIRECT_URI: import.meta.env.VITE_MICROSOFT_REDIRECT_URI || '',
+  })
 
   useEffect(() => {
     checkConnection()
   }, [user])
+
+  useEffect(() => {
+    let mounted = true
+
+    getClientRuntimeSettings()
+      .then(config => {
+        if (mounted) {
+          setMicrosoftConfig(current => ({
+            ...current,
+            ...config,
+          }))
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load Microsoft runtime config:', error)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const checkConnection = async () => {
     if (!user) {
@@ -33,8 +59,13 @@ export default function MicrosoftOAuthButton({ onSuccess }) {
   }
 
   const connect = () => {
-    const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID
-    const redirectUri = import.meta.env.VITE_MICROSOFT_REDIRECT_URI
+    const clientId = microsoftConfig.MICROSOFT_CLIENT_ID
+    const redirectUri = microsoftConfig.MICROSOFT_REDIRECT_URI
+
+    if (!clientId || !redirectUri) {
+      console.error('Microsoft OAuth configuration is incomplete')
+      return
+    }
 
 // Define scopes as array for clarity
 const scopes = [

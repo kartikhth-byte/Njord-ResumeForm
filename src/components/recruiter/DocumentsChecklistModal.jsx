@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { FileText, X, CheckCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
@@ -17,6 +18,15 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
     { id: 'vaccination', label: 'Vaccination Records', required: false },
     { id: 'references', label: 'Employment References', required: false },
   ])
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [])
 
   const handleConfirm = async () => {
     try {
@@ -55,9 +65,9 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
     }
   }
 
-  return (
+  return createPortal((
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4"
+      className="recruiter-modal-backdrop"
       onClick={(e) => {
         // Close if clicking backdrop
         if (e.target === e.currentTarget) {
@@ -66,32 +76,33 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
       }}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-[10001]"
+        className="recruiter-modal max-w-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600" />
+        <div className="recruiter-modal__header">
+          <div className="recruiter-modal__header-main">
+            <div className="recruiter-modal__icon">
+              <FileText className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Start Documents Collection</h2>
-              <p className="text-sm text-gray-600">
+              <p className="recruiter-modal__eyebrow">Documents workflow</p>
+              <h2 className="recruiter-modal__title">Start documents collection</h2>
+              <p className="recruiter-modal__subtitle">
                 {application.reference_number} - {application.full_name}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="recruiter-modal__close"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="recruiter-modal__body space-y-6">
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
@@ -150,12 +161,12 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="recruiter-modal__footer">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              className="workspace-action-button workspace-action-button--secondary"
             >
               Cancel
             </button>
@@ -163,7 +174,7 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
               type="button"
               onClick={handleConfirm}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              className="workspace-action-button workspace-action-button--primary min-w-[14rem] justify-center"
             >
               {loading ? (
                 <>
@@ -184,5 +195,5 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
         </div>
       </div>
     </div>
-  )
+  ), document.body)
 }

@@ -1,9 +1,11 @@
 /* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
+import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import StatusBadge from '../components/StatusBadge'
 import { formatDisplayValue } from '../utils/formatUtils'
 import SequentialStatusControl from '../components/SequentialStatusControl'
@@ -13,22 +15,26 @@ import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
 import OfferModal from '../components/recruiter/OfferModal'
 import ConfidenceBadge from '../components/ConfidenceBadge'
+import PageHeader from '../components/ui/PageHeader'
+import SegmentedControl from '../components/ui/SegmentedControl'
+import WorkspaceToolbar from '../components/ui/WorkspaceToolbar'
+import EmptyState from '../components/ui/EmptyState'
+import { getEmbeddingReadiness } from '../services/embeddingService'
 
 import { 
   Users, 
   Search, 
   Eye, 
   Loader2, 
-  LayoutList, 
-  Search as SearchIcon, 
-  TrendingUp, 
+  PanelLeft,
   ChevronDown, 
   ChevronRight,
   FileText,
   Clock,
   CheckCircle,
-  Menu,
-  X as XIcon
+  Sparkles,
+  SlidersHorizontal,
+  ShieldCheck
 } from 'lucide-react'
 
 function normalizeCertificateGrade(value) {
@@ -57,17 +63,62 @@ function getApplicationFields(appData = {}) {
   }
 }
 
+const ACTIVE_APPLICATION_STATUSES = [
+  'submitted',
+  'new',
+  'under_review',
+  'test_scheduled',
+  'test_completed',
+  'test_passed',
+  'test_failed',
+  'interview_scheduled',
+  'interview_completed',
+  'interview_passed',
+  'second_interview_scheduled',
+  'second_interview_completed',
+  'offered',
+  'offer_accepted',
+  'documents_pending'
+]
+
+function applyRecruiterVisibilityFilter(query) {
+  return query.not('submitted_at', 'is', null)
+}
+
+function formatEmbeddingStatusMessage(readiness) {
+  if (!readiness) return ''
+
+  const issues = []
+  if (readiness.missing?.length) {
+    issues.push(`${readiness.missing.length} active application${readiness.missing.length === 1 ? '' : 's'} are not indexed`)
+  }
+  if (readiness.stale?.length) {
+    issues.push(`${readiness.stale.length} indexed application${readiness.stale.length === 1 ? ' is' : 's are'} out of date`)
+  }
+
+  if (issues.length === 0) {
+    return 'Embeddings are ready for AI Search.'
+  }
+
+  return `AI Search is locked until embeddings are ready: ${issues.join(' and ')}. Generate embeddings now, then run the search.`
+}
+
+const VALID_RECRUITER_APPLICATION_TABS = new Set(['all', 'search'])
+
+function normalizeRecruiterApplicationsTab(tabValue) {
+  return VALID_RECRUITER_APPLICATION_TABS.has(tabValue) ? tabValue : 'all'
+}
+
 export default function RecruiterApplications() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { user } = useAuth()
-  const { canViewApplications, loading: permLoading } = usePermissions(user)
+  const { user, profile, signOut } = useAuth()
+  const { canViewApplications, loading: permLoading, role } = usePermissions()
   const aiSearchStorageKey = user?.id ? `aiSearchResults:${user.id}` : null
   
   const [applications, setApplications] = useState([])
-  const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)  // ← ADD THIS
-const [allApplicationsForPipeline, setAllApplicationsForPipeline] = useState([])  // ← ADD THIS
-const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
+  const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)
+  const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
 
 
   // Add this useEffect near the top of RecruiterApplications component
@@ -117,6 +168,7 @@ useEffect(() => {
   const [filteredApplications, setFilteredApplications] = useState([])
   const [allStatusCounts, setAllStatusCounts] = useState({}) // New: stores counts of ALL applications
   const [loading, setLoading] = useState(true)
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   
   // Initialize statusFilter from URL or default to 'all'
@@ -129,9 +181,11 @@ useEffect(() => {
   
 const [isOfferModalOpen, setIsOfferModalOpen] = useState(false)
 const [offerApplication, setOfferApplication] = useState(null)
+  const [embeddingReadiness, setEmbeddingReadiness] = useState(null)
+  const [embeddingReadinessLoading, setEmbeddingReadinessLoading] = useState(false)
 
   // Tab management - initialize from URL or default to 'all'
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'all')
+  const [activeTab, setActiveTab] = useState(normalizeRecruiterApplicationsTab(searchParams.get('tab') || 'all'))
   
   // Helper function to update tab and URL
   const updateActiveTab = (newTab) => {
@@ -162,11 +216,18 @@ const [offerApplication, setOfferApplication] = useState(null)
   
   // Sync state with URL when navigating back
   useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'all'
+    const rawTabFromUrl = searchParams.get('tab') || 'all'
+    const tabFromUrl = normalizeRecruiterApplicationsTab(rawTabFromUrl)
     const statusFromUrl = searchParams.get('status') || 'all'
     
     console.log('🔍 URL changed - Tab:', tabFromUrl, 'Status:', statusFromUrl)
     console.log('🔍 Current state - Tab:', activeTab, 'Status:', statusFilter)
+
+    if (rawTabFromUrl !== tabFromUrl) {
+      const correctedParams = new URLSearchParams(searchParams)
+      correctedParams.set('tab', tabFromUrl)
+      setSearchParams(correctedParams, { replace: true })
+    }
     
     // Only update if different to avoid infinite loops
     setActiveTab(prev => {
@@ -194,35 +255,13 @@ const [offerApplication, setOfferApplication] = useState(null)
   const [aiSearchActive, setAiSearchActive] = useState(false)
   const [aiSearchResults, setAiSearchResults] = useState([])
   const [aiSearchQuery, setAiSearchQuery] = useState('')
+  const [aiSearchLoading, setAiSearchLoading] = useState(false)
   
   // Advanced Search mode toggle
   const [searchMode, setSearchMode] = useState('ai')
   
-  // Status Pipeline
-  const [expandedStatuses, setExpandedStatuses] = useState(['new'])
-  
-  // Sidebar - responsive default: closed on mobile, open on desktop
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState(['initial', 'testing', 'interview', 'final'])
-
-  // Handle sidebar state based on screen size
-  useEffect(() => {
-    const handleResize = () => {
-      // Open sidebar on desktop (>= 1024px), close on mobile
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(true)
-      } else {
-        setSidebarOpen(false)
-      }
-    }
-    
-    // Set initial state
-    handleResize()
-    
-    // Listen for resize
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  const [showDetailedStatusNav, setShowDetailedStatusNav] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState(['initial', 'test', 'interview', 'final'])
 
   // Status groups for sidebar
   const statusGroups = [
@@ -232,7 +271,7 @@ const [offerApplication, setOfferApplication] = useState(null)
       icon: FileText,
       statuses: [
         { value: 'all', label: 'All Applications', count: 0 },
-        { value: 'new', label: 'New', count: 0 },
+        { value: 'submitted', label: 'Submitted', count: 0 },
         { value: 'under_review', label: 'Under Review', count: 0 },
       ]
     },
@@ -271,7 +310,7 @@ const [offerApplication, setOfferApplication] = useState(null)
     if (!permLoading && canViewApplications()) {
       loadApplications({})
       loadAllStatusCounts() // Load counts separately
-          loadAllApplicationsForPipeline()  // ← ADD THIS
+      refreshEmbeddingReadiness()
     }
   }, [permLoading, includeRejected, includeWithdrawn, includeHired, includeActive]) // Reload when any status filter changes
 
@@ -380,9 +419,13 @@ useEffect(() => {
     }
   }
 
-  const loadApplications = async (appliedFilters = {}) => {
+  const loadApplications = async (appliedFilters = {}, { background = false } = {}) => {
     try {
-      setLoading(true)
+      if (background) {
+        setBackgroundRefreshing(true)
+      } else {
+        setLoading(true)
+      }
 
       let query = supabase
         .from('applications')
@@ -402,19 +445,15 @@ useEffect(() => {
             data
           )
         `)
-        .not('submitted_at', 'is', null)
+
+      query = applyRecruiterVisibilityFilter(query)
 
       // Comprehensive status filtering based on checkboxes
       const statusesToInclude = []
       
       if (includeActive) {
         // Active statuses = not terminal (not hired, rejected, withdrawn)
-        statusesToInclude.push(
-          'new', 'under_review', 'test_scheduled', 'test_completed', 'test_passed', 
-          'test_failed', 'interview_scheduled', 'interview_completed', 'interview_passed',
-          'second_interview_scheduled', 'second_interview_completed', 
-          'offered', 'offer_accepted', 'documents_pending'
-        )
+        statusesToInclude.push(...ACTIVE_APPLICATION_STATUSES)
       }
       
       if (includeHired) {
@@ -560,22 +599,29 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading applications:', error)
     } finally {
-      setLoading(false)
+      if (background) {
+        setBackgroundRefreshing(false)
+      } else {
+        setLoading(false)
+      }
     }
   }
 
   const loadAllStatusCounts = async () => {
     try {
-      // Fetch ALL applications (including rejected) just for counting
-      const { data, error } = await supabase
-        .from('applications')
-        .select('status')
-        .not('submitted_at', 'is', null)
+      const visibleQuery = applyRecruiterVisibilityFilter(
+        supabase
+          .from('applications')
+          .select('status')
+      )
 
-      if (error) throw error
+      const { data: visibleData, error: visibleError } = await visibleQuery
+
+      if (visibleError) throw visibleError
 
       const counts = {
-        all: data?.length || 0,
+        all: visibleData?.length || 0,
+        submitted: 0,
         new: 0,
         under_review: 0,
         test_scheduled: 0,
@@ -591,7 +637,7 @@ useEffect(() => {
         withdrawn: 0
       }
 
-      data?.forEach(app => {
+      visibleData?.forEach(app => {
         if (Object.prototype.hasOwnProperty.call(counts, app.status)) {
           counts[app.status]++
         }
@@ -602,49 +648,6 @@ useEffect(() => {
       console.error('Error loading status counts:', error)
     }
   }
-
-  const loadAllApplicationsForPipeline = async () => {
-  try {
-    // Load ALL applications without any filters for pipeline view
-    const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        id,
-        user_id,
-        applied_rank,
-        status,
-        created_at,
-        updated_at,
-        reference_number,
-        public_token,
-        submitted_at,
-        application_data (
-          data
-        )
-      `)
-      .not('submitted_at', 'is', null)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    // Transform data same as loadApplications
-    const transformed = data.map(app => ({
-      ...app,
-      full_name: `${app.application_data?.data?.section2?.firstName || ''} ${app.application_data?.data?.section2?.surname || ''}`.trim(),
-      email: app.application_data?.data?.section2?.email || app.application_data?.data?.section4?.email || '',
-      phone: app.application_data?.data?.section2?.phoneNumber || app.application_data?.data?.section4?.phoneNumber || '',
-      desired_rank: app.application_data?.data?.section1?.appliedForRank || app.applied_rank || '',
-      vessel_type: app.application_data?.data?.section1?.vesselType || '',
-      nationality: app.application_data?.data?.section2?.nationality || '',
-      available_from: app.application_data?.data?.section1?.availableFrom || '',
-      date_of_birth: app.application_data?.data?.section2?.dateOfBirth || ''
-    }))
-
-    setAllApplicationsForPipeline(transformed)
-  } catch (error) {
-    console.error('Error loading all applications for pipeline:', error)
-  }
-}
 
   const filterApplications = () => {
       console.log('🔍 filterApplications called')
@@ -702,6 +705,12 @@ const handleStatusChange = async (applicationId, newStatus) => {
         app.id === applicationId ? { ...app, status: newStatus } : app
       )
     )
+
+    // Refresh derived queues and sidebar counts so submitted/reviewed items move immediately.
+    await Promise.all([
+      loadAllStatusCounts(),
+      loadApplications(filters, { background: true })
+    ])
   } catch (error) {
     console.error('Error updating status:', error)
     alert('Failed to update status')
@@ -715,6 +724,24 @@ const handleStatusChange = async (applicationId, newStatus) => {
   const handleApplyFilters = (filtersToApply = null) => {
     const activeFilters = filtersToApply || filters
     loadApplications(activeFilters)
+  }
+
+  const refreshEmbeddingReadiness = async () => {
+    try {
+      setEmbeddingReadinessLoading(true)
+      const readiness = await getEmbeddingReadiness()
+      setEmbeddingReadiness(readiness)
+    } catch (error) {
+      console.error('Error loading embedding readiness:', error)
+      setEmbeddingReadiness({
+        ready: false,
+        needsGeneration: true,
+        missing: [],
+        stale: [],
+      })
+    } finally {
+      setEmbeddingReadinessLoading(false)
+    }
   }
 
 const handleAISearchResults = async (results, query, isAnalyzing = false) => {
@@ -829,14 +856,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   }
 }
 
-  const toggleStatus = (statusValue) => {
-    setExpandedStatuses(prev =>
-      prev.includes(statusValue)
-        ? prev.filter(s => s !== statusValue)
-        : [...prev, statusValue]
-    )
-  }
-
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev =>
       prev.includes(groupId)
@@ -859,7 +878,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   return result
   }
 
-  const displayedApplications = activeTab === 'search' && searchMode === 'filters'
+    const displayedApplications = activeTab === 'search' && searchMode === 'filters'
     ? applications
     : filteredApplications
 
@@ -887,8 +906,64 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   const statusCounts = getStatusCounts()
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage)
   const paginatedApplications = getPaginatedData(filteredApplications)
+  const activeStatusScopes = [
+    includeActive && 'Active',
+    includeHired && 'Hired',
+    includeRejected && 'Rejected',
+    includeWithdrawn && 'Withdrawn'
+  ].filter(Boolean)
 
-const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
+  const manualFilterChips = Object.entries(filters)
+    .filter(([, value]) => Boolean(value))
+    .map(([key, value]) => ({
+      label: `${key}: ${typeof value === 'object' ? 'Date range' : value}`,
+      onRemove: () => {
+        const nextFilters = { ...filters }
+        delete nextFilters[key]
+        handleFilterChange(nextFilters)
+      }
+    }))
+
+  const searchTabs = [
+    { value: 'ai', label: 'AI Search', icon: Sparkles },
+    { value: 'filters', label: 'Manual Search', icon: SlidersHorizontal }
+  ]
+
+  const toggleStatusScope = (scope) => {
+    const setters = {
+      active: setIncludeActive,
+      hired: setIncludeHired,
+      rejected: setIncludeRejected,
+      withdrawn: setIncludeWithdrawn
+    }
+
+    setters[scope]?.(prev => !prev)
+  }
+
+  const setManualScope = (scope) => {
+    if (scope === 'active') {
+      setIncludeActive(true)
+      setIncludeHired(false)
+      setIncludeRejected(false)
+      setIncludeWithdrawn(false)
+      return
+    }
+
+    if (scope === 'archived') {
+      setIncludeActive(false)
+      setIncludeHired(true)
+      setIncludeRejected(true)
+      setIncludeWithdrawn(true)
+      return
+    }
+
+    setIncludeActive(true)
+    setIncludeHired(true)
+    setIncludeRejected(true)
+    setIncludeWithdrawn(true)
+  }
+
+  const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
     console.log('🎨 ApplicationTable rendering - apps:', apps.length, 'showRelevance:', showRelevance)
 
   return (
@@ -942,7 +1017,7 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
           <tbody className="bg-white divide-y divide-gray-200 overflow-visible">
             {apps.length === 0 ? (
               <tr>
-                <td colSpan="11" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={showRelevance ? 12 : 10} className="px-6 py-12 text-center text-gray-500">
                   No applications found
                 </td>
               </tr>
@@ -1032,7 +1107,7 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
                   {/* View Column */}
                   <td className="px-6 py-4 text-center">
                     <button
-                      onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
+                      onClick={() => navigate(`/application/view/${app.public_token}`)}
                       className="inline-flex p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="View application"
                     >
@@ -1050,242 +1125,18 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
 }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Vertical Sidebar */}
-      <div className={`
-        fixed lg:static inset-y-0 left-0 z-30
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        transition-transform duration-300 ease-in-out
-        w-72 bg-white border-r border-gray-200 flex flex-col
-      `}>
-        {/* Back to Dashboard Button - Very Top */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <button
-            onClick={() => navigate('/recruiter/dashboard')}
-            className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-300 rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Dashboard
-          </button>
-        </div>
+    <div className="recruiter-shell">
+      <RecruiterTopbar
+        user={user}
+        profile={profile}
+        role={role}
+        signOut={signOut}
+      />
+      <RecruiterWorkspaceNav />
 
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Status Filter</h2>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Sidebar Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {statusGroups.map(group => {
-            const GroupIcon = group.icon
-            const isExpanded = expandedGroups.includes(group.id)
-            const groupTotal = group.statuses.reduce((sum, status) => 
-              sum + (statusCounts[status.value] || 0), 0
-            ) - (group.id === 'initial' ? (statusCounts.all || 0) : 0) // Only subtract "all" from initial stage
-
-            return (
-              <div key={group.id} className="space-y-1">
-                {/* Group Header */}
-                <button
-                  onClick={() => toggleGroup(group.id)}
-                  className="w-full flex items-center justify-between p-2 text-left rounded-lg hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
-                    )}
-                    <GroupIcon className="w-4 h-4 text-gray-500 group-hover:text-blue-600" />
-                    <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900">
-                      {group.label}
-                    </span>
-                  </div>
-                  {group.id !== 'initial' && (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                      {groupTotal}
-                    </span>
-                  )}
-                </button>
-
-                {/* Group Statuses */}
-                {isExpanded && (
-                  <div className="ml-6 space-y-1">
-                    {group.statuses.map(status => (
-                      <button
-                        key={status.value}
-                        onClick={() => updateStatusFilter(status.value)}
-                        className={`
-                          w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
-                          ${statusFilter === status.value
-                            ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }
-                        `}
-                      >
-                        <span>{status.label}</span>
-                        <span className={`
-                          px-2 py-0.5 rounded-full text-xs font-medium
-                          ${statusFilter === status.value
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-600'
-                          }
-                        `}>
-                          {statusCounts[status.value] || 0}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200">
-          <div className="px-6 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Mobile Menu Button */}
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-                  <p className="text-sm text-gray-600">Manage and track all applications</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-gray-200 px-6">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-<button
-  onClick={() => {
-    updateActiveTab('all')
-    setCurrentPage(1)
-    setAiSearchActive(false)
-    filterApplications()
-    // Don't clear localStorage here - let users return to search results
-  }}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === 'all'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <LayoutList className="w-5 h-5" />
-              All Applications
-              <span className={`ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium ${
-                activeTab === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-900'
-              }`}>
-                {applications.length}
-              </span>
-            </button>
-            
-            <button
-              onClick={() => {
-                updateActiveTab('search')
-                setCurrentPage(1)
-              }}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === 'search'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <SearchIcon className="w-5 h-5" />
-              Advanced Search
-            </button>
-            
-            <button
-              onClick={() => {
-                updateActiveTab('pipeline')
-                setCurrentPage(1)
-              }}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                activeTab === 'pipeline'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              Status Pipeline
-            </button>
-          </nav>
-        </div>
-
-        {/* Search Bar (Only in All Applications Tab) */}
-        {activeTab === 'all' && (
-          <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-4">
-                <p className="text-sm text-gray-600">
-                  {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
-                </p>
-                <span className="text-xs text-gray-500">
-                  {includeRejected ? '(All candidates visible)' : '(Rejected candidates hidden)'}
-                </span>
-              </div>
-
-              <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by name, email, reference..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-              </div>
-            </div>
-            
-            {/* Include Rejected Checkbox - Only show when viewing "All Applications" */}
-            {statusFilter === 'all' && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="includeRejected"
-                  checked={includeRejected}
-                  onChange={(e) => setIncludeRejected(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="includeRejected" className="text-sm text-gray-700 cursor-pointer">
-                  Include Rejected Candidates
-                </label>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-auto p-6">
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex-1 overflow-auto bg-white/30">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -1295,200 +1146,372 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
               {/* All Applications Tab */}
               {activeTab === 'all' && (
                 <div className="space-y-6">
-   {console.log('📊 Rendering All Applications:')}
-    {console.log('  - filteredApplications:', filteredApplications.length)}
-    {console.log('  - paginatedApplications:', paginatedApplications.length)}
-    {console.log('  - paginatedApplications data:', paginatedApplications)}
+                  <PageHeader
+                    eyebrow="Applications Workspace"
+                    title="Browse and manage submitted applications."
+                    description="Use the internal left rail for stage navigation, search within the current queue, and move candidates forward from the same pane."
+                    actions={backgroundRefreshing ? (
+                      <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Syncing updates
+                      </div>
+                    ) : null}
+                  />
 
-                  <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
+                  <div className="recruiter-panel overflow-hidden">
+                    <div className="grid min-h-[38rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
+                      <aside className="border-b border-gray-200 bg-[rgba(247,245,239,0.9)] p-4 lg:border-b-0 lg:border-r lg:p-5">
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Queue Nav</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {showDetailedStatusNav ? 'Detailed statuses are visible.' : 'Showing main stages only.'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowDetailedStatusNav(prev => !prev)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                          >
+                            <PanelLeft className="h-3.5 w-3.5" />
+                            {showDetailedStatusNav ? 'Hide menu' : 'Show menu'}
+                          </button>
+                        </div>
 
-                  {filteredApplications.length > 0 && (
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                      itemsPerPage={itemsPerPage}
-                      totalItems={filteredApplications.length}
-                    />
-                  )}
+                        <div className="space-y-4">
+                          {statusGroups.map(group => {
+                            const GroupIcon = group.icon
+                            const isExpanded = expandedGroups.includes(group.id)
+                            const groupTotal = group.statuses.reduce((sum, status) =>
+                              sum + (statusCounts[status.value] || 0), 0
+                            ) - (group.id === 'initial' ? (statusCounts.all || 0) : 0)
+                            const primaryStatus = group.statuses[0]
+                            const primaryCount = group.id === 'initial'
+                              ? (statusCounts.all || 0)
+                              : groupTotal
+
+                            return (
+                              <div key={group.id} className="rounded-2xl border border-gray-200 bg-white/85">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!showDetailedStatusNav) {
+                                      updateStatusFilter(primaryStatus.value)
+                                      return
+                                    }
+                                    toggleGroup(group.id)
+                                  }}
+                                  className="w-full rounded-2xl px-4 py-3 text-left transition hover:bg-gray-50"
+                                >
+                                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      {showDetailedStatusNav ? (
+                                        isExpanded ? (
+                                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                        ) : (
+                                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                        )
+                                      ) : null}
+                                      <GroupIcon className="h-4 w-4 flex-shrink-0 text-gray-500" />
+                                      <span className="truncate text-sm font-semibold text-gray-800">{group.label}</span>
+                                    </div>
+                                    <span className={`inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs font-medium ${
+                                      !showDetailedStatusNav && statusFilter === primaryStatus.value
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {primaryCount}
+                                    </span>
+                                  </div>
+
+                                  {!showDetailedStatusNav ? (
+                                    <div className="mt-2 pl-6 text-xs text-gray-500">
+                                      {primaryStatus.label}
+                                    </div>
+                                  ) : null}
+                                </button>
+
+                                {showDetailedStatusNav && isExpanded ? (
+                                  <div className="border-t border-gray-100 px-3 py-3">
+                                    <div className="space-y-2">
+                                      {group.statuses.map(status => (
+                                        <button
+                                          key={status.value}
+                                          type="button"
+                                          onClick={() => updateStatusFilter(status.value)}
+                                          className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                                            statusFilter === status.value
+                                              ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                          }`}
+                                        >
+                                          <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                                            <span className="truncate font-medium">{status.label}</span>
+                                            <span className={`inline-flex h-6 min-w-9 items-center justify-center rounded-full px-2 text-xs font-medium ${
+                                              statusFilter === status.value
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-gray-100 text-gray-600'
+                                            }`}>
+                                              {statusCounts[status.value] || 0}
+                                            </span>
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </aside>
+
+                      <div className="min-w-0 bg-white/65">
+                        <div className="border-b border-gray-200/80 px-5 py-4 md:px-6">
+                          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-4">
+                                <p className="text-sm text-gray-700">
+                                  {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
+                                </p>
+                                <span className="text-xs text-gray-500">
+                                  {includeRejected ? '(Rejected candidates included)' : '(Rejected candidates hidden)'}
+                                </span>
+                              </div>
+
+                              {statusFilter === 'all' && (
+                                <label htmlFor="includeRejected" className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    id="includeRejected"
+                                    checked={includeRejected}
+                                    onChange={(e) => setIncludeRejected(e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>Include Rejected Candidates</span>
+                                </label>
+                              )}
+                            </div>
+
+                            <div className="relative w-full xl:w-96">
+                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                              <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search by name, email, reference..."
+                                className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6 p-5 md:p-6">
+                          {console.log('📊 Rendering All Applications:')}
+                          {console.log('  - filteredApplications:', filteredApplications.length)}
+                          {console.log('  - paginatedApplications:', paginatedApplications.length)}
+                          {console.log('  - paginatedApplications data:', paginatedApplications)}
+
+                          <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
+
+                          {filteredApplications.length > 0 && (
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                              itemsPerPage={itemsPerPage}
+                              totalItems={filteredApplications.length}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Advanced Search Tab */}
               {activeTab === 'search' && (
-                <div className="space-y-6">
-                      {console.log('🔍 Advanced Search Tab Rendering')}
-    {console.log('  - aiSearchResults.length:', aiSearchResults.length)}
-    {console.log('  - aiSearchResults:', aiSearchResults)}
-    {console.log('  - searchMode:', searchMode)}
-                  <EmbeddingGenerator />
+                <div className="workspace-surface-grid">
+                  <PageHeader
+                    eyebrow="Search Workspace"
+                    title="Search the applicant pool."
+                    description="Use AI Search for semantic matching or Manual Search for direct recruiter filters and browsing."
+                    actions={<SegmentedControl options={searchTabs} value={searchMode} onChange={setSearchMode} />}
+                  />
 
-                  <div className="flex items-center gap-4 bg-white rounded-lg border p-4">
-                    <span className="text-sm font-medium text-gray-700">Search Mode:</span>
-                    <button
-                      onClick={() => setSearchMode('ai')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        searchMode === 'ai'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      🤖 AI Search
-                    </button>
-                    <button
-                      onClick={() => setSearchMode('filters')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        searchMode === 'filters'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      🎛️ Manual Filters
-                    </button>
-                  </div>
+                  {searchMode === 'ai' && (
+                    <>
+                      <div className="recruiter-panel p-5 md:p-6">
+                        <div className="space-y-5">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">AI Search</p>
+                            <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Describe the profile you need, then review the ranked matches.</h3>
+                            <p className="mt-2 max-w-4xl text-sm leading-6 text-gray-600">
+                              AI Search should be a simple recruiter flow: make sure embeddings are ready, enter a prompt, and inspect the ranked candidate results below. No separate filter controls are needed here.
+                            </p>
+                          </div>
 
-                  {/* Comprehensive Status Filters for Candidate Database */}
-                  <div className="bg-white rounded-lg border p-4">
-                    <div className="mb-3">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-2">📋 Filter by Candidate Status</h3>
-                      <p className="text-xs text-gray-600">Search candidates by their application history and current status</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={includeActive}
-                          onChange={(e) => setIncludeActive(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-lg">🔵</span>
-                          <span className="text-sm text-gray-700 font-medium">Active</span>
+                          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+                            <div className="rounded-2xl border border-gray-200 bg-white/85 p-5">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prompt</p>
+                              {embeddingReadinessLoading ? (
+                                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                  Checking embedding readiness...
+                                </div>
+                              ) : null}
+                              <div className="mt-4">
+                                <AISearch
+                                  onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
+                                  onLoading={setAiSearchLoading}
+                                  onClearSearch={handleClearAISearch}
+                                  embeddingsReady={Boolean(embeddingReadiness?.ready)}
+                                  embeddingStatusMessage={formatEmbeddingStatusMessage(embeddingReadiness)}
+                                  onRequireEmbeddings={() => {
+                                    const target = document.getElementById('embedding-setup-panel')
+                                    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div id="embedding-setup-panel" className="rounded-2xl border border-gray-200 bg-white/85 p-5">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Before First Search</p>
+                              <h4 className="mt-2 text-lg font-semibold text-gray-900">Generate embeddings once.</h4>
+                              <p className="mt-2 text-sm text-gray-600">
+                                Recruiters should not have to guess this. AI Search depends on embeddings being generated first, but it is a setup step, not something you repeat every time you search.
+                              </p>
+                              <div className="mt-4">
+                                <EmbeddingGenerator
+                                  onGenerated={() => {
+                                    refreshEmbeddingReadiness()
+                                  }}
+                                  onFailed={() => {
+                                    refreshEmbeddingReadiness()
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </label>
+                      </div>
 
-                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={includeHired}
-                          onChange={(e) => setIncludeHired(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-lg">✅</span>
-                          <span className="text-sm text-gray-700 font-medium">Hired</span>
+                      {aiSearchLoading && aiSearchResults.length === 0 ? (
+                        <div className="recruiter-panel p-8">
+                          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">Running AI Search</p>
+                              <p className="mt-1 text-sm text-gray-600">The search is in progress. Results will appear here without replacing the rest of the page.</p>
+                            </div>
+                          </div>
                         </div>
-                      </label>
+                      ) : aiSearchResults.length > 0 ? (
+                        <>
+                          <WorkspaceToolbar
+                            title={`${aiSearchResults.length} AI search result${aiSearchResults.length === 1 ? '' : 's'}`}
+                            subtitle={aiSearchQuery ? `Query: ${aiSearchQuery}` : 'Semantic candidate search'}
+                            actions={(
+                              <>
+                                {analyzingWithLLM ? (
+                                  <span className="rounded-full bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800">
+                                    AI confidence is still enriching top matches
+                                  </span>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={handleClearAISearch}
+                                  className="workspace-action-button workspace-action-button--secondary"
+                                >
+                                  Clear search
+                                </button>
+                              </>
+                            )}
+                          />
 
-                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={includeRejected}
-                          onChange={(e) => setIncludeRejected(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          <ApplicationTable
+                            apps={aiSearchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+                            showRelevance={true}
+                            analyzingWithLLM={analyzingWithLLM}
+                          />
+                          <Pagination
+                            currentPage={currentPage}
+                            totalPages={Math.ceil(aiSearchResults.length / itemsPerPage)}
+                            onPageChange={setCurrentPage}
+                            itemsPerPage={itemsPerPage}
+                            totalItems={aiSearchResults.length}
+                          />
+                        </>
+                      ) : (
+                        <EmptyState
+                          icon={Sparkles}
+                          title="No AI search has been run yet"
+                          description="Generate embeddings once if needed, enter a recruiter prompt, and run AI Search. Results and confidence scoring will appear here after the first query."
                         />
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-lg">❌</span>
-                          <span className="text-sm text-gray-700 font-medium">Rejected</span>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center gap-2 cursor-pointer group hover:bg-gray-50 p-2 rounded transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={includeWithdrawn}
-                          onChange={(e) => setIncludeWithdrawn(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-lg">⚪</span>
-                          <span className="text-sm text-gray-700 font-medium">Withdrawn</span>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs text-gray-500">
-                        {!includeRejected && !includeWithdrawn && !includeHired && !includeActive && 
-                          "⚠️ Select at least one status to see results"}
-                        {(includeRejected || includeWithdrawn || includeHired || includeActive) && 
-                          `Showing: ${[
-                            includeActive && 'Active',
-                            includeHired && 'Hired', 
-                            includeRejected && 'Rejected',
-                            includeWithdrawn && 'Withdrawn'
-                          ].filter(Boolean).join(', ')} candidates`}
-                      </p>
-                    </div>
-                  </div>
-
-              {searchMode === 'ai' && (
-  <>
-    <AISearch 
-  onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
-  onLoading={setLoading}
-  onClearSearch={handleClearAISearch}
-    />
-{/* Clear Button - Show when results exist */}
-{aiSearchResults.length > 0 && !analyzingWithLLM && (
-  <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
-    <div className="flex items-center gap-2 text-sm text-blue-700">
-      <span className="font-semibold">📋 {aiSearchResults.length} results found</span>
-      {aiSearchQuery && <span className="text-blue-600">for "{aiSearchQuery}"</span>}
-    </div>
-    <button
-      onClick={handleClearAISearch}
-      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors font-medium"
-    >
-      ✕ Clear Search
-    </button>
-  </div>
-)}    
-{aiSearchResults.length > 0 && (
-  <>
-    {/* Progress Banner */}
-    {analyzingWithLLM && (
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-purple-900">
-              🧠 AI Analysis in Progress...
-            </p>
-            <p className="text-xs text-purple-700 mt-1">
-              Analyzing {aiSearchResults.filter(app => !app.llmAnalysis).length} of {aiSearchResults.length} applications with advanced reasoning. 
-              Confidence scores will appear shortly (10-15 seconds).
-            </p>
-          </div>
-        </div>
-      </div>
-    )}
-
-    <ApplicationTable apps={aiSearchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} showRelevance={true} />
-    {aiSearchResults.length > 0 && (
-      <Pagination
-       currentPage={currentPage}
-        totalPages={Math.ceil(aiSearchResults.length / itemsPerPage)}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={aiSearchResults.length}
-      />
-    )}
-  </>
-)}
+                      )}
                     </>
                   )}
 
                   {searchMode === 'filters' && (
                     <>
-                      <ApplicationFilters 
+                      <div className="recruiter-panel p-5 md:p-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Manual Search</p>
+                            <p className="mt-1 text-sm text-gray-600">Choose the candidate pool, refine the filters, then review the matching results below.</p>
+                          </div>
+                          <div className="inline-flex rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => setManualScope('active')}
+                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                                includeActive && !includeHired && !includeRejected && !includeWithdrawn
+                                  ? 'bg-slate-900 text-white'
+                                  : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              Active
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setManualScope('archived')}
+                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                                !includeActive && includeHired && includeRejected && includeWithdrawn
+                                  ? 'bg-slate-900 text-white'
+                                  : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              Archived
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <ApplicationFilters
                         onFilterChange={handleFilterChange}
                         onApplyFilters={handleApplyFilters}
                         activeFilters={filters}
                       />
-                      {applications.length > 0 && (
+
+                      {displayedApplications.length > 0 ? (
                         <>
+                          <WorkspaceToolbar
+                            title={`${displayedApplications.length} candidate${displayedApplications.length === 1 ? '' : 's'}`}
+                            subtitle="Manual recruiter search"
+                            chips={manualFilterChips}
+                            actions={(
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFilters({})
+                                  handleApplyFilters({})
+                                }}
+                                className="workspace-action-button workspace-action-button--secondary"
+                              >
+                                Reset filters
+                              </button>
+                            )}
+                          />
                           <ApplicationTable apps={displayedPaginatedApplications} />
                           {displayedApplications.length > 0 && (
                             <Pagination
@@ -1500,118 +1523,34 @@ const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = fals
                             />
                           )}
                         </>
+                      ) : (
+                        <EmptyState
+                          icon={SlidersHorizontal}
+                          title="No candidates match these manual filters"
+                          description="Broaden the primary filters first, then re-apply certificate, visa, or availability filters only after you have a workable talent pool."
+                          action={(
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilters({})
+                                handleApplyFilters({})
+                              }}
+                              className="workspace-action-button workspace-action-button--secondary"
+                            >
+                              Clear manual filters
+                            </button>
+                          )}
+                        />
                       )}
                     </>
                   )}
                 </div>
               )}
 
-              {/* Status Pipeline Tab */}
-              {activeTab === 'pipeline' && (
-                <div className="space-y-4">
-                  {statusGroups.map(group => (
-                    <div key={group.id} className="space-y-2">
-                      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider px-2">
-                        {group.label}
-                      </h3>
-                      {group.statuses
-                        .filter(s => s.value !== 'all')
-                        .map(status => {
-const statusApps = (activeTab === 'pipeline' 
-  ? allApplicationsForPipeline 
-  : applications
-).filter(app => app.status === status.value)
-                          const isExpanded = expandedStatuses.includes(status.value)
-                          
-                          return (
-                            <div key={status.value} className="bg-white rounded-lg border overflow-visible">
-                              <button
-                                onClick={() => toggleStatus(status.value)}
-                                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="flex items-center gap-3">
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-5 h-5 text-gray-500" />
-                                  ) : (
-                                    <ChevronRight className="w-5 h-5 text-gray-500" />
-                                  )}
-                                  <StatusBadge status={status.value} />
-                                  <span className="font-medium text-gray-900">{status.label}</span>
-                                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
-                                    {statusApps.length}
-                                  </span>
-                                </div>
-                              </button>
-                              
-                              {isExpanded && statusApps.length > 0 && (
-                                <div className="border-t overflow-visible">
-                                  {statusApps.map(app => (
-                                    <div key={app.id} className="p-4 border-b last:border-b-0 hover:bg-gray-50 relative">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-3 mb-2">
-                                            <span className="font-mono text-sm text-blue-600 font-medium">
-                                              {app.reference_number}
-                                            </span>
-                                            <h4 className="font-medium text-gray-900">{app.full_name}</h4>
-                                          </div>
-                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                            <div>
-                                              <span className="text-gray-500">Position:</span>{' '}
-                                              <span className="text-gray-900">{formatDisplayValue(app.desired_rank)}</span>
-                                            </div>
-                                            <div>
-                                              <span className="text-gray-500">Vessel:</span>{' '}
-                                              <span className="text-gray-900">{formatDisplayValue(app.vessel_type)}</span>
-                                            </div>
-                                            <div>
-                                              <span className="text-gray-500">Email:</span>{' '}
-                                              <span className="text-gray-900">{app.email}</span>
-                                            </div>
-                                            <div>
-                                              <span className="text-gray-500">Phone:</span>{' '}
-                                              <span className="text-gray-900">{app.phone}</span>
-                                            </div>
-                                          </div>
-                                                    {app.llmAnalysis && (
-              <div className="mt-4 px-4 py-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">🧠 AI Match Analysis</h4>
-                <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={false} />
-              </div>
-            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 ml-4 relative z-10">
-<SequentialStatusControl
-  applicationId={app.id}
-  currentStatus={app.status}
-  onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-  application={app}
-  autoOpenInterview={autoOpenInterviewForApp === app.id}
-    onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}  // ← ADD THIS
-/>
-                                          <button
-                                            onClick={() => navigate(`/application/view/${app.public_token || app.id}`)}
-                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="View application"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                    </div>
-                  ))}
-                </div>
-              )}
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

@@ -1,0 +1,189 @@
+{
+  "section1": {
+    "appliedForRank": "Chief Officer",
+    "vesselType": "Bulk Carrier",
+    "availableFrom": "2026-03-27",
+    "mediaAdvertisement": true,
+    "mediaAdvertisementDetails": "LinkedIn",
+    "professionalRecommendation": true,
+    "recommendedBy": "Captain R. Menon"
+  },
+  "section2": {
+    "photoStoragePath": "",
+    "surname": "Menon",
+    "firstName": "Rahul",
+    "middleName": "Kumar",
+    "otherNames": "R K",
+    "knownAs": "Rahul",
+    "nationality": "Indian",
+    "placeOfBirth": "Kochi",
+    "dateOfBirth": "1990-01-15",
+    "age": "36",
+    "gender": "male",
+    "state": "Kerala",
+    "address": "21 Harbour Road, Willingdon Island",
+    "city": "Kochi",
+    "country": "India",
+    "postalCode": "682003",
+    "email": "rahul.menon@example.com",
+    "phoneCountryCode": "91",
+    "phoneNumber": "9876501234",
+    "domesticAirport": "COK",
+    "internationalAirport": "COK",
+    "emergencyContact": {
+      "name": "Anita Menon",
+      "relationship": "spouse",
+      "address": "Flat 4B, Marine Drive, Fort Kochi, Ernakulam",
+      "phone": "0484234567",
+      "mobile": "9876543210"
+    }
+  },
+  "section3": {
+    "passportNumber": "A12345678",
+    "placeOfIssue": "Mumbai",
+    "dateOfIssue": "2020-02-01",
+    "dateOfExpiry": "2030-02-01",
+    "issuingAuthority": "India"
+  },
+  "section4": {
+    "cdcNumber": "CDC998877",
+    "placeOfIssue": "Kochi",
+    "dateOfIssue": "2023-04-15",
+    "dateOfExpiry": "2028-04-15",
+    "issuingAuthority": "DG Shipping India"
+  },
+  "section5": {
+    "visas": [
+      {
+        "type": "C1/D (USA)",
+        "number": "VISA001",
+        "placeOfIssue": "Chennai",
+        "dateOfIssue": "2024-01-15",
+        "dateOfExpiry": "2028-01-15"
+      },
+      {
+        "type": "Australia Entry Visa",
+        "number": "AUV123",
+        "placeOfIssue": "Sydney",
+        "dateOfIssue": "2025-03-01",
+        "dateOfExpiry": "2027-03-01"
+      },
+      {
+        "type": "Schengen",
+        "number": "SCH789",
+        "placeOfIssue": "Berlin",
+        "dateOfIssue": "2025-06-10",
+        "dateOfExpiry": "2026-06-10"
+      }
+    ]
+  },
+  "section6": {
+    "education": [
+      {
+        "institution": "St. Albert's School",
+        "from": "2000-06-01",
+        "to": "2010-03-31",
+        "qualification": "Secondary School"
+      },
+      {
+        "institution": "Maharaja's College",
+        "from": "2010-06-01",
+        "to": "2012-03-31",
+        "qualification": "Higher Secondary"
+      },
+      {
+        "institution": "Marine Engineering Academy",
+        "from": "2012-06-01",
+        "to": "2016-03-31",
+        "qualification": "B.Tech Marine Engineering"
+      }
+    ]
+  },
+  "section8": {
+    "certificates": [
+      {
+        "grade": "Watchkeeping Officer",
+        "issuingAuthority": "DG Shipping",
+        "certificateNumber": "COC111",
+        "dateOfIssue": "2021-01-15",
+        "dateOfExpiry": "2026-01-15",
+        "placeOfIssue": "Kochi",
+        "dateRevalidated": "",
+        "dateRevalidationExpiry": ""
+      },
+      {
+        "grade": "Chief Officer",
+        "issuingAuthority": "MCA",
+        "certificateNumber": "COC222",
+        "dateOfIssue": "2022-06-10",
+        "dateOfExpiry": "2027-06-10",
+        "placeOfIssue": "Mumbai",
+        "dateRevalidated": "2024-06-10",
+        "dateRevalidationExpiry": "2029-06-10"
+      },
+      {
+        "grade": "Master",
+        "issuingAuthority": "USCG",
+        "certificateNumber": "COC333",
+        "dateOfIssue": "2023-09-20",
+        "dateOfExpiry": "2028-09-20",
+        "placeOfIssue": "Chennai",
+        "dateRevalidated": "2025-09-20",
+        "dateRevalidationExpiry": "2030-09-20"
+      }
+    ]
+  },
+  "section9": {
+    "gmdss": [
+      {
+        "issuingAuthority": "WPC India",
+        "number": "GMD001",
+        "dateOfIssue": "2022-02-01",
+        "dateOfExpiry": "2027-02-01",
+        "placeOfIssue": "Mumbai"
+      },
+      {
+        "issuingAuthority": "MCA",
+        "number": "GMD002",
+        "dateOfIssue": "2024-05-15",
+        "dateOfExpiry": "2029-05-15",
+        "placeOfIssue": "Chennai"
+      }
+    ]
+  },
+  "section10": {
+    "medicalFitness": [
+      {
+        "type": "PEME",
+        "dateOfIssue": "2022-01-10",
+        "dateOfExpiry": "2024-01-10"
+      },
+      {
+        "type": "ENG1",
+        "dateOfIssue": "2023-05-15",
+        "dateOfExpiry": "2025-05-15"
+      },
+      {
+        "type": "Medical Certificate",
+        "dateOfIssue": "2024-08-20",
+        "dateOfExpiry": "2026-08-20"
+      }
+    ]
+  },
+  "section12": {
+    "languages": [
+      {
+        "language": "French",
+        "level": "elementary"
+      },
+      {
+        "language": "Spanish",
+        "level": "intermediate"
+      },
+      {
+        "language": "Hindi",
+        "level": "native"
+      }
+    ]
+  }
+}

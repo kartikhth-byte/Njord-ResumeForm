@@ -13,7 +13,7 @@ const FormCheckbox = forwardRef(({
   return (
     <div className="space-y-1.5">
       {/* Checkbox with Label */}
-      <label className="flex items-start gap-3 cursor-pointer group">
+      <label className="applicant-toggle-card cursor-pointer group">
         <input
           ref={ref}
           type="checkbox"
@@ -28,19 +28,19 @@ const FormCheckbox = forwardRef(({
           {...props}
         />
         <span className="flex-1">
-          <span className={`text-sm ${error ? 'text-red-900' : 'text-gray-700'}`}>
+          <span className={`applicant-toggle-card__title ${error ? 'text-red-900' : ''}`}>
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </span>
           {helpText && (
-            <span className="block text-xs text-gray-500 mt-1">{helpText}</span>
+            <span className="applicant-toggle-card__copy block">{helpText}</span>
           )}
         </span>
       </label>
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600 flex items-start gap-1 ml-7">
+        <p className="applicant-field__error ml-7">
           <span className="text-red-500">⚠</span>
           <span>{error}</span>
         </p>

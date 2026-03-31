@@ -167,18 +167,12 @@ export const generateApplicationPDF = async (application, applicationData) => {
     addSection('Technical Experience & Skills', applicationData.section17.skills)
   }
 
-  // ✅ FIX: Pass the .references array
-  if (applicationData.section18?.references) {
-    addSection('Professional References', applicationData.section18.references)
+  if (applicationData.section18) {
+    addSection('Professional References', applicationData.section18)
   }
 
-  // ✅ FIX: Pass the .contacts array
-  if (applicationData.section19?.contacts) {
-    addSection('Emergency Contact Information', applicationData.section19.contacts)
-  }
-
-  if (applicationData.section20) {
-    addSection('Additional Information & Declarations', applicationData.section20)
+  if (applicationData.section19) {
+    addSection('Additional Information & Declarations', applicationData.section19)
   }
 
   // Footer

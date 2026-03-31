@@ -93,9 +93,10 @@ const autoCapitalize = (value) => {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 3: Passport Details</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Identity documents</p>
+        <h2 className="applicant-section-title">Passport details</h2>
+        <p className="applicant-section-copy">
           Provide your passport information
         </p>
       </div>
@@ -170,7 +171,7 @@ const autoCapitalize = (value) => {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -178,9 +179,7 @@ const autoCapitalize = (value) => {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              📘 Important
-            </h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">Important</h3>
             <p className="text-sm text-blue-800">
               Your passport must be valid for at least 6 months beyond your intended date of embarkation. Ensure all information matches your physical passport exactly.
             </p>

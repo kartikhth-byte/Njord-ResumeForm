@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:smoke": "playwright test --project=chromium",
+    "test:auth:applicant": "playwright test applicant-auth.setup.js --project=setup-applicant --headed",
+    "prototype:cma-cgm": "PYTHONPATH=.python-packages python3 scripts/client_forms/cma_cgm_writer.py",
+    "prototype:cma-cgm:section1": "npm run prototype:cma-cgm --"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -26,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@playwright/test": "^1.58.2",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",

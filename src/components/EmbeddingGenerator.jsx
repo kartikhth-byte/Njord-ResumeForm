@@ -5,7 +5,7 @@ import { generateMissingEmbeddings } from '../services/embeddingService'
 const COOLDOWN_MINUTES = 5 // 5 minute cooldown
 const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000
 
-export default function EmbeddingGenerator() {
+export default function EmbeddingGenerator({ onGenerated, onFailed }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [result, setResult] = useState(null)
@@ -74,15 +74,18 @@ export default function EmbeddingGenerator() {
         setResult(result)
         // Start cooldown timer
         checkCooldown()
+        onGenerated?.(result)
       } else {
         setError(result.error || 'Failed to generate embeddings')
         // Remove timestamp on failure so user can retry
         localStorage.removeItem('lastEmbeddingGeneration')
+        onFailed?.(result.error || 'Failed to generate embeddings')
       }
     } catch (err) {
       setError(err.message)
       // Remove timestamp on error so user can retry
       localStorage.removeItem('lastEmbeddingGeneration')
+      onFailed?.(err.message)
     } finally {
       setIsGenerating(false)
     }
@@ -91,11 +94,11 @@ export default function EmbeddingGenerator() {
   const isDisabled = isGenerating || cooldownRemaining > 0
 
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200 p-6 mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Sparkles className="w-6 h-6 text-purple-600" />
+    <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 p-5">
+      <div className="mb-4 flex items-center gap-3">
+        <Sparkles className="h-5 w-5 text-purple-600" />
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">AI Search Setup</h3>
+          <h3 className="text-base font-semibold text-gray-900">AI Search Setup</h3>
           <p className="text-sm text-gray-600">Generate embeddings for semantic search</p>
         </div>
       </div>
@@ -103,8 +106,14 @@ export default function EmbeddingGenerator() {
       {!result && !error && !isGenerating && (
         <div className="space-y-3">
           <p className="text-sm text-gray-700">
-            Click the button below to generate AI embeddings for all applications. This is a one-time setup required for semantic search to work.
+            Generate embeddings once to enable AI Search for the current application pool. Recruiters do not need to run this before every search.
           </p>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            <p className="font-medium">When to run this</p>
+            <p className="mt-1">
+              Run it the first time AI Search is used, then run it again only after new applications are submitted or when you want recently updated applicant data included in AI results.
+            </p>
+          </div>
           
           {cooldownRemaining > 0 && (
             <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -118,7 +127,7 @@ export default function EmbeddingGenerator() {
           <button
             onClick={handleGenerate}
             disabled={isDisabled}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-medium transition-colors ${
               isDisabled
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-purple-600 text-white hover:bg-purple-700'
@@ -130,13 +139,16 @@ export default function EmbeddingGenerator() {
               <span className="text-xs">({formatCooldown(cooldownRemaining)})</span>
             )}
           </button>
+          <p className="text-xs text-gray-500">
+            Safe default: run this once after new applications arrive, then use AI Search normally.
+          </p>
         </div>
       )}
 
       {isGenerating && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
             <span className="text-sm font-medium text-gray-700">
               Generating embeddings... {progress.current} of {progress.total}
             </span>
@@ -154,8 +166,8 @@ export default function EmbeddingGenerator() {
       )}
 
       {result && (
-        <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+          <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
           <div>
             <p className="font-medium text-green-900">Success!</p>
             <p className="text-sm text-green-700">{result.message}</p>
@@ -172,8 +184,8 @@ export default function EmbeddingGenerator() {
       )}
 
       {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
           <div>
             <p className="font-medium text-red-900">Error</p>
             <p className="text-sm text-red-700">{error}</p>

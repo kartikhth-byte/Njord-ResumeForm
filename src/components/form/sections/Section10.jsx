@@ -141,24 +141,25 @@ export default function Section10({ data = {}, onUpdate }) {
   return (
     <div className="space-y-8">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 10: Medical Fitness & Vaccination</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Health readiness</p>
+        <h2 className="applicant-section-title">Medical fitness and vaccination</h2>
+        <p className="applicant-section-copy">
           Provide your medical fitness certificates and vaccination records
         </p>
       </div>
 
       {/* Medical Fitness Section */}
-      <div className="space-y-5">
+      <div className="applicant-section-card space-y-5">
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Medical Fitness Certificates</h3>
 
         <div className="space-y-6">
           {formData.medicalFitness.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <div className="applicant-empty-state">
               <p className="text-gray-600 mb-4">No medical certificates added yet</p>
               <button
                 onClick={handleAddMedical}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="applicant-action applicant-action--primary"
               >
                 <Plus className="w-4 h-4" />
                 Add Medical Certificate
@@ -167,14 +168,17 @@ export default function Section10({ data = {}, onUpdate }) {
           ) : (
             <>
               {formData.medicalFitness.map((medical, index) => (
-                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <div key={index} className="applicant-record-card">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-md font-semibold text-gray-900">
-                      Medical Certificate {index + 1}
-                    </h4>
+                    <div>
+                      <h4 className="applicant-record-card__title">Medical Certificate {index + 1}</h4>
+                      <p className="applicant-record-card__subtitle">
+                        Record the certificate type and validity period for each medical clearance you hold.
+                      </p>
+                    </div>
                     <button
                       onClick={() => handleRemoveMedical(index)}
-                      className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="applicant-action applicant-action--secondary"
                     >
                       <Trash2 className="w-4 h-4" />
                       <span className="text-sm font-medium">Remove</span>
@@ -216,7 +220,7 @@ export default function Section10({ data = {}, onUpdate }) {
 
               <button
                 onClick={handleAddMedical}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
               >
                 <Plus className="w-5 h-5" />
                 <span className="font-medium">Add Another Medical Certificate</span>
@@ -227,7 +231,7 @@ export default function Section10({ data = {}, onUpdate }) {
       </div>
 
       {/* Vaccination Records */}
-      <div className="space-y-5">
+      <div className="applicant-section-card space-y-5">
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Vaccination Records</h3>
 
         {/* Yellow Fever */}

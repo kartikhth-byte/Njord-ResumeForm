@@ -1,20 +1,31 @@
 export default function TermsConditions() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Terms and Conditions</h1>
-        
-        <div className="prose prose-blue max-w-none">
+    <div className="public-doc-shell">
+      <div className="public-doc-card">
+        <div className="public-doc-header">
+          <p className="public-eyebrow text-blue-700">Njordships Legal</p>
+          <h1 className="public-doc-title">Terms and Conditions</h1>
+          <p className="public-doc-copy">
+            These terms govern how applicants and recruiter users access and use the maritime recruitment portal.
+          </p>
+        </div>
+
+        <div className="public-doc-content">
+          <section className="public-doc-section">
           <p className="text-gray-600 mb-4">
             <strong>Last Updated:</strong> November 8, 2025
           </p>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">1. Acceptance of Terms</h2>
+          <section className="public-doc-section">
+          <h2>1. Acceptance of Terms</h2>
           <p className="text-gray-700 mb-4">
             By submitting an application through Njordships Maritime Recruitment Portal, you agree to be bound by these Terms and Conditions.
           </p>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2. Application Requirements</h2>
+          <section className="public-doc-section">
+          <h2>2. Application Requirements</h2>
           <p className="text-gray-700 mb-4">
             You agree that:
           </p>
@@ -24,8 +35,10 @@ export default function TermsConditions() {
             <li>You meet the requirements for maritime employment</li>
             <li>You will notify us of any changes to your information</li>
           </ul>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3. Background Verification</h2>
+          <section className="public-doc-section">
+          <h2>3. Background Verification</h2>
           <p className="text-gray-700 mb-4">
             You authorize Njordships to conduct comprehensive background checks including:
           </p>
@@ -35,8 +48,10 @@ export default function TermsConditions() {
             <li>Criminal record checks</li>
             <li>Medical fitness assessments</li>
           </ul>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4. Employment Terms</h2>
+          <section className="public-doc-section">
+          <h2>4. Employment Terms</h2>
           <p className="text-gray-700 mb-4">
             Submission of an application does not guarantee employment. All positions are subject to:
           </p>
@@ -46,8 +61,10 @@ export default function TermsConditions() {
             <li>Medical clearance</li>
             <li>Compliance with maritime regulations</li>
           </ul>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5. Liability</h2>
+          <section className="public-doc-section">
+          <h2>5. Liability</h2>
           <p className="text-gray-700 mb-4">
             Njordships is not liable for:
           </p>
@@ -57,8 +74,10 @@ export default function TermsConditions() {
             <li>Changes in vessel requirements</li>
             <li>Unforeseen circumstances affecting employment</li>
           </ul>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6. Termination</h2>
+          <section className="public-doc-section">
+          <h2>6. Termination</h2>
           <p className="text-gray-700 mb-4">
             We reserve the right to reject or terminate any application if:
           </p>
@@ -68,17 +87,20 @@ export default function TermsConditions() {
             <li>You fail to meet maritime standards</li>
             <li>You violate these terms</li>
           </ul>
+          </section>
 
-          <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">7. Contact Information</h2>
+          <section className="public-doc-section">
+          <h2>7. Contact Information</h2>
           <p className="text-gray-700 mb-4">
             For questions about these terms, contact: <strong>legal@njordships.com</strong>
           </p>
+          </section>
         </div>
 
-        <div className="mt-8 pt-6 border-t">
+        <div className="mt-8 border-t border-slate-200 pt-6">
           <button
             onClick={() => window.close()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="applicant-action applicant-action--secondary"
           >
             Close Window
           </button>

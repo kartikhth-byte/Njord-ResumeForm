@@ -5,46 +5,37 @@ import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
 import { Plus, Trash2 } from 'lucide-react'
 
-const FLAG_STATE_OPTIONS = [
-  { value: 'Panama', label: 'Panama' },
-  { value: 'Liberia', label: 'Liberia' },
-  { value: 'Marshall Islands', label: 'Marshall Islands' },
-  { value: 'Hong Kong', label: 'Hong Kong (China)' },
-  { value: 'Singapore', label: 'Singapore' },
-  { value: 'Malta', label: 'Malta' },
-  { value: 'Bahamas', label: 'Bahamas' },
-  { value: 'Cyprus', label: 'Cyprus' },
-  { value: 'Isle of Man', label: 'Isle of Man (UK)' },
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'Norway', label: 'Norway (NIS)' },
-  { value: 'Denmark', label: 'Denmark (DIS)' },
-  { value: 'Greece', label: 'Greece' },
-  { value: 'USA', label: 'United States' },
-  { value: 'India', label: 'India' },
-  { value: 'Italy', label: 'Italy' },
-  { value: 'Germany', label: 'Germany' },
-  { value: 'Netherlands', label: 'Netherlands' },
-  { value: 'France', label: 'France' },
-  { value: 'Japan', label: 'Japan' },
-  { value: 'South Korea', label: 'South Korea' },
-  { value: 'China', label: 'China' },
-  { value: 'Philippines', label: 'Philippines' },
-  { value: 'Indonesia', label: 'Indonesia' },
-  { value: 'Malaysia', label: 'Malaysia' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'New Zealand', label: 'New Zealand' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'Other', label: 'Other' },
-]
+const FLAG_STATE_ENDORSEMENT_TYPES = {
+  Malta: [
+    "Seafarer's Book",
+    'Endorsement of the GMDSS',
+    'Endorsement of the CoC',
+  ],
+  Cyprus: [
+    "Seafarer's ID and Sea Service Record Book",
+    'Cert. Of Recognition of the National CoC',
+  ],
+  Bahamas: [
+    'Endorsement of the CoC',
+    'Endorsement of the GMDSS',
+    "Seafarer's Identification and Record Book",
+  ],
+  'United Kingdom': [
+    'Endorsement of the CoC (UK CeC)',
+    'Endorsement of the GMDSS',
+    "Seafarer's Identification and Record Book",
+  ],
+  Panama: [
+    'Endorsement of the CoC',
+    'Endorsement of the GMDSS GOC',
+    "Seafarer's Identification and Record Book",
+  ],
+}
 
-const ENDORSEMENT_TYPE_OPTIONS = [
-  { value: 'STCW Endorsement', label: 'STCW Endorsement' },
-  { value: 'Recognition of CoC', label: 'Recognition of CoC' },
-  { value: 'Flag State Equivalency', label: 'Flag State Equivalency' },
-  { value: 'Temporary License', label: 'Temporary License' },
-  { value: 'Full License', label: 'Full License' },
-  { value: 'Other', label: 'Other' },
-]
+const FLAG_STATE_OPTIONS = Object.keys(FLAG_STATE_ENDORSEMENT_TYPES).map((flagState) => ({
+  value: flagState,
+  label: flagState,
+}))
 
 const emptyEndorsement = {
   flagState: '',
@@ -63,8 +54,10 @@ export default function Section15({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.endorsements) {
-      setEndorsements(data.endorsements)
+    if (data && Array.isArray(data.endorsements)) {
+      setEndorsements(prevEndorsements => (
+        data.endorsements.length === 0 && prevEndorsements.length > 0 ? prevEndorsements : data.endorsements
+      ))
     }
   }, [data])
 
@@ -125,10 +118,17 @@ export default function Section15({ data = {}, onUpdate }) {
 
   const handleEndorsementChange = (index, field, value) => {
     const newEndorsements = [...endorsements]
-    newEndorsements[index] = {
+    const currentEndorsement = {
       ...newEndorsements[index],
-      [field]: value
+      [field]: value,
     }
+    if (field === 'flagState') {
+      const allowedEndorsementTypes = FLAG_STATE_ENDORSEMENT_TYPES[value] || []
+      if (!allowedEndorsementTypes.includes(currentEndorsement.endorsementType)) {
+        currentEndorsement.endorsementType = ''
+      }
+    }
+    newEndorsements[index] = currentEndorsement
     setEndorsements(newEndorsements)
     
     // Mark field as touched
@@ -151,12 +151,20 @@ export default function Section15({ data = {}, onUpdate }) {
     setErrors(prev => ({ ...prev, [key]: error }))
   }
 
+  const getEndorsementTypeOptions = (flagState) => (
+    (FLAG_STATE_ENDORSEMENT_TYPES[flagState] || []).map((type) => ({
+      value: type,
+      label: type,
+    }))
+  )
+
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Section 15: Flag State Endorsements</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Qualifications</p>
+        <h2 className="applicant-section-title">Flag state endorsements</h2>
+        <p className="applicant-section-copy">
           List all your flag state endorsements and recognitions
         </p>
       </div>
@@ -164,7 +172,7 @@ export default function Section15({ data = {}, onUpdate }) {
       {/* Endorsements List */}
       <div className="space-y-6">
         {endorsements.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -182,7 +190,7 @@ export default function Section15({ data = {}, onUpdate }) {
             <p className="text-sm text-gray-500 mb-4">Add endorsements if you have any</p>
             <button
               onClick={handleAddEndorsement}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Flag State Endorsement
@@ -191,15 +199,18 @@ export default function Section15({ data = {}, onUpdate }) {
         ) : (
           <>
             {endorsements.map((endorsement, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Endorsement Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Flag State Endorsement {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">Flag State Endorsement {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Add every endorsement or recognition that authorizes you to serve under a specific flag.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveEndorsement(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -228,7 +239,9 @@ export default function Section15({ data = {}, onUpdate }) {
                       value={endorsement.endorsementType}
                       onChange={(e) => handleEndorsementChange(index, 'endorsementType', e.target.value)}
                       onBlur={() => handleBlur(index, 'endorsementType')}
-                      options={ENDORSEMENT_TYPE_OPTIONS}
+                      options={getEndorsementTypeOptions(endorsement.flagState)}
+                      disabled={!endorsement.flagState}
+                      helpText={endorsement.flagState ? 'Choose an endorsement type allowed for the selected flag state' : 'Select a flag state first'}
                       error={touched[`endorsement-${index}-endorsementType`] ? errors[`endorsement-${index}-endorsementType`] : ''}
                     />
                   </div>
@@ -298,7 +311,7 @@ export default function Section15({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddEndorsement}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Flag State Endorsement</span>
@@ -308,7 +321,7 @@ export default function Section15({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -320,7 +333,7 @@ export default function Section15({ data = {}, onUpdate }) {
               About Flag State Endorsements
             </h3>
             <p className="text-sm text-blue-800">
-              Flag state endorsements allow you to serve on vessels registered under that particular flag. Common flags include Panama, Liberia, Marshall Islands, and Singapore. Many companies require specific flag state endorsements. These are issued based on your Certificate of Competency and STCW certificates.
+              Flag state endorsements allow you to serve on vessels registered under that particular flag. Use the listed flag states and choose the endorsement type that matches the selected administration's document naming.
             </p>
           </div>
         </div>

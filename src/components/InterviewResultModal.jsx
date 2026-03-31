@@ -263,35 +263,36 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
   )
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" onClick={() => !loading && onCancel()} />
-      
-      <div className="flex min-h-full items-center justify-center p-4 relative z-[9999]">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 my-8">
+    <div className="recruiter-modal-backdrop overflow-y-auto">
+      <div className="fixed inset-0" onClick={() => !loading && onCancel()} />
+      <div className="recruiter-modal my-8 max-w-3xl">
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Update Interview Result
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
-              </p>
-              <p className="text-sm text-gray-600">
-                Position: {application.applied_rank}
-              </p>
+          <div className="recruiter-modal__header">
+            <div className="recruiter-modal__header-main">
+              <div className="recruiter-modal__icon">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="recruiter-modal__eyebrow">Interview workflow</p>
+                <h3 className="recruiter-modal__title">Update interview result</h3>
+                <p className="recruiter-modal__subtitle">
+                  Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
+                  <br />
+                  Position: {application.applied_rank}
+                </p>
+              </div>
             </div>
             <button
               onClick={onCancel}
               disabled={loading}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="recruiter-modal__close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
+            <div className="recruiter-modal__body space-y-6">
               {/* Interview Outcome */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -484,19 +485,19 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mt-6">
+            <div className="recruiter-modal__footer">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !result}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
               >
                 {loading ? (
                   <>
@@ -509,7 +510,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
               </button>
             </div>
           </form>
-        </div>
       </div>
     </div>,
     document.body

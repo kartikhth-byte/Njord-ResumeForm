@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
-import { supabase } from './lib/supabase'
 import { usePermissions } from './hooks/usePermissions'
 
 import ApplicantRoute from './components/auth/ApplicantRoute'
@@ -21,30 +20,35 @@ import RecruiterTeam from './pages/RecruiterTeam'
 import RecruiterDashboard from './pages/RecruiterDashboard'
 import RecruiterLogin from './pages/RecruiterLogin'
 import RecruiterSetup from './pages/RecruiterSetup'
+import RecruiterResetPassword from './pages/RecruiterResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import RecruiterApplications from './pages/RecruiterApplications'
 import CleanupDrafts from './pages/CleanupDrafts'
 import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
+import RecruiterSettings from './pages/RecruiterSettings'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user } = useAuth()
+  const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
   const { role, loading } = usePermissions(user)
 
-    console.log('🔍 ProtectedRoute Debug:', { role, allowedRoles, loading })  // ← ADD THIS
+  if (authLoading || (user && (authorizationLoading || loading))) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  if (!user) {
+    return <Navigate to="/recruiter/login" replace />
+  }
 
-  // FIX: Redirect to /unauthorized to prevent loop with ApplicantRoute
-  if (!allowedRoles.includes(role)) {
-        console.log('❌ Access Denied:', role, 'not in', allowedRoles)  // ← ADD THIS
-
+  if (userType !== 'recruiter') {
     return <Navigate to="/unauthorized" replace />
   }
 
-    console.log('✅ Access Granted:', role)  // ← ADD THIS
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/unauthorized" replace />
+  }
 
   return children
 }
@@ -88,40 +92,36 @@ class ErrorBoundary extends Component {
 
 function RootRedirect() {
   const navigate = useNavigate()
-  const { user, loading } = useAuth()
+  const { user, loading, userType, authorizationLoading } = useAuth()
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const checkAndRedirect = async () => {
+    const checkAndRedirect = () => {
       if (loading) return
 
       if (!user) {
         navigate('/login', { replace: true })
+        setChecking(false)
         return
       }
 
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.user_type === 'recruiter') {
-          navigate('/recruiter/dashboard', { replace: true })
-        } else {
-          navigate('/dashboard', { replace: true })
-        }
-      } catch (error) {
-        console.error('Error checking user type:', error)
-        navigate('/login', { replace: true })
-      } finally {
-        setChecking(false)
+      if (authorizationLoading && !userType) {
+        return
       }
+
+      if (userType === 'recruiter') {
+        navigate('/recruiter/dashboard', { replace: true })
+      } else if (userType === 'applicant') {
+        navigate('/dashboard', { replace: true })
+      } else {
+        navigate('/login', { replace: true })
+      }
+
+      setChecking(false)
     }
 
     checkAndRedirect()
-  }, [user, loading, navigate])
+  }, [user, userType, loading, authorizationLoading, navigate])
 
   if (loading || checking) {
     return (
@@ -148,6 +148,7 @@ function App() {
             <Route path="/terms-conditions" element={<TermsConditions />} />
             <Route path="/recruiter/login" element={<RecruiterLogin />} />
             <Route path="/recruiter/setup" element={<RecruiterSetup />} />
+            <Route path="/recruiter/reset-password" element={<RecruiterResetPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
             
@@ -197,6 +198,12 @@ function App() {
             <Route path="/recruiter/team" element={
               <RecruiterRoute>
                 <RecruiterTeam />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/settings" element={
+              <RecruiterRoute>
+                <RecruiterSettings />
               </RecruiterRoute>
             } />
 

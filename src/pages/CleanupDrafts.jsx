@@ -1,9 +1,13 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
+import PageHeader from '../components/ui/PageHeader'
+import { Wrench, ArrowLeft, Sparkles } from 'lucide-react'
 
 export default function CleanupDrafts() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -66,45 +70,77 @@ export default function CleanupDrafts() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          🧹 Cleanup Duplicate Drafts
-        </h1>
-        
-        <p className="text-gray-600 mb-6">
-          This tool will remove duplicate draft applications, keeping only the most recent one.
-        </p>
+    <div className="applicant-shell">
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+        <PageHeader
+          eyebrow="Applicant Utility"
+          title="Clean Up Duplicate Drafts"
+          description="Use this recovery tool if multiple in-progress application drafts were created for the same applicant."
+          actions={
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="applicant-action applicant-action--secondary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </button>
+          }
+        />
 
-        {status && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm whitespace-pre-wrap">{status}</p>
+        <div className="utility-card mt-8 overflow-hidden">
+          <div className="utility-card__header">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-blue-100 p-3 text-blue-700">
+                <Wrench className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Draft recovery</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  The tool keeps the most recent `new` draft with no `submitted_at` value and removes older duplicates.
+                </p>
+              </div>
+            </div>
           </div>
-        )}
 
-        <button
-          onClick={cleanupDuplicates}
-          disabled={loading}
-          className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-        >
-          {loading ? '🔄 Processing...' : '🧹 Clean Up Duplicates'}
-        </button>
+          <div className="utility-card__body">
+            {status ? (
+              <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <p className="whitespace-pre-wrap text-sm text-blue-900">{status}</p>
+              </div>
+            ) : null}
 
-        <button
-          onClick={() => window.location.href = '/dashboard'}
-          className="w-full mt-3 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-        >
-          ← Back to Dashboard
-        </button>
+            <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
+              <div className="flex items-start gap-3">
+                <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700" />
+                <div className="text-sm leading-6 text-amber-900">
+                  <p className="font-semibold">What this does</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    <li>Finds all draft applications with status `new` and no submission timestamp.</li>
+                    <li>Keeps the most recently created draft.</li>
+                    <li>Deletes older duplicate rows from `application_data` and `applications`.</li>
+                    <li>Safe to run more than once.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
-        <div className="mt-6 text-xs text-gray-500">
-          <p className="font-semibold mb-2">What this does:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Finds all draft applications (status='new', not submitted)</li>
-            <li>Keeps the most recent one</li>
-            <li>Deletes all older duplicates</li>
-            <li>Safe to run multiple times</li>
-          </ul>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={cleanupDuplicates}
+                disabled={loading}
+                className="applicant-action applicant-action--primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Processing...' : 'Clean Up Duplicates'}
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="applicant-action applicant-action--secondary"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

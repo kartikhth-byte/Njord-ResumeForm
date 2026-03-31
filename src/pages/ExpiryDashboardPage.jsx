@@ -6,9 +6,11 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import ExpiryDashboard from '../components/dashboard/ExpiryDashboard'
+import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 
 export default function ExpiryDashboardPage() {
-  const { user } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const { role, loading } = usePermissions(user)
   const navigate = useNavigate()
 
@@ -23,10 +25,10 @@ export default function ExpiryDashboardPage() {
   // Show loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="recruiter-shell flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-slate-900"></div>
+          <p className="text-slate-600">Loading expiry workspace...</p>
         </div>
       </div>
     )
@@ -35,13 +37,13 @@ export default function ExpiryDashboardPage() {
   // Block access for applicants
   if (role !== 'Recruiter' && role !== 'Master Recruiter') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
-          <p className="text-gray-600">
+      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4">
+        <div className="recruiter-panel max-w-lg p-8 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-red-600">Access Denied</h2>
+          <p className="text-slate-600">
             You don't have permission to access this page.
           </p>
-          <Link to="/dashboard" className="mt-4 text-blue-600 hover:underline">
+          <Link to="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
             Return to Dashboard
           </Link>
         </div>
@@ -50,8 +52,15 @@ export default function ExpiryDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="recruiter-shell">
+      <RecruiterTopbar
+        user={user}
+        profile={profile}
+        role={role}
+        signOut={signOut}
+      />
+      <RecruiterWorkspaceNav />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ExpiryDashboard />
       </div>
     </div>

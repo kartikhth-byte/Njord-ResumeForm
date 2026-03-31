@@ -9,11 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: true,        // ✅ Auto-refresh before expiry
-    persistSession: true,          // ✅ Persist across page reloads
-    detectSessionInUrl: false,     // ✅ Don't parse URL for session
-    storage: window.localStorage,  // ✅ Use localStorage
-    storageKey: 'njord-auth-token', // ✅ Custom key
-    flowType: 'pkce'              // ✅ More secure auth flow
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: 'njord-auth-token',
+    flowType: 'pkce',
+    // Avoid cross-tab LockManager contention delaying getSession() on startup.
+    lock: async (_name, _acquireTimeout, fn) => await fn(),
   }
 })

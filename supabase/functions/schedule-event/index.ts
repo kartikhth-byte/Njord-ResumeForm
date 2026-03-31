@@ -56,6 +56,17 @@ serve(async (req) => {
       throw new Error('Only recruiters can schedule events')
     }
 
+    const { data: canSchedule, error: permissionError } = await supabaseClient
+      .rpc('has_permission', { user_uuid: user.id, permission_name: 'schedule_interviews' })
+
+    if (permissionError) {
+      throw new Error(`Permission check failed: ${permissionError.message}`)
+    }
+
+    if (canSchedule !== true) {
+      throw new Error('You do not have permission to schedule interviews')
+    }
+
     // Parse request body
     const eventData = await req.json() as ScheduleEventRequest
 
@@ -84,22 +95,40 @@ serve(async (req) => {
       throw new Error('Application not found')
     }
 
+    const normalizedLocationType =
+      eventData.locationType === 'virtual'
+        ? 'online'
+        : eventData.locationType === 'physical'
+          ? 'in-person'
+          : eventData.locationType || 'online'
+
+    const locationDetails = eventData.locationLink || eventData.locationAddress || null
+    const eventTitle = `${eventData.eventType === 'interview' ? 'Interview' : 'Assessment Test'} - ${application.reference_number || application.id}`
+    const eventDescription = eventData.notes || null
+    const platform =
+      normalizedLocationType === 'online'
+        ? (eventData.locationLink ? 'Online Meeting' : 'Virtual')
+        : normalizedLocationType === 'phone'
+          ? 'Phone'
+          : null
+
     // Create scheduled event
     const { data: event, error: eventError } = await supabaseClient
       .from('scheduled_events')
       .insert({
         application_id: eventData.applicationId,
+        scheduled_by: user.id,
         event_type: eventData.eventType,
+        event_title: eventTitle,
+        event_description: eventDescription,
         scheduled_date: eventData.scheduledDate,
         scheduled_time: eventData.scheduledTime,
         duration_minutes: eventData.durationMinutes || 60,
-        location_type: eventData.locationType,
-        location_address: eventData.locationAddress,
-        location_link: eventData.locationLink,
-        notes: eventData.notes,
-        interviewers: eventData.interviewers || [],
+        timezone: 'UTC',
+        location_type: normalizedLocationType,
+        location_details: locationDetails,
+        platform,
         status: 'scheduled',
-        created_by: user.id
       })
       .select()
       .single()

@@ -285,33 +285,33 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   const today = new Date().toISOString().split('T')[0]
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" />
-      
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[9999] p-6">
+    <div className="recruiter-modal-backdrop">
+      <div className="recruiter-modal max-w-2xl">
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
+          <div className="recruiter-modal__header">
+            <div className="recruiter-modal__header-main">
+              <div className="recruiter-modal__icon">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <div>
+              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
+              <h3 className="recruiter-modal__title">
                 Update Test Result
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="recruiter-modal__subtitle">
                 Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
-              </p>
-              <p className="text-sm text-gray-600">
+                <br />
                 Position: {application.applied_rank} • Attempt: {currentAttempt} of {maxAttempts}
               </p>
             </div>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
+            </div>
+            <button onClick={onCancel} className="recruiter-modal__close">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
+            <div className="recruiter-modal__body space-y-5">
               {/* Test Result Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -428,7 +428,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
               {/* Conditional: Failed - Rejection Reason */}
               {result === 'failed' && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="recruiter-note recruiter-note--danger">
                   <label className="block text-sm font-medium text-red-900 mb-2">
                     Rejection Reason *
                   </label>
@@ -448,7 +448,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
               {/* Conditional: Retake - Scheduling Fields */}
               {result === 'retake' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                <div className="recruiter-note recruiter-note--info space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="w-5 h-5 text-blue-700" />
                     <h4 className="font-medium text-blue-900">Schedule Retake Test</h4>
@@ -541,19 +541,19 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mt-6">
+            <div className="recruiter-modal__footer">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !result}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
               >
                 {loading ? (
                   <>

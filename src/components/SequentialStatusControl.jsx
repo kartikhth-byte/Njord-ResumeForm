@@ -19,9 +19,20 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
   const [modalType, setModalType] = useState(null) // 'next', 'skip', 'reject', 'withdrawn'
   const [selectedStatus, setSelectedStatus] = useState(null)
-  const [notes, setNotes] = useState('')
   const buttonRef = useRef(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    const modalOpen = showModal || showSchedulingModal || showDocumentsModal || showWithdrawalModal
+    if (!modalOpen) return undefined
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [showModal, showSchedulingModal, showDocumentsModal, showWithdrawalModal])
 
   // Auto-open interview modal after Teams OAuth
 useEffect(() => {
@@ -78,7 +89,7 @@ useEffect(() => {
   }, [showMenu])
 
   const statusFlow = [
-    'new',
+    'submitted',
     'under_review',
     'test_scheduled',
     'test_passed',
@@ -91,6 +102,7 @@ useEffect(() => {
   ]
 
   const statusLabels = {
+    submitted: 'Submitted',
     new: 'New',
     under_review: 'Under Review',
     test_scheduled: 'Test Scheduled',
@@ -143,9 +155,11 @@ useEffect(() => {
   }
 
   const getNextStatus = () => {
-    const currentIndex = statusFlow.indexOf(currentStatus)
+    const normalizedStatus = currentStatus === 'submitted' ? 'submitted' : currentStatus
+    const currentIndex = statusFlow.indexOf(normalizedStatus)
     console.log('🟣 getNextStatus called', {
       currentStatus,
+      normalizedStatus,
       currentIndex,
       statusFlow,
       nextStatus: statusFlow[currentIndex + 1]
@@ -157,7 +171,8 @@ useEffect(() => {
   }
 
   const getSkippableStatuses = () => {
-    const currentIndex = statusFlow.indexOf(currentStatus)
+    const normalizedStatus = currentStatus === 'submitted' ? 'submitted' : currentStatus
+    const currentIndex = statusFlow.indexOf(normalizedStatus)
     if (currentIndex === -1) return []
     return statusFlow.slice(currentIndex + 2)
   }
@@ -302,13 +317,9 @@ useEffect(() => {
     try {
       setLoading(true)
 
-      const updateData = { 
-        status: selectedStatus, 
-        updated_at: new Date().toISOString() 
-      }
-
-      if (notes.trim()) {
-        updateData.status_notes = notes
+      const updateData = {
+        status: selectedStatus,
+        updated_at: new Date().toISOString()
       }
 
       const { error } = await supabase
@@ -320,10 +331,9 @@ useEffect(() => {
 
       onStatusChange(selectedStatus)
       setShowModal(false)
-      setNotes('')
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status')
+      alert(`Failed to update status${error?.message ? `: ${error.message}` : ''}`)
     } finally {
       setLoading(false)
     }
@@ -337,7 +347,7 @@ useEffect(() => {
           <button
             onClick={handleNextStage}
             disabled={loading}
-            className="group relative flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="workspace-action-button workspace-action-button--primary group relative rounded-xl text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -353,7 +363,7 @@ useEffect(() => {
           <button
             onClick={handleDeclineOffer}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
             title="Decline Offer"
           >
             <XCircle className="w-4 h-4" />
@@ -367,7 +377,7 @@ useEffect(() => {
             <button
               ref={buttonRef}
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -381,7 +391,7 @@ useEffect(() => {
                   onClick={() => setShowMenu(false)} 
                 />
                 <div 
-                  className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-48 z-[9998]"
+                  className="fixed z-[9998] w-56 rounded-2xl border border-gray-200 bg-white py-2 shadow-lg"
                   style={{
                     top: `${dropdownPosition.top}px`,
                     left: `${dropdownPosition.left}px`
@@ -441,7 +451,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" onClick={() => !loading && setShowModal(false)} />
           
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-[9999]">
+          <div className="relative z-[9999] w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {modalType === 'skip' ? 'Skip to ' : 'Advance to '}
               {statusLabels[selectedStatus]}
@@ -450,35 +460,20 @@ useEffect(() => {
               Mark the current stage as complete and move to the next stage.
             </p>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Add Notes (Optional)
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any relevant notes about this status change..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-            </div>
-
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowModal(false)
-                  setNotes('')
                 }}
                 disabled={loading}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
               >
                 {loading ? (
                   <>

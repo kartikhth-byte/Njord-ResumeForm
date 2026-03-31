@@ -148,7 +148,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+    <div className="recruiter-surface">
       <div className="flex items-center gap-2 mb-4">
         <Calendar className="w-5 h-5 text-blue-600" />
         <h4 className="text-lg font-semibold text-gray-900">
@@ -169,7 +169,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               min={today}
               value={formData.scheduledDate}
               onChange={(e) => handleChange('scheduledDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="recruiter-form-input"
             />
           </div>
           <div>
@@ -181,7 +181,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               required
               value={formData.scheduledTime}
               onChange={(e) => handleChange('scheduledTime', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="recruiter-form-input"
             />
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
           <select
             value={formData.durationMinutes}
             onChange={(e) => handleChange('durationMinutes', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="recruiter-form-select"
           >
             <option value="30">30 minutes</option>
             <option value="45">45 minutes</option>
@@ -260,7 +260,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
                 type="button"
                 onClick={needsGoogleAuth ? handleGoogleAuth : handleAutoCreateMeet}
                 disabled={creatingMeet || !formData.scheduledDate || !formData.scheduledTime}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                className="w-full rounded-[16px] bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-medium text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creatingMeet ? (
                   <>
@@ -268,18 +268,14 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
                     Creating Google Meet...
                   </>
                 ) : needsGoogleAuth ? (
-                  <>
-                    🔐 Authorize Google Calendar
-                  </>
+                  'Authorize Google Calendar'
                 ) : meetSuccess ? (
                   <>
                     <CheckCircle className="w-4 h-4" />
                     Google Meet Created ✓
                   </>
                 ) : (
-                  <>
-                    🔵 Auto-create Google Meet
-                  </>
+                  'Auto-create Google Meet'
                 )}
               </button>
               
@@ -310,7 +306,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
                 handleChange('locationLink', e.target.value)
                 setMeetSuccess(false)
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="recruiter-form-input"
             />
             <p className="text-xs text-gray-500 mt-1">
               💡 Tip: Use auto-create or manually create at meet.google.com/new
@@ -328,7 +324,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               value={formData.locationAddress}
               onChange={(e) => handleChange('locationAddress', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="recruiter-form-textarea"
             />
           </div>
         )}
@@ -344,7 +340,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
             placeholder="John Doe, Jane Smith, HR Manager"
             value={formData.interviewers.join(', ')}
             onChange={(e) => handleInterviewersChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="recruiter-form-input"
           />
           <p className="text-xs text-gray-500 mt-1">
             Optional: List names separated by commas
@@ -362,14 +358,14 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
             value={formData.eventNotes}
             onChange={(e) => handleChange('eventNotes', e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="recruiter-form-textarea"
           />
         </div>
 
         {/* Info Box */}
-        <div className="bg-white rounded-lg p-4 border border-blue-200">
+        <div className="recruiter-note recruiter-note--info">
           <p className="text-sm text-gray-700">
-            <strong className="text-blue-700">📧 Emails will be sent to:</strong>
+            <strong className="text-blue-700">Emails will be sent to:</strong>
           </p>
           <ul className="text-sm text-gray-600 mt-2 space-y-1 ml-4">
             <li>✅ Applicant (with calendar invite)</li>

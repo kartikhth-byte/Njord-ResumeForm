@@ -32,8 +32,10 @@ export default function Section5({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.visas) {
-      setVisas(data.visas)
+    if (data && Array.isArray(data.visas)) {
+      setVisas(prevVisas => (
+        data.visas.length === 0 && prevVisas.length > 0 ? prevVisas : data.visas
+      ))
     }
   }, [data])
 
@@ -105,9 +107,10 @@ export default function Section5({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 5: Visas</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Travel readiness</p>
+        <h2 className="applicant-section-title">Visas</h2>
+        <p className="applicant-section-copy">
           Add all your current valid visas for maritime travel
         </p>
       </div>
@@ -115,7 +118,7 @@ export default function Section5({ data = {}, onUpdate }) {
       {/* Visas List */}
       <div className="space-y-6">
         {visas.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -131,8 +134,9 @@ export default function Section5({ data = {}, onUpdate }) {
             </svg>
             <p className="text-gray-600 mb-4">No visas added yet</p>
             <button
+              type="button"
               onClick={handleAddVisa}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Your First Visa
@@ -141,15 +145,19 @@ export default function Section5({ data = {}, onUpdate }) {
         ) : (
           <>
             {visas.map((visa, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Visa Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Visa {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">Visa {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Include every currently valid visa that may affect your deployability across regions.
+                    </p>
+                  </div>
                   <button
+                    type="button"
                     onClick={() => handleRemoveVisa(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -220,8 +228,9 @@ export default function Section5({ data = {}, onUpdate }) {
 
             {/* Add Another Button */}
             <button
+              type="button"
               onClick={handleAddVisa}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Visa</span>
@@ -231,7 +240,7 @@ export default function Section5({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -239,9 +248,7 @@ export default function Section5({ data = {}, onUpdate }) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              🌍 Tip
-            </h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">Tip</h3>
             <p className="text-sm text-blue-800">
               Add all valid visas that are commonly required for seafarers (USA C1/D, Schengen, Australia MCV, etc.). Having multiple valid visas increases your employability for international vessels.
             </p>

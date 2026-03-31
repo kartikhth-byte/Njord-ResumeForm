@@ -8,6 +8,8 @@ node_modules/
 # Testing
 coverage/
 .nyc_output
+playwright-report/
+test-results/
 
 # Production build
 dist/
@@ -18,6 +20,7 @@ out/
 # Environment variables
 .env
 .env.local
+.env.playwright
 .env.development.local
 .env.test.local
 .env.production.local
@@ -46,6 +49,7 @@ temp/
 
 # Supabase
 .supabase/
+playwright/.auth/
 
 # Misc
 .eslintcache

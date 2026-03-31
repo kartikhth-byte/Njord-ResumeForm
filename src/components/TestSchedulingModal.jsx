@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
-import { Calendar, Clock, Link as LinkIcon, Loader2, X } from 'lucide-react'
+import { Calendar, Clock, Link as LinkIcon, Loader2, PencilLine, X } from 'lucide-react'
 
 export default function TestSchedulingModal({ application, onScheduled, onCancel }) {
   const { user } = useAuth()
@@ -18,6 +18,15 @@ export default function TestSchedulingModal({ application, onScheduled, onCancel
   const testType = 'Competency Assessment'
   const platform = 'Custom Test Portal'
   const duration = '60' // 1 hour
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -161,34 +170,29 @@ if (reminderError) {
   const today = new Date().toISOString().split('T')[0]
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" />
-      
-      <div className="flex min-h-full items-center justify-center p-4 relative z-[9999]">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
+    (
+      <div className="recruiter-modal-backdrop">
+        <div className="recruiter-modal max-w-2xl">
+        <div className="recruiter-modal__header">
+          <div className="recruiter-modal__header-main">
+            <div className="recruiter-modal__icon">
+              <PencilLine className="h-6 w-6" />
+            </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Schedule Competency Test
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}
-              </p>
-              <p className="text-sm text-gray-600">
-                Position: {application.applied_rank}
+              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
+              <h3 className="recruiter-modal__title">Schedule competency test</h3>
+              <p className="recruiter-modal__subtitle">
+                {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} - {application.reference_number} - {application.applied_rank}
               </p>
             </div>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
+          <button onClick={onCancel} className="recruiter-modal__close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
+        <form onSubmit={handleSubmit}>
+          <div className="recruiter-modal__body space-y-5">
               {/* Date and Time Row */}
               <div className="grid grid-cols-2 gap-4">
                 {/* Test Date */}
@@ -257,43 +261,43 @@ if (reminderError) {
               </div>
 
               {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  <strong>Note:</strong> The candidate will receive an email with test details, date, time, and access link. 
+              <div className="recruiter-note recruiter-note--info">
+                <p className="recruiter-note__title">What happens next</p>
+                <p className="recruiter-note__body">
+                  The candidate will receive an email with test details, date, time, and access link. 
                   You will also receive a calendar reminder.
                 </p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Scheduling...
-                  </>
-                ) : (
-                  'Schedule Test & Notify'
-                )}
-              </button>
-            </div>
-          </form>
+          <div className="recruiter-modal__footer">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              className="workspace-action-button workspace-action-button--secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Scheduling...
+                </>
+              ) : (
+                'Schedule Test & Notify'
+              )}
+            </button>
+          </div>
+        </form>
         </div>
       </div>
-    </div>,
+    ),
     document.body
   )
 }

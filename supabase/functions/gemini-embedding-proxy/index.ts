@@ -2,6 +2,7 @@
 // Secure proxy for Gemini embedding API calls
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,7 @@ const corsHeaders = {
 interface EmbeddingRequest {
   text: string
   model?: string
+  outputDimensionality?: number
 }
 
 serve(async (req) => {
@@ -19,7 +21,11 @@ serve(async (req) => {
   }
 
   try {
-    const { text, model = 'text-embedding-004' } = await req.json() as EmbeddingRequest
+    const {
+      text,
+      model = 'gemini-embedding-001',
+      outputDimensionality = 768,
+    } = await req.json() as EmbeddingRequest
 
     // Validate input
     if (!text || typeof text !== 'string') {
@@ -31,7 +37,8 @@ serve(async (req) => {
       throw new Error('Text too long (max 10,000 characters)')
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY')
+    const runtimeSettings = await getRuntimeSettings(['GEMINI_API_KEY'])
+    const apiKey = runtimeSettings.GEMINI_API_KEY
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY not configured')
     }
@@ -43,10 +50,11 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-              model: `models/${model}`,  // ← ADD THIS LINE
+          model: `models/${model}`,
           content: {
             parts: [{ text }]
-          }
+          },
+          outputDimensionality,
         })
       }
     )

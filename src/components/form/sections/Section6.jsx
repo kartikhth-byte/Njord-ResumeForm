@@ -18,8 +18,10 @@ export default function Section6({ data = {}, onUpdate }) {
 
   // Sync state when data prop changes
   useEffect(() => {
-    if (data && data.education) {
-      setEducation(data.education)
+    if (data && Array.isArray(data.education)) {
+      setEducation(prevEducation => (
+        data.education.length === 0 && prevEducation.length > 0 ? prevEducation : data.education
+      ))
     }
   }, [data])
 
@@ -89,9 +91,10 @@ export default function Section6({ data = {}, onUpdate }) {
   return (
     <div className="space-y-6">
       {/* Section Header */}
-      <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 6: Education Background</h2>
-        <p className="text-gray-600 mt-1">
+      <div className="applicant-section-intro">
+        <p className="applicant-section-kicker">Background</p>
+        <h2 className="applicant-section-title">Education background</h2>
+        <p className="applicant-section-copy">
           List your educational qualifications and training institutions
         </p>
       </div>
@@ -99,7 +102,7 @@ export default function Section6({ data = {}, onUpdate }) {
       {/* Education List */}
       <div className="space-y-6">
         {education.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <div className="applicant-empty-state">
             <svg
               className="w-12 h-12 text-gray-400 mx-auto mb-4"
               fill="none"
@@ -116,7 +119,7 @@ export default function Section6({ data = {}, onUpdate }) {
             <p className="text-gray-600 mb-4">No education records added yet</p>
             <button
               onClick={handleAddEducation}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="applicant-action applicant-action--primary"
             >
               <Plus className="w-4 h-4" />
               Add Education Record
@@ -125,15 +128,18 @@ export default function Section6({ data = {}, onUpdate }) {
         ) : (
           <>
             {education.map((edu, index) => (
-              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div key={index} className="applicant-record-card">
                 {/* Education Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Education {index + 1}
-                  </h3>
+                <div className="applicant-record-card__header">
+                  <div>
+                    <h3 className="applicant-record-card__title">Education {index + 1}</h3>
+                    <p className="applicant-record-card__subtitle">
+                      Record the institution, dates attended, and the highest qualification earned.
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleRemoveEducation(index)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="applicant-action applicant-action--secondary"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Remove</span>
@@ -198,7 +204,7 @@ export default function Section6({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddEducation}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Education Record</span>
@@ -208,7 +214,7 @@ export default function Section6({ data = {}, onUpdate }) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="applicant-section-card applicant-section-card--muted">
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -216,9 +222,7 @@ export default function Section6({ data = {}, onUpdate }) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              🎓 Tip
-            </h3>
+            <h3 className="text-sm font-semibold text-blue-900 mb-1">Tip</h3>
             <p className="text-sm text-blue-800">
               Include all relevant maritime education and training, starting with the most recent. Include maritime academies, universities, and any specialized maritime training institutions.
             </p>

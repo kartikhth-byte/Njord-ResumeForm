@@ -91,11 +91,10 @@ export default function MicrosoftOAuthCallback() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+    <div className="public-shell flex min-h-screen items-center justify-center px-4">
+      <div className="public-card max-w-md text-center">
           {/* Icon */}
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
             {status === 'processing' && (
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
             )}
@@ -133,12 +132,11 @@ export default function MicrosoftOAuthCallback() {
           {status !== 'processing' && (
             <button
               onClick={() => navigate('/recruiter/applications?teams_connected=true')}
-              className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-6 applicant-action applicant-action--primary"
             >
               Go to Applications
             </button>
           )}
-        </div>
       </div>
     </div>
   )
