@@ -21,6 +21,7 @@
 - Add automated verification around the client-form writer once the interface is stable enough
 - Harden the single-active-application rule beyond the applicant dashboard UI by enforcing it at draft creation/submission in the database or an RPC/service layer, so alternate clients cannot bypass it
 - Update the worksheet service `APP_URL` on Render from local/dev origins to the production frontend URL before go-live
+- Do a broad edge-function CORS sweep before go-live so wildcard origins are replaced with an `APP_URL`-based allowlist/shared helper
 
 ## Lower Priority
 

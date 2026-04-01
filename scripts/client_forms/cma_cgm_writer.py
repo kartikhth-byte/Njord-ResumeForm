@@ -39,6 +39,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 TMP_DIR = ROOT_DIR / "tmp" / "client-form-prototype"
 PHOTO_BUCKET = "application-photos"
 DEFAULT_OUTPUT_BASENAME = "cma-cgm-section1-section2"
+ENV_FILE_PATH = ROOT_DIR / ".env.local"
+ENV_VARS: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -643,6 +645,9 @@ def build_identifier(args: argparse.Namespace) -> dict[str, str] | None:
 
 
 def load_env_file(path: Path) -> dict[str, str]:
+    global ENV_VARS
+    if ENV_VARS is not None and path == ENV_FILE_PATH:
+        return ENV_VARS
     env: dict[str, str] = {}
     for raw_line in path.read_text().splitlines():
         line = raw_line.strip()
@@ -650,6 +655,8 @@ def load_env_file(path: Path) -> dict[str, str]:
             continue
         key, value = line.split("=", 1)
         env[key.strip()] = value.strip()
+    if path == ENV_FILE_PATH:
+        ENV_VARS = env
     return env
 
 
@@ -698,8 +705,8 @@ def resolve_output_path(explicit_output: str | None, payload: dict[str, Any]) ->
 
     application = payload.get("_application") or {}
     identifier = application.get("reference_number") or DEFAULT_OUTPUT_BASENAME
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return (TMP_DIR / f"{identifier}-section1-section2-{timestamp}.xlsx").resolve()
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    return (TMP_DIR / f"{identifier}-worksheet-{timestamp}.xlsx").resolve()
 
 
 def normalize_template(template_path: Path) -> Path:
@@ -709,15 +716,9 @@ def normalize_template(template_path: Path) -> Path:
     if suffix == ".xlsx":
         return template_path
 
-    if suffix == ".xls":
-        return export_xls_template(template_path)
-
-    if suffix == ".numbers" or is_numbers_package(template_path):
-        return export_numbers_template(template_path)
-
     raise SystemExit(
         f"Unsupported template format for prototype: {template_path.name}. "
-        "Use a .numbers, .xls, or .xlsx template."
+        "Upload a normalized .xlsx template."
     )
 
 
@@ -730,51 +731,17 @@ def is_numbers_package(path: Path) -> bool:
 
 
 def export_numbers_template(template_path: Path) -> Path:
-    output_path = template_path.parent / f"normalized-{template_path.stem}.xlsx"
-    applescript = f"""
-set inputAlias to POSIX file "{escape_applescript_path(str(template_path))}" as alias
-set outputFile to POSIX file "{escape_applescript_path(str(output_path))}"
-
-tell application "Numbers"
-  activate
-  try
-    close every document saving no
-  end try
-  open inputAlias
-  delay 2
-  set exportedDoc to front document
-  export exportedDoc to outputFile as Microsoft Excel
-  close exportedDoc saving no
-end tell
-"""
-    subprocess.run(["osascript", "-e", applescript], check=True)
-    if not output_path.exists():
-        raise SystemExit(f"Numbers export did not produce {output_path}")
-    return output_path
+    raise SystemExit(
+        f"Unsupported template format for prototype: {template_path.name}. "
+        "Convert the template locally and upload/use a normalized .xlsx file."
+    )
 
 
 def export_xls_template(template_path: Path) -> Path:
-    soffice_path = resolve_soffice_path()
-    output_path = template_path.parent / f"normalized-{template_path.stem}.xlsx"
-    output_path.unlink(missing_ok=True)
-    subprocess.run(
-        [
-            str(soffice_path),
-            "--headless",
-            "--convert-to",
-            "xlsx",
-            "--outdir",
-            str(template_path.parent),
-            str(template_path),
-        ],
-        check=True,
+    raise SystemExit(
+        f"Unsupported template format for prototype: {template_path.name}. "
+        "Convert the template locally and upload/use a normalized .xlsx file."
     )
-    converted_path = template_path.parent / f"{template_path.stem}.xlsx"
-    if not converted_path.exists():
-        raise SystemExit(f"LibreOffice conversion did not produce {converted_path}")
-    if converted_path != output_path:
-        converted_path.replace(output_path)
-    return output_path
 
 
 def resolve_soffice_path() -> Path:
@@ -813,9 +780,12 @@ def resolve_photo_bytes(
         warnings.append("No applicant photo path found at section2.photoStoragePath.")
         return None
 
-    public_url = build_public_storage_url(storage_path)
     try:
-        response = requests.get(public_url, timeout=30)
+        response = requests.get(
+            build_storage_url(storage_path),
+            headers=build_service_role_headers(),
+            timeout=30,
+        )
         response.raise_for_status()
     except Exception as exc:  # noqa: BLE001
         warnings.append(f"Failed to download applicant photo from storage: {exc}")
@@ -823,11 +793,20 @@ def resolve_photo_bytes(
     return response.content
 
 
-def build_public_storage_url(storage_path: str) -> str:
-    env = load_env_file(ROOT_DIR / ".env.local")
+def build_storage_url(storage_path: str) -> str:
+    env = load_env_file(ENV_FILE_PATH)
     supabase_url = require_env(env, "VITE_SUPABASE_URL")
     quoted_path = urllib.parse.quote(storage_path, safe="/")
-    return f"{supabase_url}/storage/v1/object/public/{PHOTO_BUCKET}/{quoted_path}"
+    return f"{supabase_url}/storage/v1/object/{PHOTO_BUCKET}/{quoted_path}"
+
+
+def build_service_role_headers() -> dict[str, str]:
+    env = load_env_file(ENV_FILE_PATH)
+    service_role_key = require_env(env, "SUPABASE_SERVICE_ROLE_KEY")
+    return {
+        "apikey": service_role_key,
+        "Authorization": f"Bearer {service_role_key}",
+    }
 
 
 def generate_workbook(

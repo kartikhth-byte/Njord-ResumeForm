@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -26,11 +27,14 @@ TEMPLATE_BUCKET = "worksheet-templates"
 PHOTO_BUCKET = "application-photos"
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 
 @app.after_request
 def add_cors_headers(response: Response) -> Response:
-    response.headers["Access-Control-Allow-Origin"] = resolve_allowed_origin(request.headers.get("Origin"))
+    allowed_origin = resolve_allowed_origin(request.headers.get("Origin"))
+    if allowed_origin:
+        response.headers["Access-Control-Allow-Origin"] = allowed_origin
     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type"
     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
     response.headers["Vary"] = "Origin"
@@ -70,7 +74,9 @@ def generate_customer_worksheet() -> Response:
             "customer_id",
             customer_id,
             select="id,customer_id,file_name,storage_path,source_extension,is_active",
-            extra_filters=["is_active=eq.true", "order=created_at.desc", "limit=1"],
+            filters={"is_active": "eq.true"},
+            order="created_at.desc",
+            limit=1,
         )
         if (template.get("source_extension") or "").lower() != "xlsx":
             return jsonify({"error": "Upload a normalized .xlsx worksheet template before generating customer worksheets"}), 400
@@ -93,7 +99,12 @@ def generate_customer_worksheet() -> Response:
         with tempfile.TemporaryDirectory(prefix="worksheet-service-") as tmp_dir:
             tmp_path = Path(tmp_dir)
             template_path = tmp_path / sanitize_filename(template.get("file_name") or "customer-template.xlsx")
-            output_name = f"{sanitize_filename(customer.get('name') or 'customer')}-{sanitize_filename(application.get('reference_number') or application.get('id') or 'application')}.xlsx"
+            timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+            output_name = (
+                f"{sanitize_filename(customer.get('name') or 'customer')}-"
+                f"{sanitize_filename(application.get('reference_number') or application.get('id') or 'application')}-"
+                f"worksheet-{timestamp}.xlsx"
+            )
             output_path = tmp_path / output_name
 
             download_storage_object(template["storage_path"], template_path)
@@ -154,12 +165,24 @@ def fetch_single_row(
     value: str,
     *,
     select: str,
-    extra_filters: list[str] | None = None,
+    filters: dict[str, str] | None = None,
+    order: str | None = None,
+    limit: int | None = None,
 ) -> dict[str, Any]:
-    filters = [f"{quote(field)}=eq.{quote(str(value), safe='')}"]
-    if extra_filters:
-        filters.extend(extra_filters)
-    url = f"{SUPABASE_URL}/rest/v1/{table}?select={quote(select, safe=',*()')}&{'&'.join(filters)}"
+    query_parts = [
+        f"select={quote(select, safe=',*()')}",
+        f"{quote(field)}=eq.{quote(str(value), safe='')}",
+    ]
+    if filters:
+        query_parts.extend(
+            f"{quote(filter_key)}={quote(filter_value, safe='.:,()')}"
+            for filter_key, filter_value in filters.items()
+        )
+    if order:
+        query_parts.append(f"order={quote(order, safe='.:,')}")
+    if limit is not None:
+        query_parts.append(f"limit={limit}")
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{'&'.join(query_parts)}"
     response = requests.get(url, headers=service_role_headers(), timeout=30)
     response.raise_for_status()
     rows = response.json()
@@ -185,7 +208,8 @@ def fetch_photo_bytes(payload: dict[str, Any], warnings: list[str]) -> bytes | N
         return None
 
     response = requests.get(
-        f"{SUPABASE_URL}/storage/v1/object/public/{PHOTO_BUCKET}/{quote(str(storage_path), safe='/')}",
+        f"{SUPABASE_URL}/storage/v1/object/{PHOTO_BUCKET}/{quote(str(storage_path), safe='/')}",
+        headers=service_role_headers(),
         timeout=30,
     )
     if response.status_code != 200:
@@ -228,12 +252,12 @@ def extract_http_error(exc: requests.HTTPError) -> str:
     return f"Request failed with status {response.status_code}"
 
 
-def resolve_allowed_origin(request_origin: str | None) -> str:
+def resolve_allowed_origin(request_origin: str | None) -> str | None:
     if not ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS:
         return request_origin or "*"
     if request_origin and request_origin in ALLOWED_ORIGINS:
         return request_origin
-    return ALLOWED_ORIGINS[0]
+    return None
 
 
 if __name__ == "__main__":

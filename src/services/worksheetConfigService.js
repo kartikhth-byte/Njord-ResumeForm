@@ -183,9 +183,10 @@ export async function downloadGeneratedWorksheet({ applicationId, customerId }) 
   }
 
   const { WORKSHEET_SERVICE_URL = '' } = await getClientRuntimeSettings()
-  const targetUrl = WORKSHEET_SERVICE_URL.trim()
-    ? `${WORKSHEET_SERVICE_URL.replace(/\/$/, '')}/api/customer-worksheets/generate`
-    : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-customer-worksheet`
+  if (!WORKSHEET_SERVICE_URL.trim()) {
+    throw new Error('Worksheet service is not configured. Set WORKSHEET_SERVICE_URL in runtime settings.')
+  }
+  const targetUrl = `${WORKSHEET_SERVICE_URL.replace(/\/$/, '')}/api/customer-worksheets/generate`
 
   const response = await fetch(targetUrl, {
     method: 'POST',

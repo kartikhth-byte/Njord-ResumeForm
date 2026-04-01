@@ -16,4 +16,4 @@ ENV WORKSHEET_SERVICE_HOST=0.0.0.0 \
 
 EXPOSE 8765
 
-CMD ["python3", "/app/services/worksheet-service/app.py"]
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:8765", "--chdir", "/app/services/worksheet-service", "app:app"]

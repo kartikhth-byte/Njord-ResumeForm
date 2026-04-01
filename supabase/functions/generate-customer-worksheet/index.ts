@@ -78,81 +78,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
-
-  try {
-    const supabase = createAdminSupabaseClient()
-    const user = await getAuthorizedUser(req, supabase, 'export_data')
-    if (!user) {
-      return json({ error: 'Insufficient permissions' }, 403)
-    }
-
-    const { applicationId, customerId } = await req.json()
-    if (!applicationId || !customerId) {
-      return json({ error: 'applicationId and customerId are required' }, 400)
-    }
-
-    const { data: customer, error: customerError } = await supabase
-      .from('worksheet_customers')
-      .select('*')
-      .eq('id', customerId)
-      .single()
-
-    if (customerError || !customer) {
-      return json({ error: 'Worksheet customer not found' }, 404)
-    }
-
-    const { data: template, error: templateError } = await supabase
-      .from('worksheet_templates')
-      .select('*')
-      .eq('customer_id', customerId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (templateError || !template) {
-      return json({ error: 'No active worksheet template is configured for this customer' }, 400)
-    }
-
-    const { data: application, error: applicationError } = await supabase
-      .from('applications')
-      .select('id, reference_number')
-      .eq('id', applicationId)
-      .single()
-
-    if (applicationError || !application) {
-      return json({ error: 'Application not found' }, 404)
-    }
-
-    const { data: applicationDataRow, error: applicationDataError } = await supabase
-      .from('application_data')
-      .select('data')
-      .eq('application_id', applicationId)
-      .single()
-
-    if (applicationDataError || !applicationDataRow?.data) {
-      return json({ error: 'Application data not found' }, 404)
-    }
-
-    const { workbook, sheetAliases } = await loadWorkbookFromTemplate(supabase, template)
-    await applySharedWorksheetWorkbook(workbook, applicationDataRow.data, supabase, sheetAliases)
-
-    const workbookBuffer = await workbook.xlsx.writeBuffer()
-    const outputBuffer = restoreProtectedSheetNames(new Uint8Array(workbookBuffer), sheetAliases)
-    const fileName = `${sanitizeFileName(customer.name)}-${sanitizeFileName(application.reference_number || application.id)}.xlsx`
-
-    return new Response(outputBuffer, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-      },
-    })
-  } catch (error) {
-    console.error('generate-customer-worksheet error:', error)
-    return json({ error: error instanceof Error ? error.message : 'Failed to generate worksheet' }, 500)
-  }
+  return json(
+    {
+      error: 'Worksheet generation has moved to the hosted worksheet service. Configure WORKSHEET_SERVICE_URL and use that endpoint instead.',
+    },
+    501
+  )
 })
 
 async function loadWorkbookFromTemplate(supabase: ReturnType<typeof createAdminSupabaseClient>, template: Record<string, unknown>) {

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
@@ -53,6 +53,8 @@ export default function ViewApplication() {
   const [worksheetLoading, setWorksheetLoading] = useState(false)
   const [worksheetError, setWorksheetError] = useState('')
   const [worksheetGenerating, setWorksheetGenerating] = useState(false)
+  const [worksheetSuccess, setWorksheetSuccess] = useState('')
+  const worksheetModalCloseTimeoutRef = useRef(null)
 
   useEffect(() => {
     if (authLoading || (user && authorizationLoading && !userType)) return
@@ -81,6 +83,14 @@ export default function ViewApplication() {
     if (!worksheetModalOpen) return
     loadWorksheetCustomers()
   }, [worksheetModalOpen, loadWorksheetCustomers])
+
+  useEffect(() => {
+    return () => {
+      if (worksheetModalCloseTimeoutRef.current) {
+        clearTimeout(worksheetModalCloseTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const loadApplication = async () => {
     try {
@@ -251,11 +261,24 @@ export default function ViewApplication() {
 
     setWorksheetGenerating(true)
     setWorksheetError('')
+    setWorksheetSuccess('')
+    if (worksheetModalCloseTimeoutRef.current) {
+      clearTimeout(worksheetModalCloseTimeoutRef.current)
+      worksheetModalCloseTimeoutRef.current = null
+    }
     try {
-      await downloadGeneratedWorksheet({
+      const { fileName } = await downloadGeneratedWorksheet({
         applicationId: application.id,
         customerId: selectedWorksheetCustomerId,
       })
+      setWorksheetSuccess(
+        `Worksheet download started successfully for ${fileName}. Check your browser's default Downloads folder.`
+      )
+      worksheetModalCloseTimeoutRef.current = setTimeout(() => {
+        setWorksheetModalOpen(false)
+        setWorksheetSuccess('')
+        worksheetModalCloseTimeoutRef.current = null
+      }, 1800)
     } catch (generateError) {
       setWorksheetError(generateError.message || 'Failed to generate worksheet')
     } finally {
@@ -358,6 +381,27 @@ export default function ViewApplication() {
               }`}>
                 {worksheetLoading ? 'Loading customer worksheet settings...' : worksheetReadiness.message}
               </div>
+
+              {worksheetGenerating ? (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium">Generating worksheet...</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-sky-700">
+                    The template is being populated now. This can take a few seconds.
+                  </p>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-sky-100">
+                    <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-sky-500" />
+                  </div>
+                </div>
+              ) : null}
+
+              {worksheetSuccess ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {worksheetSuccess}
+                </div>
+              ) : null}
 
               {worksheetError ? (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">

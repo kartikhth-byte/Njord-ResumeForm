@@ -27,14 +27,17 @@ async function invokeManageRuntimeSettings(body) {
 
 export async function getClientRuntimeSettings(forceRefresh = false) {
   if (!clientConfigPromise || forceRefresh) {
-    clientConfigPromise = invokeManageRuntimeSettings({ action: 'get_client_config' }).then(
-      ({ settings = {} }) => ({
+    clientConfigPromise = invokeManageRuntimeSettings({ action: 'get_client_config' })
+      .then(({ settings = {} }) => ({
         MICROSOFT_CLIENT_ID: settings.MICROSOFT_CLIENT_ID || import.meta.env.VITE_MICROSOFT_CLIENT_ID || '',
         MICROSOFT_REDIRECT_URI: settings.MICROSOFT_REDIRECT_URI || import.meta.env.VITE_MICROSOFT_REDIRECT_URI || '',
         APP_URL: settings.APP_URL || import.meta.env.VITE_APP_URL || '',
         WORKSHEET_SERVICE_URL: settings.WORKSHEET_SERVICE_URL || import.meta.env.VITE_WORKSHEET_SERVICE_URL || '',
+      }))
+      .catch((error) => {
+        clientConfigPromise = null
+        throw error
       })
-    )
   }
 
   return clientConfigPromise
