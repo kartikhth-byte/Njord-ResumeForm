@@ -37,6 +37,7 @@ def add_cors_headers(response: Response) -> Response:
         response.headers["Access-Control-Allow-Origin"] = allowed_origin
     response.headers["Access-Control-Allow-Headers"] = "authorization, content-type"
     response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
     response.headers["Vary"] = "Origin"
     return response
 
