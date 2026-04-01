@@ -32,6 +32,27 @@ function sanitizeFileName(value) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '-')
 }
 
+function getDownloadFileName(contentDisposition) {
+  if (!contentDisposition) return 'customer-worksheet.xlsx'
+
+  const utf8Match = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1])
+  }
+
+  const quotedMatch = contentDisposition.match(/filename\s*=\s*"([^"]+)"/i)
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1]
+  }
+
+  const bareMatch = contentDisposition.match(/filename\s*=\s*([^;]+)/i)
+  if (bareMatch?.[1]) {
+    return bareMatch[1].trim()
+  }
+
+  return 'customer-worksheet.xlsx'
+}
+
 export async function listWorksheetCustomers() {
   const { data, error } = await supabase
     .from('worksheet_customers')
@@ -210,8 +231,7 @@ export async function downloadGeneratedWorksheet({ applicationId, customerId }) 
 
   const blob = await response.blob()
   const contentDisposition = response.headers.get('Content-Disposition') || ''
-  const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/)
-  const fileName = fileNameMatch?.[1] || 'customer-worksheet.xlsx'
+  const fileName = getDownloadFileName(contentDisposition)
 
   const objectUrl = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

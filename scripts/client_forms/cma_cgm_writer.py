@@ -458,6 +458,7 @@ PHOTO_TARGET_RANGE = "G5:H14"
 MAIN_SHEET_NAME = "Main"
 HISTORY_SHEET_NAME = "History"
 END_SHEET_NAME = "End"
+EXPORT_SUMMARY_SHEET_NAME = "Export Summary"
 END_VESSEL_TABLE_ROWS = (
     ("3", "Master - C/E"),
     ("4", "C/O - 2/E"),
@@ -859,6 +860,12 @@ def generate_workbook(
         insert_photo(worksheet, photo_bytes, PHOTO_TARGET_RANGE)
     else:
         warnings.append("Workbook generated without an embedded photo.")
+
+    if EXPORT_SUMMARY_SHEET_NAME in workbook.sheetnames:
+        workbook.remove(workbook[EXPORT_SUMMARY_SHEET_NAME])
+
+    if MAIN_SHEET_NAME in workbook.sheetnames:
+        workbook.active = workbook.sheetnames.index(MAIN_SHEET_NAME)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     workbook.save(output_path)
