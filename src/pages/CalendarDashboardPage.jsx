@@ -15,7 +15,7 @@ export default function CalendarDashboardPage() {
   useEffect(() => {
     // Only allow recruiters to access this page
     if (!user && !loading) {
-      navigate('/login')
+      navigate('/recruiter/login')
       return
     }
   }, [user, loading, navigate])
@@ -40,8 +40,8 @@ export default function CalendarDashboardPage() {
           <p className="text-slate-600">
             You don't have permission to access this page.
           </p>
-          <Link to="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
-            Return to Dashboard
+          <Link to="/recruiter/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
+            Return to recruiter dashboard
           </Link>
         </div>
       </div>

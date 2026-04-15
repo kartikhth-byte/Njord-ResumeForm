@@ -16,14 +16,14 @@ export default function ApplicantRoute({ children }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/applicant/login" replace />
   }
 
   if (userType !== 'applicant') {
     if (userType === 'recruiter') {
       return <Navigate to="/recruiter/dashboard" replace />
     }
-    return <Navigate to="/login" replace />
+    return <Navigate to="/applicant/login" replace />
   }
 
   return children

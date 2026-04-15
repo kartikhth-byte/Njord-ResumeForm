@@ -43,7 +43,7 @@ export default function AuthCallback() {
 
     if (!user) {
       if (!authResolutionTimedOut) return
-      navigate('/login', { replace: true })
+      navigate('/applicant/login', { replace: true })
       return
     }
 
@@ -57,7 +57,7 @@ export default function AuthCallback() {
       return
     }
 
-    navigate('/login', { replace: true })
+    navigate('/applicant/login', { replace: true })
   }, [user, userType, loading, authorizationLoading, navigate, authResolutionTimedOut])
 
   return (

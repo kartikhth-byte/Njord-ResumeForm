@@ -2,11 +2,12 @@
 
 ## High Priority
 
-- Extend the CMA CGM writer prototype beyond Sections 1 and 2 using the real template and DB mappings
-- Decide the durable integration path for client-form export:
-  - backend/service endpoint
-  - recruiter UI trigger
-  - settings-driven template/mapping management
+- Validate the hosted worksheet export path end to end for all supported customer templates:
+  - template upload
+  - recruiter download flow
+  - formatting fidelity
+  - overwrite behavior on prefilled template data
+- Verify the second customer worksheet template against the shared mapping path and confirm branding/template fidelity
 - Perform full manual applicant data-entry test after wiping applicant test data
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
@@ -22,6 +23,11 @@
 - Harden the single-active-application rule beyond the applicant dashboard UI by enforcing it at draft creation/submission in the database or an RPC/service layer, so alternate clients cannot bypass it
 - Update the worksheet service `APP_URL` on Render from local/dev origins to the production frontend URL before go-live
 - Do a broad edge-function CORS sweep before go-live so wildcard origins are replaced with an `APP_URL`-based allowlist/shared helper
+- Add a small worksheet-service operations runbook:
+  - deploy/redeploy steps
+  - required env vars
+  - template upload expectations (`.xlsx` only)
+  - common worksheet troubleshooting steps
 
 ## Lower Priority
 
@@ -35,7 +41,7 @@
 - Should `Send reset email` remain limited to `Master Recruiter` rows only, or be broadened later?
 - Is the current 3-role model final, or should any extra recruiter capabilities be split further in future?
 - Should the client-form writer remain Python-based behind a service boundary, or be reimplemented later in Node once mappings/settings UI are in place?
-- Should uploaded client templates be normalized to `.xlsx` at upload time, or at generation time?
+- Should the app ever support in-product template normalization again, or should normalized `.xlsx` upload remain the permanent workflow?
 
 ## Definition of Done For Major Changes
 

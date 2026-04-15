@@ -185,12 +185,14 @@ export function getWorksheetExportReadiness(customer) {
     return {
       ready: false,
       message: 'No active XLSX worksheet template uploaded for this customer.',
+      template: null,
     }
   }
 
   return {
     ready: true,
     message: 'Template ready. Workbook generation will use the uploaded XLSX template.',
+    template: activeTemplate,
   }
 }
 

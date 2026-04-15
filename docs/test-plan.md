@@ -38,6 +38,32 @@ Prototype caveats:
 - `.numbers` template normalization currently depends on local macOS Numbers
 - there is not yet automated regression coverage for the writer prototype
 
+## Hosted Worksheet Export Validation
+
+Manual validation required for each supported customer template:
+- upload a normalized `.xlsx` template in recruiter settings
+- confirm the active template file name is shown correctly in settings
+- open a submitted application as recruiter and launch `Generate Worksheet`
+- confirm the modal shows the selected customer, active template name, and upload timestamp
+- confirm generation starts only when an active template exists
+- confirm the download starts with the expected generated filename format
+- confirm the browser receives the generated file instead of a generic fallback name
+- confirm mapped cells are overwritten even when the uploaded template already contains old sample data
+- confirm visible workbook formatting is preserved after population
+- confirm the export uses the current application values, not stale data from a prior run
+
+Per-customer verification matrix:
+- CMA CGM: upload template, generate workbook, manually inspect `Main`, `History`, and `End`
+- Sonangol: upload template, generate workbook, manually inspect `Main`, `History`, and `End`
+
+Specific worksheet checks:
+- active template metadata displayed in recruiter UI matches the uploaded file
+- generated workbook opens cleanly in Excel/Numbers
+- `Main` sheet remains the active first-use sheet
+- no stale `Export Summary` sheet remains in the generated workbook
+- prefilled template sample values are overwritten in every mapped output region
+- applicant photo, when present, is populated correctly
+
 ## Applicant Test Strategy
 
 ### Automated

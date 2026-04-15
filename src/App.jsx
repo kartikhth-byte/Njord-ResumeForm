@@ -100,7 +100,7 @@ function RootRedirect() {
       if (loading) return
 
       if (!user) {
-        navigate('/login', { replace: true })
+        navigate('/applicant/login', { replace: true })
         setChecking(false)
         return
       }
@@ -114,7 +114,7 @@ function RootRedirect() {
       } else if (userType === 'applicant') {
         navigate('/dashboard', { replace: true })
       } else {
-        navigate('/login', { replace: true })
+        navigate('/applicant/login', { replace: true })
       }
 
       setChecking(false)
@@ -142,7 +142,8 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<RootRedirect />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<Navigate to="/applicant/login" replace />} />
+            <Route path="/applicant/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-conditions" element={<TermsConditions />} />

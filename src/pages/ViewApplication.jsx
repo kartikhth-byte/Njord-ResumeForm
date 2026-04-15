@@ -85,6 +85,17 @@ export default function ViewApplication() {
   }, [worksheetModalOpen, loadWorksheetCustomers])
 
   useEffect(() => {
+    if (!worksheetModalOpen) return undefined
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [worksheetModalOpen])
+
+  useEffect(() => {
     return () => {
       if (worksheetModalCloseTimeoutRef.current) {
         clearTimeout(worksheetModalCloseTimeoutRef.current)
@@ -256,6 +267,13 @@ export default function ViewApplication() {
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
 
+  const formatWorksheetTimestamp = (value) => {
+    if (!value) return 'Unknown'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return 'Unknown'
+    return date.toLocaleString()
+  }
+
   const handleGenerateWorksheet = async () => {
     if (!selectedWorksheetCustomerId) return
 
@@ -331,110 +349,147 @@ export default function ViewApplication() {
       </div>
 
       {worksheetModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 print:hidden">
-          <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Customer Worksheet</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Generate &amp; Download</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Use this to prepare customer worksheets at any application stage. Select the customer and download the
-                  generated workbook once the template status is ready.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWorksheetModalOpen(false)}
-                className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 print:hidden">
+          <div
+            className="absolute inset-0 bg-slate-950/55 backdrop-blur-[3px]"
+            onClick={() => !worksheetGenerating && setWorksheetModalOpen(false)}
+          />
 
-            <div className="mt-6 space-y-5">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Application Status</p>
-                <p className="mt-2 text-sm text-slate-700">
-                  Current status: <span className="font-semibold text-slate-900">{formatDisplayValue(application.status)}</span>
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-800">Customer</label>
-                <select
-                  value={selectedWorksheetCustomerId}
-                  onChange={(event) => setSelectedWorksheetCustomerId(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-                >
-                  {worksheetCustomers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={`rounded-2xl border px-4 py-3 text-sm ${
-                worksheetReadiness.ready
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-amber-200 bg-amber-50 text-amber-800'
-              }`}>
-                {worksheetLoading ? 'Loading customer worksheet settings...' : worksheetReadiness.message}
-              </div>
-
-              {worksheetGenerating ? (
-                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="font-medium">Generating worksheet...</span>
+          <div className="absolute inset-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+            <div className="flex min-h-full items-center justify-center">
+              <div className="relative flex h-[min(88vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-[32px] border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+                <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:px-7">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Customer Worksheet</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">Generate &amp; Download</h2>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                      Use this to prepare customer worksheets at any application stage. Select the customer and download the
+                      generated workbook once the template status is ready.
+                    </p>
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-sky-700">
-                    The template is being populated now. This can take a few seconds.
-                  </p>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-sky-100">
-                    <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-sky-500" />
+                  <button
+                    type="button"
+                    onClick={() => setWorksheetModalOpen(false)}
+                    disabled={worksheetGenerating}
+                    className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50/55 px-6 py-6 sm:px-7">
+                  <div className="space-y-5">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Application Status</p>
+                    <p className="mt-2 text-sm text-slate-700">
+                      Current status: <span className="font-semibold text-slate-900">{formatDisplayValue(application.status)}</span>
+                    </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <label className="text-sm font-medium text-slate-800">Customer</label>
+                      <select
+                        value={selectedWorksheetCustomerId}
+                        onChange={(event) => setSelectedWorksheetCustomerId(event.target.value)}
+                        className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                        disabled={worksheetLoading || worksheetGenerating}
+                      >
+                        {worksheetCustomers.map((customer) => (
+                          <option key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                      worksheetReadiness.ready
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-amber-200 bg-amber-50 text-amber-800'
+                    }`}>
+                      {worksheetLoading ? 'Loading customer worksheet settings...' : worksheetReadiness.message}
+                    </div>
+
+                    {selectedWorksheetCustomer ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Template Details</p>
+                        {worksheetReadiness.template ? (
+                          <div className="mt-3 space-y-2 text-sm text-slate-700">
+                            <p>
+                              Active template: <span className="font-semibold text-slate-900">{worksheetReadiness.template.file_name}</span>
+                            </p>
+                            <p>
+                              Uploaded: <span className="font-medium text-slate-900">{formatWorksheetTimestamp(worksheetReadiness.template.created_at)}</span>
+                            </p>
+                            <p className="text-xs leading-5 text-slate-500">
+                              This export starts from a fresh copy of the uploaded template and overwrites mapped output cells with the current application data.
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-sm text-slate-600">
+                            No active template is configured for this customer yet.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {worksheetGenerating ? (
+                      <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="font-medium">Generating worksheet...</span>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-sky-700">
+                          The template is being populated now. This can take a few seconds.
+                        </p>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sky-100">
+                          <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-sky-500" />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {worksheetSuccess ? (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        {worksheetSuccess}
+                      </div>
+                    ) : null}
+
+                    {worksheetError ? (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        <div className="flex items-start justify-between gap-3">
+                          <span>{worksheetError}</span>
+                          <button
+                            type="button"
+                            onClick={loadWorksheetCustomers}
+                            className="shrink-0 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              ) : null}
 
-              {worksheetSuccess ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  {worksheetSuccess}
+                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:px-7">
+                  <button
+                    type="button"
+                    onClick={() => setWorksheetModalOpen(false)}
+                    disabled={worksheetGenerating}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerateWorksheet}
+                    disabled={!worksheetReadiness.ready || worksheetLoading || worksheetGenerating || !selectedWorksheetCustomerId}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {worksheetGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Generate Worksheet
+                  </button>
                 </div>
-              ) : null}
-
-              {worksheetError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  <div className="flex items-start justify-between gap-3">
-                    <span>{worksheetError}</span>
-                    <button
-                      type="button"
-                      onClick={loadWorksheetCustomers}
-                      className="shrink-0 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setWorksheetModalOpen(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGenerateWorksheet}
-                  disabled={!worksheetReadiness.ready}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {worksheetGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  Generate Worksheet
-                </button>
               </div>
             </div>
           </div>

@@ -20,10 +20,10 @@ export default function RecruiterRoute({ children }) {
   }
 
   if (userType !== 'recruiter') {
-  if (userType === 'applicant') {
-    return <Navigate to="/dashboard" replace />
-  }
-  return <Navigate to="/login" replace />
+    if (userType === 'applicant') {
+      return <Navigate to="/dashboard" replace />
+    }
+    return <Navigate to="/recruiter/login" replace />
   }
 
   return children

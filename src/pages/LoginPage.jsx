@@ -138,7 +138,7 @@ export default function Login() {
             <p className="text-sm text-slate-600">
               Are you a recruiter?{' '}
               <Link to="/recruiter/login" className="public-inline-link">
-                Sign in here
+                Go to recruiter sign in
               </Link>
             </p>
           </div>

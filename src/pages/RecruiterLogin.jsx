@@ -13,7 +13,7 @@ const signOutSafely = async () => {
 
 export default function RecruiterLogin() {
   const navigate = useNavigate()
-  const { user, userType, loading: authLoading, authorizationLoading, signOut } = useAuth()
+  const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,7 +33,8 @@ export default function RecruiterLogin() {
         }
 
         if (userType === 'applicant' && user) {
-          await signOut()
+          navigate('/dashboard', { replace: true })
+          return
         }
       } catch (sessionError) {
         console.error('Session check error:', sessionError)
@@ -43,7 +44,7 @@ export default function RecruiterLogin() {
     }
 
     checkExistingSession()
-  }, [authLoading, authorizationLoading, user, userType, navigate, signOut])
+  }, [authLoading, authorizationLoading, user, userType, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -256,7 +257,7 @@ export default function RecruiterLogin() {
 
           <div className="mt-6 border-t border-slate-200 pt-6 text-center">
             <p className="text-sm text-slate-600">
-              Not a recruiter? <Link to="/login" className="public-inline-link">Applicant Login</Link>
+              Not a recruiter? <Link to="/applicant/login" className="public-inline-link">Go to applicant sign in</Link>
             </p>
           </div>
 

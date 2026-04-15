@@ -12,7 +12,7 @@ export default function Unauthorized() {
     } else if (userType === 'applicant') {
       navigate('/dashboard')
     } else {
-      navigate('/login')
+      navigate('/applicant/login')
     }
   }
 

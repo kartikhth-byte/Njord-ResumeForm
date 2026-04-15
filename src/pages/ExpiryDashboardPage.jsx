@@ -17,7 +17,7 @@ export default function ExpiryDashboardPage() {
   useEffect(() => {
     // Only allow recruiters to access this page
     if (!user) {
-      navigate('/login')
+      navigate('/recruiter/login')
       return
     }
   }, [user, navigate])
@@ -43,8 +43,8 @@ export default function ExpiryDashboardPage() {
           <p className="text-slate-600">
             You don't have permission to access this page.
           </p>
-          <Link to="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
-            Return to Dashboard
+          <Link to="/recruiter/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
+            Return to recruiter dashboard
           </Link>
         </div>
       </div>
