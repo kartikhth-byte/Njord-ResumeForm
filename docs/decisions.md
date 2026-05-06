@@ -61,3 +61,24 @@ Decision:
 
 Why:
 - align visible tool identity to requested branding
+
+## 2026-05 - Single Active Applicant Pipeline
+
+Decision:
+- enforce one active application per applicant at the database layer
+- treat `hired`, `rejected`, and `withdrawn` as terminal statuses that allow a future application
+
+Why:
+- prevents alternate clients or stale browser state from bypassing applicant dashboard guards
+- keeps the applicant pipeline unambiguous for recruiters
+
+## 2026-05 - Edge Function CORS Uses APP_URL Allowlist
+
+Decision:
+- edge functions use a shared request-origin CORS helper instead of wildcard origins
+- allowed origins come from the comma-separated `APP_URL` runtime setting, with edge env vars as fallback
+- `OPTIONS` preflights return bodyless `204` responses
+
+Why:
+- browser access is limited to intended frontend origins
+- the shared helper keeps CORS behavior consistent across deployed functions

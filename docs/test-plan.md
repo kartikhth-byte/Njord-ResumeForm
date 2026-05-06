@@ -81,6 +81,15 @@ Specific worksheet checks:
 - from applicant dashboard, open a submitted application and confirm the summary is read-only and does not expose recruiter workflow controls
 - confirm unauthenticated recruiter email review links require the secure expiring `access` token and fail cleanly when the token is missing or expired
 - for export work, verify the source application’s review page values against the generated workbook section being implemented
+- for single-active-application enforcement, verify that a second active draft/submission for the same applicant returns `unique_active_application_per_user` and that the dashboard/review-submit UI shows the applicant-facing conflict message
+
+## Edge Function CORS Validation
+
+Manual checks:
+- confirm the `APP_URL` runtime setting contains every intended browser origin, comma-separated when more than one origin is valid
+- send representative `OPTIONS` preflights from the production frontend origin and confirm `204` plus matching `Access-Control-Allow-Origin`
+- send representative `OPTIONS` preflights from an unlisted origin and confirm no `Access-Control-Allow-Origin` is returned
+- for worksheet downloads, confirm `Access-Control-Expose-Headers` includes `Content-Disposition`
 
 ## Recruiter Test Strategy
 

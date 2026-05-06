@@ -26,6 +26,24 @@ const SECTION_NAMES = {
   19: 'Additional Information & Declarations',
 }
 
+function isReferenceNumberConflict(error) {
+  const message = error?.message || ''
+  const details = error?.details || ''
+  return message.includes('reference_number') || details.includes('reference_number')
+}
+
+function isUniqueUserPositionConflict(error) {
+  const message = error?.message || ''
+  const details = error?.details || ''
+  return message.includes('unique_user_position') || details.includes('unique_user_position')
+}
+
+function isSingleActiveApplicationError(error) {
+  const message = error?.message || ''
+  const details = error?.details || ''
+  return message.includes('unique_active_application_per_user') || details.includes('unique_active_application_per_user')
+}
+
 export default function ReviewSubmit() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -228,7 +246,7 @@ const handleConfirmSubmit = async () => {
       .update(updatePayload)
       .eq('id', applicationId)
 
-    if (updateError?.code === '23505' || updateError?.status === 409) {
+    if ((updateError?.code === '23505' || updateError?.status === 409) && isReferenceNumberConflict(updateError)) {
       referenceNumber = await findAvailableReferenceNumber()
       console.warn('Reference number collision detected, retrying with:', referenceNumber)
 
@@ -241,7 +259,7 @@ const handleConfirmSubmit = async () => {
         .eq('id', applicationId))
     }
 
-    if (updateError?.message?.includes('unique_user_position')) {
+    if (isUniqueUserPositionConflict(updateError)) {
       console.warn('Applied rank conflicts with an existing application, retrying submit without applications.applied_rank')
 
       ;({ error: updateError } = await supabase
@@ -311,6 +329,10 @@ const handleConfirmSubmit = async () => {
 
   } catch (error) {
     console.error('Error submitting application:', error)
+    if (isSingleActiveApplicationError(error)) {
+      alert('You already have another active application in the recruitment pipeline. A new submission can only proceed after the current process is completed.')
+      return
+    }
     alert('Error submitting application. Please try again.')
   } finally {
     setSubmitting(false)

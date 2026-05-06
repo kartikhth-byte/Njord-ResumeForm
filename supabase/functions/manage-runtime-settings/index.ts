@@ -1,11 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 const SETTING_DEFINITIONS = [
   {
@@ -76,8 +71,9 @@ const SETTING_DEFINITIONS = [
 const SETTINGS_BY_KEY = new Map(SETTING_DEFINITIONS.map(setting => [setting.key, setting]))
 
 serve(async (req) => {
+  const corsHeaders = await getCorsHeaders(req, { allowMethods: 'POST, OPTIONS' })
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   try {
@@ -85,7 +81,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
 
     if (!authHeader) {
-      return json({ error: 'Missing authorization header' }, 401)
+      return json({ error: 'Missing authorization header' }, corsHeaders, 401)
     }
 
     const token = authHeader.replace('Bearer ', '')
@@ -95,7 +91,7 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
-      return json({ error: 'Invalid token' }, 401)
+      return json({ error: 'Invalid token' }, corsHeaders, 401)
     }
 
     const body = await req.json()
@@ -104,7 +100,7 @@ serve(async (req) => {
     if (action === 'get_client_config') {
       const clientKeys = SETTING_DEFINITIONS.filter(setting => setting.clientVisible).map(setting => setting.key)
       const values = await getRuntimeSettings(clientKeys, supabaseClient)
-      return json({ settings: values })
+      return json({ settings: values }, corsHeaders)
     }
 
     const { data: canManageSettings, error: permError } = await supabaseClient.rpc('has_permission', {
@@ -113,7 +109,7 @@ serve(async (req) => {
     })
 
     if (permError || canManageSettings !== true) {
-      return json({ error: 'Insufficient permissions' }, 403)
+      return json({ error: 'Insufficient permissions' }, corsHeaders, 403)
     }
 
     if (action === 'get_admin') {
@@ -128,7 +124,7 @@ serve(async (req) => {
         configured: Boolean(values[setting.key]),
       }))
 
-      return json({ settings })
+      return json({ settings }, corsHeaders)
     }
 
     if (action === 'update_admin') {
@@ -153,7 +149,7 @@ serve(async (req) => {
       }
 
       if (updates.length === 0) {
-        return json({ success: true, updated: 0 })
+        return json({ success: true, updated: 0 }, corsHeaders)
       }
 
       const { error: upsertError } = await supabaseClient
@@ -164,17 +160,17 @@ serve(async (req) => {
         throw upsertError
       }
 
-      return json({ success: true, updated: updates.length })
+      return json({ success: true, updated: updates.length }, corsHeaders)
     }
 
-    return json({ error: 'Unsupported action' }, 400)
+    return json({ error: 'Unsupported action' }, corsHeaders, 400)
   } catch (error) {
     console.error('manage-runtime-settings error:', error)
-    return json({ error: error.message || 'An unexpected error occurred' }, 500)
+    return json({ error: error.message || 'An unexpected error occurred' }, corsHeaders, 500)
   }
 })
 
-function json(payload: unknown, status = 200) {
+function json(payload: unknown, corsHeaders: Record<string, string>, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {

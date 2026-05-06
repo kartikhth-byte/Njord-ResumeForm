@@ -9,6 +9,7 @@
   - populated-value verification against the source application
 - Commit or intentionally discard the current local compliance changes so the repo state is clean before the next feature branch starts
 - Perform full manual applicant data-entry test after wiping applicant test data
+- Refresh applicant smoke data so automated draft-start tests use an applicant with no active pipeline application, or update the smoke helpers to use a dedicated disposable applicant
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password
@@ -20,9 +21,7 @@
 - Create a recruiter admin runbook for resets, bootstrap, role changes, and password recovery
 - Create a DB operations runbook for common resets and cleanup flows
 - Add automated verification around the client-form writer once the interface is stable enough
-- Harden the single-active-application rule beyond the applicant dashboard UI by enforcing it at draft creation/submission in the database or an RPC/service layer, so alternate clients cannot bypass it
 - Update the worksheet service `APP_URL` on Render from local/dev origins to the production frontend URL before go-live
-- Do a broad edge-function CORS sweep before go-live so wildcard origins are replaced with an `APP_URL`-based allowlist/shared helper
 - Add a small worksheet-service operations runbook:
   - deploy/redeploy steps
   - required env vars
@@ -46,6 +45,8 @@
 ## Implemented Locally But Not Yet Closed Out
 
 - Applicant and recruiter login flows are split in the current local codebase
+- Single-active-application enforcement is implemented in the DB and deployed to Supabase project `btbqdviuqcpauojmorvx`
+- Edge-function wildcard CORS has been replaced by a shared `APP_URL` allowlist helper and deployed to Supabase project `btbqdviuqcpauojmorvx`
 - Recruiter-side application compliance review panel is implemented on `ViewApplication`
 - Compliance phase 1 is implemented:
   - passport, CDC, visas, CoC, GMDSS, medical fitness, vaccinations, STCW/security courses, flag-state endorsements, and sea-service gap checks

@@ -104,6 +104,12 @@ function hasMeaningfulDraftData(data) {
 
 const TERMINAL_APPLICATION_STATUSES = ['hired', 'rejected', 'withdrawn']
 
+function isSingleActiveApplicationError(error) {
+  const message = error?.message || ''
+  const details = error?.details || ''
+  return message.includes('unique_active_application_per_user') || details.includes('unique_active_application_per_user')
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
@@ -251,6 +257,10 @@ export default function Dashboard() {
       navigate('/application/form/section/1')
     } catch (error) {
       console.error('Error creating application:', error)
+      if (isSingleActiveApplicationError(error)) {
+        alert('You already have an application in progress with the recruitment team. A new application can be started only after the current process is completed.')
+        return
+      }
       alert(`Failed to create application: ${error.message}`)
     } finally {
       setIsCreatingApplication(false)

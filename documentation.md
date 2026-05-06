@@ -24,9 +24,17 @@
 - applicant auth refresh fixture repaired so smoke can regenerate applicant session state reliably
 - CMA CGM worksheet export path wired through the hosted worksheet service and recruiter download flow
 - recruiter-side compliance review implemented locally on the submitted application view and recruiter applications workspace
+- DB-level single-active-application enforcement is live: applicants can have only one non-terminal application at a time
+- Supabase edge functions now use a shared request-origin CORS helper backed by the `APP_URL` runtime setting
 
 ## Current Verification State
 
+- Hardening follow-up on 2026-05-06:
+- remote Supabase project `btbqdviuqcpauojmorvx` has migration `2026050601_enforce_single_active_application_and_add_cors_helper` applied
+- live DB validation passed with an isolated temporary applicant: second active application insert returned `23505` / `unique_active_application_per_user`, terminalizing the first application allowed a new active application, and cleanup left zero temporary validation applications
+- live edge-function CORS validation passed for `https://njord-resume-form.vercel.app`: representative preflights return `204` with a matching `Access-Control-Allow-Origin`
+- unlisted origins such as `http://localhost:5173` and `https://example.invalid` do not receive `Access-Control-Allow-Origin`; add local/dev origins to the `APP_URL` runtime setting only when browser QA from those origins is intended
+- `npm run test:smoke` currently fails against the stored applicant account because that account has active submitted application `NJD-211280`, so draft-start smoke helpers cannot find a start/resume button under the new single-active rule; refresh smoke data with a dedicated applicant or terminal test data before expecting the full applicant smoke suite to pass
 - Review follow-up on 2026-03-30:
 - applicant sign-out cleanup no longer throws `clearLoginIntent is not defined`
 - applicant Google sign-in no longer waits on profile bootstrap before routing to `/dashboard`
@@ -68,10 +76,11 @@
 - worksheet export still needs end-to-end fidelity validation against the second customer template and against prefilled template overwrite behavior
 - local docs still contain some historical prototype language and should be kept aligned with the hosted worksheet service path
 - do not carry the development `RECRUITER_NOTIFICATION_EMAIL` override into customer deployment; production must route recruiter emails to real recruiter inboxes/profile emails using a verified Resend domain/from-address
+- local browser calls to edge functions will fail CORS unless the local origin is intentionally included in the comma-separated `APP_URL` runtime setting
 
 ## Immediate Next Steps
 
-- cleanly commit or intentionally discard the current local compliance/doc changes
+- commit and push the single-active-application/CORS hardening changes after final local checks
 - verify the second worksheet template and close worksheet export fidelity gaps
 - manually verify the applicant submitted-application summary from the dashboard against applicant expectations
 - manual QA of recruiter admin flows

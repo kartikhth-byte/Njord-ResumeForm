@@ -2,12 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import ExcelJS from 'npm:exceljs'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'npm:fflate'
 import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 const TEMPLATE_BUCKET = 'worksheet-templates'
 const PROTECTED_SHEET_ALIASES: Record<string, string> = {
@@ -75,8 +70,9 @@ const END_REFERENCE_LEFT_CELLS = [
 ]
 
 serve(async (req) => {
+  const corsHeaders = await getCorsHeaders(req, { allowMethods: 'POST, OPTIONS', exposeHeaders: 'Content-Disposition' })
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
   return json(
     {
