@@ -43,6 +43,11 @@ const AGE_OPTIONS = [
 
 const VISA_OPTIONS = ['C1/D (USA)', 'Schengen', 'UK', 'Canada', 'Australia', 'Singapore', 'Japan', 'South Korea', 'UAE']
 const FLAG_OPTIONS = ['Panama', 'Liberia', 'Marshall Islands', 'Singapore', 'Hong Kong', 'Bahamas', 'Malta', 'Cyprus', 'Isle of Man', 'Antigua and Barbuda']
+const COMPLIANCE_STATUS_OPTIONS = [
+  { value: 'red', label: 'Red' },
+  { value: 'amber', label: 'Amber' },
+  { value: 'green', label: 'Green' },
+]
 
 const LABELS = {
   position: 'Rank',
@@ -52,6 +57,7 @@ const LABELS = {
   certificateGrade: 'Certificate',
   visaType: 'Visa',
   flagState: 'Flag State',
+  complianceStatus: 'Compliance',
   availability: 'Availability',
   ageRange: 'Age',
   dateRange: 'Date'
@@ -173,6 +179,11 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
             <select value={activeFilters.flagState || ''} onChange={event => updateFilter('flagState', event.target.value)} className={fieldClass}>
               <option value="">Flag State</option>
               {FLAG_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+
+            <select value={activeFilters.complianceStatus || ''} onChange={event => updateFilter('complianceStatus', event.target.value)} className={fieldClass}>
+              <option value="">Compliance</option>
+              {COMPLIANCE_STATUS_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
 
             <select value={activeFilters.availability || ''} onChange={event => updateFilter('availability', event.target.value)} className={fieldClass}>

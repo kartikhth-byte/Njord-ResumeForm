@@ -9,10 +9,12 @@ import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeChe
 import { formatDisplayValue } from '../utils/formatUtils'
 import RejectionHistory from '../components/recruiter/RejectionHistory'
 import ReopenApplicationButton from '../components/recruiter/ReopenApplicationButton'
+import ApplicationCompliancePanel from '../components/recruiter/ApplicationCompliancePanel'
 import SequentialStatusControl from '../components/SequentialStatusControl'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import StatCard from '../components/ui/StatCard'
+import { buildApplicationCompliance } from '../utils/applicationCompliance'
 
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
@@ -258,6 +260,7 @@ export default function ViewApplication() {
     : 'Review candidate evidence, move the application through status changes, and keep context visible while making a hiring decision.'
   const summaryEyebrow = isApplicantView ? 'Application Summary' : 'Candidate Summary'
   const summaryCardTitle = isApplicantView ? 'Application snapshot' : 'Recruiter summary'
+  const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryStats = [
     { label: 'Certificates', value: certificates.length, icon: BadgeCheck, tone: 'accent', hint: 'CoC entries on file.' },
     { label: 'Endorsements', value: endorsements.length, icon: Anchor, hint: 'Flag-state endorsements recorded.' },
@@ -637,6 +640,10 @@ export default function ViewApplication() {
             </div>
 
             <div className="space-y-6">
+          {isRecruiterView && compliance ? (
+            <ApplicationCompliancePanel compliance={compliance} />
+          ) : null}
+
           {/* Section 1: Availability & Position */}
           <ViewSection title="Availability & Position Applied For">
             <ViewRow label="Applied For Rank" value={formatDisplayValue(applicationData?.section1?.appliedForRank)} />

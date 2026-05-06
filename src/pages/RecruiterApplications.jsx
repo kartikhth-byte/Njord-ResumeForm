@@ -20,6 +20,7 @@ import SegmentedControl from '../components/ui/SegmentedControl'
 import WorkspaceToolbar from '../components/ui/WorkspaceToolbar'
 import EmptyState from '../components/ui/EmptyState'
 import { getEmbeddingReadiness } from '../services/embeddingService'
+import { buildApplicationCompliance } from '../utils/applicationCompliance'
 
 import { 
   Users, 
@@ -61,6 +62,26 @@ function getApplicationFields(appData = {}) {
     endorsements: Array.isArray(section15.endorsements) ? section15.endorsements : [],
     seaService: Array.isArray(section16.seaService) ? section16.seaService : []
   }
+}
+
+function ComplianceBadge({ status, summary, size = 'default' }) {
+  const styles = {
+    red: 'bg-rose-100 text-rose-700 border-rose-200',
+    amber: 'bg-amber-100 text-amber-700 border-amber-200',
+    green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  }
+  const sizeClass = size === 'compact'
+    ? 'rounded-lg px-2.5 py-1 text-[11px] font-semibold'
+    : 'rounded-xl px-3 py-1.5 text-xs font-semibold'
+
+  const label = status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Unknown'
+
+  return (
+    <div className={`inline-flex items-center border ${sizeClass} ${styles[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+      <span>{label}</span>
+      {typeof summary === 'number' ? <span className="ml-2">{summary}</span> : null}
+    </div>
+  )
 }
 
 const ACTIVE_APPLICATION_STATUSES = [
@@ -121,44 +142,28 @@ export default function RecruiterApplications() {
   const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
 
 
-  // Add this useEffect near the top of RecruiterApplications component
+  // Restore the interview modal after Teams OAuth returns to the applications workspace.
 useEffect(() => {
-  console.log('🔍 Checking for teams_connected parameter...')
-
   const urlParams = new URLSearchParams(window.location.search)
   const teamsConnected = urlParams.get('teams_connected')
   const applicationId = localStorage.getItem('reopen_interview_modal')
-
-  console.log('🔍 URL params:', { teamsConnected, applicationId, applicationsCount: applications.length })
   
   if (teamsConnected === 'true' && applicationId) {
-    console.log('✅ Found teams_connected, checking if applications loaded...')
-    
     // Wait until applications are actually loaded
     if (applications.length === 0) {
-      console.log('⏳ Applications not loaded yet, waiting...')
       return
     }
-
-    console.log('✅ Applications loaded, searching for application...')
     
     const app = applications.find(a => a.id === applicationId)
-    console.log('🔍 Found application:', app)
 
     if (app) {
-      console.log('✅ Reopening modal for application:', app.id)
-      
       // Clean up
       localStorage.removeItem('reopen_interview_modal')
       window.history.replaceState({}, '', '/recruiter/applications')
       
       // Tell SequentialStatusControl to auto-open
       setAutoOpenInterviewForApp(app.id)
-      
-      // Clear after a moment
-      //setTimeout(() => setAutoOpenInterviewForApp(null), 1000)
     } else {
-      console.log('❌ Application not found in loaded list')
       localStorage.removeItem('reopen_interview_modal')
       window.history.replaceState({}, '', '/recruiter/applications')
     }
@@ -174,6 +179,7 @@ useEffect(() => {
   // Initialize statusFilter from URL or default to 'all'
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all')
   const [filters, setFilters] = useState({})
+  const [complianceFilter, setComplianceFilter] = useState('all')
   const [includeRejected, setIncludeRejected] = useState(false) // Include rejected candidates
   const [includeWithdrawn, setIncludeWithdrawn] = useState(false) // Include withdrawn candidates  
   const [includeHired, setIncludeHired] = useState(false) // Include hired candidates
@@ -189,9 +195,6 @@ const [offerApplication, setOfferApplication] = useState(null)
   
   // Helper function to update tab and URL
   const updateActiveTab = (newTab) => {
-      console.log('🔄 Switching tab:', activeTab, '→', newTab)
-  console.log('  - aiSearchResults before switch:', aiSearchResults.length)
-
     setActiveTab(newTab)
     const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', newTab)
@@ -199,8 +202,6 @@ const [offerApplication, setOfferApplication] = useState(null)
       newParams.set('status', statusFilter)
     }
     setSearchParams(newParams, { replace: true })
-      console.log('  - aiSearchResults after switch:', aiSearchResults.length)
-
   }
   
   // Helper function to update status filter and URL
@@ -219,9 +220,6 @@ const [offerApplication, setOfferApplication] = useState(null)
     const rawTabFromUrl = searchParams.get('tab') || 'all'
     const tabFromUrl = normalizeRecruiterApplicationsTab(rawTabFromUrl)
     const statusFromUrl = searchParams.get('status') || 'all'
-    
-    console.log('🔍 URL changed - Tab:', tabFromUrl, 'Status:', statusFromUrl)
-    console.log('🔍 Current state - Tab:', activeTab, 'Status:', statusFilter)
 
     if (rawTabFromUrl !== tabFromUrl) {
       const correctedParams = new URLSearchParams(searchParams)
@@ -231,17 +229,11 @@ const [offerApplication, setOfferApplication] = useState(null)
     
     // Only update if different to avoid infinite loops
     setActiveTab(prev => {
-      if (prev !== tabFromUrl) {
-        console.log('✅ Updating activeTab from', prev, 'to', tabFromUrl)
-        return tabFromUrl
-      }
+      if (prev !== tabFromUrl) return tabFromUrl
       return prev
     })
     setStatusFilter(prev => {
-      if (prev !== statusFromUrl) {
-        console.log('✅ Updating statusFilter from', prev, 'to', statusFromUrl)
-        return statusFromUrl
-      }
+      if (prev !== statusFromUrl) return statusFromUrl
       return prev
     })
   }, [searchParams])
@@ -315,19 +307,22 @@ const [offerApplication, setOfferApplication] = useState(null)
   }, [permLoading, includeRejected, includeWithdrawn, includeHired, includeActive]) // Reload when any status filter changes
 
 useEffect(() => {
-    console.log('🔄 useEffect triggered - activeTab:', activeTab, 'aiSearchActive:', aiSearchActive)
-
   if ((activeTab === 'all' || (activeTab === 'search' && searchMode === 'filters')) && !aiSearchActive) {
-        console.log('✅ Calling filterApplications()')
-            filterApplications()
-   } else {
-    console.log('❌ NOT calling filterApplications()')
+    filterApplications()
   }
-}, [activeTab, applications, statusFilter, searchTerm, includeRejected, aiSearchActive, searchMode])
+}, [activeTab, applications, statusFilter, searchTerm, complianceFilter, includeRejected, aiSearchActive, searchMode])
   
   useEffect(() => {
     setCurrentPage(1)
-  }, [statusFilter, searchTerm, filters])
+  }, [statusFilter, searchTerm, filters, complianceFilter])
+
+  const complianceCounts = filteredApplications.reduce((counts, app) => {
+    const status = app.compliance_status
+    if (status && Object.prototype.hasOwnProperty.call(counts, status)) {
+      counts[status] += 1
+    }
+    return counts
+  }, { red: 0, amber: 0, green: 0 })
 
   const calculateExperience = (seaService) => {
     if (!seaService || seaService.length === 0) return 0
@@ -347,11 +342,9 @@ useEffect(() => {
 // Restore AI search results from localStorage on mount
 useEffect(() => {
   if (!aiSearchStorageKey) return
-  console.log('🔄 Checking for saved AI search results...')
   
   const savedSearch = localStorage.getItem(aiSearchStorageKey)
   if (!savedSearch) {
-    console.log('❌ No saved search results found')
     return
   }
 
@@ -363,8 +356,6 @@ useEffect(() => {
     const age = Date.now() - timestamp
     
     if (age < THIRTY_MINUTES) {
-      console.log(`✅ Restoring ${results.length} AI search results (${Math.round(age / 1000 / 60)} minutes old)`)
-      
       setAiSearchResults(results)
       setAiSearchQuery(query)
       setAiSearchActive(true)
@@ -374,7 +365,6 @@ useEffect(() => {
         updateActiveTab('search')
       }
     } else {
-      console.log(`⏰ Saved results too old (${Math.round(age / 1000 / 60)} minutes), clearing...`)
       localStorage.removeItem(aiSearchStorageKey)
     }
   } catch (error) {
@@ -543,9 +533,14 @@ useEffect(() => {
           english_proficiency: section15.englishProficiency || '',
           marlins_score: section15.marlinsScore || '',
           bmi: section16.bmi || '',
-          blood_group: section16.bloodGroup || ''
+          blood_group: section16.bloodGroup || '',
+          compliance: buildApplicationCompliance(app.application_data?.data || {}),
         }
-      })
+      }).map((app) => ({
+        ...app,
+        compliance_status: app.compliance?.overallStatus || '',
+        compliance_summary: app.compliance?.summary || null,
+      }))
 
       // Apply client-side filters
       if (appliedFilters.nationality) {
@@ -593,6 +588,10 @@ useEffect(() => {
             endorsement.flagState === appliedFilters.flagState
           )
         })
+      }
+
+      if (appliedFilters.complianceStatus) {
+        formattedData = formattedData.filter(app => app.compliance_status === appliedFilters.complianceStatus)
       }
 
       setApplications(formattedData)
@@ -650,11 +649,6 @@ useEffect(() => {
   }
 
   const filterApplications = () => {
-      console.log('🔍 filterApplications called')
-  console.log('📊 applications.length:', applications.length)
-  console.log('📊 statusFilter:', statusFilter)
-  console.log('📊 searchTerm:', searchTerm)
-
     let filtered = [...applications]
 
     if (statusFilter && statusFilter !== 'all') {
@@ -673,7 +667,9 @@ useEffect(() => {
       )
     }
 
-      console.log('✅ Filtered results:', filtered.length)
+    if (complianceFilter !== 'all') {
+      filtered = filtered.filter(app => app.compliance_status === complianceFilter)
+    }
 
     setFilteredApplications(filtered)
   }
@@ -745,8 +741,6 @@ const handleStatusChange = async (applicationId, newStatus) => {
   }
 
 const handleAISearchResults = async (results, query, isAnalyzing = false) => {
-  console.log('🔍 AI Search results received:', results.length)
-  
   setCurrentPage(1)
   setAiSearchResults(results)
   setAiSearchQuery(query)
@@ -763,8 +757,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
   try {
     const applicationIds = results.map(r => r.application_id)
-    
-    console.log('📊 Fetching full application data for IDs:', applicationIds)
 
     const { data: fullApps, error } = await supabase
       .from('applications')
@@ -792,8 +784,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
       return
     }
 
-    console.log('✅ Fetched full application data:', fullApps.length)
-
 	    const enrichedResults = fullApps.map(app => {
 	      const appData = app.application_data?.data || {}
         const matchingResult = results.find(r => r.application_id === app.id)
@@ -819,8 +809,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         const scoreB = b.llmAnalysis?.confidence ?? b.similarity
         return scoreB - scoreA
       })
-
-    console.log('✅ Enriched results with metadata:', enrichedResults.length)
     
     setAiSearchResults(enrichedResults)
     
@@ -831,7 +819,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         query,
         timestamp: Date.now()
       }))
-      console.log('💾 Saved enriched AI search results to localStorage')
     }
 
   } catch (error) {
@@ -841,8 +828,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 }
 
   const handleClearAISearch = () => {
-  console.log('🧹 Clearing AI search results')
-  
   setAiSearchActive(false)
   setAiSearchResults([])
   setAiSearchQuery('')
@@ -852,7 +837,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   // Clear from localStorage
   if (aiSearchStorageKey) {
     localStorage.removeItem(aiSearchStorageKey)
-    console.log('💾 Cleared AI search results from localStorage')
   }
 }
 
@@ -865,17 +849,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   }
 
   const getPaginatedData = (data) => {
-    console.log('📄 getPaginatedData called')
-  console.log('📊 Input data length:', data.length)
-  console.log('📊 currentPage:', currentPage)
-  console.log('📊 itemsPerPage:', itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-      console.log('📊 startIndex:', startIndex, 'endIndex:', endIndex)
-        const result = data.slice(startIndex, endIndex)
-
-        console.log('📊 Paginated result length:', result.length)
-  return result
+    return data.slice(startIndex, endIndex)
   }
 
     const displayedApplications = activeTab === 'search' && searchMode === 'filters'
@@ -964,8 +940,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   }
 
   const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
-    console.log('🎨 ApplicationTable rendering - apps:', apps.length, 'showRelevance:', showRelevance)
-
   return (
     <div className="bg-white rounded-lg shadow-sm border overflow-visible">
       <div className="overflow-x-auto overflow-y-visible">
@@ -994,6 +968,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Compliance
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Submitted
               </th>
 {showRelevance && (
@@ -1017,7 +994,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
           <tbody className="bg-white divide-y divide-gray-200 overflow-visible">
             {apps.length === 0 ? (
               <tr>
-                <td colSpan={showRelevance ? 12 : 10} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={showRelevance ? 13 : 11} className="px-6 py-12 text-center text-gray-500">
                   No applications found
                 </td>
               </tr>
@@ -1048,6 +1025,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <StatusBadge status={app.status} />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <ComplianceBadge status={app.compliance_status} size="compact" />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-600">
@@ -1269,11 +1249,16 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       <div className="min-w-0 bg-white/65">
                         <div className="border-b border-gray-200/80 px-5 py-4 md:px-6">
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                            <div className="space-y-2">
-                              <div className="flex flex-wrap items-center gap-4">
-                                <p className="text-sm text-gray-700">
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <p className="text-sm font-medium text-gray-700">
                                   {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
                                 </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <ComplianceBadge status="red" summary={complianceCounts.red} size="compact" />
+                                  <ComplianceBadge status="amber" summary={complianceCounts.amber} size="compact" />
+                                  <ComplianceBadge status="green" summary={complianceCounts.green} size="compact" />
+                                </div>
                                 <span className="text-xs text-gray-500">
                                   {includeRejected ? '(Rejected candidates included)' : '(Rejected candidates hidden)'}
                                 </span>
@@ -1293,25 +1278,34 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                               )}
                             </div>
 
-                            <div className="relative w-full xl:w-96">
-                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                              <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by name, email, reference..."
-                                className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                              />
+                            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[34rem] xl:flex-row xl:items-center xl:justify-end">
+                              <div className="relative w-full xl:w-96">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <input
+                                  type="text"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  placeholder="Search by name, email, reference..."
+                                  className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div className="w-full xl:w-48">
+                                <select
+                                  value={complianceFilter}
+                                  onChange={(e) => setComplianceFilter(e.target.value)}
+                                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="all">All compliance</option>
+                                  <option value="red">Red</option>
+                                  <option value="amber">Amber</option>
+                                  <option value="green">Green</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         <div className="space-y-6 p-5 md:p-6">
-                          {console.log('📊 Rendering All Applications:')}
-                          {console.log('  - filteredApplications:', filteredApplications.length)}
-                          {console.log('  - paginatedApplications:', paginatedApplications.length)}
-                          {console.log('  - paginatedApplications data:', paginatedApplications)}
-
                           <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
 
                           {filteredApplications.length > 0 && (
