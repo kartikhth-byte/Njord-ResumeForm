@@ -4,6 +4,11 @@ import {
   validateAllMandatorySections,
   validateFieldInSection,
 } from '../../src/utils/sectionValidation.js'
+import {
+  calculateDraftProgress,
+  hasMeaningfulDraftData,
+  isDraftSectionComplete,
+} from '../../src/utils/applicationProgress.js'
 import { SECTION14_COURSE_METADATA } from '../../src/constants/section14Courses.js'
 
 const validSections = {
@@ -231,6 +236,21 @@ test.describe('applicant validation contract', () => {
     const validation = validateSection(6, { education: [] })
     expect(validation.isValid).toBe(false)
     expect(validation.errors).toContain('At least one education entry is required')
+  })
+
+  test('section 6 empty education shells do not count as draft progress', () => {
+    const sectionData = {
+      education: [{
+        institution: '',
+        from: '',
+        to: '',
+        qualification: '',
+      }],
+    }
+
+    expect(hasMeaningfulDraftData(sectionData)).toBe(false)
+    expect(isDraftSectionComplete(6, sectionData)).toBe(false)
+    expect(calculateDraftProgress({ section6: sectionData }, [6])).toBe(0)
   })
 
   test('section 8 requires at least one certificate', () => {

@@ -26,6 +26,7 @@
 - recruiter-side compliance review implemented locally on the submitted application view and recruiter applications workspace
 - DB-level single-active-application enforcement is live: applicants can have only one non-terminal application at a time
 - Supabase edge functions now use a shared request-origin CORS helper backed by the `APP_URL` runtime setting
+- applicant dashboard draft progress now uses the same required-field validation contract as the form sidebar, so empty repeatable record shells do not count as completed sections
 
 ## Current Verification State
 
@@ -35,7 +36,7 @@
 - live edge-function CORS validation passed for `https://njord-resume-form.vercel.app`: representative preflights return `204` with a matching `Access-Control-Allow-Origin`
 - unlisted origins such as `http://localhost:5173` and `https://example.invalid` do not receive `Access-Control-Allow-Origin`; add local/dev origins to the `APP_URL` runtime setting only when browser QA from those origins is intended
 - applicant draft/form smoke now uses a generated disposable draft applicant with no active pipeline conflict, while submitted-application checks keep using the stored Google applicant
-- `npm run test:smoke` passes (`77 passed, 2 skipped`) after the smoke account split
+- `npm run test:smoke` passes (`78 passed, 2 skipped`) after the smoke account split and dashboard draft-progress regression check
 - Review follow-up on 2026-03-30:
 - applicant sign-out cleanup no longer throws `clearLoginIntent is not defined`
 - applicant Google sign-in no longer waits on profile bootstrap before routing to `/dashboard`

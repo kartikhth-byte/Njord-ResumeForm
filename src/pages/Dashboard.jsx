@@ -31,6 +31,7 @@ import PageHeader from '../components/ui/PageHeader'
 import BrandLockup from '../components/ui/BrandLockup'
 import { clearActiveDraftId, isActiveDraftExplicit, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { FORM_SECTION_NUMBERS } from '../constants/formSections'
+import { calculateDraftProgress, hasMeaningfulDraftData, isDraftSectionComplete } from '../utils/applicationProgress'
 
 const SECTION_INFO = [
   { id: 1, title: 'Availability & Application', icon: Calendar },
@@ -87,19 +88,6 @@ function getApplicantStatusTone(status) {
     withdrawn: 'bg-gray-100 text-gray-800'
   }
   return tones[status] || 'bg-slate-100 text-slate-800'
-}
-
-function hasMeaningfulDraftData(data) {
-  if (!data || typeof data !== 'object') return false
-
-  return Object.values(data).some((value) => {
-    if (Array.isArray(value)) return value.length > 0
-    if (typeof value === 'object' && value !== null) {
-      return hasMeaningfulDraftData(value)
-    }
-    if (typeof value === 'boolean') return value
-    return value !== '' && value !== null && value !== undefined
-  })
 }
 
 const TERMINAL_APPLICATION_STATUSES = ['hired', 'rejected', 'withdrawn']
@@ -385,19 +373,13 @@ export default function Dashboard() {
   }
 
   const calculateProgress = () => {
-    if (!applicationData) return 0
-    const sections = FORM_SECTION_NUMBERS.map((sectionNumber) => `section${sectionNumber}`)
-    const completedSections = sections.filter(section => {
-      const sectionData = applicationData[section]
-      return sectionData && Object.keys(sectionData).length > 0
-    })
-    return Math.round((completedSections.length / sections.length) * 100)
+    return calculateDraftProgress(applicationData, FORM_SECTION_NUMBERS)
   }
 
   const isSectionCompleted = (sectionId) => {
     if (!applicationData) return false
     const sectionData = applicationData[`section${sectionId}`]
-    return sectionData && Object.keys(sectionData).length > 0
+    return isDraftSectionComplete(sectionId, sectionData)
   }
 
   const completedSectionCount = SECTION_INFO.filter(section => isSectionCompleted(section.id)).length
@@ -468,7 +450,7 @@ export default function Dashboard() {
             <div className="applicant-stat">
               <p className="applicant-stat__label">Completed Sections</p>
               <p className="applicant-stat__value">{draftApplication ? completedSectionCount : 0}</p>
-              <p className="applicant-stat__hint">Sections with saved information.</p>
+              <p className="applicant-stat__hint">Sections with required information complete.</p>
             </div>
             <div className="applicant-stat">
               <p className="applicant-stat__label">Next Best Action</p>
