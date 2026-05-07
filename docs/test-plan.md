@@ -71,6 +71,7 @@ Specific worksheet checks:
 - applicant authenticated smoke
 - applicant section route smoke across all 19 sections
 - applicant autofill smoke
+- draft/form smoke uses a generated disposable applicant state at `PLAYWRIGHT_DRAFT_APPLICANT_STORAGE_STATE` so the submitted-application test account can keep an active pipeline application
 
 ### Manual
 

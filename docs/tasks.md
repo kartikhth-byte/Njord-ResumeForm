@@ -9,7 +9,6 @@
   - populated-value verification against the source application
 - Commit or intentionally discard the current local compliance changes so the repo state is clean before the next feature branch starts
 - Perform full manual applicant data-entry test after wiping applicant test data
-- Refresh applicant smoke data so automated draft-start tests use an applicant with no active pipeline application, or update the smoke helpers to use a dedicated disposable applicant
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password

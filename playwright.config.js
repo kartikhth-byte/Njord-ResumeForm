@@ -24,6 +24,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   fullyParallel: false,
+  workers: process.env.PLAYWRIGHT_WORKERS ? Number(process.env.PLAYWRIGHT_WORKERS) : 1,
   retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
@@ -50,8 +51,18 @@ export default defineConfig({
       },
     },
     {
+      name: 'setup-draft-applicant',
+      testMatch: /.*applicant-draft\.setup\.js/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
       name: 'chromium',
-      dependencies: hasApplicantStorageState ? ['refresh-applicant'] : [],
+      dependencies: [
+        ...(hasApplicantStorageState ? ['refresh-applicant'] : []),
+        'setup-draft-applicant',
+      ],
       use: {
         ...devices['Desktop Chrome'],
         storageState: hasApplicantStorageState ? applicantStorageStatePath : undefined,

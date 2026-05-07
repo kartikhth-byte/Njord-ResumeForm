@@ -2,17 +2,21 @@
 import fs from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { loadPlaywrightEnv } from '../loadPlaywrightEnv.js'
+import { prepareDraftApplicantState } from '../helpers/draftApplicantState.js'
 import { SECTION_SEQUENCE, fillCurrentSection, navigateToSection, startBlankApplication } from '../helpers/applicantFormFill.js'
 
 loadPlaywrightEnv()
 
 const applicantStorageState =
-  process.env.PLAYWRIGHT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant.json'
+  process.env.PLAYWRIGHT_DRAFT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant-draft.json'
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
 test.describe('applicant full test-data fill', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
+  test.beforeEach(async () => {
+    await prepareDraftApplicantState()
+  })
 
   test('fills visible fields across all applicant sections', async ({ page }) => {
     test.setTimeout(180_000)

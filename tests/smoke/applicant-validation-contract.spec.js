@@ -116,6 +116,7 @@ const validSections = {
         teu: '4500',
         yearBuilt: '2018',
         mainEngine: 'Diesel',
+        engineFamily: 'MAN B&W',
         mainEngineMake: 'MAN B&W',
         rankHeld: 'Chief Officer',
         position: 'Chief Officer',
@@ -132,11 +133,19 @@ const validSections = {
     ],
   },
   section18: {
+    objectionToContactLastEmployer: 'no',
+    currentEmployer: {
+      company: 'Current Maritime Company',
+      contactPerson: 'Current Contact',
+      address: 'Current Employer Address',
+      phoneNumber: '9876543212',
+    },
     references: [
       {
         name: 'Ref One',
         position: 'Master',
         company: 'Company A',
+        address: 'Reference One Address',
         relationship: 'Supervisor',
         phoneNumber: '9876543210',
         email: 'ref1@example.com',
@@ -146,6 +155,7 @@ const validSections = {
         name: 'Ref Two',
         position: 'Chief Officer',
         company: 'Company B',
+        address: 'Reference Two Address',
         relationship: 'Colleague',
         phoneNumber: '9876543211',
         email: 'ref2@example.com',

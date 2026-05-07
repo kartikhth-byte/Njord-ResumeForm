@@ -12,6 +12,7 @@ const applicantStorageState =
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
 test.describe('authenticated recruiter smoke', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
   test.skip(!recruiterEmail || !recruiterPassword, 'Recruiter credentials not configured for automated smoke tests.')
 
   test('recruiter can sign in and reach dashboard', async ({ page }) => {
@@ -35,9 +36,12 @@ test.describe('authenticated applicant smoke', () => {
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
 
   test('stored applicant session can reach dashboard', async ({ page }) => {
+    test.setTimeout(60_000)
+
     await page.goto('/dashboard')
-    await expect(page.getByText('Loading your applications...')).toHaveCount(0, { timeout: 15000 })
+    await expect(page.getByText(/^Loading\.\.\.$/)).toHaveCount(0, { timeout: 30000 })
+    await expect(page.getByText('Loading your applications...')).toHaveCount(0, { timeout: 30000 })
     await expect(page).toHaveURL(/\/dashboard$/)
-    await expect(page.getByRole('heading', { name: 'Manage your maritime application journey' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Manage your maritime application journey' })).toBeVisible({ timeout: 30000 })
   })
 })

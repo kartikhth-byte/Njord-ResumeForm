@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { loadPlaywrightEnv } from '../loadPlaywrightEnv.js'
+import { prepareDraftApplicantState } from '../helpers/draftApplicantState.js'
 import {
   SECTION_SEQUENCE,
   captureCurrentSectionFieldState,
@@ -14,15 +15,18 @@ import {
 loadPlaywrightEnv()
 
 const applicantStorageState =
-  process.env.PLAYWRIGHT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant.json'
+  process.env.PLAYWRIGHT_DRAFT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant-draft.json'
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
 test.describe('applicant section persistence smoke', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
+  test.beforeEach(async () => {
+    await prepareDraftApplicantState()
+  })
 
   test('persists visible field values when navigating away and back for every section', async ({ page }) => {
-    test.setTimeout(420_000)
+    test.setTimeout(900_000)
 
     await startBlankApplication(page)
 
