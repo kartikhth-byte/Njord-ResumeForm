@@ -28,6 +28,7 @@ import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 import RecruiterSettings from './pages/RecruiterSettings'
+import ProspectEnrollment from './pages/ProspectEnrollment'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -205,6 +206,12 @@ function App() {
             <Route path="/recruiter/settings" element={
               <RecruiterRoute>
                 <RecruiterSettings />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/prospects" element={
+              <RecruiterRoute>
+                <ProspectEnrollment />
               </RecruiterRoute>
             } />
 

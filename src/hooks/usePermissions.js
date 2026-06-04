@@ -12,15 +12,21 @@ export function usePermissions() {
     return authHasPermission(permissionName)
   }
 
-  const canManageTeam = () => hasPermission('manage_team')
-  const canViewApplications = () => hasPermission('view_applications')
-  const canManageApplications = () => hasPermission('manage_applications')
-  const canScheduleInterviews = () => hasPermission('schedule_interviews')
-  const canExportData = () => hasPermission('export_data')
-  const canViewAnalytics = () => hasPermission('view_analytics')
-  const canDeleteApplications = () => hasPermission('delete_applications')
-  const canManageSettings = () => hasPermission('manage_settings')
-  const canViewTeam = () => hasPermission('view_team')
+  const hasAnyPermission = (...permissionNames) => permissionNames.some((permissionName) => hasPermission(permissionName))
+
+  const canManageTeam = () => role === 'Master Recruiter' || hasAnyPermission('manage_runtime_settings', 'manage_settings')
+  const canViewApplications = () => hasAnyPermission('view_requirements', 'view_prospects')
+  const canManageApplications = () => hasAnyPermission('manage_applications', 'edit_requirements', 'transition_requirements', 'edit_requirement_owner', 'edit_junction_status')
+  const canViewProspects = () => hasPermission('view_prospects')
+  const canManageProspects = () => hasAnyPermission('create_prospects', 'edit_prospects', 'transition_prospects', 'archive_prospects', 'delete_prospects')
+  const canViewRequirements = () => hasPermission('view_requirements')
+  const canManageRequirements = () => hasAnyPermission('edit_requirements', 'create_requirements', 'transition_requirements', 'edit_requirement_owner')
+  const canScheduleInterviews = () => hasAnyPermission('transition_requirements', 'edit_requirements')
+  const canExportData = () => hasAnyPermission('export_data', 'export_csv', 'export_pdf')
+  const canViewAnalytics = () => hasAnyPermission('view_audit_log', 'view_analytics')
+  const canDeleteApplications = () => hasAnyPermission('delete_applications', 'delete_prospects', 'archive_prospects')
+  const canManageSettings = () => hasAnyPermission('manage_runtime_settings', 'manage_settings')
+  const canViewTeam = () => role === 'Master Recruiter' || hasAnyPermission('manage_runtime_settings', 'manage_settings')
 
   return {
     permissions,
@@ -30,6 +36,10 @@ export function usePermissions() {
     canManageTeam,
     canViewApplications,
     canManageApplications,
+    canViewProspects,
+    canManageProspects,
+    canViewRequirements,
+    canManageRequirements,
     canScheduleInterviews,
     canExportData,
     canViewAnalytics,

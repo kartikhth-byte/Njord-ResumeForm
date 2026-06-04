@@ -8,8 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:smoke": "playwright test --project=chromium",
-    "test:auth:applicant": "playwright test applicant-auth.setup.js --project=setup-applicant --headed",
+    "test:smoke": "npx playwright test --project=chromium",
+    "test:auth:applicant": "npx playwright test applicant-auth.setup.js --project=setup-applicant --headed",
     "prototype:cma-cgm": "PYTHONPATH=.python-packages python3 scripts/client_forms/cma_cgm_writer.py",
     "prototype:cma-cgm:section1": "npm run prototype:cma-cgm --"
   },

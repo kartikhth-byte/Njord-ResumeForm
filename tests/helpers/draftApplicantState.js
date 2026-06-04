@@ -19,42 +19,75 @@ function getBaseOrigin() {
   return new URL(baseUrl).origin
 }
 
-async function findAuthUserByEmail(adminClient, email) {
-  const perPage = 100
+function isRetryableAuthError(error) {
+  const message = `${error?.name || ''} ${error?.message || ''} ${error?.cause?.message || ''}`.toLowerCase()
+  return (
+    message.includes('fetch failed') ||
+    message.includes('timeout') ||
+    message.includes('connecttimeout') ||
+    message.includes('und_err_connect_timeout') ||
+    message.includes('econnreset') ||
+    message.includes('enotfound')
+  )
+}
 
-  for (let page = 1; page <= 20; page += 1) {
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
-    if (error) throw error
+async function withRetry(operation, attempts = 3) {
+  let lastError = null
 
-    const user = data?.users?.find((candidate) => candidate.email === email)
-    if (user) return user
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error
+      if (attempt === attempts || !isRetryableAuthError(error)) {
+        throw error
+      }
 
-    if (!data?.users || data.users.length < perPage) {
-      return null
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
     }
   }
 
-  return null
+  throw lastError
+}
+
+async function findAuthUserByEmail(adminClient, email) {
+  const perPage = 100
+
+  return withRetry(async () => {
+    for (let page = 1; page <= 20; page += 1) {
+      const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
+      if (error) throw error
+
+      const user = data?.users?.find((candidate) => candidate.email === email)
+      if (user) return user
+
+      if (!data?.users || data.users.length < perPage) {
+        return null
+      }
+    }
+
+    return null
+  })
 }
 
 async function upsertDraftAuthUser(adminClient, email, password) {
   const existingUser = await findAuthUserByEmail(adminClient, email)
 
   if (existingUser) {
-    const { data, error } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+    const { data, error } = await withRetry(() => adminClient.auth.admin.updateUserById(existingUser.id, {
       email_confirm: true,
       password,
       user_metadata: {
         full_name: 'Playwright Draft Applicant',
         name: 'Playwright Draft Applicant',
       },
-    })
+    }))
 
     if (error) throw error
     return data.user
   }
 
-  const { data, error } = await adminClient.auth.admin.createUser({
+  const { data, error } = await withRetry(() => adminClient.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -62,7 +95,7 @@ async function upsertDraftAuthUser(adminClient, email, password) {
       full_name: 'Playwright Draft Applicant',
       name: 'Playwright Draft Applicant',
     },
-  })
+  }))
 
   if (error) throw error
   return data.user
@@ -111,20 +144,20 @@ export async function prepareDraftApplicantState() {
     user_type: 'applicant',
   }
 
-  const { error: profileError } = await adminClient
+  const { error: profileError } = await withRetry(() => adminClient
     .from('profiles')
-    .upsert(profile, { onConflict: 'id' })
+    .upsert(profile, { onConflict: 'id' }))
 
   if (profileError) throw profileError
 
-  const { error: deleteError } = await adminClient
+  const { error: deleteError } = await withRetry(() => adminClient
     .from('applications')
     .delete()
-    .eq('user_id', user.id)
+    .eq('user_id', user.id))
 
   if (deleteError) throw deleteError
 
-  const { data: application, error: applicationError } = await adminClient
+  const { data: application, error: applicationError } = await withRetry(() => adminClient
     .from('applications')
     .insert({
       user_id: user.id,
@@ -133,16 +166,16 @@ export async function prepareDraftApplicantState() {
       applicant_email: email,
     })
     .select('id')
-    .single()
+    .single())
 
   if (applicationError) throw applicationError
 
-  const { error: dataError } = await adminClient
+  const { error: dataError } = await withRetry(() => adminClient
     .from('application_data')
     .insert({
       application_id: application.id,
       data: {},
-    })
+    }))
 
   if (dataError) throw dataError
 

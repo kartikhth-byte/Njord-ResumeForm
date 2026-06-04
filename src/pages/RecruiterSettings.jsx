@@ -52,7 +52,7 @@ export default function RecruiterSettings() {
     )
   }
 
-  if (role !== 'Master Recruiter' && !permissions.includes('manage_settings')) {
+  if (role !== 'Master Recruiter' && !permissions.includes('manage_runtime_settings') && !permissions.includes('manage_settings')) {
     navigate('/recruiter/dashboard', { replace: true })
     return null
   }

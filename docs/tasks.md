@@ -2,6 +2,10 @@
 
 ## High Priority
 
+- Validate and deploy the prospect-enrollment backend slice:
+  - foundation migration with the new prospect permissions and `audit_log`
+  - schema migrations for prospects, requirements, and junctions
+  - RPC layer for notes, requirement transitions, and prospect-requirement workflows
 - Verify the second customer worksheet template against the shared mapping path and confirm branding/template fidelity
 - Complete workbook-quality validation for customer worksheet exports:
   - formatting fidelity
@@ -46,6 +50,30 @@
 - Applicant and recruiter login flows are split in the current local codebase
 - Single-active-application enforcement is implemented in the DB and deployed to Supabase project `btbqdviuqcpauojmorvx`
 - Edge-function wildcard CORS has been replaced by a shared `APP_URL` allowlist helper and deployed to Supabase project `btbqdviuqcpauojmorvx`
+- Prospect schema foundation is implemented locally:
+  - `countries`, `ranks`, and `vessel_types` lookup tables are seeded from the shared UI option lists
+  - `prospects` includes the live email uniqueness, applicant uniqueness, first-contact, and activity tracking columns
+  - `prospect_notes` is in place with recruiter-only visibility policies
+- Requirements schema foundation is implemented locally:
+  - `requirements` has generated display IDs, recruiter ownership checks, and lifecycle transitions
+  - `requirement_nationalities` stores requirement country preferences as a junction table
+  - `requirement_remarks` mirrors the internal note structure for requirement detail flows
+- Junction/workflow foundation is implemented locally:
+  - `prospect_requirements` stores the shortlist-to-join workflow
+  - `applications.prospect_id` links applications back to the originating prospect
+- Prospect-enrollment write RPC layer is implemented locally:
+  - `add_prospect_note`, `edit_prospect_note`
+  - `add_requirement_remark`, `edit_requirement_remark`
+  - `create_prospect_with_requirement`, `attach_existing_prospect_to_requirement`
+  - `transition_requirement_status`, `transfer_requirement_owner`
+  - `transition_junction_status`, `bulk_withdraw_junctions`, `compute_should_prompt_close`
+  - SQL review fixes landed locally for idempotent seeds, master-only visibility filtering, reopen cleanup, and signature/validation cleanup
+  - workflow hardening landed locally for trigger-based prospect versioning, immutable junction assigners, and optional optimistic versions on bulk withdraw
+- Recruiter prospect enrollment workspace is implemented locally:
+  - prospect/requirement creation and attachment forms
+  - note and remark entry forms
+  - requirement and junction transition controls
+  - recruiter nav entry and workspace route
 - Recruiter-side application compliance review panel is implemented on `ViewApplication`
 - Compliance phase 1 is implemented:
   - passport, CDC, visas, CoC, GMDSS, medical fitness, vaccinations, STCW/security courses, flag-state endorsements, and sea-service gap checks

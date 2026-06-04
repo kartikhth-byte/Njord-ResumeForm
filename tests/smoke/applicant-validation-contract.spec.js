@@ -138,7 +138,7 @@ const validSections = {
     ],
   },
   section18: {
-    objectionToContactLastEmployer: 'no',
+    objectionToContactLastEmployer: true,
     currentEmployer: {
       company: 'Current Maritime Company',
       contactPerson: 'Current Contact',
@@ -316,6 +316,7 @@ test.describe('applicant validation contract', () => {
       seaService: [
         {
           ...validSections.section16.seaService[0],
+          engineFamily: '',
           teu: '',
           mainEngineMake: '',
           position: '',
@@ -326,6 +327,7 @@ test.describe('applicant validation contract', () => {
       ],
     })
     expect(validation.errors).toContain('Sea Service 1: TEU is required')
+    expect(validation.errors).toContain('Sea Service 1: Engine family is required')
     expect(validation.errors).toContain('Sea Service 1: Main engine make is required')
     expect(validation.errors).toContain('Sea Service 1: Position is required')
     expect(validation.errors).toContain('Sea Service 1: Manning is required')

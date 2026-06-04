@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAuth } from '../auth/AuthContext'
-import { LayoutDashboard, FileText, Search, Calendar, AlertCircle, Settings } from 'lucide-react'
+import { LayoutDashboard, FileText, Search, Calendar, AlertCircle, Settings, Users } from 'lucide-react'
 
 export default function RecruiterWorkspaceNav() {
   const navigate = useNavigate()
@@ -34,6 +34,13 @@ export default function RecruiterWorkspaceNav() {
       visible: true
     },
     {
+      key: 'prospects',
+      label: 'Prospects',
+      icon: Users,
+      path: '/recruiter/prospects',
+      visible: permissions.includes('view_prospects') || permissions.includes('create_prospects') || permissions.includes('view_requirements')
+    },
+    {
       key: 'calendar',
       label: 'Calendar',
       icon: Calendar,
@@ -52,7 +59,7 @@ export default function RecruiterWorkspaceNav() {
       label: 'Settings',
       icon: Settings,
       path: '/recruiter/settings',
-      visible: role === 'Master Recruiter' || permissions.includes('manage_settings')
+      visible: role === 'Master Recruiter' || permissions.includes('manage_runtime_settings') || permissions.includes('manage_settings')
     }
   ].filter(item => item.visible)
 
@@ -64,6 +71,7 @@ export default function RecruiterWorkspaceNav() {
     if (item.key === 'search') {
       return location.pathname === '/recruiter/applications' && location.search.includes('tab=search')
     }
+    if (item.key === 'prospects') return location.pathname.startsWith('/recruiter/prospects')
     return location.pathname.startsWith(item.path)
   }
 

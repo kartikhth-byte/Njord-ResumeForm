@@ -313,7 +313,17 @@ async function fillTextInputs(panel) {
     } else if (meta.type === 'number') {
       await input.fill(numberValueForKey(key))
     } else {
-      await input.fill(textValueForKey(key))
+      const value = textValueForKey(key)
+      try {
+        await input.fill(value, { timeout: 5000 })
+      } catch {
+        await input.evaluate((element, nextValue) => {
+          element.value = nextValue
+          element.dispatchEvent(new Event('input', { bubbles: true }))
+          element.dispatchEvent(new Event('change', { bubbles: true }))
+          element.dispatchEvent(new Event('blur', { bubbles: true }))
+        }, value)
+      }
     }
   }
 }
@@ -332,7 +342,17 @@ async function fillTextareas(panel) {
     if (!visible) continue
 
     const key = `${meta.label} ${meta.name} ${meta.placeholder}`.toLowerCase()
-    await textarea.fill(textValueForKey(key))
+    const value = textValueForKey(key)
+    try {
+      await textarea.fill(value, { timeout: 5000 })
+    } catch {
+      await textarea.evaluate((element, nextValue) => {
+        element.value = nextValue
+        element.dispatchEvent(new Event('input', { bubbles: true }))
+        element.dispatchEvent(new Event('change', { bubbles: true }))
+        element.dispatchEvent(new Event('blur', { bubbles: true }))
+      }, value)
+    }
   }
 }
 

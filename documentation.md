@@ -27,6 +27,10 @@
 - DB-level single-active-application enforcement is live: applicants can have only one non-terminal application at a time
 - Supabase edge functions now use a shared request-origin CORS helper backed by the `APP_URL` runtime setting
 - applicant dashboard draft progress now uses the same required-field validation contract as the form sidebar, so empty repeatable record shells do not count as completed sections
+- prospect-enrollment write RPC layer is implemented locally for notes, requirements, and junction workflows
+- recruiter prospect enrollment workspace is implemented locally with create/attach, note, and transition controls
+- prospect-enrollment SQL review fixes are applied locally: idempotent lookup seeds, master-only note visibility filters, requirement reopen cleanup, and RPC signature/validation cleanup
+- prospect-enrollment workflow hardening is also applied locally: prospect versioning now flows through triggers, junction assigners are immutable, bulk withdrawal accepts optional expected versions, and junction transition notes attach to prospect notes instead of requirement remarks
 
 ## Current Verification State
 
@@ -88,6 +92,8 @@
 - manual QA of recruiter admin flows
 - clean applicant test-data state and retest full applicant entry flow
 - decide whether to harden the auth lock implementation further
+- validate and deploy the prospect-enrollment backend slice (schema migrations plus RPC layer) once the consumer contract is ready
+- validate the recruiter prospect enrollment workspace against the deployed backend and manually confirm the new workflow transitions
 
 ## Recruiter Compliance Review Spec
 
