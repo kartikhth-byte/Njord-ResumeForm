@@ -2,10 +2,10 @@
 
 ## High Priority
 
-- Validate and deploy the prospect-enrollment backend slice:
-  - foundation migration with the new prospect permissions and `audit_log`
-  - schema migrations for prospects, requirements, and junctions
-  - RPC layer for notes, requirement transitions, and prospect-requirement workflows
+- Validate and deploy the remaining prospect-enrollment backend slice:
+  - invite request / bounce handling
+  - deep-read / export reporting RPCs
+  - live cutover and rollout validation
 - Verify the second customer worksheet template against the shared mapping path and confirm branding/template fidelity
 - Complete workbook-quality validation for customer worksheet exports:
   - formatting fidelity
@@ -17,6 +17,8 @@
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password
 - Verify `Coordinator` restricted access against intended product behavior
+- Validate the recruiter export/reporting flows against the live backend
+- Verify the prospect invite / bounce recovery flow against a real recruiter account
 
 ## Medium Priority
 
@@ -74,6 +76,15 @@
   - note and remark entry forms
   - requirement and junction transition controls
   - recruiter nav entry and workspace route
+- Recruiter dashboard pipeline hub is implemented locally:
+  - Operations, Prospects, Requirements, Funnel, KPI, and Reports tabs
+  - recruiter prospect and requirement detail routes
+  - pipeline-first dashboard summary flow aligned to the existing recruiter shell
+- Prospect-enrollment reporting and invite phase is implemented locally:
+  - send invite RPC and bounce webhook
+  - prospect / requirement deep-read RPCs
+  - export buttons and recent-export reporting surfaces
+  - requirement-specific compliance overlay on the submitted application view
 - Recruiter-side application compliance review panel is implemented on `ViewApplication`
 - Compliance phase 1 is implemented:
   - passport, CDC, visas, CoC, GMDSS, medical fitness, vaccinations, STCW/security courses, flag-state endorsements, and sea-service gap checks

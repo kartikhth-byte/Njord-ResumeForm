@@ -20,3 +20,21 @@ entrypoint = "./functions/create-recruiter/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/create-recruiter/*.html" ]
+
+[functions.send-prospect-invite]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-prospect-invite/deno.json"
+entrypoint = "./functions/send-prospect-invite/index.ts"
+
+[functions.prospect-email-bounce-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/prospect-email-bounce-webhook/deno.json"
+entrypoint = "./functions/prospect-email-bounce-webhook/index.ts"
+
+[functions.log-recruiter-export]
+enabled = true
+verify_jwt = true
+import_map = "./functions/log-recruiter-export/deno.json"
+entrypoint = "./functions/log-recruiter-export/index.ts"

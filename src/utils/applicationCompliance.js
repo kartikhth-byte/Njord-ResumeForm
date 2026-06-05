@@ -793,3 +793,79 @@ export function buildApplicationCompliance(applicationData = {}) {
     },
   }
 }
+
+export function buildRequirementComplianceOverlay(applicationData = {}, requirement = {}, requirementNationalities = []) {
+  const overlayApplicationData = {
+    ...applicationData,
+    section1: {
+      ...(applicationData.section1 || {}),
+      appliedForRank: requirement.rank_code || requirement.rankCode || requirement.rank_value || requirement.rank || applicationData.section1?.appliedForRank,
+      vesselType: requirement.vessel_type_code || requirement.vesselTypeCode || requirement.vessel_type || requirement.vesselType || applicationData.section1?.vesselType,
+    },
+  }
+
+  const overlayCompliance = buildApplicationCompliance(overlayApplicationData)
+  const applicantNationality = normalizeText(applicationData.section2?.nationality || '')
+  const normalizedRequirementNationalities = requirementNationalities
+    .map((entry) => {
+      if (!entry) return ''
+      if (typeof entry === 'string') return entry
+      return entry.name || entry.country_name || entry.label || ''
+    })
+    .map(normalizeText)
+    .filter(Boolean)
+
+  const nationalityMatches = normalizedRequirementNationalities.length === 0
+    ? null
+    : normalizedRequirementNationalities.includes(applicantNationality)
+
+  const requirementMatchGroup = buildGroup('Requirement matching', [
+    {
+      label: 'Requirement rank',
+      status: overlayApplicationData.section1?.appliedForRank ? 'green' : 'amber',
+      detail: overlayApplicationData.section1?.appliedForRank
+        ? `Overlayed against requirement rank ${overlayApplicationData.section1.appliedForRank}.`
+        : 'Requirement rank not available for overlay.',
+      expiryDate: null,
+    },
+    {
+      label: 'Requirement vessel type',
+      status: overlayApplicationData.section1?.vesselType ? 'green' : 'amber',
+      detail: overlayApplicationData.section1?.vesselType
+        ? `Overlayed against requirement vessel type ${overlayApplicationData.section1.vesselType}.`
+        : 'Requirement vessel type not available for overlay.',
+      expiryDate: null,
+    },
+    normalizedRequirementNationalities.length > 0
+      ? {
+          label: 'Nationality preference',
+          status: nationalityMatches ? 'green' : 'amber',
+          detail: nationalityMatches
+            ? 'Applicant nationality matches the requirement preference list.'
+            : `Applicant nationality (${applicationData.section2?.nationality || 'Not provided'}) is outside the requirement preference list.`,
+          expiryDate: null,
+        }
+      : {
+          label: 'Nationality preference',
+          status: 'amber',
+          detail: 'No requirement nationality preferences are recorded for this overlay.',
+          expiryDate: null,
+        },
+  ])
+
+  return {
+    ...overlayCompliance,
+    groups: [...overlayCompliance.groups, requirementMatchGroup],
+    metadata: {
+      ...overlayCompliance.metadata,
+      overlayType: 'requirement',
+      requirementSummary: {
+        requirementId: requirement.id || null,
+        requirementDisplayId: requirement.req_id_display || requirement.reqIdDisplay || 'Unknown requirement',
+        customerName: requirement.customer_name || requirement.customerName || null,
+        nationalityPreferences: normalizedRequirementNationalities,
+        applicantNationality: applicationData.section2?.nationality || null,
+      },
+    },
+  }
+}

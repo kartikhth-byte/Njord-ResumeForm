@@ -46,6 +46,27 @@ const SETTING_DEFINITIONS = [
     clientVisible: false,
   },
   {
+    key: 'RECRUITER_NOTIFICATION_EMAIL',
+    label: 'Recruiter Notification Email Override',
+    section: 'email',
+    isSecret: false,
+    clientVisible: false,
+  },
+  {
+    key: 'APPLICANT_NOTIFICATION_EMAIL',
+    label: 'Applicant Notification Email Override',
+    section: 'email',
+    isSecret: false,
+    clientVisible: false,
+  },
+  {
+    key: 'RESEND_WEBHOOK_SECRET',
+    label: 'Resend Webhook Secret',
+    section: 'email',
+    isSecret: true,
+    clientVisible: false,
+  },
+  {
     key: 'GEMINI_API_KEY',
     label: 'Gemini API Key',
     section: 'ai',

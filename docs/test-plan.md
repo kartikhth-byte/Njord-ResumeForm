@@ -92,6 +92,19 @@ Manual checks:
 - send representative `OPTIONS` preflights from an unlisted origin and confirm no `Access-Control-Allow-Origin` is returned
 - for worksheet downloads, confirm `Access-Control-Expose-Headers` includes `Content-Disposition`
 
+## Prospect Enrollment Validation
+
+Manual checks:
+- from the recruiter prospect detail page, edit the prospect email, clear any bounce state, and send a new invite
+- confirm the invite button respects recruiter permissions and that the invite reservation prevents duplicate sends in a short resend window
+- confirm bounced invite emails set the prospect bounce flag and that correcting the email clears the flag before resend
+- on the recruiter dashboard Reports tab, export the current prospect queue as CSV and the requirement / funnel snapshots as PDF
+- confirm CSV and PDF export buttons only appear for the matching export permissions, and that the file downloads only after the audit row is recorded
+- confirm the Recent exports panel shows the latest export audit rows
+- open a submitted application as recruiter and confirm the generic compliance panel and requirement overlay render side by side when a linked requirement is present
+- confirm the requirement overlay stays hidden when the application has no linked prospect/requirement context
+- on the prospect detail page, confirm linked applications are shown without tokens unless application access is explicitly granted
+
 ## Recruiter Test Strategy
 
 ### Automated

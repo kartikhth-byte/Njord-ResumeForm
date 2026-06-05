@@ -35,19 +35,21 @@ function reviewFlagStyles(status) {
   return 'border-rose-100 bg-white/80'
 }
 
-export default function ApplicationCompliancePanel({ compliance }) {
+export default function ApplicationCompliancePanel({
+  compliance,
+  eyebrow = 'Recruiter Compliance Review',
+  title = 'Documents, training, and review flags',
+  description = 'This is a recruiter-side readiness pass based on the submitted application data. It highlights missing items, near-expiry records, and sea-service gaps so the review starts with the highest-risk issues.',
+}) {
   if (!compliance) return null
 
   return (
     <div className="recruiter-panel p-6 print:shadow-none print:border">
       <div className="flex flex-col gap-3 border-b border-gray-200 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Recruiter Compliance Review</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Documents, training, and review flags</h3>
-          <p className="mt-2 max-w-3xl text-sm text-gray-600">
-            This is a recruiter-side readiness pass based on the submitted application data. It highlights missing items,
-            near-expiry records, and sea-service gaps so the review starts with the highest-risk issues.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">{eyebrow}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">{title}</h3>
+          <p className="mt-2 max-w-3xl text-sm text-gray-600">{description}</p>
         </div>
         <ComplianceStatusPill status={compliance.overallStatus} />
       </div>
@@ -66,13 +68,13 @@ export default function ApplicationCompliancePanel({ compliance }) {
               const cardStyles = reviewFlagStyles(flag.status)
 
               return (
-              <div key={`${flag.title}-${index}`} className={`rounded-2xl border p-4 ${cardStyles}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-900">{flag.title}</p>
-                  <ComplianceStatusPill status={flag.status} />
+                <div key={`${flag.title}-${index}`} className={`rounded-2xl border p-4 ${cardStyles}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-900">{flag.title}</p>
+                    <ComplianceStatusPill status={flag.status} />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700">{flag.detail}</p>
                 </div>
-                <p className="mt-2 text-sm text-slate-700">{flag.detail}</p>
-              </div>
               )
             })}
           </div>

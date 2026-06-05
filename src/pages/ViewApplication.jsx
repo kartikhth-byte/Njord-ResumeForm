@@ -14,7 +14,7 @@ import SequentialStatusControl from '../components/SequentialStatusControl'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import StatCard from '../components/ui/StatCard'
-import { buildApplicationCompliance } from '../utils/applicationCompliance'
+import { buildApplicationCompliance, buildRequirementComplianceOverlay } from '../utils/applicationCompliance'
 
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
@@ -56,6 +56,8 @@ export default function ViewApplication() {
   const [worksheetError, setWorksheetError] = useState('')
   const [worksheetGenerating, setWorksheetGenerating] = useState(false)
   const [worksheetSuccess, setWorksheetSuccess] = useState('')
+  const [linkedRequirement, setLinkedRequirement] = useState(null)
+  const [linkedRequirementNationalities, setLinkedRequirementNationalities] = useState([])
   const worksheetModalCloseTimeoutRef = useRef(null)
 
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function ViewApplication() {
 
       let appQuery = supabase
         .from('applications')
-        .select('*')
+        .select('*, prospect_id')
         .eq('public_token', publicToken)
         .not('submitted_at', 'is', null)
 
@@ -146,6 +148,8 @@ export default function ViewApplication() {
       }
 
       setApplication(app)
+      setLinkedRequirement(null)
+      setLinkedRequirementNationalities([])
 
       const { data: appData, error: dataError } = await supabase
         .from('application_data')
@@ -159,6 +163,52 @@ export default function ViewApplication() {
       }
 
       setApplicationData(appData?.data || {})
+
+      if (isAuthenticatedRecruiter && app.prospect_id) {
+        const { data: prospectRow, error: prospectError } = await supabase
+          .from('prospects')
+          .select('id, name, status, nationality_id, rank_applied_for_id, vessel_type_id, email, telephone, lead_source, bounce_flag, first_contacted_at, invited_at, claimed_at')
+          .eq('id', app.prospect_id)
+          .maybeSingle()
+
+        if (prospectError) {
+          console.error('Failed to load linked prospect:', prospectError)
+        } else if (prospectRow) {
+          const { data: junctionRow, error: junctionError } = await supabase
+            .from('prospect_requirements')
+            .select('requirement_id, status, updated_at')
+            .eq('prospect_id', prospectRow.id)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (junctionError) {
+            console.error('Failed to load linked junction:', junctionError)
+          } else if (junctionRow?.requirement_id) {
+            const { data: requirementRow, error: requirementError } = await supabase
+              .from('requirements')
+              .select('id, req_id_display, customer_name, rank_id, vessel_type_id')
+              .eq('id', junctionRow.requirement_id)
+              .maybeSingle()
+
+            if (requirementError) {
+              console.error('Failed to load linked requirement:', requirementError)
+            } else if (requirementRow) {
+              setLinkedRequirement(requirementRow)
+
+              const { data: nationalityRows, error: nationalityError } = await supabase
+                .from('requirement_nationalities')
+                .select('country_id, countries(id, code, name)')
+                .eq('requirement_id', requirementRow.id)
+              if (nationalityError) {
+                console.error('Failed to load linked requirement nationalities:', nationalityError)
+              } else {
+                setLinkedRequirementNationalities((nationalityRows || []).map((row) => row.countries).filter(Boolean))
+              }
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error loading application:', error)
       setError('Failed to load application')
@@ -269,6 +319,9 @@ export default function ViewApplication() {
   ]
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
+  const requirementCompliance = linkedRequirement
+    ? buildRequirementComplianceOverlay(applicationData || {}, linkedRequirement, linkedRequirementNationalities)
+    : null
 
   const formatWorksheetTimestamp = (value) => {
     if (!value) return 'Unknown'
@@ -641,7 +694,22 @@ export default function ViewApplication() {
 
             <div className="space-y-6">
           {isRecruiterView && compliance ? (
-            <ApplicationCompliancePanel compliance={compliance} />
+            <div className={`grid gap-6 ${requirementCompliance ? 'xl:grid-cols-2' : ''}`}>
+              <ApplicationCompliancePanel
+                compliance={compliance}
+                eyebrow="Recruiter Compliance Review"
+                title="Documents, training, and review flags"
+                description="This is the general recruiter-side readiness pass based on the submitted application data."
+              />
+              {requirementCompliance ? (
+                <ApplicationCompliancePanel
+                  compliance={requirementCompliance}
+                  eyebrow="Requirement Compliance Overlay"
+                  title={`Application compared against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the live requirement'}`}
+                  description={`This overlay keeps the live candidate evidence visible beside the matching requirement${requirementCompliance.metadata?.requirementSummary?.customerName ? ` for ${requirementCompliance.metadata.requirementSummary.customerName}` : ''} so the recruiter can spot mismatches quickly.`}
+                />
+              ) : null}
+            </div>
           ) : null}
 
           {/* Section 1: Availability & Position */}

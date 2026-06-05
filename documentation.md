@@ -31,6 +31,9 @@
 - recruiter prospect enrollment workspace is implemented locally with create/attach, note, and transition controls
 - prospect-enrollment SQL review fixes are applied locally: idempotent lookup seeds, master-only note visibility filters, requirement reopen cleanup, and RPC signature/validation cleanup
 - prospect-enrollment workflow hardening is also applied locally: prospect versioning now flows through triggers, junction assigners are immutable, bulk withdrawal accepts optional expected versions, and junction transition notes attach to prospect notes instead of requirement remarks
+- recruiter dashboard pipeline hub is implemented locally with conservative Operations/Prospects/Requirements/Funnel/KPI/Reports tabs plus recruiter prospect and requirement detail routes
+- prospect-enrollment invite/reporting slice is implemented locally: invite request RPC, bounce webhook, deep-read/export RPCs, recent-export reporting, snapshot export buttons, and the requirement compliance overlay on the submitted application view
+- export/download actions now audit before file delivery, respect format-specific export permissions, and keep prospect-detail application tokens hidden unless application access is explicitly granted
 
 ## Current Verification State
 
@@ -189,8 +192,6 @@ Sea-service red flags:
 
 These should be treated as follow-up phases, not guessed in Phase 1:
 
-- ratings-specific watchkeeping / able-seafarer rules where the source is not yet normalized enough
-- tanker / IGF / passenger applicability rules tied to exact vessel history and endorsement requirements
 - route/flag/port-specific vaccination and visa logic
 - recruiter workflow automation on submit or status change
 - DB-level storage of computed compliance snapshots

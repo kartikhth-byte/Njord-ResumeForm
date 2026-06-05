@@ -64,7 +64,7 @@ export default function RecruiterWorkspaceNav() {
   ].filter(item => item.visible)
 
   const isActive = (item) => {
-    if (item.key === 'dashboard') return location.pathname === '/recruiter/dashboard'
+    if (item.key === 'dashboard') return location.pathname.startsWith('/recruiter/dashboard')
     if (item.key === 'workspace') {
       return location.pathname === '/recruiter/applications' && location.search !== '?tab=search'
     }

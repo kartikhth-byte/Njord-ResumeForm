@@ -29,6 +29,8 @@ import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 import RecruiterSettings from './pages/RecruiterSettings'
 import ProspectEnrollment from './pages/ProspectEnrollment'
+import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
+import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -191,9 +193,21 @@ function App() {
               </RecruiterRoute>
             } />
 
-            <Route path="/recruiter/dashboard" element={
+            <Route path="/recruiter/dashboard/:dashboardTab?" element={
               <RecruiterRoute>
                 <RecruiterDashboard />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/dashboard/prospects/:prospectId" element={
+              <RecruiterRoute>
+                <RecruiterProspectDetail />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/dashboard/requirements/:requirementId" element={
+              <RecruiterRoute>
+                <RecruiterRequirementDetail />
               </RecruiterRoute>
             } />
             
