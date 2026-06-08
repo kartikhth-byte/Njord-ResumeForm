@@ -254,6 +254,12 @@ export default function RecruiterWorkspace() {
     }))
   }, [recruiters])
 
+  const normalizeRecruiterRows = (rows = []) =>
+    rows.map((item) => ({
+      ...item,
+      role_name: item.user_roles?.[0]?.roles?.name || 'Unknown',
+    }))
+
   const rankOptions = useMemo(() => ranks.map((rank) => ({ value: rank.id, label: rank.name })), [ranks])
   const vesselTypeOptions = useMemo(() => vesselTypes.map((vesselType) => ({ value: vesselType.id, label: vesselType.name })), [vesselTypes])
   const countryOptions = useMemo(() => countries.map((country) => ({ value: country.id, label: country.name })), [countries])
@@ -442,7 +448,23 @@ export default function RecruiterWorkspace() {
           supabase.from('countries').select('id, code, name').order('name'),
           supabase.from('ranks').select('id, code, name').order('name'),
           supabase.from('vessel_types').select('id, code, name').order('name'),
-          supabase.from('profiles').select('id, full_name, email, role_name, user_type').eq('user_type', 'recruiter').order('full_name'),
+          supabase
+            .from('profiles')
+            .select(`
+              id,
+              full_name,
+              email,
+              user_type,
+              user_roles!user_roles_user_id_fkey(
+                role_id,
+                roles!inner(
+                  id,
+                  name
+                )
+              )
+            `)
+            .eq('user_type', 'recruiter')
+            .order('full_name'),
           supabase
             .from('requirements')
             .select('id, req_id_display, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, owner_recruiter_id, created_by_recruiter_id, archived_at, archived_by_recruiter_id, archive_reason, deleted_at, deleted_by_recruiter_id, delete_reason, version, created_at, updated_at')
@@ -471,7 +493,7 @@ export default function RecruiterWorkspace() {
         setCountries(rowsOrThrow(countriesResult))
         setRanks(rowsOrThrow(ranksResult))
         setVesselTypes(rowsOrThrow(vesselTypesResult))
-        setRecruiters(rowsOrThrow(profilesResult))
+        setRecruiters(normalizeRecruiterRows(rowsOrThrow(profilesResult)))
         setRequirements(rowsOrThrow(requirementsResult))
         setProspects(rowsOrThrow(prospectsResult))
         setJunctions(rowsOrThrow(junctionsResult))
@@ -519,7 +541,23 @@ export default function RecruiterWorkspace() {
         supabase.from('countries').select('id, code, name').order('name'),
         supabase.from('ranks').select('id, code, name').order('name'),
         supabase.from('vessel_types').select('id, code, name').order('name'),
-        supabase.from('profiles').select('id, full_name, email, role_name, user_type').eq('user_type', 'recruiter').order('full_name'),
+        supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            email,
+            user_type,
+            user_roles!user_roles_user_id_fkey(
+              role_id,
+              roles!inner(
+                id,
+                name
+              )
+            )
+          `)
+          .eq('user_type', 'recruiter')
+          .order('full_name'),
         supabase
           .from('requirements')
           .select('id, req_id_display, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, owner_recruiter_id, created_by_recruiter_id, archived_at, archived_by_recruiter_id, archive_reason, deleted_at, deleted_by_recruiter_id, delete_reason, version, created_at, updated_at')
@@ -541,7 +579,7 @@ export default function RecruiterWorkspace() {
       setCountries(countriesData || [])
       setRanks(ranksData || [])
       setVesselTypes(vesselsData || [])
-      setRecruiters(profilesData || [])
+      setRecruiters(normalizeRecruiterRows(profilesData || []))
       setRequirements(requirementsData || [])
       setProspects(prospectsData || [])
       setJunctions(junctionsData || [])
@@ -971,7 +1009,7 @@ export default function RecruiterWorkspace() {
   if (permLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -985,7 +1023,7 @@ export default function RecruiterWorkspace() {
   if (!canAccessWorkspace) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
           <EmptyState
@@ -1000,7 +1038,7 @@ export default function RecruiterWorkspace() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+      <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

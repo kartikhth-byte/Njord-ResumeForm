@@ -179,7 +179,7 @@ function LockedActionState({ title, description }) {
 
 export default function ProspectEnrollment() {
   const { user, profile, signOut } = useAuth()
-  const { hasPermission, loading: permLoading } = usePermissions()
+  const { hasPermission, role, loading: permLoading } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
@@ -246,7 +246,7 @@ export default function ProspectEnrollment() {
     return new Map(vesselTypes.map((vesselType) => [vesselType.id, vesselType.name]))
   }, [vesselTypes])
 
-  const isMasterRecruiter = profile?.role_name === 'Master Recruiter'
+  const isMasterRecruiter = role === 'Master Recruiter'
   const canCreateProspects = hasPermission('create_prospects')
   const canAttachProspectsToRequirements = hasPermission('edit_junction_status')
   const canWriteProspectNotes = hasPermission('edit_prospect_notes')
@@ -569,7 +569,7 @@ export default function ProspectEnrollment() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
@@ -584,7 +584,7 @@ export default function ProspectEnrollment() {
   if (!canAccessWorkspace) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
           <EmptyState
@@ -604,7 +604,7 @@ export default function ProspectEnrollment() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+      <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

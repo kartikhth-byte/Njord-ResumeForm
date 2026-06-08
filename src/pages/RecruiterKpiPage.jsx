@@ -38,7 +38,7 @@ function toNumber(value) {
 
 export default function RecruiterKpiPage() {
   const { user, profile, signOut } = useAuth()
-  const { loading: permLoading } = usePermissions()
+  const { role, loading: permLoading } = usePermissions()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -62,6 +62,12 @@ export default function RecruiterKpiPage() {
     ]
   }, [recruiters])
 
+  const normalizeRecruiterRows = (rows = []) =>
+    rows.map((item) => ({
+      ...item,
+      role_name: item.user_roles?.[0]?.roles?.name || 'Unknown',
+    }))
+
   useEffect(() => {
     let cancelled = false
 
@@ -78,7 +84,23 @@ export default function RecruiterKpiPage() {
           scheduledEventsResult,
           exportsResult,
         ] = await Promise.all([
-          supabase.from('profiles').select('id, full_name, email, role_name, user_type').eq('user_type', 'recruiter').order('full_name'),
+          supabase
+            .from('profiles')
+            .select(`
+              id,
+              full_name,
+              email,
+              user_type,
+              user_roles!user_roles_user_id_fkey(
+                role_id,
+                roles!inner(
+                  id,
+                  name
+                )
+              )
+            `)
+            .eq('user_type', 'recruiter')
+            .order('full_name'),
           supabase
             .from('requirements')
             .select('id, req_id_display, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, created_at, updated_at')
@@ -107,7 +129,7 @@ export default function RecruiterKpiPage() {
           return result.data || []
         }
 
-        setRecruiters(dataOrThrow(recruitersResult))
+        setRecruiters(normalizeRecruiterRows(dataOrThrow(recruitersResult)))
         setRequirements(dataOrThrow(requirementsResult))
         setProspects(dataOrThrow(prospectsResult))
         setJunctions(dataOrThrow(junctionsResult))
@@ -228,7 +250,7 @@ export default function RecruiterKpiPage() {
   if (permLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -239,7 +261,7 @@ export default function RecruiterKpiPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <RecruiterTopbar user={user} profile={profile} role={profile?.role_name} signOut={signOut} />
+      <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
