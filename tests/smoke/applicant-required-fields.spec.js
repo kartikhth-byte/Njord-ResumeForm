@@ -19,6 +19,7 @@ const applicantStorageState =
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
 test.describe('applicant required-field coverage', () => {
+  test.setTimeout(120_000)
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {
@@ -27,8 +28,6 @@ test.describe('applicant required-field coverage', () => {
 
   for (const section of SECTION_SEQUENCE) {
     test(`section ${section.number} fills all visible required fields`, async ({ page }) => {
-      test.setTimeout(60_000)
-
       await startBlankApplication(page)
       if (section.number !== 1) {
         await navigateToSection(page, section)

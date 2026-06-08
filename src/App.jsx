@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
 import { usePermissions } from './hooks/usePermissions'
@@ -17,7 +17,8 @@ import ViewApplication from './pages/ViewApplication'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsConditions from './pages/TermsConditions'
 import RecruiterTeam from './pages/RecruiterTeam'
-import RecruiterDashboard from './pages/RecruiterDashboard'
+import RecruiterDashboard from './pages/RecruiterDashboardSimple'
+import RecruiterKpiPage from './pages/RecruiterKpiPage'
 import RecruiterLogin from './pages/RecruiterLogin'
 import RecruiterSetup from './pages/RecruiterSetup'
 import RecruiterResetPassword from './pages/RecruiterResetPassword'
@@ -28,7 +29,7 @@ import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 import RecruiterSettings from './pages/RecruiterSettings'
-import ProspectEnrollment from './pages/ProspectEnrollment'
+import RecruiterWorkspace from './pages/RecruiterWorkspace'
 import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 
@@ -137,6 +138,16 @@ function RootRedirect() {
   return null
 }
 
+function RecruiterProspectDetailRedirect() {
+  const { prospectId } = useParams()
+  return <Navigate to={`/recruiter/workspace/prospects/${prospectId}`} replace />
+}
+
+function RecruiterRequirementDetailRedirect() {
+  const { requirementId } = useParams()
+  return <Navigate to={`/recruiter/workspace/requirements/${requirementId}`} replace />
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -193,21 +204,45 @@ function App() {
               </RecruiterRoute>
             } />
 
+            <Route path="/recruiter/workspace" element={
+              <RecruiterRoute>
+                <RecruiterWorkspace />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/workspace/prospects/:prospectId" element={
+              <RecruiterRoute>
+                <RecruiterProspectDetail />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/workspace/requirements/:requirementId" element={
+              <RecruiterRoute>
+                <RecruiterRequirementDetail />
+              </RecruiterRoute>
+            } />
+
             <Route path="/recruiter/dashboard/:dashboardTab?" element={
               <RecruiterRoute>
                 <RecruiterDashboard />
               </RecruiterRoute>
             } />
 
+            <Route path="/recruiter/kpi" element={
+              <RecruiterRoute>
+                <RecruiterKpiPage />
+              </RecruiterRoute>
+            } />
+
             <Route path="/recruiter/dashboard/prospects/:prospectId" element={
               <RecruiterRoute>
-                <RecruiterProspectDetail />
+                <RecruiterProspectDetailRedirect />
               </RecruiterRoute>
             } />
 
             <Route path="/recruiter/dashboard/requirements/:requirementId" element={
               <RecruiterRoute>
-                <RecruiterRequirementDetail />
+                <RecruiterRequirementDetailRedirect />
               </RecruiterRoute>
             } />
             
@@ -225,7 +260,7 @@ function App() {
 
             <Route path="/recruiter/prospects" element={
               <RecruiterRoute>
-                <ProspectEnrollment />
+                <Navigate to="/recruiter/workspace" replace />
               </RecruiterRoute>
             } />
 

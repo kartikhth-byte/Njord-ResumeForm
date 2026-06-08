@@ -80,6 +80,12 @@
   - Operations, Prospects, Requirements, Funnel, KPI, and Reports tabs
   - recruiter prospect and requirement detail routes
   - pipeline-first dashboard summary flow aligned to the existing recruiter shell
+- Recruiter shell redesign is implemented locally:
+  - main nav now surfaces Dashboard, Workspace, KPI, Expiry, Calendar, Search, and Settings
+  - dashboard is a compact executive snapshot
+  - Workspace now splits requirements, candidates, and candidate pipeline
+  - KPI is a dedicated reporting page
+  - the legacy prospect route now redirects to the new workspace entry point
 - Prospect-enrollment reporting and invite phase is implemented locally:
   - send invite RPC and bounce webhook
   - prospect / requirement deep-read RPCs

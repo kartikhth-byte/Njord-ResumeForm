@@ -279,7 +279,7 @@ export default function RecruiterProspectDetail() {
             action={
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/dashboard/prospects')}
+                onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                 className="workspace-action-button workspace-action-button--primary"
               >
                 Back to prospects
@@ -477,7 +477,7 @@ export default function RecruiterProspectDetail() {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => navigate('/recruiter/dashboard/prospects')}
+                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -485,7 +485,7 @@ export default function RecruiterProspectDetail() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate('/recruiter/prospects')}
+                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                   className="workspace-action-button workspace-action-button--primary"
                 >
                   Open enrollment workspace
@@ -564,7 +564,7 @@ export default function RecruiterProspectDetail() {
                         action={
                           <button
                             type="button"
-                            onClick={() => navigate('/recruiter/prospects')}
+                            onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                             className="workspace-action-button workspace-action-button--primary"
                           >
                             Open enrollment workspace
@@ -606,7 +606,7 @@ export default function RecruiterProspectDetail() {
                             {requirement ? (
                               <button
                                 type="button"
-                                onClick={() => navigate(`/recruiter/dashboard/requirements/${requirement.id}`)}
+                                onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`)}
                                 className="workspace-action-button workspace-action-button--secondary"
                               >
                                 Open requirement

@@ -19,75 +19,70 @@ function getBaseOrigin() {
   return new URL(baseUrl).origin
 }
 
-function isRetryableAuthError(error) {
-  const message = `${error?.name || ''} ${error?.message || ''} ${error?.cause?.message || ''}`.toLowerCase()
-  return (
-    message.includes('fetch failed') ||
-    message.includes('timeout') ||
-    message.includes('connecttimeout') ||
-    message.includes('und_err_connect_timeout') ||
-    message.includes('econnreset') ||
-    message.includes('enotfound')
-  )
-}
-
-async function withRetry(operation, attempts = 3) {
-  let lastError = null
-
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation()
-    } catch (error) {
-      lastError = error
-      if (attempt === attempts || !isRetryableAuthError(error)) {
-        throw error
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
-    }
+function readFreshDraftState(absoluteStatePath, expectedOrigin) {
+  if (!fs.existsSync(absoluteStatePath)) {
+    return null
   }
 
-  throw lastError
+  try {
+    const storageState = JSON.parse(fs.readFileSync(absoluteStatePath, 'utf8'))
+    const origin = storageState.origins?.[0]?.origin
+    const tokenEntry = storageState.origins?.[0]?.localStorage?.find((entry) => entry.name === 'njord-auth-token')
+    const authzEntry = storageState.origins?.[0]?.localStorage?.find((entry) => entry.name === 'njord-authz-cache')
+
+    if (origin !== expectedOrigin || !tokenEntry || !authzEntry) {
+      return null
+    }
+
+    const currentSession = JSON.parse(tokenEntry.value)
+    const now = Math.floor(Date.now() / 1000)
+
+    if (!currentSession?.expires_at || currentSession.expires_at <= now + 60) {
+      return null
+    }
+
+    return storageState
+  } catch {
+    return null
+  }
 }
 
 async function findAuthUserByEmail(adminClient, email) {
   const perPage = 100
 
-  return withRetry(async () => {
-    for (let page = 1; page <= 20; page += 1) {
-      const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
-      if (error) throw error
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage })
+    if (error) throw error
 
-      const user = data?.users?.find((candidate) => candidate.email === email)
-      if (user) return user
+    const user = data?.users?.find((candidate) => candidate.email === email)
+    if (user) return user
 
-      if (!data?.users || data.users.length < perPage) {
-        return null
-      }
+    if (!data?.users || data.users.length < perPage) {
+      return null
     }
+  }
 
-    return null
-  })
+  return null
 }
 
 async function upsertDraftAuthUser(adminClient, email, password) {
   const existingUser = await findAuthUserByEmail(adminClient, email)
 
   if (existingUser) {
-    const { data, error } = await withRetry(() => adminClient.auth.admin.updateUserById(existingUser.id, {
+    const { data, error } = await adminClient.auth.admin.updateUserById(existingUser.id, {
       email_confirm: true,
       password,
       user_metadata: {
         full_name: 'Playwright Draft Applicant',
         name: 'Playwright Draft Applicant',
       },
-    }))
+    })
 
     if (error) throw error
     return data.user
   }
 
-  const { data, error } = await withRetry(() => adminClient.auth.admin.createUser({
+  const { data, error } = await adminClient.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -95,7 +90,7 @@ async function upsertDraftAuthUser(adminClient, email, password) {
       full_name: 'Playwright Draft Applicant',
       name: 'Playwright Draft Applicant',
     },
-  }))
+  })
 
   if (error) throw error
   return data.user
@@ -107,6 +102,17 @@ export function getDraftApplicantStorageStatePath() {
 
 export async function prepareDraftApplicantState() {
   loadEnv()
+  const statePath = getDraftApplicantStorageStatePath()
+  const absoluteStatePath = path.resolve(process.cwd(), statePath)
+  const expectedOrigin = getBaseOrigin()
+
+  if (readFreshDraftState(absoluteStatePath, expectedOrigin)) {
+    return {
+      prepared: true,
+      reason: 'existing-state',
+      statePath,
+    }
+  }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
@@ -116,13 +122,12 @@ export async function prepareDraftApplicantState() {
     return {
       prepared: false,
       reason: 'missing-supabase-env',
-      statePath: getDraftApplicantStorageStatePath(),
+      statePath,
     }
   }
 
   const email = process.env.PLAYWRIGHT_DRAFT_APPLICANT_EMAIL || DEFAULT_DRAFT_EMAIL
   const password = process.env.PLAYWRIGHT_DRAFT_APPLICANT_PASSWORD || DEFAULT_DRAFT_PASSWORD
-  const statePath = getDraftApplicantStorageStatePath()
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       persistSession: false,
@@ -144,20 +149,20 @@ export async function prepareDraftApplicantState() {
     user_type: 'applicant',
   }
 
-  const { error: profileError } = await withRetry(() => adminClient
+  const { error: profileError } = await adminClient
     .from('profiles')
-    .upsert(profile, { onConflict: 'id' }))
+    .upsert(profile, { onConflict: 'id' })
 
   if (profileError) throw profileError
 
-  const { error: deleteError } = await withRetry(() => adminClient
+  const { error: deleteError } = await adminClient
     .from('applications')
     .delete()
-    .eq('user_id', user.id))
+    .eq('user_id', user.id)
 
   if (deleteError) throw deleteError
 
-  const { data: application, error: applicationError } = await withRetry(() => adminClient
+  const { data: application, error: applicationError } = await adminClient
     .from('applications')
     .insert({
       user_id: user.id,
@@ -166,16 +171,16 @@ export async function prepareDraftApplicantState() {
       applicant_email: email,
     })
     .select('id')
-    .single())
+    .single()
 
   if (applicationError) throw applicationError
 
-  const { error: dataError } = await withRetry(() => adminClient
+  const { error: dataError } = await adminClient
     .from('application_data')
     .insert({
       application_id: application.id,
       data: {},
-    }))
+    })
 
   if (dataError) throw dataError
 
@@ -186,13 +191,12 @@ export async function prepareDraftApplicantState() {
 
   if (sessionError) throw sessionError
 
-  const absoluteStatePath = path.resolve(process.cwd(), statePath)
   fs.mkdirSync(path.dirname(absoluteStatePath), { recursive: true })
   fs.writeFileSync(absoluteStatePath, JSON.stringify({
     cookies: [],
     origins: [
       {
-        origin: getBaseOrigin(),
+        origin: expectedOrigin,
         localStorage: [
           {
             name: 'njord-auth-token',

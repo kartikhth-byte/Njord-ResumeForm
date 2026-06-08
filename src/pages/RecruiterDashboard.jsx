@@ -614,11 +614,11 @@ export default function RecruiterDashboard() {
   }
 
   if (dashboardTab && !DASHBOARD_TABS.some((tab) => tab.id === dashboardTab)) {
-    return <Navigate to="/recruiter/dashboard/operations" replace />
+    return <Navigate to="/recruiter/dashboard" replace />
   }
 
   if (dashboardTab && !requestedTabVisible) {
-    return <Navigate to="/recruiter/dashboard/operations" replace />
+    return <Navigate to="/recruiter/dashboard" replace />
   }
 
   if (permLoading || loading) {
@@ -661,31 +661,31 @@ export default function RecruiterDashboard() {
           <TabActionButton icon={BriefcaseBusiness} onClick={() => navigate('/recruiter/applications')} primary>
             Open applications workspace
           </TabActionButton>
-          <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/prospects')}>
+          <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/workspace?tab=candidates')}>
             Open prospect enrollment
           </TabActionButton>
         </>
       ) : activeTab === 'prospects' ? (
         <>
-          <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/prospects')} primary>
+          <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/workspace?tab=candidates')} primary>
             Prospect enrollment
           </TabActionButton>
-          <TabActionButton icon={ArrowRight} onClick={() => navigate('/recruiter/dashboard/requirements')}>
+          <TabActionButton icon={ArrowRight} onClick={() => navigate('/recruiter/workspace?tab=requirements')}>
             Jump to requirements
           </TabActionButton>
         </>
       ) : activeTab === 'requirements' ? (
         <>
-          <TabActionButton icon={FileText} onClick={() => navigate('/recruiter/prospects')} primary>
+          <TabActionButton icon={FileText} onClick={() => navigate('/recruiter/workspace?tab=candidates')} primary>
             Open enrollment workspace
           </TabActionButton>
-          <TabActionButton icon={ArrowRight} onClick={() => navigate('/recruiter/dashboard/funnel')}>
+          <TabActionButton icon={ArrowRight} onClick={() => navigate('/recruiter/workspace?tab=pipeline')}>
             View funnel
           </TabActionButton>
         </>
       ) : activeTab === 'funnel' ? (
         <>
-          <TabActionButton icon={Layers3} onClick={() => navigate('/recruiter/prospects')} primary>
+          <TabActionButton icon={Layers3} onClick={() => navigate('/recruiter/workspace?tab=pipeline')} primary>
             Review prospect pipeline
           </TabActionButton>
           <TabActionButton icon={Calendar} onClick={() => navigate('/recruiter/calendar')}>
@@ -735,7 +735,7 @@ export default function RecruiterDashboard() {
               <TabActionButton icon={BriefcaseBusiness} onClick={() => navigate('/recruiter/applications')} primary>
                 Open applications workspace
               </TabActionButton>
-              <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/prospects')}>
+              <TabActionButton icon={UsersRound} onClick={() => navigate('/recruiter/workspace?tab=candidates')}>
                 Prospect enrollment
               </TabActionButton>
             </div>
@@ -746,7 +746,7 @@ export default function RecruiterDashboard() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: 'Applications workspace', hint: 'Triage submissions and review compliance.', action: () => navigate('/recruiter/applications') },
-                { label: 'Prospect enrollment', hint: 'Create prospects and match them to requirements.', action: () => navigate('/recruiter/prospects') },
+                { label: 'Prospect enrollment', hint: 'Create prospects and match them to requirements.', action: () => navigate('/recruiter/workspace?tab=candidates') },
                 { label: 'Calendar', hint: 'Keep interviews and tests moving.', action: () => navigate('/recruiter/calendar') },
                 { label: 'Team', hint: 'Check recruiter roles and access.', action: () => navigate('/recruiter/team') },
               ].map((item) => (
@@ -957,7 +957,7 @@ export default function RecruiterDashboard() {
                   action={
                     <button
                       type="button"
-                      onClick={() => navigate('/recruiter/prospects')}
+                      onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                       className="workspace-action-button workspace-action-button--primary"
                     >
                       Open prospect enrollment
@@ -1024,7 +1024,7 @@ export default function RecruiterDashboard() {
                       <div className="flex flex-wrap items-center gap-2 lg:ml-6">
                         <button
                           type="button"
-                          onClick={() => navigate(`/recruiter/dashboard/prospects/${prospect.id}`)}
+                          onClick={() => navigate(`/recruiter/workspace/prospects/${prospect.id}`)}
                           className="workspace-action-button workspace-action-button--secondary"
                         >
                           Open profile
@@ -1069,14 +1069,14 @@ export default function RecruiterDashboard() {
             <div className="mt-5 space-y-3">
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/prospects')}
+                onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                 className="workspace-action-button workspace-action-button--primary w-full justify-center"
               >
                 Open prospect enrollment
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/dashboard/requirements')}
+                onClick={() => navigate('/recruiter/workspace?tab=requirements')}
                 className="workspace-action-button workspace-action-button--secondary w-full justify-center"
               >
                 Review requirements
@@ -1125,7 +1125,7 @@ export default function RecruiterDashboard() {
                   action={
                     <button
                       type="button"
-                      onClick={() => navigate('/recruiter/prospects')}
+                      onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                       className="workspace-action-button workspace-action-button--primary"
                     >
                       Open prospect enrollment
@@ -1185,7 +1185,7 @@ export default function RecruiterDashboard() {
                       <div className="flex flex-wrap items-center gap-2 lg:ml-6">
                         <button
                           type="button"
-                          onClick={() => navigate(`/recruiter/dashboard/requirements/${requirement.id}`)}
+                          onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`)}
                           className="workspace-action-button workspace-action-button--secondary"
                         >
                           Open requirement
@@ -1229,14 +1229,14 @@ export default function RecruiterDashboard() {
             <div className="mt-5 space-y-3">
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/dashboard/funnel')}
+                onClick={() => navigate('/recruiter/workspace?tab=pipeline')}
                 className="workspace-action-button workspace-action-button--primary w-full justify-center"
               >
                 Review funnel
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/prospects')}
+                onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                 className="workspace-action-button workspace-action-button--secondary w-full justify-center"
               >
                 Open enrollment workspace
@@ -1314,7 +1314,7 @@ export default function RecruiterDashboard() {
             <div className="mt-5 space-y-3">
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/prospects')}
+                onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                 className="workspace-action-button workspace-action-button--primary w-full justify-center"
               >
                 Open prospect enrollment

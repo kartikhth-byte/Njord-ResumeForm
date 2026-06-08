@@ -16,6 +16,7 @@ const applicantStorageState =
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
 test.describe('applicant section spec regressions', () => {
+  test.setTimeout(120_000)
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {

@@ -1,12 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { usePermissions } from '../../hooks/usePermissions'
 import { useAuth } from '../auth/AuthContext'
-import { LayoutDashboard, FileText, Search, Calendar, AlertCircle, Settings, Users } from 'lucide-react'
+import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Settings, Search, FileText } from 'lucide-react'
 
 export default function RecruiterWorkspaceNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { permissions, role } = usePermissions()
   const { user } = useAuth()
 
   if (!user) return null
@@ -23,28 +21,14 @@ export default function RecruiterWorkspaceNav() {
       key: 'workspace',
       label: 'Workspace',
       icon: FileText,
-      path: '/recruiter/applications',
+      path: '/recruiter/workspace',
       visible: true
     },
     {
-      key: 'search',
-      label: 'Search',
-      icon: Search,
-      path: '/recruiter/applications?tab=search',
-      visible: true
-    },
-    {
-      key: 'prospects',
-      label: 'Prospects',
-      icon: Users,
-      path: '/recruiter/prospects',
-      visible: permissions.includes('view_prospects') || permissions.includes('create_prospects') || permissions.includes('view_requirements')
-    },
-    {
-      key: 'calendar',
-      label: 'Calendar',
-      icon: Calendar,
-      path: '/recruiter/calendar',
+      key: 'kpi',
+      label: 'KPI',
+      icon: BarChart3,
+      path: '/recruiter/kpi',
       visible: true
     },
     {
@@ -55,23 +39,33 @@ export default function RecruiterWorkspaceNav() {
       visible: true
     },
     {
+      key: 'calendar',
+      label: 'Calendar',
+      icon: Calendar,
+      path: '/recruiter/calendar',
+      visible: true
+    },
+    {
+      key: 'search',
+      label: 'Search',
+      icon: Search,
+      path: '/recruiter/applications',
+      visible: true
+    },
+    {
       key: 'settings',
       label: 'Settings',
       icon: Settings,
       path: '/recruiter/settings',
-      visible: role === 'Master Recruiter' || permissions.includes('manage_runtime_settings') || permissions.includes('manage_settings')
+      visible: true
     }
   ].filter(item => item.visible)
 
   const isActive = (item) => {
     if (item.key === 'dashboard') return location.pathname.startsWith('/recruiter/dashboard')
-    if (item.key === 'workspace') {
-      return location.pathname === '/recruiter/applications' && location.search !== '?tab=search'
-    }
-    if (item.key === 'search') {
-      return location.pathname === '/recruiter/applications' && location.search.includes('tab=search')
-    }
-    if (item.key === 'prospects') return location.pathname.startsWith('/recruiter/prospects')
+    if (item.key === 'workspace') return location.pathname.startsWith('/recruiter/workspace')
+    if (item.key === 'search') return location.pathname.startsWith('/recruiter/applications')
+    if (item.key === 'kpi') return location.pathname.startsWith('/recruiter/kpi')
     return location.pathname.startsWith(item.path)
   }
 

@@ -27,7 +27,7 @@ test.describe('authenticated recruiter smoke', () => {
 
     await page.waitForURL('**/recruiter/dashboard', { timeout: 30000 })
     await expect(page).toHaveURL(/\/recruiter\/dashboard$/)
-    await expect(page.getByRole('heading', { name: /queue-first recruiting operations/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Recruiter executive snapshot/i })).toBeVisible()
   })
 })
 
