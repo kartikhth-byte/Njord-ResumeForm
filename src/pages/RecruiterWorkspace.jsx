@@ -1194,6 +1194,7 @@ export default function RecruiterWorkspace() {
                   const ownerName = recruiters.find((item) => item.id === requirement.owner_recruiter_id)?.full_name || 'Recruiter'
                   const creatorName = recruiters.find((item) => item.id === requirement.created_by_recruiter_id)?.full_name || 'Recruiter'
                   const archived = Boolean(requirement.archived_at || requirement.deleted_at)
+                  const canDeleteRequirement = canDeleteRequirements || sameDay(requirement.created_at, new Date())
                   return (
                     <div key={requirement.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1242,7 +1243,12 @@ export default function RecruiterWorkspace() {
                             <Archive className="h-4 w-4" />
                             Archive
                           </button>
-                          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementDelete(requirement)} disabled={!canDeleteRequirements && !sameDay(requirement.created_at, new Date())}>
+                          <button
+                            type="button"
+                            className="workspace-action-button workspace-action-button--secondary"
+                            onClick={() => handleRequirementDelete(requirement)}
+                            disabled={!canDeleteRequirement}
+                          >
                             <Trash2 className="h-4 w-4" />
                             Delete
                           </button>

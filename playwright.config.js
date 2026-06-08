@@ -35,7 +35,6 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: BASE_URL,
-    channel: 'chrome',
     chromiumSandbox: true,
     connectOptions,
     trace: 'on-first-retry',
