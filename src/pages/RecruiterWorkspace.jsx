@@ -1053,7 +1053,7 @@ export default function RecruiterWorkspace() {
         </div>
 
         {activeTab === 'requirements' ? (
-          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="mt-6 space-y-6">
             <Panel
               title={requirementForm.id ? 'Edit requirement' : 'Add requirement'}
               description="Replicate the spreadsheet-style requirement row input with a compact recruiter form."
