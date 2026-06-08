@@ -5,6 +5,8 @@ import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
+import SequentialStatusControl from '../components/SequentialStatusControl'
+import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -23,7 +25,7 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
-import { buildLookupMap, formatDate, formatRelativeTime, getStatusMeta, JUNCTION_STATUS_META } from './recruiterDashboardUtils'
+import { buildLookupMap, formatDate, formatRelativeTime } from './recruiterDashboardUtils'
 
 const WORKSPACE_TABS = [
   { value: 'requirements', label: 'Requirements', icon: ClipboardList },
@@ -48,15 +50,6 @@ const CANDIDATE_FILTERS = [
   { value: 'archived', label: 'Archived' },
   { value: 'all', label: 'All' },
 ]
-
-const PIPELINE_STATUS_OPTIONS = Object.keys(JUNCTION_STATUS_META).map((status) => ({
-  value: status,
-  label: getStatusMeta(JUNCTION_STATUS_META, status).label,
-}))
-
-function formatStatusClass(status) {
-  return getStatusMeta(JUNCTION_STATUS_META, status).className
-}
 
 function TextField({ label, value, onChange, placeholder = '', type = 'text', required = false }) {
   return (
@@ -160,7 +153,7 @@ export default function RecruiterWorkspace() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile, signOut } = useAuth()
-  const { hasPermission, role, loading: permLoading } = usePermissions()
+  const { hasPermission, canManageApplications, role, loading: permLoading } = usePermissions()
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -220,14 +213,7 @@ export default function RecruiterWorkspace() {
     requirementId: '',
   })
 
-  const [pipelineForm, setPipelineForm] = useState({
-    prospectRequirementId: '',
-    newStatus: 'submitted_to_customer',
-    expectedVersion: '',
-    withdrawalReason: '',
-    noteBody: '',
-    noteVisibility: 'internal',
-  })
+  const [selectedPipelineApplicationId, setSelectedPipelineApplicationId] = useState('')
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -265,7 +251,6 @@ export default function RecruiterWorkspace() {
   const countryOptions = useMemo(() => countries.map((country) => ({ value: country.id, label: country.name })), [countries])
 
   const requirementById = useMemo(() => buildLookupMap(requirements), [requirements])
-  const prospectById = useMemo(() => buildLookupMap(prospects), [prospects])
   const applicationByProspectId = useMemo(() => {
     return applications.reduce((acc, application) => {
       if (application?.prospect_id) acc[application.prospect_id] = application
@@ -291,47 +276,32 @@ export default function RecruiterWorkspace() {
   }, [junctions])
 
   const pipelineRows = useMemo(() => {
-    return junctions.map((junction) => {
-      const prospect = prospectById[junction.prospect_id]
-      const requirement = requirementById[junction.requirement_id]
-      const application = applicationByProspectId[junction.prospect_id]
-      const applicationStatus = application?.submitted_at
-        ? 'Completed'
-        : prospect?.invited_at
-          ? 'Link Sent'
-          : 'Not Sent'
-
-      let nextAction = 'Review the current stage'
-      if (applicationStatus !== 'Completed') {
-        nextAction = 'Send application link'
-      } else if (junction.status === 'shortlisted') {
-        nextAction = 'Submit to customer'
-      } else if (junction.status === 'submitted_to_customer') {
-        nextAction = 'Await customer review'
-      } else if (junction.status === 'customer_accepted') {
-        nextAction = 'Mark joined when ready'
-      } else if (junction.status === 'customer_rejected') {
-        nextAction = 'Review rejection and decide'
-      } else if (junction.status === 'joined') {
-        nextAction = 'Close the requirement row'
-      } else if (junction.status === 'withdrawn') {
-        nextAction = 'No further action'
-      }
+    return applications.map((application) => {
+      const prospect = prospects.find((item) => item.id === application.prospect_id)
+      const appData = application.application_data?.data || {}
+      const section1 = appData.section1 || {}
+      const section2 = appData.section2 || {}
+      const candidateName =
+        `${section2.firstName || ''} ${section2.surname || ''}`.trim() ||
+        prospect?.name ||
+        application.reference_number ||
+        'Application'
 
       return {
-        ...junction,
+        ...application,
         prospect,
-        requirement,
-        applicationStatus,
-        nextAction,
-        previousStage: '—',
-        lastActionBy:
-          recruiters.find((member) => member.id === junction.last_transition_by_recruiter_id)?.full_name ||
-          recruiters.find((member) => member.id === junction.assigned_by_recruiter_id)?.full_name ||
-          'Recruiter',
+        candidateName,
+        candidateEmail: section2.email || prospect?.email || '',
+        candidatePhone: section2.phoneNumber || section2.phone || prospect?.telephone || '',
+        desiredRank: section1.appliedForRank || application.applied_rank || '',
+        vesselType: section1.vesselType || '',
       }
     })
-  }, [applicationByProspectId, junctions, prospectById, recruiters, requirementById])
+  }, [applications, prospects])
+
+  const selectedPipelineApplication = useMemo(() => {
+    return pipelineRows.find((row) => row.id === selectedPipelineApplicationId) || pipelineRows[0] || null
+  }, [pipelineRows, selectedPipelineApplicationId])
 
   const requirementRows = useMemo(() => {
     return requirements.map((requirement) => {
@@ -416,7 +386,7 @@ export default function RecruiterWorkspace() {
   const canArchiveRequirements = hasPermission('edit_requirements') || hasPermission('archive_prospects')
   const canDeleteRequirements = role === 'Master Recruiter'
   const canManageCandidates = hasPermission('archive_prospects') || hasPermission('delete_prospects') || hasPermission('edit_prospects')
-  const canTransitionPipeline = hasPermission('edit_junction_status') || hasPermission('withdraw_junctions')
+  const canTransitionPipeline = canManageApplications()
 
   useEffect(() => {
     if (!requirementForm.loggedByRecruiterId && currentRecruiterId) {
@@ -479,7 +449,7 @@ export default function RecruiterWorkspace() {
             .order('updated_at', { ascending: false }),
           supabase
             .from('applications')
-            .select('id, prospect_id, status, submitted_at, created_at, updated_at, reference_number')
+            .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, application_data ( data )')
             .order('updated_at', { ascending: false }),
         ])
 
@@ -523,14 +493,10 @@ export default function RecruiterWorkspace() {
     if (!attachForm.prospectId && visibleCandidateRows[0]) {
       setAttachForm((current) => ({ ...current, prospectId: visibleCandidateRows[0].id }))
     }
-    if (!pipelineForm.prospectRequirementId && pipelineRows[0]) {
-      setPipelineForm((current) => ({
-        ...current,
-        prospectRequirementId: pipelineRows[0].id,
-        expectedVersion: String(pipelineRows[0].version || ''),
-      }))
+    if (!selectedPipelineApplicationId && pipelineRows[0]) {
+      setSelectedPipelineApplicationId(pipelineRows[0].id)
     }
-  }, [attachForm.prospectId, attachForm.requirementId, pipelineForm.prospectRequirementId, pipelineRows, visibleCandidateRows, visibleRequirementRows])
+  }, [attachForm.prospectId, attachForm.requirementId, pipelineRows, selectedPipelineApplicationId, visibleCandidateRows, visibleRequirementRows])
 
   const reloadWorkspace = async () => {
     setRefreshing(true)
@@ -572,7 +538,7 @@ export default function RecruiterWorkspace() {
           .order('updated_at', { ascending: false }),
         supabase
           .from('applications')
-          .select('id, prospect_id, status, submitted_at, created_at, updated_at, reference_number')
+          .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, application_data ( data )')
           .order('updated_at', { ascending: false }),
       ])
 
@@ -609,10 +575,10 @@ export default function RecruiterWorkspace() {
     const open = candidateRows.filter((row) => !row.hasArchivedState && row.status !== 'rejected' && !row.hasJoined).length
     const active = candidateRows.filter((row) => !row.hasArchivedState).length
     const unattached = candidateRows.filter((row) => !row.hasArchivedState && row.isUnattached).length
-    const pipeline = candidateRows.filter((row) => !row.hasArchivedState && row.inPipeline).length
+    const pipeline = applications.filter((application) => !['hired', 'rejected', 'withdrawn'].includes(application.status)).length
     const joined = candidateRows.filter((row) => !row.hasArchivedState && row.hasJoined).length
     return { open, active, unattached, pipeline, joined }
-  }, [candidateRows])
+  }, [applications, candidateRows])
 
   const requirementActivityOptions = useMemo(() => {
     return visibleRequirementRows.map((requirement) => ({
@@ -927,35 +893,6 @@ export default function RecruiterWorkspace() {
       setSuccess(`Application link sent to ${candidate.name}.`)
     } catch (inviteError) {
       handleActionError(inviteError, 'Failed to send the application link')
-    }
-  }
-
-  const handlePipelineTransition = async (event) => {
-    event.preventDefault()
-    setError('')
-    setSuccess('')
-
-    try {
-      const { error: transitionError } = await supabase.rpc('transition_junction_status', {
-        p_prospect_requirement_id: pipelineForm.prospectRequirementId,
-        p_new_status: pipelineForm.newStatus,
-        p_expected_version: Number(pipelineForm.expectedVersion),
-        p_withdrawal_reason: pipelineForm.withdrawalReason || null,
-        p_note_body: pipelineForm.noteBody || null,
-        p_note_visibility: pipelineForm.noteVisibility,
-      })
-
-      if (transitionError) throw transitionError
-
-      setPipelineForm((current) => ({
-        ...current,
-        noteBody: '',
-        withdrawalReason: '',
-      }))
-      setSuccess('Pipeline stage updated.')
-      await reloadWorkspace()
-    } catch (transitionError) {
-      handleActionError(transitionError, 'Failed to transition the pipeline stage')
     }
   }
 
@@ -1301,7 +1238,7 @@ export default function RecruiterWorkspace() {
         ) : null}
 
         {activeTab === 'candidates' ? (
-          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="mt-6 space-y-6">
             <Panel
               title="Create candidate"
               description="Candidates can be entered without a requirement, then attached later."
@@ -1569,84 +1506,71 @@ export default function RecruiterWorkspace() {
         {activeTab === 'pipeline' ? (
           <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
             <Panel
-              title="Pipeline stage control"
-              description="Stage jumps are allowed, but every move is logged with the recruiter who completed it."
+              title="Application pipeline control"
+              description="Use the live recruiter application flow. The pipeline version is handled internally."
               icon={ArrowRight}
             >
-              <form className="space-y-4" onSubmit={handlePipelineTransition}>
+              <div className="space-y-4">
                 <SelectField
-                  label="Pipeline row"
-                  value={pipelineForm.prospectRequirementId}
+                  label="Application"
+                  value={selectedPipelineApplicationId}
                   onChange={(value) => {
-                    const selected = pipelineRows.find((row) => row.id === value)
-                    setPipelineForm((current) => ({
-                      ...current,
-                      prospectRequirementId: value,
-                      expectedVersion: String(selected?.version || ''),
-                    }))
+                    setSelectedPipelineApplicationId(value)
                   }}
                   options={pipelineRows.map((row) => ({
                     value: row.id,
-                    label: `${row.prospect?.name || row.prospect_id} · ${row.requirement?.req_id_display || row.requirement_id} · ${row.status}`,
+                    label: `${row.candidateName} · ${row.status}`,
                   }))}
-                  placeholder="Choose a pipeline row"
+                  placeholder="Choose an application"
                   required
                 />
-                <div className="grid gap-4 md:grid-cols-2">
-                  <SelectField
-                    label="New status"
-                    value={pipelineForm.newStatus}
-                    onChange={(value) => setPipelineForm((current) => ({ ...current, newStatus: value }))}
-                    options={PIPELINE_STATUS_OPTIONS}
-                    required
+                <p className="text-xs text-slate-500">
+                  The status component handles scheduling, interviews, offers, documents, and terminal moves. Version stays internal.
+                </p>
+
+                {selectedPipelineApplication ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{selectedPipelineApplication.candidateName}</p>
+                      <StatusBadge status={selectedPipelineApplication.status} />
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {selectedPipelineApplication.reference_number || 'No reference'} · {selectedPipelineApplication.candidateEmail || 'No email'}{selectedPipelineApplication.candidatePhone ? ` · ${selectedPipelineApplication.candidatePhone}` : ''}
+                    </p>
+                    <div className="mt-4">
+                      {canTransitionPipeline ? (
+                        <SequentialStatusControl
+                          applicationId={selectedPipelineApplication.id}
+                          currentStatus={selectedPipelineApplication.status}
+                          application={selectedPipelineApplication}
+                          onStatusChange={reloadWorkspace}
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-500">You do not have permission to change application status.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No applications"
+                    description="Create or load applications to manage the pipeline here."
                   />
-                  <TextField
-                    label="Expected version"
-                    type="number"
-                    value={pipelineForm.expectedVersion}
-                    onChange={(value) => setPipelineForm((current) => ({ ...current, expectedVersion: value }))}
-                    required
-                  />
-                </div>
-                <TextField
-                  label="Withdrawal reason"
-                  value={pipelineForm.withdrawalReason}
-                  onChange={(value) => setPipelineForm((current) => ({ ...current, withdrawalReason: value }))}
-                  placeholder="Required only for withdrawals"
-                />
-                <TextAreaField
-                  label="Transition note"
-                  value={pipelineForm.noteBody}
-                  onChange={(value) => setPipelineForm((current) => ({ ...current, noteBody: value }))}
-                  placeholder="Optional note to attach to the transition"
-                />
-                <SelectField
-                  label="Note visibility"
-                  value={pipelineForm.noteVisibility}
-                  onChange={(value) => setPipelineForm((current) => ({ ...current, noteVisibility: value }))}
-                  options={[
-                    { value: 'internal', label: 'Internal' },
-                    { value: 'master_only', label: 'Master only' },
-                  ]}
-                />
-                <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canTransitionPipeline}>
-                  <ArrowRight className="h-4 w-4" />
-                  Save transition
-                </button>
-              </form>
+                )}
+              </div>
             </Panel>
 
             <Panel
-              title="Candidate pipeline rows"
-              description="Current stage, last action by, application status, and next action guidance."
+              title="Application pipeline rows"
+              description="Current application status, candidate identity, and quick access to the record."
               icon={ClipboardList}
             >
               <div className="space-y-3">
                 {pipelineRows.length === 0 ? (
                   <EmptyState
                     icon={ClipboardList}
-                    title="No pipeline rows"
-                    description="Attach a candidate to a requirement to begin pipeline tracking."
+                    title="No application rows"
+                    description="Applications will appear here once the recruiter pipeline has data."
                   />
                 ) : pipelineRows.map((row) => (
                   <div key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1655,57 +1579,34 @@ export default function RecruiterWorkspace() {
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => navigate(`/recruiter/workspace/prospects/${row.prospect_id}`)}
+                            onClick={() => navigate(row.public_token ? `/application/view/${row.public_token}` : '/recruiter/applications')}
                             className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
                           >
-                            {row.prospect?.name || row.prospect_id}
+                            {row.candidateName}
                           </button>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${formatStatusClass(row.status)}`}>
-                            {row.status}
-                          </span>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${row.applicationStatus === 'Completed' ? 'bg-emerald-100 text-emerald-700' : row.applicationStatus === 'Link Sent' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
-                            Application {row.applicationStatus}
-                          </span>
+                          <StatusBadge status={row.status} />
                         </div>
                         <p className="mt-2 text-sm text-slate-600">
-                          {row.requirement?.req_id_display || row.requirement_id} · {row.requirement?.vessel_name || 'No vessel'} · {ranks.find((item) => item.id === row.requirement?.rank_id)?.name || 'Unknown rank'}
+                          {row.reference_number || 'No reference'} · {row.desiredRank || 'Rank not specified'}{row.vesselType ? ` · ${row.vesselType}` : ''}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Requirement owner: {recruiters.find((item) => item.id === row.requirement?.owner_recruiter_id)?.full_name || 'Recruiter'} · Last action by {row.lastActionBy}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Previous stage: {row.previousStage} · Stage updated {formatRelativeTime(row.updated_at)}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Next action: {row.nextAction}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Application ref: {applicationByProspectId[row.prospect_id]?.reference_number || 'Not sent yet'}
+                          Updated {formatRelativeTime(row.updated_at)} · Submitted {formatDate(row.submitted_at)}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           className="workspace-action-button workspace-action-button--secondary"
-                          onClick={() => navigate(`/recruiter/workspace/prospects/${row.prospect_id}`)}
+                          onClick={() => navigate(row.public_token ? `/application/view/${row.public_token}` : '/recruiter/applications')}
                         >
-                          View
+                          View application
                         </button>
                         <button
                           type="button"
                           className="workspace-action-button workspace-action-button--secondary"
-                          onClick={() => setPipelineForm((current) => ({ ...current, prospectRequirementId: row.id, expectedVersion: String(row.version || '') }))}
+                          onClick={() => setSelectedPipelineApplicationId(row.id)}
                         >
-                          Transition
-                        </button>
-                        <button
-                          type="button"
-                          className="workspace-action-button workspace-action-button--secondary"
-                          onClick={() => handleSendApplicationLink(row.prospect)}
-                          disabled={row.applicationStatus === 'Completed'}
-                        >
-                          <Mail className="h-4 w-4" />
-                          Send application link
+                          Manage status
                         </button>
                       </div>
                     </div>

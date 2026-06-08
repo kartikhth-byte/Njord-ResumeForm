@@ -38,6 +38,7 @@
   - main nav now surfaces `Dashboard | Workspace | KPI | Expiry | Calendar | Search | Settings`
   - dashboard is a compact executive snapshot
   - workspace is split into requirements, candidates, and candidate pipeline tabs
+  - candidate pipeline now uses application statuses (`under_review` through `withdrawn`) and keeps the concurrency version hidden in the control flow
   - KPI is a dedicated reporting page
   - the legacy prospect route now redirects into the workspace entry point
 
