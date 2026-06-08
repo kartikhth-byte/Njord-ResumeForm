@@ -1,11 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { usePermissions } from '../../hooks/usePermissions'
 import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Settings, Search, FileText } from 'lucide-react'
 
 export default function RecruiterWorkspaceNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const { role, canManageSettings, canViewAnalytics } = usePermissions()
 
   if (!user) return null
 
@@ -29,7 +31,7 @@ export default function RecruiterWorkspaceNav() {
       label: 'KPI',
       icon: BarChart3,
       path: '/recruiter/kpi',
-      visible: true
+      visible: role === 'Master Recruiter' || canViewAnalytics()
     },
     {
       key: 'expiry',
@@ -57,7 +59,7 @@ export default function RecruiterWorkspaceNav() {
       label: 'Settings',
       icon: Settings,
       path: '/recruiter/settings',
-      visible: true
+      visible: role === 'Master Recruiter' || canManageSettings()
     }
   ].filter(item => item.visible)
 

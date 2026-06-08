@@ -22,6 +22,7 @@ import { downloadCsvReport, logRecruiterExport } from '../services/recruiterRepo
 import { formatDateTime } from './recruiterDashboardUtils'
 
 function isWithinRange(value, from, to) {
+  if (!from && !to) return true
   if (!value) return false
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return false
@@ -111,7 +112,7 @@ export default function RecruiterKpiPage() {
         setProspects(dataOrThrow(prospectsResult))
         setJunctions(dataOrThrow(junctionsResult))
         setScheduledEvents(dataOrThrow(scheduledEventsResult))
-        setRecentExports(dataOrThrow(exportsResult))
+        setRecentExports(exportsResult.error ? [] : exportsResult.data || [])
       } catch (loadError) {
         if (cancelled) return
         console.error('Failed to load KPI page:', loadError)
@@ -153,7 +154,7 @@ export default function RecruiterKpiPage() {
   }, [dateFrom, dateTo, recruiterFilter, junctions])
 
   const openRequirements = filteredRequirements.filter((requirement) => requirement.status === 'open' && !requirement.archived_at && !requirement.deleted_at)
-  const closedRequirements = filteredRequirements.filter((requirement) => requirement.status === 'closed' && !requirement.deleted_at)
+  const closedRequirements = filteredRequirements.filter((requirement) => requirement.status === 'closed' && !requirement.archived_at && !requirement.deleted_at)
   const joinedCount = filteredJunctions.filter((junction) => junction.status === 'joined').length
   const positionsRequired = filteredRequirements.reduce((sum, requirement) => sum + toNumber(requirement.positions_required), 0)
   const openPositions = Math.max(
@@ -186,7 +187,7 @@ export default function RecruiterKpiPage() {
         detail: 'Candidate is archived, deleted, or rejected.',
         tone: 'bg-slate-100 text-slate-700',
       })),
-  ].slice(0, 4)
+  ].slice(0, 5)
 
   const exportSummary = async () => {
     await logRecruiterExport({
@@ -322,7 +323,7 @@ export default function RecruiterKpiPage() {
           <StatCard label="Open positions" value={openPositions} icon={ArrowRight} tone="warning" hint="Remaining positions across filtered requirements." />
           <StatCard label="Joined vs required" value={`${joinedCount} / ${positionsRequired}`} icon={Users} tone="accent" hint="Joined candidates compared with positions required." />
           <StatCard label="Requirement closure %" value={`${Math.round(requirementClosureRate * 100)}%`} icon={CheckCircle2} tone="success" hint="Closed requirements divided by the filtered requirement set." />
-          <StatCard label="Candidates contacted today" value={candidatesContactedToday} icon={Search} tone="info" hint="Prospects first contacted on the selected day range." />
+          <StatCard label="Candidates contacted today" value={candidatesContactedToday} icon={Search} tone="info" hint="Today-only metric; the date filters affect the rest of the page, not this count." />
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
@@ -419,7 +420,7 @@ export default function RecruiterKpiPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="text-sm font-medium text-slate-900">Candidates joined today</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-900">{candidatesJoinedToday}</div>
-                <div className="mt-1 text-xs text-slate-500">Pipeline rows marked joined within the selected range.</div>
+                <div className="mt-1 text-xs text-slate-500">Today-only metric; the date filters affect the rest of the page, not this count.</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="text-sm font-medium text-slate-900">Pipeline rows</div>

@@ -110,7 +110,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                 }}
                 className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
               >
-                Prospect Enrollment
+                Candidates
               </button>
               <button
                 type="button"

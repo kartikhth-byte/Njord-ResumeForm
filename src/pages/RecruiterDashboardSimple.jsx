@@ -102,7 +102,7 @@ export default function RecruiterDashboardSimple() {
   }, [permLoading, user?.id])
 
   const openRequirements = useMemo(() => requirements.filter((requirement) => requirement.status === 'open' && !requirement.archived_at && !requirement.deleted_at), [requirements])
-  const closedRequirements = useMemo(() => requirements.filter((requirement) => requirement.status === 'closed'), [requirements])
+  const closedRequirements = useMemo(() => requirements.filter((requirement) => requirement.status === 'closed' && !requirement.archived_at && !requirement.deleted_at), [requirements])
   const activeCandidates = useMemo(() => prospects.filter((prospect) => !prospect.archived_at && !prospect.deleted_at), [prospects])
   const openPositions = useMemo(() => {
     return openRequirements.reduce((sum, requirement) => {

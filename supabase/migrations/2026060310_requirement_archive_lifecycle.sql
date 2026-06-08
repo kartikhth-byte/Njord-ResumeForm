@@ -34,6 +34,9 @@ alter table public.requirements
   );
 
 alter table public.requirements
+  drop constraint if exists requirements_delete_reason_check;
+
+alter table public.requirements
   add constraint requirements_delete_reason_check check (
     deleted_at is null or nullif(trim(delete_reason), '') is not null
   );

@@ -11,23 +11,39 @@ const applicantStorageState =
   process.env.PLAYWRIGHT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant.json'
 const hasApplicantStorageState = fs.existsSync(applicantStorageState)
 
+async function signInRecruiter(page) {
+  await page.goto('/recruiter/login')
+
+  if (!page.url().includes('/recruiter/dashboard')) {
+    await expect(page.getByText('Checking session...')).toHaveCount(0, { timeout: 15000 })
+    await page.getByPlaceholder('recruiter@njordships.com').fill(recruiterEmail)
+    await page.getByPlaceholder('Enter your password').fill(recruiterPassword)
+    await page.getByRole('button', { name: 'Sign In' }).click()
+  }
+
+  await page.waitForURL('**/recruiter/dashboard', { timeout: 30000 })
+}
+
 test.describe('authenticated recruiter smoke', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
   test.skip(!recruiterEmail || !recruiterPassword, 'Recruiter credentials not configured for automated smoke tests.')
 
   test('recruiter can sign in and reach dashboard', async ({ page }) => {
-    await page.goto('/recruiter/login')
-
-    if (!page.url().includes('/recruiter/dashboard')) {
-      await expect(page.getByText('Checking session...')).toHaveCount(0, { timeout: 15000 })
-      await page.getByPlaceholder('recruiter@njordships.com').fill(recruiterEmail)
-      await page.getByPlaceholder('Enter your password').fill(recruiterPassword)
-      await page.getByRole('button', { name: 'Sign In' }).click()
-    }
-
-    await page.waitForURL('**/recruiter/dashboard', { timeout: 30000 })
+    await signInRecruiter(page)
     await expect(page).toHaveURL(/\/recruiter\/dashboard$/)
     await expect(page.getByRole('heading', { name: /Recruiter executive snapshot/i })).toBeVisible()
+  })
+
+  test('legacy recruiter detail routes redirect into workspace', async ({ page }) => {
+    await signInRecruiter(page)
+
+    await page.goto('/recruiter/dashboard/prospects/legacy-prospect')
+    await page.waitForURL('**/recruiter/workspace/prospects/legacy-prospect', { timeout: 30000 })
+    await expect(page).toHaveURL(/\/recruiter\/workspace\/prospects\/legacy-prospect$/)
+
+    await page.goto('/recruiter/dashboard/requirements/legacy-requirement')
+    await page.waitForURL('**/recruiter/workspace/requirements/legacy-requirement', { timeout: 30000 })
+    await expect(page).toHaveURL(/\/recruiter\/workspace\/requirements\/legacy-requirement$/)
   })
 })
 

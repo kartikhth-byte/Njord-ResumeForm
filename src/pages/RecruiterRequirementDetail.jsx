@@ -649,7 +649,7 @@ export default function RecruiterRequirementDetail() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Fast path</p>
                 <h3 className="mt-2 text-lg font-semibold text-slate-950">Keep the requirement flowing</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Open prospect enrollment to add or match prospects, then use the dashboard funnel to see how the requirement is progressing.
+                  Open candidate workspace to add or match prospects, then use the workspace pipeline to see how the requirement is progressing.
                 </p>
                 <div className="mt-5 space-y-3">
                   <button
@@ -657,14 +657,14 @@ export default function RecruiterRequirementDetail() {
                     onClick={() => navigate('/recruiter/workspace?tab=candidates')}
                     className="workspace-action-button workspace-action-button--primary w-full justify-center"
                   >
-                    Open prospect enrollment
+                    Open candidates
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/recruiter/dashboard/funnel')}
+                    onClick={() => navigate('/recruiter/workspace?tab=pipeline')}
                     className="workspace-action-button workspace-action-button--secondary w-full justify-center"
                   >
-                    Review funnel
+                    Review pipeline
                   </button>
                 </div>
               </div>

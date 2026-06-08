@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
+import StatusBadge from '../components/StatusBadge'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'

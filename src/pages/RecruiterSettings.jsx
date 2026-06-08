@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
@@ -11,7 +11,6 @@ import PageHeader from '../components/ui/PageHeader'
 import { Users, KeyRound, ArrowRight, X, FileSpreadsheet } from 'lucide-react'
 
 export default function RecruiterSettings() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile, signOut } = useAuth()
   const { role, loading, permissions, canManageTeam } = usePermissions()
@@ -53,8 +52,7 @@ export default function RecruiterSettings() {
   }
 
   if (role !== 'Master Recruiter' && !permissions.includes('manage_runtime_settings') && !permissions.includes('manage_settings')) {
-    navigate('/recruiter/dashboard', { replace: true })
-    return null
+    return <Navigate to="/recruiter/dashboard" replace />
   }
 
   const settingsCards = [
