@@ -13,7 +13,6 @@ async function main() {
 
   if (!wsEndpoint) {
     browserServer = await chromium.launchServer({
-      channel: 'chrome',
       headless: true,
     })
     wsEndpoint = browserServer.wsEndpoint()
