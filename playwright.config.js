@@ -7,6 +7,7 @@ import { loadPlaywrightEnv } from './tests/loadPlaywrightEnv.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const viteBin = path.resolve(__dirname, 'node_modules', '.bin', 'vite')
 
 loadPlaywrightEnv(__dirname)
 
@@ -16,6 +17,11 @@ const applicantStorageState =
   process.env.PLAYWRIGHT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant.json'
 const applicantStorageStatePath = path.resolve(__dirname, applicantStorageState)
 const hasApplicantStorageState = fs.existsSync(applicantStorageStatePath)
+const shouldRefreshApplicantState =
+  process.env.PLAYWRIGHT_REFRESH_APPLICANT === '1' && hasApplicantStorageState
+const connectOptions = process.env.PLAYWRIGHT_WS_ENDPOINT
+  ? { wsEndpoint: process.env.PLAYWRIGHT_WS_ENDPOINT }
+  : undefined
 
 export default defineConfig({
   testDir: './tests/smoke',
@@ -29,6 +35,9 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: BASE_URL,
+    channel: 'chrome',
+    chromiumSandbox: true,
+    connectOptions,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -60,7 +69,7 @@ export default defineConfig({
     {
       name: 'chromium',
       dependencies: [
-        ...(hasApplicantStorageState ? ['refresh-applicant'] : []),
+        ...(shouldRefreshApplicantState ? ['refresh-applicant'] : []),
         'setup-draft-applicant',
       ],
       use: {
@@ -72,7 +81,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev',
+        command: viteBin,
         port: PORT,
         reuseExistingServer: true,
         timeout: 120_000,

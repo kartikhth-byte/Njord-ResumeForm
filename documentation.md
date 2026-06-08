@@ -34,6 +34,12 @@
 - recruiter dashboard pipeline hub is implemented locally with conservative Operations/Prospects/Requirements/Funnel/KPI/Reports tabs plus recruiter prospect and requirement detail routes
 - prospect-enrollment invite/reporting slice is implemented locally: invite request RPC, bounce webhook, deep-read/export RPCs, recent-export reporting, snapshot export buttons, and the requirement compliance overlay on the submitted application view
 - export/download actions now audit before file delivery, respect format-specific export permissions, and keep prospect-detail application tokens hidden unless application access is explicitly granted
+- recruiter shell redesign is implemented locally:
+  - main nav now surfaces `Dashboard | Workspace | KPI | Expiry | Calendar | Search | Settings`
+  - dashboard is a compact executive snapshot
+  - workspace is split into requirements, candidates, and candidate pipeline tabs
+  - KPI is a dedicated reporting page
+  - the legacy prospect route now redirects into the workspace entry point
 
 ## Current Verification State
 
@@ -43,18 +49,17 @@
 - live edge-function CORS validation passed for `https://njord-resume-form.vercel.app`: representative preflights return `204` with a matching `Access-Control-Allow-Origin`
 - unlisted origins such as `http://localhost:5173` and `https://example.invalid` do not receive `Access-Control-Allow-Origin`; add local/dev origins to the `APP_URL` runtime setting only when browser QA from those origins is intended
 - applicant draft/form smoke now uses a generated disposable draft applicant with no active pipeline conflict, while submitted-application checks keep using the stored Google applicant
-- `npm run test:smoke` passes (`78 passed, 2 skipped`) after the smoke account split and dashboard draft-progress regression check
+- `npm run test:smoke` now runs reliably on the Codex macOS runtime after the Vite toolchain was switched to the Rollup WASM build; the latest canonical rerun passed (`77 passed, 2 skipped`)
 - Review follow-up on 2026-03-30:
 - applicant sign-out cleanup no longer throws `clearLoginIntent is not defined`
 - applicant Google sign-in no longer waits on profile bootstrap before routing to `/dashboard`
 - declaration step now routes at `/application/form/section/19` and the visible numbering is aligned across sidebar, dropdown, footer, review, and dashboard
 - applicant submitted-application summary no longer exposes recruiter-oriented header copy or status-change controls
-- `npm run lint` passes
-- `npm run build` passes
-- `npm run test:smoke` passes (`75 passed, 2 skipped`) on top of the latest diff
+- `npm run lint` passes on the latest recruiter-shell diff
+- `npm run build` passes on the latest recruiter-shell diff
 - live post-migration Section 14 submitted-application sanity check passed
 - CMA CGM writer prototype generated a visually correct Sections 1 and 2 export for live application `NJD-211280`
-- current local code also includes broader recruiter compliance logic and recruiter applications compliance triage UI, but this still needs manual product validation and a clean commit
+- current local code also includes the recruiter shell redesign and broader recruiter compliance logic, but this still needs manual product validation and a clean commit
 
 ## Current Role Model
 

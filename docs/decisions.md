@@ -82,3 +82,25 @@ Decision:
 Why:
 - browser access is limited to intended frontend origins
 - the shared helper keeps CORS behavior consistent across deployed functions
+
+## 2026-06 - Recruiter Shell Split Into Dashboard, Workspace, and KPI
+
+Decision:
+- the recruiter shell now uses a dedicated `Dashboard` snapshot, a `Workspace` for requirements/candidates/pipeline work, and a separate `KPI` page
+- the legacy prospect route remains as a redirect into `Workspace` for compatibility
+
+Why:
+- keeps the executive snapshot clean
+- separates daily operations from reporting
+- preserves older entry points while the UI transition settles
+
+## 2026-06 - Vite Uses Rollup WASM In Codex
+
+Decision:
+- the local Vite toolchain resolves `rollup` to `@rollup/wasm-node` through the repository manifest
+- Playwright smoke launches Vite via the local `./node_modules/.bin/vite` binary instead of `npm run dev`
+
+Why:
+- the Codex macOS Node runtime cannot load the signed native Rollup addon reliably in this environment
+- the WASM build keeps `npm run dev` and the smoke server bootable without manual node_modules patching
+- the direct local binary avoids PATH drift and makes the smoke auto-start path deterministic

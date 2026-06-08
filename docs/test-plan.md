@@ -11,9 +11,9 @@ npm run test:smoke
 ```
 
 Current known passing state in this phase:
-- `npm run lint` passes on the 2026-03-30 follow-up snapshot
-- `npm run build` passes on the 2026-03-30 follow-up snapshot
-- `npm run test:smoke` passes on the 2026-03-30 follow-up snapshot (`75 passed, 2 skipped`)
+- `npm run lint` passes on the 2026-06-08 cleanup snapshot
+- `npm run build` passes on the 2026-06-08 cleanup snapshot
+- `npm run test:smoke` passes on the 2026-06-08 cleanup snapshot (`77 passed, 2 skipped`)
 
 ## Client Form Export Prototype
 

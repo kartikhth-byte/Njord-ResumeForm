@@ -85,6 +85,8 @@ Run smoke automation:
 npm run test:smoke
 ```
 
+This auto-starts the local Vite server by default. Set `PLAYWRIGHT_BASE_URL` only if you want Playwright to target an already-running app server.
+
 Refresh applicant stored Google session for Playwright when needed:
 
 ```bash
@@ -133,10 +135,10 @@ npm run build
 npm run test:smoke
 ```
 
-Current review snapshot on 2026-03-30:
+Current review snapshot on 2026-06-08:
 - `npm run lint` passes
 - `npm run build` passes
-- `npm run test:smoke` passes (`75 passed, 2 skipped`)
+- `npm run test:smoke` passes (`77 passed, 2 skipped`)
 
 Recent functional changes in this snapshot:
 - duplicate emergency-contact section was removed from the applicant flow
