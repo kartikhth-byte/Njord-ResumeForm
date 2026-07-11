@@ -38,3 +38,8 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/log-recruiter-export/deno.json"
 entrypoint = "./functions/log-recruiter-export/index.ts"
+
+[functions.request-applicant-magic-link]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/request-applicant-magic-link/index.ts"
