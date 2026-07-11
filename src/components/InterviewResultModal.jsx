@@ -81,11 +81,13 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
         await handlePassed()
       } else if (result === 'failed') {
         await handleFailed()
+      } else if (result === 'no_show') {
+        await handleNoShow()
       }
 
       // Success callback
       if (onResultUpdated) {
-        onResultUpdated(result === 'passed' ? 'interview_passed' : 'rejected')
+        onResultUpdated(result === 'passed' ? 'interview_passed' : result === 'no_show' ? 'interview_scheduled' : 'rejected')
       }
 
     } catch (error) {
@@ -93,6 +95,26 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
       alert('Failed to update interview result: ' + error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleNoShow = async () => {
+    // Record the no-show on the latest interview event; the application stays
+    // in interview_scheduled so the recruiter can reschedule or reject.
+    const { data: events, error: eventsError } = await supabase
+      .from('scheduled_events')
+      .select('id')
+      .eq('application_id', application.id)
+      .eq('event_type', 'interview')
+      .order('scheduled_date', { ascending: false })
+      .limit(1)
+    if (eventsError) throw eventsError
+    if (events && events[0]) {
+      const { error: outcomeError } = await supabase
+        .from('scheduled_events')
+        .update({ outcome: 'no_show' })
+        .eq('id', events[0].id)
+      if (outcomeError) throw outcomeError
     }
   }
 
@@ -339,6 +361,28 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
                         Candidate did not meet the requirements and will be rejected
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    result === 'no_show' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-amber-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="result"
+                      value="no_show"
+                      checked={result === 'no_show'}
+                      onChange={(e) => setResult(e.target.value)}
+                      className="mt-1 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="w-5 h-5 text-amber-600" />
+                        <span className="font-medium text-gray-900">Did not attend</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        No-show is recorded on the event; the interview stays scheduled so you can rebook or reject
                       </p>
                     </div>
                   </label>

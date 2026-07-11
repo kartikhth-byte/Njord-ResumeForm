@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from './auth/AuthContext'
+import HandledBySelect from './recruiter/HandledBySelect'
 import { ChevronRight, Loader2, MoreVertical, X, SkipForward, Check, XCircle } from 'lucide-react'
 import TestSchedulingModal from './TestSchedulingModal'
 import TestResultModal from './TestResultModal'
@@ -9,8 +11,16 @@ import InterviewSchedulingModal from './InterviewSchedulingModal'
 import InterviewResultModal from './InterviewResultModal'
 import DocumentsChecklistModal from './recruiter/DocumentsChecklistModal'
 import WithdrawalModal from './recruiter/WithdrawalModal'
+import RejectionModal from './recruiter/RejectionModal'
 
-export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange, application, autoOpenInterview = false, onAutoOpenComplete }) {
+export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange, application, autoOpenInterview = false, onAutoOpenComplete, showHandledBy = true }) {
+  const { profile, user } = useAuth()
+  // Who is currently handling this application (feeds the KPI dashboard).
+  const [handledBy, setHandledBy] = useState(application?.handling_recruiter_id || null)
+  useEffect(() => {
+    setHandledBy(application?.handling_recruiter_id || null)
+  }, [application?.handling_recruiter_id])
+
   const [loading, setLoading] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -18,6 +28,7 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [showDocumentsModal, setShowDocumentsModal] = useState(false)
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
   const [modalType, setModalType] = useState(null) // 'next', 'skip', 'reject', 'withdrawn'
+  const [showRejectionModal, setShowRejectionModal] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState(null)
   const buttonRef = useRef(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
@@ -273,10 +284,31 @@ useEffect(() => {
   }
 
   const handleReject = () => {
-    setModalType('reject')
-    setSelectedStatus('rejected')
-    setShowModal(true)
+    // Structured rejection: category, tags, keep-warm flag, notes + email.
+    setShowRejectionModal(true)
     setShowMenu(false)
+  }
+
+  const handleStructuredRejection = async (rejection) => {
+    const actorId = profile?.id || user?.id || null
+    const updateData = {
+      status: 'rejected',
+      rejection_category: rejection.rejectionCategory || null,
+      rejection_tags: [...(rejection.predefinedTags || []), ...(rejection.customTags || [])],
+      rejection_notes: rejection.rejectionNotes || null,
+      contact_for_future_roles: Boolean(rejection.contactForFutureRoles),
+      updated_at: new Date().toISOString(),
+    }
+    if (!handledBy && actorId) {
+      updateData.handling_recruiter_id = actorId
+    }
+    const { error } = await supabase
+      .from('applications')
+      .update(updateData)
+      .eq('id', applicationId)
+    if (error) throw error
+    if (updateData.handling_recruiter_id) setHandledBy(updateData.handling_recruiter_id)
+    onStatusChange('rejected')
   }
 
   const handleWithdraw = () => {
@@ -322,6 +354,13 @@ useEffect(() => {
         updated_at: new Date().toISOString()
       }
 
+      // Auto-stamp the acting recruiter as handler when nobody is assigned,
+      // so every status move is attributable on the KPI dashboard.
+      const actorId = profile?.id || user?.id || null
+      if (!handledBy && actorId) {
+        updateData.handling_recruiter_id = actorId
+      }
+
       const { error } = await supabase
         .from('applications')
         .update(updateData)
@@ -329,6 +368,9 @@ useEffect(() => {
 
       if (error) throw error
 
+      if (updateData.handling_recruiter_id) {
+        setHandledBy(updateData.handling_recruiter_id)
+      }
       onStatusChange(selectedStatus)
       setShowModal(false)
     } catch (error) {
@@ -369,6 +411,16 @@ useEffect(() => {
             <XCircle className="w-4 h-4" />
             <span className="font-medium">Decline</span>
           </button>
+        )}
+
+        {/* Handled-by: visible wherever recruiters record status input */}
+        {showHandledBy && (
+          <HandledBySelect
+            applicationId={applicationId}
+            value={handledBy}
+            onChanged={setHandledBy}
+            showLabel
+          />
         )}
 
         {/* More Options Menu (Three Dots) */}
@@ -544,6 +596,20 @@ useEffect(() => {
       )}
 
       {/* Withdrawal Modal */}
+      {showRejectionModal && (
+        <RejectionModal
+          isOpen={showRejectionModal}
+          onClose={() => setShowRejectionModal(false)}
+          applicant={{
+            id: applicationId,
+            name: application?.candidateName || application?.full_name || '',
+            email: application?.candidateEmail || application?.email || '',
+            position: application?.desiredRank || application?.desired_rank || '',
+          }}
+          onConfirm={handleStructuredRejection}
+        />
+      )}
+
       {showWithdrawalModal && (
         <WithdrawalModal
           application={application}

@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
-import SequentialStatusControl from '../components/SequentialStatusControl'
-import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -30,8 +28,8 @@ import { buildLookupMap, formatDate, formatRelativeTime } from './recruiterDashb
 const WORKSPACE_TABS = [
   { value: 'requirements', label: 'Requirements', icon: ClipboardList },
   { value: 'candidates', label: 'Candidates', icon: Users },
-  { value: 'pipeline', label: 'Candidate Pipeline', icon: ArrowRight },
 ]
+// The Candidate Pipeline tab merged into /recruiter/applications.
 
 const REQUIREMENT_FILTERS = [
   { value: 'open', label: 'Open' },
@@ -151,9 +149,10 @@ function sameDay(a, b) {
 
 export default function RecruiterWorkspace() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile, signOut } = useAuth()
-  const { hasPermission, canManageApplications, role, loading: permLoading } = usePermissions()
+  const { hasPermission, role, loading: permLoading } = usePermissions()
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -213,15 +212,18 @@ export default function RecruiterWorkspace() {
     requirementId: '',
   })
 
-  const [selectedPipelineApplicationId, setSelectedPipelineApplicationId] = useState('')
 
   useEffect(() => {
     const tab = searchParams.get('tab')
+    if (tab === 'pipeline') {
+      navigate('/recruiter/applications', { replace: true })
+      return
+    }
     const nextTab = WORKSPACE_TABS.some((item) => item.value === tab) ? tab : 'requirements'
     if (nextTab !== activeTab) {
       setActiveTab(nextTab)
     }
-  }, [activeTab, searchParams])
+  }, [activeTab, searchParams, navigate])
 
   const changeWorkspaceTab = (tab) => {
     setActiveTab(tab)
@@ -253,7 +255,14 @@ export default function RecruiterWorkspace() {
   const requirementById = useMemo(() => buildLookupMap(requirements), [requirements])
   const applicationByProspectId = useMemo(() => {
     return applications.reduce((acc, application) => {
-      if (application?.prospect_id) acc[application.prospect_id] = application
+      if (application?.prospect_id) {
+        // Keep the most recently updated application per prospect (rows arrive
+        // sorted updated_at desc, so later entries must not overwrite).
+        const existing = acc[application.prospect_id]
+        if (!existing || new Date(application.updated_at) > new Date(existing.updated_at)) {
+          acc[application.prospect_id] = application
+        }
+      }
       return acc
     }, {})
   }, [applications])
@@ -274,34 +283,6 @@ export default function RecruiterWorkspace() {
       return acc
     }, {})
   }, [junctions])
-
-  const pipelineRows = useMemo(() => {
-    return applications.map((application) => {
-      const prospect = prospects.find((item) => item.id === application.prospect_id)
-      const appData = application.application_data?.data || {}
-      const section1 = appData.section1 || {}
-      const section2 = appData.section2 || {}
-      const candidateName =
-        `${section2.firstName || ''} ${section2.surname || ''}`.trim() ||
-        prospect?.name ||
-        application.reference_number ||
-        'Application'
-
-      return {
-        ...application,
-        prospect,
-        candidateName,
-        candidateEmail: section2.email || prospect?.email || '',
-        candidatePhone: section2.phoneNumber || section2.phone || prospect?.telephone || '',
-        desiredRank: section1.appliedForRank || application.applied_rank || '',
-        vesselType: section1.vesselType || '',
-      }
-    })
-  }, [applications, prospects])
-
-  const selectedPipelineApplication = useMemo(() => {
-    return pipelineRows.find((row) => row.id === selectedPipelineApplicationId) || pipelineRows[0] || null
-  }, [pipelineRows, selectedPipelineApplicationId])
 
   const requirementRows = useMemo(() => {
     return requirements.map((requirement) => {
@@ -386,7 +367,6 @@ export default function RecruiterWorkspace() {
   const canArchiveRequirements = hasPermission('edit_requirements') || hasPermission('archive_prospects')
   const canDeleteRequirements = role === 'Master Recruiter'
   const canManageCandidates = hasPermission('archive_prospects') || hasPermission('delete_prospects') || hasPermission('edit_prospects')
-  const canTransitionPipeline = canManageApplications()
 
   useEffect(() => {
     if (!requirementForm.loggedByRecruiterId && currentRecruiterId) {
@@ -449,7 +429,7 @@ export default function RecruiterWorkspace() {
             .order('updated_at', { ascending: false }),
           supabase
             .from('applications')
-            .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, application_data ( data )')
+            .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, handling_recruiter_id, application_data ( data )')
             .order('updated_at', { ascending: false }),
         ])
 
@@ -493,10 +473,9 @@ export default function RecruiterWorkspace() {
     if (!attachForm.prospectId && visibleCandidateRows[0]) {
       setAttachForm((current) => ({ ...current, prospectId: visibleCandidateRows[0].id }))
     }
-    if (!selectedPipelineApplicationId && pipelineRows[0]) {
-      setSelectedPipelineApplicationId(pipelineRows[0].id)
-    }
-  }, [attachForm.prospectId, attachForm.requirementId, pipelineRows, selectedPipelineApplicationId, visibleCandidateRows, visibleRequirementRows])
+    // Pipeline rows manage their own inline status control; nothing is
+    // auto-selected.
+  }, [attachForm.prospectId, attachForm.requirementId, visibleCandidateRows, visibleRequirementRows])
 
   const reloadWorkspace = async () => {
     setRefreshing(true)
@@ -538,7 +517,7 @@ export default function RecruiterWorkspace() {
           .order('updated_at', { ascending: false }),
         supabase
           .from('applications')
-          .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, application_data ( data )')
+          .select('id, prospect_id, user_id, applied_rank, status, submitted_at, created_at, updated_at, reference_number, public_token, handling_recruiter_id, application_data ( data )')
           .order('updated_at', { ascending: false }),
       ])
 
@@ -608,8 +587,6 @@ export default function RecruiterWorkspace() {
       target_days: Number(requirementForm.targetDays),
       status: requirementForm.status,
       customer_name: requirementForm.customerName || null,
-      owner_recruiter_id: requirementForm.loggedByRecruiterId || currentRecruiterId,
-      created_by_recruiter_id: requirementForm.loggedByRecruiterId || currentRecruiterId,
       ...(requirementForm.status === 'cancelled'
         ? { closure_reason: requirementForm.notes?.trim() || 'Cancelled from recruiter workspace' }
         : {}),
@@ -622,18 +599,34 @@ export default function RecruiterWorkspace() {
 
     try {
       if (requirementForm.id) {
+        // Ownership fields are intentionally excluded on update: rewriting
+        // owner_recruiter_id from the "Logged by" field silently undid any
+        // transfer_requirement_owner reassignment.
         const { error: updateError } = await supabase
           .from('requirements')
           .update(payload)
           .eq('id', requirementForm.id)
 
         if (updateError) throw updateError
+
+        // Persist typed remarks on edit too (previously create-only, so the
+        // textarea content was silently dropped when editing).
+        if (requirementForm.notes?.trim() && requirementForm.status !== 'cancelled') {
+          const { error: remarkError } = await supabase.rpc('add_requirement_remark', {
+            p_requirement_id: requirementForm.id,
+            p_body: requirementForm.notes.trim(),
+            p_visibility: 'internal',
+          })
+          if (remarkError) throw remarkError
+        }
         setSuccess('Requirement updated.')
       } else {
         const { data: insertData, error: insertError } = await supabase
           .from('requirements')
           .insert({
             ...payload,
+            owner_recruiter_id: requirementForm.loggedByRecruiterId || currentRecruiterId,
+            created_by_recruiter_id: requirementForm.loggedByRecruiterId || currentRecruiterId,
             status: 'open',
           })
           .select('id, req_id_display')
@@ -915,26 +908,32 @@ export default function RecruiterWorkspace() {
   }
 
   const exportRequirementsCsv = async () => {
-    await logRecruiterExport({
-      reportType: 'workspace_requirements',
-      exportFormat: 'csv',
-      rowIds: visibleRequirementRows.map((row) => row.id),
-      rowCount: visibleRequirementRows.length,
-      filters: { requirementFilter },
-    })
+    setError('')
+    try {
+      await logRecruiterExport({
+        reportType: 'workspace_requirements',
+        exportFormat: 'csv',
+        rowIds: visibleRequirementRows.map((row) => row.id),
+        rowCount: visibleRequirementRows.length,
+        filters: { requirementFilter },
+      })
 
-    await downloadCsvReport({
-      filename: `workspace-requirements-${new Date().toISOString().slice(0, 10)}`,
-      columns: [
-        { label: 'Req ID', value: (row) => row.req_id_display },
-        { label: 'Status', value: (row) => row.status },
-        { label: 'Vessel', value: (row) => row.vessel_name || '' },
-        { label: 'Rank', value: (row) => ranks.find((item) => item.id === row.rank_id)?.name || row.rank_id || '' },
-        { label: 'Open Positions', value: (row) => row.openPositions },
-        { label: 'Logged By', value: (row) => recruiters.find((item) => item.id === row.created_by_recruiter_id)?.full_name || row.created_by_recruiter_id || '' },
-      ],
-      rows: visibleRequirementRows,
-    })
+      await downloadCsvReport({
+        filename: `workspace-requirements-${new Date().toISOString().slice(0, 10)}`,
+        columns: [
+          { label: 'Req ID', value: (row) => row.req_id_display },
+          { label: 'Status', value: (row) => row.status },
+          { label: 'Vessel', value: (row) => row.vessel_name || '' },
+          { label: 'Rank', value: (row) => ranks.find((item) => item.id === row.rank_id)?.name || row.rank_id || '' },
+          { label: 'Open Positions', value: (row) => row.openPositions },
+          { label: 'Logged By', value: (row) => recruiters.find((item) => item.id === row.created_by_recruiter_id)?.full_name || row.created_by_recruiter_id || '' },
+        ],
+        rows: visibleRequirementRows,
+      })
+    } catch (exportErr) {
+      console.error('Workspace requirements export failed:', exportErr)
+      setError(exportErr?.message || 'Export failed. You may not have export permission.')
+    }
   }
 
   const formatCandidateApplicationStatus = (candidate) => {
@@ -1393,7 +1392,7 @@ export default function RecruiterWorkspace() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => navigate(`/recruiter/workspace/prospects/${candidate.id}`)}
+                              onClick={() => navigate(`/recruiter/workspace/prospects/${candidate.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                               className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
                             >
                               {candidate.name}
@@ -1428,7 +1427,7 @@ export default function RecruiterWorkspace() {
                           <button
                             type="button"
                             className="workspace-action-button workspace-action-button--secondary"
-                            onClick={() => navigate(`/recruiter/workspace/prospects/${candidate.id}`)}
+                            onClick={() => navigate(`/recruiter/workspace/prospects/${candidate.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                           >
                             View
                           </button>
@@ -1503,119 +1502,6 @@ export default function RecruiterWorkspace() {
           </div>
         ) : null}
 
-        {activeTab === 'pipeline' ? (
-          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-            <Panel
-              title="Application pipeline control"
-              description="Use the live recruiter application flow. The pipeline version is handled internally."
-              icon={ArrowRight}
-            >
-              <div className="space-y-4">
-                <SelectField
-                  label="Application"
-                  value={selectedPipelineApplicationId}
-                  onChange={(value) => {
-                    setSelectedPipelineApplicationId(value)
-                  }}
-                  options={pipelineRows.map((row) => ({
-                    value: row.id,
-                    label: `${row.candidateName} · ${row.status}`,
-                  }))}
-                  placeholder="Choose an application"
-                  required
-                />
-                <p className="text-xs text-slate-500">
-                  The status component handles scheduling, interviews, offers, documents, and terminal moves. Version stays internal.
-                </p>
-
-                {selectedPipelineApplication ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{selectedPipelineApplication.candidateName}</p>
-                      <StatusBadge status={selectedPipelineApplication.status} />
-                    </div>
-                    <p className="mt-2 text-sm text-slate-600">
-                      {selectedPipelineApplication.reference_number || 'No reference'} · {selectedPipelineApplication.candidateEmail || 'No email'}{selectedPipelineApplication.candidatePhone ? ` · ${selectedPipelineApplication.candidatePhone}` : ''}
-                    </p>
-                    <div className="mt-4">
-                      {canTransitionPipeline ? (
-                        <SequentialStatusControl
-                          applicationId={selectedPipelineApplication.id}
-                          currentStatus={selectedPipelineApplication.status}
-                          application={selectedPipelineApplication}
-                          onStatusChange={reloadWorkspace}
-                        />
-                      ) : (
-                        <p className="text-sm text-slate-500">You do not have permission to change application status.</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={ClipboardList}
-                    title="No applications"
-                    description="Create or load applications to manage the pipeline here."
-                  />
-                )}
-              </div>
-            </Panel>
-
-            <Panel
-              title="Application pipeline rows"
-              description="Current application status, candidate identity, and quick access to the record."
-              icon={ClipboardList}
-            >
-              <div className="space-y-3">
-                {pipelineRows.length === 0 ? (
-                  <EmptyState
-                    icon={ClipboardList}
-                    title="No application rows"
-                    description="Applications will appear here once the recruiter pipeline has data."
-                  />
-                ) : pipelineRows.map((row) => (
-                  <div key={row.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => navigate(row.public_token ? `/application/view/${row.public_token}` : '/recruiter/applications')}
-                            className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
-                          >
-                            {row.candidateName}
-                          </button>
-                          <StatusBadge status={row.status} />
-                        </div>
-                        <p className="mt-2 text-sm text-slate-600">
-                          {row.reference_number || 'No reference'} · {row.desiredRank || 'Rank not specified'}{row.vesselType ? ` · ${row.vesselType}` : ''}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Updated {formatRelativeTime(row.updated_at)} · Submitted {formatDate(row.submitted_at)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className="workspace-action-button workspace-action-button--secondary"
-                          onClick={() => navigate(row.public_token ? `/application/view/${row.public_token}` : '/recruiter/applications')}
-                        >
-                          View application
-                        </button>
-                        <button
-                          type="button"
-                          className="workspace-action-button workspace-action-button--secondary"
-                          onClick={() => setSelectedPipelineApplicationId(row.id)}
-                        >
-                          Manage status
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          </div>
-        ) : null}
       </main>
     </div>
   )

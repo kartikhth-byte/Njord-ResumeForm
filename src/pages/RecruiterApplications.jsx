@@ -242,6 +242,33 @@ const [offerApplication, setOfferApplication] = useState(null)
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
+  const [notesByProspect, setNotesByProspect] = useState({})
+
+  useEffect(() => {
+    const prospectIds = [...new Set(applications.map((app) => app.prospect_id).filter(Boolean))]
+    if (prospectIds.length === 0) {
+      setNotesByProspect({})
+      return undefined
+    }
+    let cancelled = false
+    supabase
+      .from('prospect_notes')
+      .select('prospect_id, body, created_at')
+      .in('prospect_id', prospectIds)
+      .order('created_at', { ascending: false })
+      .limit(500)
+      .then(({ data, error: notesError }) => {
+        if (cancelled || notesError) return
+        const map = {}
+        for (const note of data || []) {
+          if (!map[note.prospect_id]) map[note.prospect_id] = note.body
+        }
+        setNotesByProspect(map)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [applications])
   
   // AI Search
   const [aiSearchActive, setAiSearchActive] = useState(false)
@@ -431,6 +458,9 @@ useEffect(() => {
           submitted_at,
           test_attempt_number,
           test_max_attempts,
+          handling_recruiter_id,
+          contract_end_date,
+          prospect_id,
           application_data (
             data
           )
@@ -680,6 +710,22 @@ useEffect(() => {
   }
 
  // --- CHANGED: STATUS CHANGE HANDLER WITH MODAL LOGIC & DB UPDATE ---
+const updateContractEndDate = async (applicationId, value) => {
+  try {
+    const { error: updateError } = await supabase
+      .from('applications')
+      .update({ contract_end_date: value || null })
+      .eq('id', applicationId)
+    if (updateError) throw updateError
+    const patch = (rows) => rows.map((row) => (row.id === applicationId ? { ...row, contract_end_date: value || null } : row))
+    setApplications(patch)
+    setFilteredApplications(patch)
+  } catch (contractError) {
+    console.error('Failed to update contract end date:', contractError)
+    alert(`Could not save the contract end date${contractError?.message ? `: ${contractError.message}` : ''}`)
+  }
+}
+
 const handleStatusChange = async (applicationId, newStatus) => {
   const appToUpdate = applications.find(a => a.id === applicationId)
   if (!appToUpdate) return
@@ -772,6 +818,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         submitted_at,
         test_attempt_number,
         test_max_attempts,
+        handling_recruiter_id,
         application_data (
           data
         )
@@ -941,165 +988,127 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
   const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm border overflow-visible">
-      <div className="overflow-x-auto overflow-y-visible">
-        <table className="w-full overflow-visible">
-          <thead className="bg-gray-50 border-b">
+    <div className="tracker-table-wrap tracker-table-wrap--plain overflow-y-visible">
+      <table className="tracker-table tracker-table--tiles">
+        <thead>
+          <tr>
+            <th className="tracker-cell--sticky-1">Reference</th>
+            <th className="tracker-cell--sticky-2">Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Present rank</th>
+            <th>Applied rank</th>
+            <th>Vessel type</th>
+            <th>Status</th>
+            <th>Compliance</th>
+            <th>Submitted</th>
+            {showRelevance ? (
+              <>
+                <th>Relevance</th>
+                <th>AI match</th>
+              </>
+            ) : null}
+            <th>Actions</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {apps.length === 0 ? (
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Phone
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Position
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vessel Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Compliance
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Submitted
-              </th>
-{showRelevance && (
-  <>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Relevance
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      AI Match
-    </th>
-  </>
-)}
-<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-  Actions
-</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                View
-              </th>
+              <td colSpan={showRelevance ? 14 : 12} className="px-6 py-12 text-center text-gray-500">
+                No applications found
+              </td>
             </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200 overflow-visible">
-            {apps.length === 0 ? (
-              <tr>
-                <td colSpan={showRelevance ? 13 : 11} className="px-6 py-12 text-center text-gray-500">
-                  No applications found
+          ) : (
+            apps.map((app) => (
+              <tr key={app.id}>
+                <td className="tracker-cell--sticky-1 tracker-cell--nowrap">
+                  <span className="font-mono text-xs font-medium text-blue-700">{app.reference_number}</span>
                 </td>
-              </tr>
-            ) : (
-              apps.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50 transition-colors overflow-visible">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-blue-600 font-medium">
-                      {app.reference_number}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{app.full_name}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600">{app.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">{app.phone}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{formatDisplayValue(app.desired_rank)}</div>
-                  </td>
-                  <td className="px-6 py-4">
-<div className="flex items-center gap-2">
-  <div className="text-sm text-gray-900">{formatDisplayValue(app.vessel_type)}</div>
-</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <ComplianceBadge status={app.compliance_status} size="compact" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">
-                      {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '-'}
-                    </div>
-                  </td>
-{showRelevance && (
-  <>
-    {/* Relevance Column */}
-    <td className="px-6 py-4 whitespace-nowrap">
-      <div className="flex items-center gap-2">
-        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full"
-            style={{ width: `${app.similarity * 100}%` }}
-          />
-        </div>
-        <span className="text-xs font-medium text-gray-600">
-          {(app.similarity * 100).toFixed(0)}%
-        </span>
-      </div>
-    </td>
-    
-{/* AI Match Column */}
-<td className="px-6 py-4">
-  {analyzingWithLLM && !app.llmAnalysis ? (
-    <div className="flex items-center gap-2 text-purple-600">
-      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-      <span className="text-xs font-medium">Analyzing...</span>
-    </div>
-  ) : app.llmAnalysis ? (
-    <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
-  ) : (
-    <span className="text-xs text-gray-400">—</span>
-  )}
-</td>
-  </>
-)}
-
-{/* Actions Column */}
-<td className="px-6 py-4">
-  <div className="flex items-center gap-2">
-    <SequentialStatusControl
-      applicationId={app.id}
-      currentStatus={app.status}
-      onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-      application={app}
-      autoOpenInterview={autoOpenInterviewForApp === app.id}
-      onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
-    />
-    {/* Show dash for terminal statuses (rejected, withdrawn, hired) */}
-    {(app.status === 'rejected' || app.status === 'withdrawn' || app.status === 'hired') && (
-      <span className="text-gray-400 text-sm">—</span>
-    )}
-  </div>
-</td>
-                  {/* View Column */}
-                  <td className="px-6 py-4 text-center">
+                <td className="tracker-cell--sticky-2 tracker-cell--primary tracker-cell--nowrap">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/application/view/${app.public_token}`)}
+                    className="block max-w-[13rem] truncate text-left hover:text-blue-700"
+                    title={app.full_name}
+                  >
+                    {app.full_name}
+                  </button>
+                </td>
+                <td className="tracker-cell--nowrap tracker-cell--muted">
+                  <span className="block max-w-[13rem] truncate" title={app.email}>{app.email || '—'}</span>
+                </td>
+                <td className="tracker-cell--nowrap tracker-cell--muted">{app.phone || '—'}</td>
+                <td className="tracker-cell--nowrap">{formatDisplayValue(app.last_rank) || '—'}</td>
+                <td className="tracker-cell--nowrap">{formatDisplayValue(app.desired_rank) || '—'}</td>
+                <td className="tracker-cell--nowrap">{formatDisplayValue(app.vessel_type) || '—'}</td>
+                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
+                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} size="compact" /></td>
+                <td className="tracker-cell--nowrap tracker-cell--muted">
+                  {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
+                </td>
+                {showRelevance ? (
+                  <>
+                    <td className="tracker-cell--nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-20 overflow-hidden rounded-full bg-gray-200">
+                          <div className="h-2 rounded-full bg-blue-600" style={{ width: `${app.similarity * 100}%` }} />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600">{(app.similarity * 100).toFixed(0)}%</span>
+                      </div>
+                    </td>
+                    <td className="tracker-cell--nowrap">
+                      {analyzingWithLLM && !app.llmAnalysis ? (
+                        <div className="flex items-center gap-2 text-purple-600">
+                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-purple-600"></div>
+                          <span className="text-xs font-medium">Analyzing...</span>
+                        </div>
+                      ) : app.llmAnalysis ? (
+                        <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                  </>
+                ) : null}
+                <td className="tracker-cell--nowrap">
+                  <div className="flex items-center gap-1.5">
+                    <SequentialStatusControl
+                      applicationId={app.id}
+                      currentStatus={app.status}
+                      onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+                      application={app}
+                      autoOpenInterview={autoOpenInterviewForApp === app.id}
+                      onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
+                    />
                     <button
                       onClick={() => navigate(`/application/view/${app.public_token}`)}
-                      className="inline-flex p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="inline-flex rounded-lg p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
                       title="View application"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="h-4 w-4" />
                     </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    {app.status === 'hired' ? (
+                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-slate-500" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
+                        Contract ends
+                        <input
+                          type="date"
+                          value={app.contract_end_date || ''}
+                          onChange={(event) => updateContractEndDate(app.id, event.target.value)}
+                          className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="max-w-[14rem] tracker-cell--muted">
+                  <span className="line-clamp-2">{(app.prospect_id && notesByProspect[app.prospect_id]) || '—'}</span>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
