@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Settings } from 'lucide-react'
 import BrandLockup from '../ui/BrandLockup'
+import { usePermissions } from '../../hooks/usePermissions'
 
 export default function RecruiterTopbar({ user, profile, role, signOut }) {
   const navigate = useNavigate()
+  const { canManageSettings } = usePermissions()
+  const showSettings = role === 'Master Recruiter' || canManageSettings()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef(null)
 
@@ -43,6 +46,19 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
           <BrandLockup compact />
         </button>
 
+        <div className="flex items-center gap-2">
+        {showSettings ? (
+          <button
+            type="button"
+            onClick={() => navigate('/recruiter/settings')}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            title="Settings"
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        ) : null}
+
         <div className="relative" ref={userMenuRef}>
           <button
             type="button"
@@ -65,7 +81,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
             />
           </button>
 
-          {showUserMenu && (
+          {showUserMenu ? (
             <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-[24px] border border-slate-200 bg-white py-2 shadow-xl">
               <div className="border-b border-gray-100 px-4 py-3">
                 <div className="text-sm font-medium text-gray-900">{displayName}</div>
@@ -100,7 +116,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                 }}
                 className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
               >
-                Search
+                Applications
               </button>
               <button
                 type="button"
@@ -120,7 +136,8 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                 Sign Out
               </button>
             </div>
-          )}
+          ) : null}
+        </div>
         </div>
       </div>
     </nav>

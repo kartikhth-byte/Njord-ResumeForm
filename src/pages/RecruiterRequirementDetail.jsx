@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -41,7 +41,10 @@ function StatusPill({ status, metaMap }) {
 
 export default function RecruiterRequirementDetail() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { requirementId } = useParams()
+  // Return to wherever this page was opened from (tracker, KPI, workspace…).
+  const backTo = location.state?.from || '/recruiter/workspace?tab=requirements'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
   const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
@@ -365,7 +368,7 @@ export default function RecruiterRequirementDetail() {
             action={
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/workspace?tab=requirements')}
+                onClick={() => navigate(backTo)}
                 className="workspace-action-button workspace-action-button--primary"
               >
                 Back to requirements
@@ -424,7 +427,7 @@ export default function RecruiterRequirementDetail() {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => navigate('/recruiter/workspace?tab=requirements')}
+                  onClick={() => navigate(backTo)}
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -569,7 +572,7 @@ export default function RecruiterRequirementDetail() {
                             {prospect ? (
                               <button
                                 type="button"
-                                onClick={() => navigate(`/recruiter/workspace/prospects/${prospect.id}`)}
+                                onClick={() => navigate(`/recruiter/workspace/prospects/${prospect.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                                 className="workspace-action-button workspace-action-button--secondary"
                               >
                                 Open prospect
@@ -661,7 +664,7 @@ export default function RecruiterRequirementDetail() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/recruiter/workspace?tab=pipeline')}
+                    onClick={() => navigate('/recruiter/applications')}
                     className="workspace-action-button workspace-action-button--secondary w-full justify-center"
                   >
                     Review pipeline

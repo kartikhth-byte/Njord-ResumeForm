@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import StatusBadge from '../components/StatusBadge'
 import { usePermissions } from '../hooks/usePermissions'
@@ -41,7 +41,10 @@ function StatusPill({ status, metaMap }) {
 
 export default function RecruiterProspectDetail() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { prospectId } = useParams()
+  // Return to wherever this page was opened from (workspace, tracker, detail…).
+  const backTo = location.state?.from || '/recruiter/workspace?tab=candidates'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
   const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
@@ -280,7 +283,7 @@ export default function RecruiterProspectDetail() {
             action={
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/workspace?tab=candidates')}
+                onClick={() => navigate(backTo)}
                 className="workspace-action-button workspace-action-button--primary"
               >
                 Back to prospects
@@ -478,7 +481,7 @@ export default function RecruiterProspectDetail() {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
+                  onClick={() => navigate(backTo)}
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -607,7 +610,7 @@ export default function RecruiterProspectDetail() {
                             {requirement ? (
                               <button
                                 type="button"
-                                onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`)}
+                                onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                                 className="workspace-action-button workspace-action-button--secondary"
                               >
                                 Open requirement

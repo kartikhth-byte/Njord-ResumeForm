@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { AlertCircle, Calendar, CheckCircle, Clock, FileText, RefreshCw, Search } from 'lucide-react'
+import { AlertCircle, Calendar, CheckCircle, Clock, FileText, Mail, RefreshCw, Search } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { supabase } from '../../lib/supabase'
@@ -73,6 +73,24 @@ export default function ExpiryDashboard() {
   const [selectedUrgency, setSelectedUrgency] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [lastSyncedAt, setLastSyncedAt] = useState(null)
+  const [sendingWarnings, setSendingWarnings] = useState(false)
+  const [warningsResult, setWarningsResult] = useState('')
+
+  const sendExpiryWarnings = async () => {
+    if (sendingWarnings) return
+    setSendingWarnings(true)
+    setWarningsResult('')
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('process-expiry-warnings', { body: {} })
+      if (fnError) throw fnError
+      setWarningsResult(data?.message || 'Expiry warning emails processed.')
+    } catch (invokeError) {
+      console.error('Failed to process expiry warnings:', invokeError)
+      setWarningsResult(invokeError?.message || 'Failed to process expiry warnings.')
+    } finally {
+      setSendingWarnings(false)
+    }
+  }
 
   const fetchExpiringDocuments = async () => {
     try {
@@ -204,9 +222,24 @@ export default function ExpiryDashboard() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            <button
+              onClick={sendExpiryWarnings}
+              disabled={sendingWarnings}
+              className="workspace-action-button workspace-action-button--primary"
+              title="Emails tiered 30/60/90-day warnings for expiring documents"
+            >
+              <Mail className="h-4 w-4" />
+              {sendingWarnings ? 'Sending…' : 'Send expiry warnings'}
+            </button>
           </div>
         }
       />
+
+      {warningsResult ? (
+        <div className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+          {warningsResult}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {['all', 'expired', 'critical', 'urgent', 'moderate'].map((key) => {

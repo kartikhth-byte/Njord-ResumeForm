@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../../hooks/usePermissions'
-import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Settings, Search, FileText } from 'lucide-react'
+import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Search, FileText, ClipboardList, Users } from 'lucide-react'
 
 export default function RecruiterWorkspaceNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-  const { role, canManageSettings, canViewAnalytics } = usePermissions()
+  const { role, canViewAnalytics } = usePermissions()
 
   if (!user) return null
 
@@ -27,6 +27,20 @@ export default function RecruiterWorkspaceNav() {
       visible: true
     },
     {
+      key: 'requirements',
+      label: 'Requirements',
+      icon: ClipboardList,
+      path: '/recruiter/requirements',
+      visible: true
+    },
+    {
+      key: 'candidates',
+      label: 'Candidates',
+      icon: Users,
+      path: '/recruiter/candidates',
+      visible: true
+    },
+    {
       key: 'kpi',
       label: 'KPI',
       icon: BarChart3,
@@ -38,29 +52,25 @@ export default function RecruiterWorkspaceNav() {
       label: 'Expiry',
       icon: AlertCircle,
       path: '/dashboard/expiry',
-      visible: true
+      // Route is ProtectedRoute(['Recruiter', 'Master Recruiter']) — hide it
+      // from roles the route would bounce to /unauthorized.
+      visible: role === 'Recruiter' || role === 'Master Recruiter'
     },
     {
       key: 'calendar',
       label: 'Calendar',
       icon: Calendar,
       path: '/recruiter/calendar',
-      visible: true
+      visible: role === 'Recruiter' || role === 'Master Recruiter'
     },
     {
       key: 'search',
-      label: 'Search',
+      label: 'Applications',
       icon: Search,
       path: '/recruiter/applications',
       visible: true
-    },
-    {
-      key: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      path: '/recruiter/settings',
-      visible: role === 'Master Recruiter' || canManageSettings()
     }
+    // Settings moved to the topbar gear icon next to the user menu.
   ].filter(item => item.visible)
 
   const isActive = (item) => {
@@ -74,8 +84,8 @@ export default function RecruiterWorkspaceNav() {
   return (
     <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
       <div className="recruiter-panel overflow-hidden p-4 sm:p-5">
-        <div className="-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1">
-          <div className="inline-flex w-max flex-nowrap gap-3">
+        <div className="recruiter-nav-scroll -mx-1 overflow-x-auto overflow-y-hidden px-1">
+          <div className="inline-flex w-max flex-nowrap gap-2">
           {items.map(item => {
             const ItemIcon = item.icon
             const active = isActive(item)
