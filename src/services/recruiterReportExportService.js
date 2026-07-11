@@ -1,6 +1,11 @@
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import { applyPlugin } from 'jspdf-autotable'
 import { supabase } from '../lib/supabase'
+
+// jspdf-autotable v5 no longer auto-patches jsPDF when imported as ESM (the
+// bare side-effect import only works for UMD/global builds), so doc.autoTable
+// would be undefined at runtime. Patch the prototype explicitly once.
+applyPlugin(jsPDF)
 
 function sanitizeFileName(value) {
   return String(value || 'report')
@@ -12,7 +17,12 @@ function sanitizeFileName(value) {
 }
 
 function escapeCsvCell(value) {
-  const cell = String(value ?? '')
+  let cell = String(value ?? '')
+  // Guard against CSV formula injection in spreadsheet apps: neutralize cells
+  // that start with a formula trigger. Plain negative numbers are left intact.
+  if (/^[=+@\t\r]/.test(cell) || (cell.startsWith('-') && Number.isNaN(Number(cell)))) {
+    cell = `'${cell}`
+  }
   return `"${cell.replaceAll('"', '""')}"`
 }
 

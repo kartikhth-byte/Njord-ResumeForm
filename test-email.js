@@ -1,6 +1,15 @@
+/* global process */
 import { Resend } from 'resend';
 
-const resend = new Resend('re_85BfsAYQ_9F55rpFuXKmViSH4Vrm4mNdT'); // Use NEW key after regenerating
+// SECURITY: never hardcode the API key here — a previous key was committed to
+// git history and must be treated as compromised (rotate it in Resend).
+// Run with: RESEND_API_KEY=re_xxx node test-email.js
+const apiKey = process.env.RESEND_API_KEY;
+if (!apiKey) {
+  console.error('Set RESEND_API_KEY in the environment before running this script.');
+  process.exit(1);
+}
+const resend = new Resend(apiKey);
 
 async function testEmail() {
   try {
