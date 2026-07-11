@@ -12,9 +12,20 @@ export function getLookupName(map, id, fallback = 'Unknown') {
   return map?.[id]?.name || fallback
 }
 
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+
 export function formatDate(value, options = {}) {
   if (!value) return 'Not set'
-  const date = new Date(value)
+  // Date-only strings (DB `date` columns like requirements.date_opened) must
+  // be parsed as local dates; `new Date('YYYY-MM-DD')` is UTC midnight and
+  // renders the previous day in UTC-negative timezones.
+  let date
+  const match = typeof value === 'string' ? DATE_ONLY_PATTERN.exec(value.trim()) : null
+  if (match) {
+    date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  } else {
+    date = new Date(value)
+  }
   if (Number.isNaN(date.getTime())) return 'Not set'
   return date.toLocaleDateString([], {
     year: 'numeric',
