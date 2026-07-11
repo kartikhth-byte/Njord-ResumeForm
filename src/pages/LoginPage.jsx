@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
-import { Ship, Briefcase, ShieldCheck, FileText } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { Ship, Briefcase, ShieldCheck, FileText, Loader2, MailCheck } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { user, userType, loading, authorizationLoading, signInWithGoogle } = useAuth()
+  const { user, userType, loading, authorizationLoading } = useAuth()
   const [checkingSession, setCheckingSession] = useState(true)
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [linkRequested, setLinkRequested] = useState(false)
+  const [requestError, setRequestError] = useState('')
 
   useEffect(() => {
     if (loading || (user && authorizationLoading && !userType)) return
@@ -26,13 +31,29 @@ export default function Login() {
     setCheckingSession(false)
   }, [user, userType, loading, authorizationLoading, navigate])
 
-  const handleGoogleLogin = async () => {
+  const handleMagicLinkRequest = async (event) => {
+    event.preventDefault()
+    if (submitting) return
+
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setRequestError('Please enter a valid email address.')
+      return
+    }
+
+    setSubmitting(true)
+    setRequestError('')
     try {
-      window.sessionStorage.setItem('njord-login-intent', 'applicant')
-      await signInWithGoogle()
-    } catch (error) {
-      console.error('Error logging in with Google:', error)
-      alert('Failed to login with Google')
+      const { error } = await supabase.functions.invoke('request-applicant-magic-link', {
+        body: { email: normalizedEmail },
+      })
+      if (error) throw error
+      setLinkRequested(true)
+    } catch (invokeError) {
+      console.error('Magic link request failed:', invokeError)
+      setRequestError('We could not process the request right now. Please try again in a moment.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -54,7 +75,7 @@ export default function Login() {
           <div className="public-eyebrow text-blue-100">Njordships Careers</div>
           <h1 className="public-title">Maritime applications, handled with more confidence.</h1>
           <p className="public-copy">
-            Sign in with Google to complete, update, and track your seafarer profile from one place.
+            Access your seafarer application through the secure link sent to your email.
           </p>
 
           <div className="public-feature-list">
@@ -87,7 +108,7 @@ export default function Login() {
               <div>
                 <p className="public-feature-item__title">Secure account access</p>
                 <p className="public-feature-item__copy">
-                  Your application history and documents stay tied to your Google account for easy return access.
+                  No passwords to remember — every sign-in uses a fresh, single-use link sent to your registered email.
                 </p>
               </div>
             </div>
@@ -98,39 +119,66 @@ export default function Login() {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
             <Ship className="h-7 w-7" />
           </div>
-          <h2 className="public-form-title mt-6">Applicant login</h2>
+          <h2 className="public-form-title mt-6">Applicant access</h2>
           <p className="public-form-copy">
-            Sign in to manage your maritime job applications, complete your profile, and track status updates.
+            Enter the email address our recruitment team contacted you on, and we will send you a secure
+            sign-in link.
           </p>
 
-          <button
-            onClick={handleGoogleLogin}
-            className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="currentColor"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Continue with Google
-          </button>
+          {linkRequested ? (
+            <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <div className="flex items-start gap-3">
+                <MailCheck className="mt-0.5 h-5 w-5 flex-none text-emerald-700" />
+                <div>
+                  <p className="font-semibold text-emerald-900">Check your inbox</p>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    If <strong>{email.trim().toLowerCase()}</strong> belongs to an approved candidate, a
+                    sign-in link is on its way. The link is single-use — open it on this device.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setLinkRequested(false)}
+                    className="mt-3 text-sm font-medium text-emerald-900 underline underline-offset-2"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleMagicLinkRequest} className="mt-8 space-y-4">
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-700">Email address</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+
+              {requestError ? (
+                <p className="text-sm text-rose-600">{requestError}</p>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 py-4 font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              >
+                {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                {submitting ? 'Sending link…' : 'Email me a sign-in link'}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm text-blue-900">
-              <strong>Note:</strong> Use your Google account to sign in. Your application data stays available any time you return.
+              <strong>Note:</strong> Applicant access is by invitation. If you have not been contacted by
+              our recruitment team yet, the sign-in link will not be issued.
             </p>
           </div>
 
@@ -142,10 +190,6 @@ export default function Login() {
               </Link>
             </p>
           </div>
-
-          <p className="mt-8 text-sm text-slate-500">
-            New to Njordships? Sign in with Google to create your account automatically.
-          </p>
         </section>
       </div>
     </div>

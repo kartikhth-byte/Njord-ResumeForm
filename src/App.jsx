@@ -32,6 +32,8 @@ import RecruiterSettings from './pages/RecruiterSettings'
 import RecruiterWorkspace from './pages/RecruiterWorkspace'
 import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
+import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
+import RecruiterCandidatesPage from './pages/RecruiterCandidatesPage'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -104,7 +106,9 @@ function RootRedirect() {
       if (loading) return
 
       if (!user) {
-        navigate('/applicant/login', { replace: true })
+        // Applicants only ever arrive via emailed invite/sign-in links, so the
+        // bare root URL is a staff entry point.
+        navigate('/recruiter/login', { replace: true })
         setChecking(false)
         return
       }
@@ -118,7 +122,7 @@ function RootRedirect() {
       } else if (userType === 'applicant') {
         navigate('/dashboard', { replace: true })
       } else {
-        navigate('/applicant/login', { replace: true })
+        navigate('/recruiter/login', { replace: true })
       }
 
       setChecking(false)
@@ -156,7 +160,7 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<RootRedirect />} />
-            <Route path="/login" element={<Navigate to="/applicant/login" replace />} />
+            <Route path="/login" element={<Navigate to="/recruiter/login" replace />} />
             <Route path="/applicant/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -231,6 +235,18 @@ function App() {
             <Route path="/recruiter/kpi" element={
               <RecruiterRoute>
                 <RecruiterKpiPage />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/requirements" element={
+              <RecruiterRoute>
+                <RecruiterRequirementsPage />
+              </RecruiterRoute>
+            } />
+
+            <Route path="/recruiter/candidates" element={
+              <RecruiterRoute>
+                <RecruiterCandidatesPage />
               </RecruiterRoute>
             } />
 

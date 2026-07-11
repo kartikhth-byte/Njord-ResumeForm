@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'  // ✅ Added useEffect
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import { Shield, Mail, Lock, AlertCircle, Users, CalendarCheck, Search } from 'lucide-react'
@@ -255,14 +255,9 @@ export default function RecruiterLogin() {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-slate-200 pt-6 text-center">
-            <p className="text-sm text-slate-600">
-              Not a recruiter? <Link to="/applicant/login" className="public-inline-link">Go to applicant sign in</Link>
-            </p>
-          </div>
-
           <p className="mt-8 text-sm text-slate-500">
             For security reasons, only authorized recruitment staff can access this portal.
+            Candidates receive their access link by email from our recruitment team.
           </p>
         </section>
       </div>
