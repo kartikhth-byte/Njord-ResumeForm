@@ -35,12 +35,54 @@
 - prospect-enrollment invite/reporting slice is implemented locally: invite request RPC, bounce webhook, deep-read/export RPCs, recent-export reporting, snapshot export buttons, and the requirement compliance overlay on the submitted application view
 - export/download actions now audit before file delivery, respect format-specific export permissions, and keep prospect-detail application tokens hidden unless application access is explicitly granted
 - recruiter shell redesign is implemented locally:
-  - main nav now surfaces `Dashboard | Workspace | KPI | Expiry | Calendar | Search | Settings`
+  - main nav now surfaces `Dashboard | Workspace | Requirements | Candidates | KPI | Expiry | Calendar | Search | Settings`
   - dashboard is a compact executive snapshot
   - workspace is split into requirements, candidates, and candidate pipeline tabs
   - candidate pipeline now uses application statuses (`under_review` through `withdrawn`) and keeps the concurrency version hidden in the control flow
   - KPI is a dedicated reporting page
   - the legacy prospect route now redirects into the workspace entry point
+- crew recruitment KPI tracker is implemented locally as three dedicated pages, mirroring the "Crew Recruitment KPI Tracker" workbook:
+  - `/recruiter/requirements` — requirements tracker with candidates joined, open positions, days open / days to close, target days, and on-time status calculated live; a requirement only closes when all required positions have joined
+  - `/recruiter/candidates` — candidate funnel with derived stage (Contacted → Screened → Shortlisted → Interviewed → Approved → Joined, plus Rejected/Withdrawn), join flag, days to join, active-pipeline flag, and cycle completion
+  - `/recruiter/kpi` — live management dashboard: open vs closed requirements, open positions, joined vs required, closure % (target ≥95%), contacted/joined today, contact-to-join conversion (target 8–12%), avg days to join, pipeline by stage, open requirement ageing, and a per-recruiter scorecard
+  - all three pages compute from one shared live snapshot (`src/hooks/useKpiTrackerData.js` + `src/utils/kpiTracker.js`) so figures always agree; each page supports filtering and audited CSV export
+- post-review hardening pass (2026-07-10) is implemented locally:
+  - PDF export repaired app-wide: `jspdf-autotable` v5 no longer auto-patches jsPDF under ESM, so `applyPlugin(jsPDF)` is now called explicitly in the export service (previously every "Export PDF" threw at runtime)
+  - CSV cells are now guarded against spreadsheet formula injection
+  - `test-email.js` no longer hardcodes the Resend API key (reads `RESEND_API_KEY`; old key must be rotated)
+  - export buttons on the tracker/KPI pages are gated on `canExportData()` so non-permitted roles no longer hit a guaranteed 403
+  - `/recruiter/kpi` now enforces the analytics gate at page level, matching the nav visibility rule
+  - tracker pages suppress metrics and show a retry state on load failure instead of rendering zeroed dashboards
+  - workspace requirement edits no longer overwrite `owner_recruiter_id` (previously undid ownership transfers) and typed remarks are persisted on edit
+  - workspace candidate rows now use the most recently updated application per prospect
+  - `test_failed` counts as an active funnel stage (retakes supported), not a terminal rejection
+  - Expiry/Calendar nav entries are hidden for `Coordinator`, matching their route guards
+- live browser validation pass (2026-07-10, local dev against production Supabase):
+  - remote DB was missing `2026060310`/`2026060311` (applied), the reference-data seeds (`2026071001_reseed_reference_data.sql` re-applies RBAC grants + countries/ranks/vessel_types), and had RLS wrongly enabled on the lookup catalogs (`2026071002_restore_lookup_visibility.sql` disables it) — all pushed and verified
+  - the stray `20260317_remote_baseline.sql` no-op was retired to `supabase/20260317_remote_baseline.sql.disabled` after its remote history entry was repaired; migration pushes work normally now
+  - workspace Candidate Pipeline redesigned: the "Application pipeline control" panel is gone; submitted-only applications render as an excel-style table styled as tiles (rounded card rows, navy border + shadow on hover, frozen ID/Name columns, sticky header) with columns ID, name, email, phone, present rank (latest sea-service rank held), applied rank, vessel applied for, status, handled by, actions, latest prospect note; inline `SequentialStatusControl` expands beneath the row; search + canonical status filter; drafts excluded; rank/vessel codes resolve to display names
+- application handler tracking is implemented (2026-07-10):
+  - `applications.handling_recruiter_id` (migration `2026071003`) records which recruiter is working the application; different stages can be handled by different recruiters
+  - reusable `HandledBySelect` appears at every recruiter input point: the pipeline table column and inside `SequentialStatusControl` (so Search/Applications and ViewApplication get it automatically)
+  - status changes auto-stamp the acting recruiter as handler when the application is unassigned
+  - the KPI dashboard scorecard gained a "Handling" column (live submitted, non-terminal applications per handler) with an unassigned-count note
+- KPI analytics expansion (2026-07-11):
+  - KPI page now has Overview / Charts / Reports tabs
+  - Overview gained a "Needs action now" panel: overdue and near-target requirements (linked), applications awaiting review >7 days, unassigned live applications, unclaimed invites >3 days, and today's scheduled events
+  - Charts tab (dependency-free SVG): weekly contacts-vs-joins trend, funnel by stage, open requirements by age bucket, open positions by rank (demand map), and average days sitting in current pipeline status (bottleneck finder)
+  - Reports tab: weekly management report (PDF), requirement closure (CSV), recruiter productivity (CSV), funnel drop-off (CSV) — all audit-logged and permission-gated
+  - `application_status_history` table + trigger added (migration `2026071101`) so future analytics can use true time-in-stage
+  - Settings moved out of the main nav into a topbar gear icon beside the user menu
+  - Expiry page gained a "Send expiry warnings" button invoking `process-expiry-warnings` (previously the function was never invoked by anything); daily scheduling still needs to be enabled in Supabase
+- Applications consolidation + data capture (2026-07-11):
+  - Search and the workspace Candidate Pipeline merged into one Applications page (`/recruiter/applications`): pipeline-style tile table (frozen Reference/Name, present rank, notes, handled-by inside the status control) plus Search's compliance badges, advanced filters, pagination, and AI-search plumbing; the workspace tab was removed and `?tab=pipeline` redirects; nav item renamed Search → Applications
+  - structured rejection capture: the previously-orphaned `RejectionModal` (9-category taxonomy, tags, keep-warm flag, notes, rejection email) is now the reject path in `SequentialStatusControl`, persisting to `applications.rejection_category/tags/notes/contact_for_future_roles` (migration `2026071102`)
+  - contract end dates on hired applications (`applications.contract_end_date`) editable inline on the Applications page; KPI "Needs action now" warns when contracts end within 45 days
+  - interview no-shows recorded via a third outcome in `InterviewResultModal` (`scheduled_events.outcome = 'no_show'`); application stays scheduled for rebooking
+  - KPI overview gained an "Avg client response" card (junction submitted → customer decision)
+- back-navigation is caller-aware (2026-07-10): requirement/prospect detail pages return to the exact page they were opened from (tracker pages, KPI ageing, workspace) via router state, with the old workspace-tab fallback for deep links
+  - recruiter nav no longer overflows (hidden scrollbar + tighter spacing); all 9 items fit at laptop widths
+  - verified in-browser: KPI dashboard, Requirements tracker (with a live TEST requirement `2026-Jul-001`), Candidates funnel, pipeline tiles, and requirement creation end-to-end
 
 ## Current Verification State
 
@@ -70,8 +112,9 @@
 
 ## Current Auth Model
 
-- applicant: Google OAuth
+- applicant: emailed magic link only (invite-only; `request-applicant-magic-link` edge function, requested from `/applicant/login`; Google OAuth login was removed from the UI on 2026-07-10)
 - recruiter: email/password
+- the bare root URL and `/login` now route to the recruiter sign-in; applicants always arrive via emailed links
 
 ## Important Commands
 

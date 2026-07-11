@@ -12,7 +12,7 @@ Read these files before making major changes:
 ## Project Rules
 
 - This repo is a maritime recruitment platform with two auth modes:
-  - applicants use Google OAuth
+  - applicants use emailed magic links only (invite-only; no self-serve login page)
   - recruiter-side users use email/password
 - Recruiter roles are intentionally limited to:
   - `Master Recruiter`

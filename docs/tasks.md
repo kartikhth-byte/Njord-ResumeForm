@@ -2,6 +2,16 @@
 
 ## High Priority
 
+- Push migration `2026071101_application_status_history.sql` (status-change audit trail; unlocks true time-in-stage analytics)
+- Schedule `process-expiry-warnings` to run daily (Supabase Dashboard → Edge Functions → schedules, or pg_cron); until then it only runs from the new "Send expiry warnings" button on the Expiry page — also confirm the function is deployed to the live project
+
+- Data integrity finding 2026-07-10: the remote DB was reconstructed from a schema-only baseline at some point, so seed data inside migrations (RBAC permission grants, countries, ranks, vessel_types) was silently missing; `2026071001_reseed_reference_data.sql` re-applies all seeds idempotently. Audit any other data-bearing migrations if odd gaps appear.
+- Migration hygiene RESOLVED 2026-07-10: the Tools clone had renamed `2026060308_deep_read_reports.sql` → `2026060312` (commit `714fe7e`) and applied it remotely; the same rename is now done in this repo, eliminating the duplicate `2026060308` and identifying the "unknown" remote `2026060312`. Two docs-only commits (`714fe7e`, `a9bcaf1`) and a small uncommitted `ProspectEnrollment.jsx` tweak remain only in the stale Tools clone — review/discard, then delete that clone to prevent future confusion
+- SECURITY: rotate the Resend API key that was hardcoded in `test-email.js` (now env-based, but the old key lives in git history and must be treated as compromised); consider purging the file from history
+- Manually verify the repaired PDF export (`jspdf-autotable` v5 `applyPlugin` fix) on prospect and requirement detail pages against the live app
+- Decide whether the plain `Recruiter` role should be granted `export_csv` (currently Master-only, so export buttons are hidden for recruiters on tracker/KPI pages)
+- Repo cleanup commit: remove tracked junk (`{`, `Create`, `test-email.js` if unneeded), six `.backup*` files, and dead pages (`RecruiterDashboard.jsx` 1,570 lines unrouted — `RecruiterDashboardSimple.jsx` is the routed dashboard, `RecruiterApplications_old.jsx`, `ProspectEnrollment.jsx`); also drop the vestigial `:dashboardTab?` route param
+
 - Validate and deploy the remaining prospect-enrollment backend slice:
   - invite request / bounce handling
   - deep-read / export reporting RPCs
@@ -12,6 +22,9 @@
   - overwrite behavior on prefilled template data
   - populated-value verification against the source application
 - Commit or intentionally discard the current local compliance changes so the repo state is clean before the next feature branch starts
+- Delete the TEST requirement `2026-Jul-001` (TEST MV Ocean Star) created during the 2026-07-10 browser validation once no longer needed
+- Verify the new applicant magic-link login end-to-end: `request-applicant-magic-link` edge function deployed to the live project, email delivery, link redemption through `/auth/callback`, and applicant dashboard access (Google login was removed from the applicant UI)
+- Decide what happens to existing applicant accounts created via Google OAuth (can they still redeem magic links against the same profile?)
 - Perform full manual applicant data-entry test after wiping applicant test data
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
@@ -77,7 +90,7 @@
   - requirement and junction transition controls
   - recruiter nav entry and workspace route
 - Recruiter shell redesign is implemented locally:
-  - main nav now surfaces Dashboard, Workspace, KPI, Expiry, Calendar, Search, and Settings
+  - main nav now surfaces Dashboard, Workspace, Requirements, Candidates, KPI, Expiry, Calendar, Search, and Settings (KPI/Settings permission-gated; Expiry/Calendar hidden for Coordinator to match route guards)
   - dashboard is a compact executive snapshot
   - Workspace now splits requirements, candidates, and candidate pipeline
   - Candidate Pipeline now uses application statuses (`under_review` through `withdrawn`) and hides the version field from the recruiter UI
@@ -98,6 +111,12 @@
   - compliance status badges
   - compliance filtering
   - compact red / amber / green rollups
+- Crew recruitment KPI tracker pages are implemented locally:
+  - `/recruiter/requirements` requirements tracker (joins, open positions, ageing, on-time status)
+  - `/recruiter/candidates` candidate funnel (derived stage, days to join, active pipeline, cycle completion)
+  - `/recruiter/kpi` rebuilt as the live management dashboard (closure %, conversion %, daily activity, pipeline by stage, requirement ageing, recruiter scorecard)
+  - shared derivation lives in `src/utils/kpiTracker.js` with data loading in `src/hooks/useKpiTrackerData.js`
+  - still needs manual validation against live recruiter data on Vercel
 
 ## Recommended Start-Here Order
 
