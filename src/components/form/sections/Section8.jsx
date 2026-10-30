@@ -132,11 +132,7 @@ export default function Section8({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Qualifications</p>
         <h2 className="applicant-section-title">National certificates of competency</h2>
-        <p className="applicant-section-copy">
-          List all your Certificates of Competency (CoC) including revalidation details
-        </p>
       </div>
 
       {/* Certificates List */}
@@ -144,7 +140,7 @@ export default function Section8({ data = {}, onUpdate }) {
         {certificates.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              className="w-12 h-12 text-fg-muted mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -156,7 +152,7 @@ export default function Section8({ data = {}, onUpdate }) {
                 d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
               />
             </svg>
-            <p className="text-gray-600 mb-4">No certificates added yet</p>
+            <p className="text-fg-secondary mb-4">No certificates added yet</p>
             <button
               onClick={handleAddCertificate}
               className="applicant-action applicant-action--primary"
@@ -173,9 +169,6 @@ export default function Section8({ data = {}, onUpdate }) {
                 <div className="applicant-record-card__header">
                   <div>
                     <h3 className="applicant-record-card__title">Certificate {index + 1}</h3>
-                    <p className="applicant-record-card__subtitle">
-                      Capture the issuing authority, validity period, and any revalidation details for this certificate.
-                    </p>
                   </div>
                   <button
                     onClick={() => handleRemoveCertificate(index)}
@@ -261,7 +254,7 @@ export default function Section8({ data = {}, onUpdate }) {
 
                   {/* Revalidation Section */}
                   <div className="applicant-record-card__divider">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Revalidation Details (if applicable)</h4>
+                    <h4 className="text-sm font-semibold text-fg-secondary mb-3">Revalidation Details (if applicable)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormDatePicker
                         label="Date Revalidated"
@@ -293,32 +286,13 @@ export default function Section8({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddCertificate}
-              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Certificate</span>
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div className="applicant-section-card applicant-section-card--muted">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              📜 Important
-            </h3>
-            <p className="text-sm text-blue-800">
-              Include all valid Certificates of Competency. If you have revalidated your certificate, please provide those dates as well. Ensure certificates are not expired or close to expiry.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )

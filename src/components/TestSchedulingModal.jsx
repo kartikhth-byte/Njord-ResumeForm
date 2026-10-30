@@ -197,7 +197,7 @@ if (reminderError) {
               <div className="grid grid-cols-2 gap-4">
                 {/* Test Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-fg-secondary mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
                     Test Date *
                   </label>
@@ -207,13 +207,13 @@ if (reminderError) {
                     min={today}
                     value={formData.testDate}
                     onChange={(e) => setFormData({ ...formData, testDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                 </div>
 
                 {/* Test Time */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-fg-secondary mb-2">
                     <Clock className="w-4 h-4 inline mr-1" />
                     Test Time *
                   </label>
@@ -222,14 +222,14 @@ if (reminderError) {
                     required
                     value={formData.testTime}
                     onChange={(e) => setFormData({ ...formData, testTime: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Test URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <LinkIcon className="w-4 h-4 inline mr-1" />
                   Test Link/URL *
                 </label>
@@ -239,24 +239,24 @@ if (reminderError) {
                   value={formData.testUrl}
                   onChange={(e) => setFormData({ ...formData, testUrl: e.target.value })}
                   placeholder="https://test.njord.com/assessment/xyz123"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-fg-muted mt-1">
                   This link will be sent to the candidate
                 </p>
               </div>
 
               {/* Notes for Candidate */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Instructions for Candidate (Optional)
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Please ensure you have a stable internet connection and a quiet environment. The test will cover navigation rules, safety procedures, and technical knowledge..."
+                  placeholder="Instructions for the candidate"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                 />
               </div>
 
@@ -264,8 +264,7 @@ if (reminderError) {
               <div className="recruiter-note recruiter-note--info">
                 <p className="recruiter-note__title">What happens next</p>
                 <p className="recruiter-note__body">
-                  The candidate will receive an email with test details, date, time, and access link. 
-                  You will also receive a calendar reminder.
+                  The candidate gets an email with the details.
                 </p>
               </div>
             </div>
@@ -282,7 +281,7 @@ if (reminderError) {
             <button
               type="submit"
               disabled={loading}
-              className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
+              className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-fg-muted"
             >
               {loading ? (
                 <>

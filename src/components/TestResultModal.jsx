@@ -314,14 +314,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
             <div className="recruiter-modal__body space-y-5">
               {/* Test Result Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-fg-secondary mb-3">
                   Test Result *
                 </label>
                 <div className="space-y-3">
                   {/* Passed */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'passed' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-                  }`}>
+ result === 'passed' ? 'border-success bg-success-soft' : 'border-line hover:border-success-line'
+ }`}>
                     <input
                       type="radio"
                       name="result"
@@ -332,17 +332,16 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-gray-900">Passed</span>
+                        <CheckCircle className="w-5 h-5 text-success" />
+                        <span className="font-medium text-fg">Passed</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Candidate passed the test. Proceed to interview stage.</p>
                     </div>
                   </label>
 
                   {/* Failed */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'failed' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
-                  }`}>
+ result === 'failed' ? 'border-danger bg-danger-soft' : 'border-line hover:border-danger-line'
+ }`}>
                     <input
                       type="radio"
                       name="result"
@@ -353,17 +352,17 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <XCircle className="w-5 h-5 text-red-600" />
-                        <span className="font-medium text-gray-900">Failed</span>
+                        <XCircle className="w-5 h-5 text-danger" />
+                        <span className="font-medium text-fg">Failed</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Candidate failed the test. Application will be rejected.</p>
+                      <p className="text-sm text-fg-secondary mt-1">Candidate failed the test. Application will be rejected.</p>
                     </div>
                   </label>
 
                   {/* Retake */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'retake' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                  } ${!canRetake ? 'opacity-50 cursor-not-allowed' : ''}`}>
+ result === 'retake' ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+ } ${!canRetake ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="radio"
                       name="result"
@@ -375,12 +374,12 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <RotateCcw className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-900">
+                        <RotateCcw className="w-5 h-5 text-accent-text" />
+                        <span className="font-medium text-fg">
                           Retake {!canRetake && '(Not Available)'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-fg-secondary mt-1">
                         {canRetake 
                           ? `Allow candidate to retake the test. (Attempt ${currentAttempt + 1} of ${maxAttempts})`
                           : `Maximum attempts (${maxAttempts}) reached. Cannot approve retake.`
@@ -393,7 +392,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
               {/* Test Score */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Test Score (Optional)
                 </label>
                 <div className="flex items-center gap-2">
@@ -405,15 +404,15 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     value={formData.testScore}
                     onChange={(e) => setFormData({ ...formData, testScore: e.target.value })}
                     placeholder="85.5"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-32 px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
-                  <span className="text-gray-600">%</span>
+                  <span className="text-fg-secondary">%</span>
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Notes {(result === 'failed' || result === 'retake') && '*'}
                 </label>
                 <textarea
@@ -422,21 +421,21 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                   placeholder="Add any relevant notes about the test performance..."
                   rows={3}
                   required={result === 'failed' || result === 'retake'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                 />
               </div>
 
               {/* Conditional: Failed - Rejection Reason */}
               {result === 'failed' && (
                 <div className="recruiter-note recruiter-note--danger">
-                  <label className="block text-sm font-medium text-red-900 mb-2">
+                  <label className="block text-sm font-medium text-danger mb-2">
                     Rejection Reason *
                   </label>
                   <select
                     required
                     value={formData.rejectionReason}
                     onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
-                    className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-danger-line rounded-lg focus:ring-2 focus:ring-danger/40 focus:border-transparent"
                   >
                     <option value="">Select a reason...</option>
                     {rejectionReasons.map(reason => (
@@ -450,14 +449,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               {result === 'retake' && (
                 <div className="recruiter-note recruiter-note--info space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-5 h-5 text-blue-700" />
-                    <h4 className="font-medium text-blue-900">Schedule Retake Test</h4>
+                    <AlertTriangle className="w-5 h-5 text-accent-text" />
+                    <h4 className="font-medium text-accent-text">Schedule Retake Test</h4>
                   </div>
 
                   {/* Date and Time */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-fg-secondary mb-2">
                         <Calendar className="w-4 h-4 inline mr-1" />
                         New Test Date *
                       </label>
@@ -467,12 +466,12 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                         min={today}
                         value={formData.newTestDate}
                         onChange={(e) => setFormData({ ...formData, newTestDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-fg-secondary mb-2">
                         <Clock className="w-4 h-4 inline mr-1" />
                         New Test Time *
                       </label>
@@ -481,14 +480,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                         required={result === 'retake'}
                         value={formData.newTestTime}
                         onChange={(e) => setFormData({ ...formData, newTestTime: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                       />
                     </div>
                   </div>
 
                   {/* Test URL */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-fg-secondary mb-2">
                       <LinkIcon className="w-4 h-4 inline mr-1" />
                       New Test Link/URL *
                     </label>
@@ -498,13 +497,13 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                       value={formData.newTestUrl}
                       onChange={(e) => setFormData({ ...formData, newTestUrl: e.target.value })}
                       placeholder="https://test.njord.com/assessment/xyz123"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                     />
                   </div>
 
                   {/* Message to Candidate */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-fg-secondary mb-2">
                       Message to Candidate (Optional)
                     </label>
                     <textarea
@@ -512,7 +511,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                       onChange={(e) => setFormData({ ...formData, retakeMessage: e.target.value })}
                       placeholder="We're giving you another opportunity to demonstrate your skills. Please review the material and prepare accordingly..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                     />
                   </div>
                 </div>
@@ -521,15 +520,15 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               {/* Info Box */}
               {result && (
                 <div className={`border rounded-lg p-4 ${
-                  result === 'passed' ? 'bg-green-50 border-green-200' :
-                  result === 'failed' ? 'bg-red-50 border-red-200' :
-                  'bg-blue-50 border-blue-200'
-                }`}>
+ result === 'passed' ? 'bg-success-soft border-success-line' :
+ result === 'failed' ? 'bg-danger-soft border-danger-line' :
+ 'bg-accent-soft border-accent/40'
+ }`}>
                   <p className={`text-sm ${
-                    result === 'passed' ? 'text-green-900' :
-                    result === 'failed' ? 'text-red-900' :
-                    'text-blue-900'
-                  }`}>
+ result === 'passed' ? 'text-success' :
+ result === 'failed' ? 'text-danger' :
+ 'text-accent-text'
+ }`}>
                     <strong>Action:</strong> {
                       result === 'passed' ? 'Candidate will advance to the interview stage.' :
                       result === 'failed' ? 'Candidate will receive a rejection email and application will be closed.' :
@@ -553,7 +552,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               <button
                 type="submit"
                 disabled={loading || !result}
-                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
+                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-fg-muted"
               >
                 {loading ? (
                   <>

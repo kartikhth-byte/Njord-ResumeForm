@@ -389,7 +389,7 @@ useEffect(() => {
           <button
             onClick={handleNextStage}
             disabled={loading}
-            className="workspace-action-button workspace-action-button--primary group relative rounded-xl text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="workspace-action-button workspace-action-button--primary group relative rounded-card text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -405,7 +405,7 @@ useEffect(() => {
           <button
             onClick={handleDeclineOffer}
             disabled={loading}
-            className="inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            className="inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-control bg-danger px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-danger disabled:opacity-50"
             title="Decline Offer"
           >
             <XCircle className="w-4 h-4" />
@@ -429,7 +429,7 @@ useEffect(() => {
             <button
               ref={buttonRef}
               onClick={() => setShowMenu(!showMenu)}
-              className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-card p-2 text-fg-muted transition-colors hover:bg-raised hover:text-fg-secondary"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -443,7 +443,7 @@ useEffect(() => {
                   onClick={() => setShowMenu(false)} 
                 />
                 <div 
-                  className="fixed z-[9998] w-56 rounded-2xl border border-gray-200 bg-white py-2 shadow-lg"
+                  className="fixed z-[9998] w-56 rounded-card border border-line bg-surface py-2 shadow-overlay"
                   style={{
                     top: `${dropdownPosition.top}px`,
                     left: `${dropdownPosition.left}px`
@@ -452,20 +452,20 @@ useEffect(() => {
                   {/* Skip Options */}
                   {getSkippableStatuses().length > 0 && (
                     <>
-                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <div className="px-3 py-2 text-xs font-semibold text-fg-muted">
                         Skip to
                       </div>
                       {getSkippableStatuses().map(status => (
                         <button
                           key={status}
                           onClick={() => handleSkipTo(status)}
-                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm text-fg-secondary hover:bg-raised flex items-center gap-2"
                         >
-                          <SkipForward className="w-4 h-4 text-gray-400" />
+                          <SkipForward className="w-4 h-4 text-fg-muted" />
                           {statusLabels[status]}
                         </button>
                       ))}
-                      <div className="my-1 border-t border-gray-200" />
+                      <div className="my-1 border-t border-line" />
                     </>
                   )}
 
@@ -473,7 +473,7 @@ useEffect(() => {
                   {canWithdraw() && (
                     <button
                       onClick={handleWithdraw}
-                      className="w-full px-3 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-sm text-warning hover:bg-warning-soft flex items-center gap-2"
                     >
                       <XCircle className="w-4 h-4" />
                       Withdraw Application
@@ -484,7 +484,7 @@ useEffect(() => {
                   {!canWithdraw() && (
                     <button
                       onClick={handleReject}
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft flex items-center gap-2"
                     >
                       <X className="w-4 h-4" />
                       Reject Application
@@ -503,14 +503,11 @@ useEffect(() => {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black bg-opacity-50 z-[9998]" onClick={() => !loading && setShowModal(false)} />
           
-          <div className="relative z-[9999] w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="relative z-[9999] w-full max-w-md rounded-card bg-surface p-6">
+            <h3 className="text-lg font-semibold text-fg mb-2">
               {modalType === 'skip' ? 'Skip to ' : 'Advance to '}
               {statusLabels[selectedStatus]}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Mark the current stage as complete and move to the next stage.
-            </p>
 
             <div className="flex gap-3">
               <button
@@ -518,14 +515,14 @@ useEffect(() => {
                   setShowModal(false)
                 }}
                 disabled={loading}
-                className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+                className="flex-1 rounded-control border border-line-input px-4 py-2 text-fg-secondary transition-colors hover:bg-raised"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-white transition-colors hover:bg-teal-800 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-2 text-on-accent transition-colors hover:bg-accent-fill-hover disabled:opacity-50"
               >
                 {loading ? (
                   <>

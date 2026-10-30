@@ -213,21 +213,21 @@ const RejectionModal = ({
           
           {/* Warning Banner */}
           <div className="recruiter-note recruiter-note--danger mb-6 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
             <div>
               <p className="recruiter-note__title">
                 This action cannot be undone
               </p>
               <p className="recruiter-note__body">
-                The candidate will be notified via email. Please provide detailed feedback to help maintain a positive candidate experience.
+                The candidate is notified by email.
               </p>
             </div>
           </div>
 
           {/* Section 1: Rejection Category */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Rejection Category <span className="text-red-600">*</span>
+            <label className="block text-sm font-semibold text-fg mb-3">
+              Rejection Category <span className="text-danger">*</span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {rejectionCategories.map((category) => (
@@ -236,20 +236,20 @@ const RejectionModal = ({
                   type="button"
                   onClick={() => setRejectionCategory(category.value)}
                   className={`
-                    p-4 rounded-lg border-2 text-left transition-all
-                    ${rejectionCategory === category.value
-                      ? 'border-red-600 bg-red-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }
-                  `}
+ p-4 rounded-lg border-2 text-left transition-all
+ ${rejectionCategory === category.value
+ ? 'border-danger bg-danger-soft '
+ : 'border-line hover:border-line-input hover:bg-raised'
+ }
+ `}
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{category.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 text-sm">
+                      <div className="font-medium text-fg text-sm">
                         {category.label}
                       </div>
-                      <div className="text-xs text-gray-600 mt-1 line-clamp-2">
+                      <div className="text-xs text-fg-secondary mt-1 line-clamp-2">
                         {category.description}
                       </div>
                     </div>
@@ -261,16 +261,13 @@ const RejectionModal = ({
 
           {/* Section 2: Predefined Tags */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-fg mb-3">
               Predefined Tags (Optional)
             </label>
-            <p className="text-sm text-gray-600 mb-4">
-              Select relevant tags to categorize this candidate for future reference
-            </p>
             
             {Object.entries(tagsByCategory).map(([category, tags]) => (
               <div key={category} className="mb-4">
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                <h4 className="text-xs font-semibold text-fg-secondary mb-2">
                   {categoryLabels[category]}
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -280,12 +277,12 @@ const RejectionModal = ({
                       type="button"
                       onClick={() => togglePredefinedTag(tag.value)}
                       className={`
-                        px-3 py-1.5 rounded-full text-sm font-medium transition-all
-                        ${selectedPredefinedTags.includes(tag.value)
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }
-                      `}
+ px-3 py-1.5 rounded-full text-sm font-medium transition-all
+ ${selectedPredefinedTags.includes(tag.value)
+ ? 'bg-accent-fill text-on-accent '
+ : 'bg-raised text-fg-secondary hover:bg-line'
+ }
+ `}
                     >
                       {tag.label}
                     </button>
@@ -297,12 +294,9 @@ const RejectionModal = ({
 
           {/* Section 3: Custom Tags */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+            <label className="block text-sm font-semibold text-fg mb-3">
               Custom Tags (Optional)
             </label>
-            <p className="text-sm text-gray-600 mb-3">
-              Add custom tags for specific notes (e.g., "Mumbai based", "Speaks Hindi")
-            </p>
             <div className="flex gap-2 mb-3">
               <input
                 type="text"
@@ -310,12 +304,12 @@ const RejectionModal = ({
                 onChange={(e) => setCustomTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addCustomTag()}
                 placeholder="Type and press Enter..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={addCustomTag}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover transition-colors font-medium"
               >
                 Add
               </button>
@@ -325,13 +319,13 @@ const RejectionModal = ({
                 {customTags.map((tag, index) => (
                   <div
                     key={index}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-progress-soft text-progress rounded-full text-sm font-medium"
                   >
                     <Tag className="w-3.5 h-3.5" />
                     {tag}
                     <button
                       onClick={() => removeCustomTag(tag)}
-                      className="hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                      className="hover:bg-progress-soft rounded-full p-0.5 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -343,33 +337,31 @@ const RejectionModal = ({
 
           {/* Section 4: Contact for Future Roles */}
           <div className="mb-6">
-            <label className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors">
+            <label className="flex items-start gap-3 p-4 bg-success-soft border border-success-line rounded-lg cursor-pointer hover:bg-success-soft transition-colors">
               <input
                 type="checkbox"
                 checked={contactForFutureRoles}
                 onChange={(e) => setContactForFutureRoles(e.target.checked)}
-                className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                className="mt-1 w-4 h-4 text-success border-line-input rounded focus:ring-success/40"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="font-semibold text-gray-900 text-sm">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="font-semibold text-fg text-sm">
                     Contact for Future Roles
                   </span>
                 </div>
-                <p className="text-sm text-gray-700 mt-1">
-                  Mark this candidate for future consideration. They will appear in "Find Past Candidates" searches.
-                </p>
+                <p className="text-sm text-fg-secondary mt-1">Shows up in Find Past Candidates.</p>
               </div>
             </label>
           </div>
 
           {/* Section 5: Notes */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Rejection Notes {rejectionCategory === 'other' && <span className="text-red-600">*</span>}
+            <label className="block text-sm font-semibold text-fg mb-3">
+              Rejection Notes {rejectionCategory === 'other' && <span className="text-danger">*</span>}
             </label>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-fg-secondary mb-3">
               Provide detailed feedback for internal records
             </p>
             <textarea
@@ -377,9 +369,9 @@ const RejectionModal = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g., 'Great technical skills but lacks sufficient experience for Chief Officer role. Consider for 2nd Officer positions in 2 years.'"
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
             />
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-fg-muted">
               {notes.length} characters
             </div>
           </div>
@@ -398,12 +390,12 @@ const RejectionModal = ({
             onClick={handleSubmit}
             disabled={!rejectionCategory || isSubmitting}
             className={`
-              px-6 py-2 rounded-lg font-medium transition-all
-              ${!rejectionCategory || isSubmitting
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg'
-              }
-            `}
+ px-6 py-2 rounded-lg font-medium transition-all
+ ${!rejectionCategory || isSubmitting
+ ? 'bg-line-strong text-fg-muted cursor-not-allowed'
+ : 'bg-danger text-bg hover:bg-danger '
+ }
+ `}
           >
             {isSubmitting ? 'Rejecting...' : 'Reject Application'}
           </button>

@@ -55,9 +55,9 @@ const FormPhoneInput = forwardRef(({
     <div className="space-y-1.5">
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-fg-secondary">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
 
@@ -67,11 +67,11 @@ const FormPhoneInput = forwardRef(({
         <select
           value={countryCode}
           onChange={(e) => onCountryCodeChange(e.target.value)}
-          className={`w-32 px-3 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 bg-white ${
-            error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
+          className={`w-32 px-3 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 bg-surface ${
+ error
+ ? 'border-danger-line focus:border-danger focus:ring-danger/40'
+ : 'border-line-input focus:border-accent focus:ring-accent'
+ }`}
         >
           {COUNTRY_CODES.map((code) => (
             <option key={code.value} value={code.value}>
@@ -90,23 +90,23 @@ const FormPhoneInput = forwardRef(({
           onBlur={onBlur}
           placeholder="9876543210"
           className={`flex-1 px-4 py-2.5 border rounded-lg transition-colors focus:outline-none focus:ring-2 ${
-            error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
+ error
+ ? 'border-danger-line focus:border-danger focus:ring-danger/40'
+ : 'border-line-input focus:border-accent focus:ring-accent'
+ }`}
           {...props}
         />
       </div>
 
       {/* Help Text */}
       {helpText && !error && (
-        <p className="text-xs text-gray-500">{helpText}</p>
+        <p className="text-xs text-fg-muted">{helpText}</p>
       )}
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600 flex items-start gap-1">
-          <span className="text-red-500">⚠</span>
+        <p className="text-sm text-danger flex items-start gap-1">
+          <span className="text-danger">⚠</span>
           <span>{error}</span>
         </p>
       )}

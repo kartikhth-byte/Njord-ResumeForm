@@ -477,13 +477,13 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
           <div className="recruiter-modal__body space-y-5">
             {/* Interview Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-fg-secondary mb-2">
                 Interview Type *
               </label>
               <div className="grid grid-cols-3 gap-3">
                 <label className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.interviewType === 'video' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                }`}>
+ formData.interviewType === 'video' ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+ }`}>
                   <input
                     type="radio"
                     name="interviewType"
@@ -497,8 +497,8 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                 </label>
 
                 <label className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.interviewType === 'phone' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                }`}>
+ formData.interviewType === 'phone' ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+ }`}>
                   <input
                     type="radio"
                     name="interviewType"
@@ -512,8 +512,8 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                 </label>
 
                 <label className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.interviewType === 'in-person' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                }`}>
+ formData.interviewType === 'in-person' ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+ }`}>
                   <input
                     type="radio"
                     name="interviewType"
@@ -532,7 +532,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {formData.interviewType === 'video' && (
               <div>
                 {!isTeamsConnected ? (
-                  <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div className="p-4 bg-accent-soft border-2 border-accent/40 rounded-lg">
                     <div className="flex items-start gap-3">
                       <svg className="w-10 h-10 flex-shrink-0 mt-0.5" viewBox="0 0 23 23">
                         <path d="M11 0H0V11H11V0Z" fill="#F25022"/>
@@ -541,14 +541,11 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                         <path d="M23 12H12V23H23V12Z" fill="#FFB900"/>
                       </svg>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">Microsoft Teams Required</h4>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Connect your Microsoft account to automatically create Teams meetings
-                        </p>
+                        <h4 className="font-semibold text-fg mb-1">Microsoft Teams Required</h4>
                         <button
                           type="button"
                           onClick={handleTeamsAuth}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+                          className="flex items-center gap-2 px-4 py-2.5 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover transition-colors text-sm font-medium"
                         >
                           <svg className="w-5 h-5" viewBox="0 0 23 23">
                             <path d="M11 0H0V11H11V0Z" fill="white"/>
@@ -562,11 +559,11 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <div className="p-3 bg-success-soft border border-success-line rounded-lg flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-green-800">Microsoft Teams Connected</span>
-                      <p className="text-xs text-green-700 mt-0.5">Ready to auto-create meeting links</p>
+                      <span className="text-sm font-medium text-success">Microsoft Teams Connected</span>
+                      <p className="text-xs text-success mt-0.5">Ready to auto-create meeting links</p>
                     </div>
                   </div>
                 )}
@@ -576,7 +573,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {/* Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Interview Date *
                 </label>
@@ -586,12 +583,12 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                   onChange={(e) => setFormData({ ...formData, interviewDate: e.target.value })}
                   min={today}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <Clock className="w-4 h-4 inline mr-1" />
                   Interview Time *
                 </label>
@@ -600,20 +597,20 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                   value={formData.interviewTime}
                   onChange={(e) => setFormData({ ...formData, interviewTime: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* Duration */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-fg-secondary mb-2">
                 Duration (minutes) *
               </label>
               <select
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               >
                 <option value="30">30 minutes</option>
                 <option value="45">45 minutes</option>
@@ -626,7 +623,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {/* Teams Meeting URL */}
             {formData.interviewType === 'video' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <LinkIcon className="w-4 h-4 inline mr-1" />
                   Teams Meeting URL *
                 </label>
@@ -638,7 +635,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                     onChange={(e) => setFormData({ ...formData, interviewUrl: e.target.value })}
                     placeholder="https://teams.microsoft.com/l/meetup-join/..."
                     required
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                   
                   {/* Auto-create button for Teams */}
@@ -646,7 +643,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                     type="button"
                     onClick={handleCreateTeamsMeeting}
                     disabled={creatingMeet || meetCreated || !formData.interviewDate || !formData.interviewTime || !isTeamsConnected}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 whitespace-nowrap"
+                    className="px-4 py-2 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover disabled:bg-line-strong disabled:cursor-not-allowed transition-colors flex items-center gap-2 whitespace-nowrap"
                   >
                     {creatingMeet ? (
                       <>
@@ -666,12 +663,12 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
 
                 {/* Error message */}
                 {meetError && (
-                  <p className="mt-2 text-sm text-red-600">{meetError}</p>
+                  <p className="mt-2 text-sm text-danger">{meetError}</p>
                 )}
 
                 {/* Success message */}
                 {meetCreated && (
-                  <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                  <p className="mt-2 text-sm text-success flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
                     Meeting link created successfully!
                   </p>
@@ -682,7 +679,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             {/* In-Person Location */}
             {formData.interviewType === 'in-person' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <MapPin className="w-4 h-4 inline mr-1" />
                   Location *
                 </label>
@@ -692,14 +689,14 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="Enter interview location"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
             )}
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-fg-secondary mb-2">
                 Additional Notes (Optional)
               </label>
               <textarea
@@ -707,7 +704,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
                 placeholder="Any additional information or instructions..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
               />
             </div>
 

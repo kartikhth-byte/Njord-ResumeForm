@@ -68,11 +68,11 @@ const ARCHIVE_STATUSES = ['hired', 'rejected', 'withdrawn']
 const EVENT_TYPE_CONFIG = {
   interview: {
     label: 'Interview',
-    badgeClass: 'bg-blue-100 text-blue-800',
+    badgeClass: 'bg-accent-soft text-accent-text',
   },
   test: {
     label: 'Test',
-    badgeClass: 'bg-purple-100 text-purple-800',
+    badgeClass: 'bg-progress-soft text-progress',
   },
 }
 
@@ -624,14 +624,14 @@ export default function RecruiterDashboard() {
   if (permLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -717,10 +717,10 @@ export default function RecruiterDashboard() {
   const renderOperationsTab = () => (
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
-        <StatCard label="New Submissions" value={stats.needsReview} icon={Clock} tone="warning" hint="Fresh applications that have not been triaged yet." />
-        <StatCard label="In Review" value={stats.inReview} icon={Search} tone="accent" hint="Applications actively being assessed." />
-        <StatCard label="Pipeline Active" value={stats.inProgress} icon={TrendingUp} tone="accent" hint="Testing, interviews, offers, or document follow-up." />
-        <StatCard label="Completed" value={stats.completed} icon={ListChecks} tone="success" hint="Hired, rejected, or withdrawn outcomes." />
+        <StatCard label="New Submissions" value={stats.needsReview} icon={Clock} tone="warning" />
+        <StatCard label="In Review" value={stats.inReview} icon={Search} tone="accent" />
+        <StatCard label="Pipeline Active" value={stats.inProgress} icon={TrendingUp} tone="accent" />
+        <StatCard label="Completed" value={stats.completed} icon={ListChecks} tone="success" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
@@ -741,8 +741,8 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pipeline shortcuts</p>
+          <div className="mt-6 rounded-control border border-line bg-raised px-5 py-5">
+            <p className="text-xs font-semibold text-fg-muted">Pipeline shortcuts</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: 'Applications workspace', hint: 'Triage submissions and review compliance.', action: () => navigate('/recruiter/applications') },
@@ -754,10 +754,10 @@ export default function RecruiterDashboard() {
                   key={item.label}
                   type="button"
                   onClick={item.action}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-teal-300 hover:shadow-sm"
+                  className="rounded-control border border-line bg-surface px-4 py-4 text-left transition hover:border-accent"
                 >
-                  <p className="text-sm font-semibold text-slate-950">{item.label}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{item.hint}</p>
+                  <p className="text-sm font-semibold text-fg">{item.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-fg-secondary">{item.hint}</p>
                 </button>
               ))}
             </div>
@@ -765,17 +765,16 @@ export default function RecruiterDashboard() {
         </div>
 
         <div className="recruiter-panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Reference Search</p>
-          <h2 className="mt-2 text-lg font-semibold text-gray-900">Jump directly to a known application</h2>
+          <h2 className="mt-2 text-lg font-semibold text-fg">Jump directly to a known application</h2>
           <form onSubmit={handleSearchByRef} className="mt-4 flex gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-fg-muted" />
               <input
                 type="text"
                 value={searchRef}
                 onChange={(event) => setSearchRef(event.target.value)}
                 placeholder="Search by reference number (e.g. NJD-123456)"
-                className="h-11 w-full rounded-2xl border border-gray-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+                className="h-11 w-full rounded-card border border-line-input bg-surface pl-10 pr-4 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               />
             </div>
             <button type="submit" className="workspace-action-button workspace-action-button--secondary">
@@ -783,27 +782,27 @@ export default function RecruiterDashboard() {
             </button>
           </form>
 
-          <div className="mt-6 space-y-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
+          <div className="mt-6 space-y-4 rounded-card border border-dashed border-line bg-raised p-4">
             <div>
-              <p className="text-sm font-semibold text-gray-900">Priority signals</p>
-              <p className="mt-1 text-sm text-gray-600">Use these counts to decide where to spend recruiter time first.</p>
+              <p className="text-sm font-semibold text-fg">Priority signals</p>
+              <p className="mt-1 text-sm text-fg-secondary">Use these counts to decide where to spend recruiter time first.</p>
             </div>
-            <div className="space-y-3 text-sm text-gray-700">
+            <div className="space-y-3 text-sm text-fg-secondary">
               <div className="flex items-center justify-between">
                 <span>Needs review</span>
-                <span className="font-semibold text-amber-700">{stats.needsReview}</span>
+                <span className="font-semibold text-warning">{stats.needsReview}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>In review now</span>
-                <span className="font-semibold text-sky-700">{stats.inReview}</span>
+                <span className="font-semibold text-accent-text">{stats.inReview}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Pipeline in motion</span>
-                <span className="font-semibold text-teal-700">{stats.inProgress}</span>
+                <span className="font-semibold text-accent-text">{stats.inProgress}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Archive volume</span>
-                <span className="font-semibold text-gray-900">{stats.completed}</span>
+                <span className="font-semibold text-fg">{stats.completed}</span>
               </div>
             </div>
           </div>
@@ -811,17 +810,16 @@ export default function RecruiterDashboard() {
       </div>
 
       <div className="recruiter-panel p-6">
-        <div className="flex flex-col gap-5 border-b border-gray-200 pb-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-5 border-b border-line pb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Upcoming Schedule</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Interviews and tests coming up next.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+            <h2 className="mt-2 text-2xl font-semibold text-fg">Interviews and tests coming up next.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-secondary">
               Use this snapshot to see what is happening today, what is coming this week, and which events need attention next.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {lastLoadedAt ? (
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-fg-muted">
                 Last synced {lastLoadedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             ) : null}
@@ -845,29 +843,29 @@ export default function RecruiterDashboard() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Today</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{scheduleSnapshot.today}</p>
-            <p className="mt-1 text-sm text-slate-600">Interviews or tests scheduled today.</p>
+          <div className="rounded-control border border-line bg-raised px-4 py-4">
+            <p className="text-xs font-semibold text-fg-muted">Today</p>
+            <p className="mt-2 text-3xl font-semibold text-fg">{scheduleSnapshot.today}</p>
+            <p className="mt-1 text-sm text-fg-secondary">Interviews or tests scheduled today.</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">This Week</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{scheduleSnapshot.thisWeek}</p>
-            <p className="mt-1 text-sm text-slate-600">Upcoming events over the next 7 days.</p>
+          <div className="rounded-control border border-line bg-raised px-4 py-4">
+            <p className="text-xs font-semibold text-fg-muted">This Week</p>
+            <p className="mt-2 text-3xl font-semibold text-fg">{scheduleSnapshot.thisWeek}</p>
+            <p className="mt-1 text-sm text-fg-secondary">Upcoming events over the next 7 days.</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Pending</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">{scheduleSnapshot.pending}</p>
-            <p className="mt-1 text-sm text-slate-600">Future interviews and tests currently scheduled.</p>
+          <div className="rounded-control border border-line bg-raised px-4 py-4">
+            <p className="text-xs font-semibold text-fg-muted">Pending</p>
+            <p className="mt-2 text-3xl font-semibold text-fg">{scheduleSnapshot.pending}</p>
+            <p className="mt-1 text-sm text-fg-secondary">Future interviews and tests currently scheduled.</p>
           </div>
         </div>
 
         <div className="mt-6">
           {scheduleSnapshot.upcoming.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
-              <Calendar className="mx-auto h-10 w-10 text-slate-400" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">No interviews or tests scheduled</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className="rounded-control border border-dashed border-line bg-raised px-6 py-12 text-center">
+              <Calendar className="mx-auto h-10 w-10 text-fg-muted" />
+              <h3 className="mt-4 text-lg font-semibold text-fg">No interviews or tests scheduled</h3>
+              <p className="mt-2 text-sm text-fg-secondary">
                 When recruiters schedule interviews or tests, the next upcoming items will appear here.
               </p>
             </div>
@@ -877,36 +875,36 @@ export default function RecruiterDashboard() {
                 const config = EVENT_TYPE_CONFIG[event.event_type] || EVENT_TYPE_CONFIG.interview
 
                 return (
-                  <div key={event.id} className="rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+                  <div key={event.id} className="rounded-control border border-line bg-surface px-5 py-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${config.badgeClass}`}>
                           {config.label}
                         </div>
-                        <h3 className="mt-3 text-lg font-semibold text-slate-950">{event.fullName}</h3>
-                        <p className="mt-1 text-sm text-slate-600">{formatDisplayValue(event.position)}</p>
+                        <h3 className="mt-3 text-lg font-semibold text-fg">{event.fullName}</h3>
+                        <p className="mt-1 text-sm text-fg-secondary">{formatDisplayValue(event.position)}</p>
                       </div>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">
                         {event.referenceNumber}
                       </span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600">
+                    <div className="mt-4 grid gap-3 text-sm text-fg-secondary">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
+                        <Calendar className="h-4 w-4 text-fg-muted" />
                         <span>
                           {event.eventDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-slate-400" />
+                        <Clock className="h-4 w-4 text-fg-muted" />
                         <span>
                           {event.eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {event.duration_minutes ? ` · ${event.duration_minutes} min` : ''}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <ListChecks className="h-4 w-4 text-slate-400" />
+                        <ListChecks className="h-4 w-4 text-fg-muted" />
                         <span>{event.platform || event.location_type || 'Schedule details available in calendar'}</span>
                       </div>
                     </div>
@@ -923,26 +921,25 @@ export default function RecruiterDashboard() {
   const renderProspectsTab = () => (
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
-        <StatCard label="Prospects" value={prospectCounts.total} icon={Users} tone="info" hint="Visible prospect records in the latest workspace slice." />
-        <StatCard label="Live prospects" value={prospectCounts.live} icon={TrendingUp} tone="success" hint="Open, contacted, or approved prospects still in play." />
-        <StatCard label="Contacted" value={prospectCounts.contacted} icon={Search} tone="accent" hint="Prospects that need follow-up or qualification." />
-        <StatCard label="Approved" value={prospectCounts.approved} icon={ListChecks} tone="success" hint="Prospects ready to be matched to requirements." />
+        <StatCard label="Prospects" value={prospectCounts.total} icon={Users} tone="info" />
+        <StatCard label="Live prospects" value={prospectCounts.live} icon={TrendingUp} tone="success" />
+        <StatCard label="Contacted" value={prospectCounts.contacted} icon={Search} tone="accent" />
+        <StatCard label="Approved" value={prospectCounts.approved} icon={ListChecks} tone="success" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
         <div className="recruiter-panel overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-4">
+          <div className="border-b border-line px-6 py-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prospect Queue</p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-950">Latest prospects flowing through the pipeline</h2>
+                <h2 className="mt-1 text-lg font-semibold text-fg">Latest prospects flowing through the pipeline</h2>
               </div>
               <input
                 type="search"
                 value={prospectSearch}
                 onChange={(event) => setProspectSearch(event.target.value)}
                 placeholder="Search prospect name, email, rank, vessel, or nationality"
-                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200 lg:w-96"
+                className="w-full rounded-control border border-line-input bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30 lg:w-96"
               />
             </div>
           </div>
@@ -973,14 +970,14 @@ export default function RecruiterDashboard() {
                 const vesselName = getLookupName(lookupMaps.vessel_types, prospect.vessel_type_id, 'Unknown vessel')
 
                 return (
-                  <div key={prospect.id} className="p-6 transition-colors hover:bg-gray-50/70">
+                  <div key={prospect.id} className="p-6 transition-colors hover:bg-raised/70">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex-1">
                         <div className="mb-3 flex flex-wrap items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-900 tracking-tight">{prospect.name}</h3>
+                          <h3 className="text-lg font-semibold text-fg tracking-tight">{prospect.name}</h3>
                           <StatusPill status={prospect.status} metaMap={PROSPECT_STATUS_META} />
                           {isArchived ? (
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tracking-wide text-slate-600">
+                            <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold tracking-wide text-fg-secondary">
                               Archived
                             </span>
                           ) : null}
@@ -988,35 +985,35 @@ export default function RecruiterDashboard() {
 
                         <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                           <div>
-                            <p className="text-gray-500">Applied rank</p>
-                            <p className="font-medium text-gray-900">{formatDisplayValue(rankName)}</p>
+                            <p className="text-fg-muted">Applied rank</p>
+                            <p className="font-medium text-fg">{formatDisplayValue(rankName)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Vessel type</p>
-                            <p className="font-medium text-gray-900">{formatDisplayValue(vesselName)}</p>
+                            <p className="text-fg-muted">Vessel type</p>
+                            <p className="font-medium text-fg">{formatDisplayValue(vesselName)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Nationality</p>
-                            <p className="font-medium text-gray-900">{nationality}</p>
+                            <p className="text-fg-muted">Nationality</p>
+                            <p className="font-medium text-fg">{nationality}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Experience</p>
-                            <p className="font-medium text-gray-900">{prospect.exp_in_rank_months} month{prospect.exp_in_rank_months === 1 ? '' : 's'}</p>
+                            <p className="text-fg-muted">Experience</p>
+                            <p className="font-medium text-fg">{prospect.exp_in_rank_months} month{prospect.exp_in_rank_months === 1 ? '' : 's'}</p>
                           </div>
                         </div>
 
-                        <div className="mt-4 grid gap-3 text-sm text-gray-600 md:grid-cols-2">
+                        <div className="mt-4 grid gap-3 text-sm text-fg-secondary md:grid-cols-2">
                           <div>
-                            <span className="font-medium text-gray-700">Contact:</span> {prospect.email} · {prospect.telephone}
+                            <span className="font-medium text-fg-secondary">Contact:</span> {prospect.email} · {prospect.telephone}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Lead source:</span> {prospect.lead_source || 'Not provided'}
+                            <span className="font-medium text-fg-secondary">Lead source:</span> {prospect.lead_source || 'Not provided'}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Last activity:</span> {formatRelativeTime(prospect.last_activity_at)}
+                            <span className="font-medium text-fg-secondary">Last activity:</span> {formatRelativeTime(prospect.last_activity_at)}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Created:</span> {formatDateTime(prospect.created_at)}
+                            <span className="font-medium text-fg-secondary">Created:</span> {formatDateTime(prospect.created_at)}
                           </div>
                         </div>
                       </div>
@@ -1041,7 +1038,7 @@ export default function RecruiterDashboard() {
 
         <div className="space-y-6">
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prospect posture</p>
+            <p className="text-xs font-semibold text-accent-text">Prospect posture</p>
             <div className="mt-4 space-y-3">
               {[
                 { label: 'Open', value: prospectCounts.open, note: 'Fresh prospects needing outreach.' },
@@ -1049,21 +1046,20 @@ export default function RecruiterDashboard() {
                 { label: 'Approved', value: prospectCounts.approved, note: 'Ready for requirement matching.' },
                 { label: 'Rejected', value: prospectCounts.rejected, note: 'No longer active in the live pool.' },
               ].map((row) => (
-                <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div key={row.label} className="rounded-control border border-line bg-raised px-4 py-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                    <p className="text-xl font-semibold text-slate-950">{row.value}</p>
+                    <p className="text-sm font-semibold text-fg">{row.label}</p>
+                    <p className="text-xl font-semibold text-fg">{row.value}</p>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{row.note}</p>
+                  <p className="mt-1 text-sm text-fg-secondary">{row.note}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Fast path</p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-950">Move a prospect through the pipeline</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <h3 className="mt-2 text-lg font-semibold text-fg">Move a prospect through the pipeline</h3>
+            <p className="mt-2 text-sm leading-6 text-fg-secondary">
               Create or attach prospects in the enrollment workspace, then inspect the detail page for notes, requirements, and linked applications.
             </p>
             <div className="mt-5 space-y-3">
@@ -1091,26 +1087,25 @@ export default function RecruiterDashboard() {
   const renderRequirementsTab = () => (
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
-        <StatCard label="Requirements" value={requirementCounts.total} icon={FileText} tone="info" hint="Latest requirements visible in the live workspace slice." />
-        <StatCard label="Open requirements" value={requirementCounts.open} icon={TrendingUp} tone="success" hint="The live demand pool for matching and shortlisting." />
-        <StatCard label="Closed" value={requirementCounts.closed} icon={ListChecks} tone="default" hint="Completed requirements." />
-        <StatCard label="Cancelled" value={requirementCounts.cancelled} icon={Clock} tone="warning" hint="Cancelled requirements with a closure reason." />
+        <StatCard label="Requirements" value={requirementCounts.total} icon={FileText} tone="info" />
+        <StatCard label="Open requirements" value={requirementCounts.open} icon={TrendingUp} tone="success" />
+        <StatCard label="Closed" value={requirementCounts.closed} icon={ListChecks} tone="default" />
+        <StatCard label="Cancelled" value={requirementCounts.cancelled} icon={Clock} tone="warning" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
         <div className="recruiter-panel overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-4">
+          <div className="border-b border-line px-6 py-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Requirement Queue</p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-950">Open requirements and their current pipeline state</h2>
+                <h2 className="mt-1 text-lg font-semibold text-fg">Open requirements and their current pipeline state</h2>
               </div>
               <input
                 type="search"
                 value={requirementSearch}
                 onChange={(event) => setRequirementSearch(event.target.value)}
                 placeholder="Search requirement ID, customer, rank, vessel, or status"
-                className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200 lg:w-96"
+                className="w-full rounded-control border border-line-input bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30 lg:w-96"
               />
             </div>
           </div>
@@ -1139,45 +1134,45 @@ export default function RecruiterDashboard() {
                 const vesselName = getLookupName(lookupMaps.vessel_types, requirement.vessel_type_id, 'Unknown vessel')
 
                 return (
-                  <div key={requirement.id} className="p-6 transition-colors hover:bg-gray-50/70">
+                  <div key={requirement.id} className="p-6 transition-colors hover:bg-raised/70">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex-1">
                         <div className="mb-3 flex flex-wrap items-center gap-3">
-                          <h3 className="text-lg font-semibold text-gray-900 tracking-tight">{requirement.req_id_display}</h3>
+                          <h3 className="text-lg font-semibold text-fg tracking-tight">{requirement.req_id_display}</h3>
                           <StatusPill status={requirement.status} metaMap={REQUIREMENT_STATUS_META} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                           <div>
-                            <p className="text-gray-500">Customer</p>
-                            <p className="font-medium text-gray-900">{requirement.customer_name || 'Not provided'}</p>
+                            <p className="text-fg-muted">Customer</p>
+                            <p className="font-medium text-fg">{requirement.customer_name || 'Not provided'}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Rank</p>
-                            <p className="font-medium text-gray-900">{formatDisplayValue(rankName)}</p>
+                            <p className="text-fg-muted">Rank</p>
+                            <p className="font-medium text-fg">{formatDisplayValue(rankName)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Vessel type</p>
-                            <p className="font-medium text-gray-900">{formatDisplayValue(vesselName)}</p>
+                            <p className="text-fg-muted">Vessel type</p>
+                            <p className="font-medium text-fg">{formatDisplayValue(vesselName)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Positions</p>
-                            <p className="font-medium text-gray-900">{requirement.positions_required}</p>
+                            <p className="text-fg-muted">Positions</p>
+                            <p className="font-medium text-fg">{requirement.positions_required}</p>
                           </div>
                         </div>
 
-                        <div className="mt-4 grid gap-3 text-sm text-gray-600 md:grid-cols-2">
+                        <div className="mt-4 grid gap-3 text-sm text-fg-secondary md:grid-cols-2">
                           <div>
-                            <span className="font-medium text-gray-700">Opened:</span> {formatDate(requirement.date_opened)}
+                            <span className="font-medium text-fg-secondary">Opened:</span> {formatDate(requirement.date_opened)}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Target days:</span> {requirement.target_days}
+                            <span className="font-medium text-fg-secondary">Target days:</span> {requirement.target_days}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Last updated:</span> {formatRelativeTime(requirement.updated_at)}
+                            <span className="font-medium text-fg-secondary">Last updated:</span> {formatRelativeTime(requirement.updated_at)}
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Closure reason:</span> {requirement.closure_reason || 'Not set'}
+                            <span className="font-medium text-fg-secondary">Closure reason:</span> {requirement.closure_reason || 'Not set'}
                           </div>
                         </div>
                       </div>
@@ -1202,28 +1197,27 @@ export default function RecruiterDashboard() {
 
         <div className="space-y-6">
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Requirement posture</p>
+            <p className="text-xs font-semibold text-accent-text">Requirement posture</p>
             <div className="mt-4 space-y-3">
               {[
                 { label: 'Open', value: requirementCounts.open, note: 'Live demand ready for matching.' },
                 { label: 'Closed', value: requirementCounts.closed, note: 'Requirements already resolved.' },
                 { label: 'Cancelled', value: requirementCounts.cancelled, note: 'Cancelled requirements with closure details.' },
               ].map((row) => (
-                <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div key={row.label} className="rounded-control border border-line bg-raised px-4 py-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                    <p className="text-xl font-semibold text-slate-950">{row.value}</p>
+                    <p className="text-sm font-semibold text-fg">{row.label}</p>
+                    <p className="text-xl font-semibold text-fg">{row.value}</p>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{row.note}</p>
+                  <p className="mt-1 text-sm text-fg-secondary">{row.note}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Fast path</p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-950">Use requirements to guide the pipeline</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <h3 className="mt-2 text-lg font-semibold text-fg">Use requirements to guide the pipeline</h3>
+            <p className="mt-2 text-sm leading-6 text-fg-secondary">
               Requirements are the demand side of the funnel. Open a requirement to see linked prospects, remarks, and matching progress.
             </p>
             <div className="mt-5 space-y-3">
@@ -1251,32 +1245,31 @@ export default function RecruiterDashboard() {
   const renderFunnelTab = () => (
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
-        <StatCard label="Live prospects" value={prospectCounts.live} icon={Users} tone="info" hint="Prospects still eligible to be worked." />
-        <StatCard label="Shortlisted" value={junctionCounts.shortlisted} icon={ListChecks} tone="accent" hint="Prospects attached to requirements." />
-        <StatCard label="Submitted" value={junctionCounts.submitted_to_customer} icon={ArrowRight} tone="accent" hint="Prospects already in front of the customer." />
-        <StatCard label="Joined" value={junctionCounts.joined} icon={TrendingUp} tone="success" hint="Placement outcomes that have closed the loop." />
+        <StatCard label="Live prospects" value={prospectCounts.live} icon={Users} tone="info" />
+        <StatCard label="Shortlisted" value={junctionCounts.shortlisted} icon={ListChecks} tone="accent" />
+        <StatCard label="Submitted" value={junctionCounts.submitted_to_customer} icon={ArrowRight} tone="accent" />
+        <StatCard label="Joined" value={junctionCounts.joined} icon={TrendingUp} tone="success" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
         <div className="recruiter-panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Pipeline stages</p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Follow the pipeline from prospect to joined placement.</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <h2 className="mt-2 text-2xl font-semibold text-fg">Follow the pipeline from prospect to joined placement.</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-secondary">
             The funnel view keeps the recruiting flow readable from left to right: create the prospect, match it to a requirement, push it to customer review, and close it into a joined placement.
           </p>
 
           <div className="mt-6 grid gap-4">
             {funnelStages.map((stage, index) => (
-              <div key={stage.key} className="rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <div key={stage.key} className="rounded-control border border-line bg-surface px-5 py-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage {index + 1}</p>
-                    <h3 className="mt-2 text-lg font-semibold text-slate-950">{stage.label}</h3>
-                    <p className="mt-1 text-sm text-slate-600">{stage.hint}</p>
+                    <p className="text-xs font-semibold text-fg-muted">Stage {index + 1}</p>
+                    <h3 className="mt-2 text-lg font-semibold text-fg">{stage.label}</h3>
+                    <p className="mt-1 text-sm text-fg-secondary">{stage.hint}</p>
                   </div>
-                  <div className="rounded-3xl bg-slate-50 px-4 py-3 text-right">
-                    <p className="text-3xl font-semibold text-slate-950">{stage.count}</p>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">records</p>
+                  <div className="rounded-control bg-raised px-4 py-3 text-right">
+                    <p className="text-3xl font-semibold text-fg">{stage.count}</p>
+                    <p className="text-xs font-semibold text-fg-muted">records</p>
                   </div>
                 </div>
               </div>
@@ -1286,7 +1279,7 @@ export default function RecruiterDashboard() {
 
         <div className="space-y-6">
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Pipeline health</p>
+            <p className="text-xs font-semibold text-accent-text">Pipeline health</p>
             <div className="mt-4 space-y-3">
               {[
                 { label: 'Open prospects', value: prospectCounts.open, note: 'Leads still needing outreach.' },
@@ -1294,21 +1287,20 @@ export default function RecruiterDashboard() {
                 { label: 'Customer reviewing', value: junctionCounts.customer_reviewing, note: 'Placement conversations currently with the customer.' },
                 { label: 'Withdrawn', value: junctionCounts.withdrawn, note: 'Withdrawn placements to review for root cause.' },
               ].map((row) => (
-                <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div key={row.label} className="rounded-control border border-line bg-raised px-4 py-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                    <p className="text-xl font-semibold text-slate-950">{row.value}</p>
+                    <p className="text-sm font-semibold text-fg">{row.label}</p>
+                    <p className="text-xl font-semibold text-fg">{row.value}</p>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{row.note}</p>
+                  <p className="mt-1 text-sm text-fg-secondary">{row.note}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Fast path</p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-950">What to do next</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <h3 className="mt-2 text-lg font-semibold text-fg">What to do next</h3>
+            <p className="mt-2 text-sm leading-6 text-fg-secondary">
               Keep the flow moving by matching approved prospects to open requirements, then pushing shortlisted prospects through customer review.
             </p>
             <div className="mt-5 space-y-3">
@@ -1341,15 +1333,14 @@ export default function RecruiterDashboard() {
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
         {kpiRows.map((row) => (
-          <StatCard key={row.label} label={row.label} value={row.value} icon={TrendingUp} tone="accent" hint={row.hint} />
+          <StatCard key={row.label} label={row.label} value={row.value} icon={TrendingUp} tone="accent" />
         ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,1fr)]">
         <div className="recruiter-panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Operating ratios</p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Read the pipeline at a glance</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <h2 className="mt-2 text-2xl font-semibold text-fg">Read the pipeline at a glance</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-secondary">
             These are the recruiter-friendly ratios that show whether prospects are moving, requirements are filling, and placements are closing.
           </p>
 
@@ -1359,17 +1350,17 @@ export default function RecruiterDashboard() {
               { label: 'Match to join', value: formatPercent(matchToJoinRate), note: 'Joined placements out of the live match pool.' },
               { label: 'Requirement coverage', value: formatPercent(openRequirementCoverage), note: 'Shortlisted matches against open requirements.' },
             ].map((metric) => (
-              <div key={metric.label} className="rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{metric.label}</p>
-                <p className="mt-3 text-3xl font-semibold text-slate-950">{metric.value}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{metric.note}</p>
+              <div key={metric.label} className="rounded-control border border-line bg-surface px-5 py-5">
+                <p className="text-xs font-semibold text-fg-muted">{metric.label}</p>
+                <p className="mt-3 text-3xl font-semibold text-fg">{metric.value}</p>
+                <p className="mt-2 text-sm leading-6 text-fg-secondary">{metric.note}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="recruiter-panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Next attention</p>
+          <p className="text-xs font-semibold text-accent-text">Next attention</p>
           <div className="mt-4 space-y-3">
             {[
               { label: 'Review applications', value: stats.needsReview, note: 'Fresh submissions waiting for triage.' },
@@ -1377,12 +1368,12 @@ export default function RecruiterDashboard() {
               { label: 'Follow up contacted prospects', value: prospectCounts.contacted, note: 'Move them toward approval.' },
               { label: 'Inspect customer review', value: junctionCounts.customer_reviewing, note: 'Prospects currently awaiting decision.' },
             ].map((row) => (
-              <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div key={row.label} className="rounded-control border border-line bg-raised px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                  <p className="text-xl font-semibold text-slate-950">{row.value}</p>
+                  <p className="text-sm font-semibold text-fg">{row.label}</p>
+                  <p className="text-xl font-semibold text-fg">{row.value}</p>
                 </div>
-                <p className="mt-1 text-sm text-slate-600">{row.note}</p>
+                <p className="mt-1 text-sm text-fg-secondary">{row.note}</p>
               </div>
             ))}
           </div>
@@ -1394,17 +1385,16 @@ export default function RecruiterDashboard() {
   const renderReportsTab = () => (
     <div className="space-y-6">
       <div className="workspace-kpi-grid">
-        <StatCard label="Applications" value={stats.total} icon={FileBarChart2} tone="info" hint="Submitted applications in the live recruiter pool." />
-        <StatCard label="Prospects" value={prospectCounts.total} icon={Users} tone="accent" hint="Current prospect records available for reporting." />
-        <StatCard label="Requirements" value={requirementCounts.total} icon={FileText} tone="accent" hint="Live requirement records available for reporting." />
-        <StatCard label="Joined" value={junctionCounts.joined} icon={ListChecks} tone="success" hint="Placed prospects that completed the funnel." />
+        <StatCard label="Applications" value={stats.total} icon={FileBarChart2} tone="info" />
+        <StatCard label="Prospects" value={prospectCounts.total} icon={Users} tone="accent" />
+        <StatCard label="Requirements" value={requirementCounts.total} icon={FileText} tone="accent" />
+        <StatCard label="Joined" value={junctionCounts.joined} icon={ListChecks} tone="success" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
         <div className="recruiter-panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Report-ready snapshots</p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950">Use the current pipeline state as the basis for reports.</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <h2 className="mt-2 text-2xl font-semibold text-fg">Use the current pipeline state as the basis for reports.</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-secondary">
             This surface keeps the reporting story compact and operational: summarize the current queue, then drill into prospects or requirements when a deeper read is needed.
           </p>
 
@@ -1440,10 +1430,10 @@ export default function RecruiterDashboard() {
 
           <div className="mt-6 space-y-4">
             {reportRows.map((row) => (
-              <div key={row.label} className="rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{row.label}</p>
-                <p className="mt-3 text-lg font-semibold text-slate-950">{row.value}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{row.hint}</p>
+              <div key={row.label} className="rounded-control border border-line bg-surface px-5 py-5">
+                <p className="text-xs font-semibold text-fg-muted">{row.label}</p>
+                <p className="mt-3 text-lg font-semibold text-fg">{row.value}</p>
+                <p className="mt-2 text-sm leading-6 text-fg-secondary">{row.hint}</p>
               </div>
             ))}
           </div>
@@ -1451,17 +1441,17 @@ export default function RecruiterDashboard() {
 
         <div className="space-y-6">
           <div className="recruiter-panel p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Latest snapshot</p>
+            <p className="text-xs font-semibold text-accent-text">Latest snapshot</p>
             <div className="mt-4 space-y-3">
               {[
                 { label: 'Last loaded', value: lastLoadedAt ? formatDateTime(lastLoadedAt) : 'Not loaded yet', note: 'Dashboard data refresh timestamp.' },
                 { label: 'Upcoming events', value: scheduleSnapshot.pending, note: 'Tests and interviews already on the calendar.' },
                 { label: 'Pipeline stages', value: funnelStages.length, note: 'The current number of visible funnel steps.' },
               ].map((row) => (
-                <div key={row.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                  <p className="mt-1 text-xl font-semibold text-slate-950">{row.value}</p>
-                  <p className="mt-1 text-sm text-slate-600">{row.note}</p>
+                <div key={row.label} className="rounded-control border border-line bg-raised px-4 py-4">
+                  <p className="text-sm font-semibold text-fg">{row.label}</p>
+                  <p className="mt-1 text-xl font-semibold text-fg">{row.value}</p>
+                  <p className="mt-1 text-sm text-fg-secondary">{row.note}</p>
                 </div>
               ))}
             </div>
@@ -1470,8 +1460,7 @@ export default function RecruiterDashboard() {
           <div className="recruiter-panel p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Recent exports</p>
-                <h3 className="mt-2 text-lg font-semibold text-slate-950">Audit trail of what the team exported</h3>
+                <h3 className="mt-2 text-lg font-semibold text-fg">Audit trail of what the team exported</h3>
               </div>
               <button
                 type="button"
@@ -1490,19 +1479,19 @@ export default function RecruiterDashboard() {
                 />
               ) : (
                 recentExports.map((entry) => (
-                  <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div key={entry.id} className="rounded-control border border-line bg-raised px-4 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{entry.event_type}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-500">
+                        <p className="text-sm font-semibold text-fg">{entry.event_type}</p>
+                        <p className="mt-1 text-xs text-fg-muted">
                           {entry.actor_name || 'System'} · {formatDateTime(entry.created_at)}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-fg-secondary">
                         {entry.payload?.export_format || 'export'}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm text-slate-600">
+                    <p className="mt-3 text-sm text-fg-secondary">
                       {entry.payload?.report_type || 'report'} · {entry.payload?.row_count || 0} rows
                     </p>
                   </div>
@@ -1525,28 +1514,14 @@ export default function RecruiterDashboard() {
   }[activeTab]
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Recruiter Dashboard"
             title="Pipeline command center"
-            description={
-              activeTab === 'operations'
-                ? 'Use the dashboard to keep the daily triage queue, prospect flow, requirement demand, and reporting view in one place.'
-                : activeTab === 'prospects'
-                  ? 'Work the lead side of the pipeline, from first contact to approval.'
-                  : activeTab === 'requirements'
-                    ? 'Track live demand and keep requirements moving from open to closed.'
-                    : activeTab === 'funnel'
-                      ? 'See the recruiter pipeline in the order it actually moves.'
-                      : activeTab === 'kpi'
-                        ? 'Read the pipeline through recruiter-friendly operating numbers.'
-                        : 'Keep a compact report-ready view of the current recruiter pipeline.'
-            }
             actions={pageActions}
           >
             <div className="mt-5">

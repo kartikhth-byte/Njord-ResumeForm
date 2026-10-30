@@ -80,9 +80,9 @@ export default function PhoneInput({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-fg-secondary mb-1">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-danger ml-1">*</span>}
       </label>
       
       <div className="flex gap-2">
@@ -90,7 +90,7 @@ export default function PhoneInput({
         <select
           value={selectedCountryCode}
           onChange={handleCountryCodeChange}
-          className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-32 px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
         >
           {COUNTRY_CODES.map((country) => (
             <option key={country.code} value={country.code}>
@@ -105,20 +105,20 @@ export default function PhoneInput({
           value={number}
           onChange={handleNumberChange}
           placeholder="5551234567"
-          className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-            error ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent ${
+ error ? 'border-danger' : 'border-line-input'
+ }`}
         />
       </div>
 
       {/* Help Text */}
       {helpText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+        <p className="mt-1 text-sm text-fg-muted">{helpText}</p>
       )}
 
       {/* Error Message */}
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-sm text-danger">{error}</p>
       )}
     </div>
   )

@@ -12,7 +12,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           {/* Logo artwork has an opaque white background, so it always sits on a white plate. */}
-          <div className="rounded-card bg-white px-4 py-2">
+          <div className="rounded-card bg-surface px-4 py-2">
             <img src={njordLogoSrc} alt="Njord" className="h-10 w-auto" />
           </div>
         </div>

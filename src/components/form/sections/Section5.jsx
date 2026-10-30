@@ -108,11 +108,7 @@ export default function Section5({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Travel readiness</p>
         <h2 className="applicant-section-title">Visas</h2>
-        <p className="applicant-section-copy">
-          Add all your current valid visas for maritime travel
-        </p>
       </div>
 
       {/* Visas List */}
@@ -120,7 +116,7 @@ export default function Section5({ data = {}, onUpdate }) {
         {visas.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              className="w-12 h-12 text-fg-muted mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -132,7 +128,7 @@ export default function Section5({ data = {}, onUpdate }) {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <p className="text-gray-600 mb-4">No visas added yet</p>
+            <p className="text-fg-secondary mb-4">No visas added yet</p>
             <button
               type="button"
               onClick={handleAddVisa}
@@ -150,9 +146,6 @@ export default function Section5({ data = {}, onUpdate }) {
                 <div className="applicant-record-card__header">
                   <div>
                     <h3 className="applicant-record-card__title">Visa {index + 1}</h3>
-                    <p className="applicant-record-card__subtitle">
-                      Include every currently valid visa that may affect your deployability across regions.
-                    </p>
                   </div>
                   <button
                     type="button"
@@ -230,30 +223,13 @@ export default function Section5({ data = {}, onUpdate }) {
             <button
               type="button"
               onClick={handleAddVisa}
-              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Visa</span>
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div className="applicant-section-card applicant-section-card--muted">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">Tip</h3>
-            <p className="text-sm text-blue-800">
-              Add all valid visas that are commonly required for seafarers (USA C1/D, Schengen, Australia MCV, etc.). Having multiple valid visas increases your employability for international vessels.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )

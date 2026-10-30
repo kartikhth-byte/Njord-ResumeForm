@@ -150,8 +150,8 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
   return (
     <div className="recruiter-surface">
       <div className="flex items-center gap-2 mb-4">
-        <Calendar className="w-5 h-5 text-blue-600" />
-        <h4 className="text-lg font-semibold text-gray-900">
+        <Calendar className="w-5 h-5 text-accent-text" />
+        <h4 className="text-lg font-semibold text-fg">
           Schedule {eventType === 'interview' ? 'Interview' : 'Test'} Details
         </h4>
       </div>
@@ -160,7 +160,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
         {/* Date & Time */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
               Date *
             </label>
             <input
@@ -173,7 +173,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
               Time *
             </label>
             <input
@@ -188,7 +188,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
 
         {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-fg-secondary mb-2">
             Duration
           </label>
           <select
@@ -206,7 +206,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
 
         {/* Location Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-fg-secondary mb-2">
             <MapPin className="w-4 h-4 inline mr-1" />
             Location Type
           </label>
@@ -215,10 +215,10 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               type="button"
               onClick={() => handleChange('locationType', 'virtual')}
               className={`p-3 border-2 rounded-lg text-center text-sm transition ${
-                formData.locationType === 'virtual'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+ formData.locationType === 'virtual'
+ ? 'border-accent bg-accent-soft text-accent-text'
+ : 'border-line hover:border-line-input'
+ }`}
             >
               💻 Virtual
             </button>
@@ -226,10 +226,10 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               type="button"
               onClick={() => handleChange('locationType', 'physical')}
               className={`p-3 border-2 rounded-lg text-center text-sm transition ${
-                formData.locationType === 'physical'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+ formData.locationType === 'physical'
+ ? 'border-accent bg-accent-soft text-accent-text'
+ : 'border-line hover:border-line-input'
+ }`}
             >
               🏢 In-Person
             </button>
@@ -237,10 +237,10 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               type="button"
               onClick={() => handleChange('locationType', 'phone')}
               className={`p-3 border-2 rounded-lg text-center text-sm transition ${
-                formData.locationType === 'phone'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+ formData.locationType === 'phone'
+ ? 'border-accent bg-accent-soft text-accent-text'
+ : 'border-line hover:border-line-input'
+ }`}
             >
               📞 Phone
             </button>
@@ -250,7 +250,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
         {/* Location Details - Virtual */}
         {formData.locationType === 'virtual' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
               Meeting Link *
             </label>
             
@@ -260,7 +260,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
                 type="button"
                 onClick={needsGoogleAuth ? handleGoogleAuth : handleAutoCreateMeet}
                 disabled={creatingMeet || !formData.scheduledDate || !formData.scheduledTime}
-                className="w-full rounded-[16px] bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-medium text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-[16px] px-4 py-3 font-medium text-on-accent transition-all disabled:cursor-not-allowed disabled:opacity-50 bg-accent-fill"
               >
                 {creatingMeet ? (
                   <>
@@ -280,21 +280,21 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               </button>
               
               {meetError && (
-                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{meetError}</p>
+                <div className="mt-2 p-3 bg-danger-soft border border-danger-line rounded-lg flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-danger">{meetError}</p>
                 </div>
               )}
               
               {meetSuccess && (
-                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-green-700">Google Meet link created and filled below!</p>
+                <div className="mt-2 p-3 bg-success-soft border border-success-line rounded-lg flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-success">Google Meet link created and filled below!</p>
                 </div>
               )}
             </div>
 
-            <div className="text-center text-sm text-gray-500 mb-2">
+            <div className="text-center text-sm text-fg-muted mb-2">
               OR manually enter link:
             </div>
 
@@ -308,7 +308,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
               }}
               className="recruiter-form-input"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-fg-muted mt-1">
               💡 Tip: Use auto-create or manually create at meet.google.com/new
             </p>
           </div>
@@ -316,7 +316,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
 
         {formData.locationType === 'physical' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
               Address *
             </label>
             <textarea
@@ -331,7 +331,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
 
         {/* Interviewers */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-fg-secondary mb-2">
             <Users className="w-4 h-4 inline mr-1" />
             Interviewers (comma-separated)
           </label>
@@ -342,14 +342,14 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
             onChange={(e) => handleInterviewersChange(e.target.value)}
             className="recruiter-form-input"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-fg-muted mt-1">
             Optional: List names separated by commas
           </p>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-fg-secondary mb-2">
             <FileText className="w-4 h-4 inline mr-1" />
             Additional Notes for Candidate
           </label>
@@ -364,10 +364,10 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
 
         {/* Info Box */}
         <div className="recruiter-note recruiter-note--info">
-          <p className="text-sm text-gray-700">
-            <strong className="text-blue-700">Emails will be sent to:</strong>
+          <p className="text-sm text-fg-secondary">
+            <strong className="text-accent-text">Emails will be sent to:</strong>
           </p>
-          <ul className="text-sm text-gray-600 mt-2 space-y-1 ml-4">
+          <ul className="text-sm text-fg-secondary mt-2 space-y-1 ml-4">
             <li>✅ Applicant (with calendar invite)</li>
             <li>✅ You (recruiter, with calendar invite)</li>
             <li>✅ 24-hour reminder (automatically sent to both)</li>

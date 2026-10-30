@@ -112,7 +112,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-fg-secondary">
         Passport Photo
       </label>
 
@@ -121,7 +121,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
         <div className="relative">
           {previewUrl ? (
             // Photo Preview
-            <div className="relative w-32 h-40 border-2 border-gray-300 rounded-lg overflow-hidden">
+            <div className="relative w-32 h-40 border-2 border-line-input rounded-lg overflow-hidden">
               <img
                 src={previewUrl}
                 alt="Passport photo"
@@ -131,7 +131,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
-                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                  className="absolute top-1 right-1 p-1 bg-danger text-bg rounded-full hover:bg-danger transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -143,14 +143,14 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-32 h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-32 h-40 border-2 border-dashed border-line-input rounded-lg flex flex-col items-center justify-center hover:border-accent hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? (
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                <Loader2 className="w-8 h-8 text-accent-text animate-spin" />
               ) : (
                 <>
-                  <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="text-xs text-gray-500 text-center px-2">
+                  <Camera className="w-8 h-8 text-fg-muted mb-2" />
+                  <span className="text-xs text-fg-muted text-center px-2">
                     Click to upload
                   </span>
                 </>
@@ -170,8 +170,8 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
 
         {/* Instructions */}
         <div className="flex-1">
-          <div className="text-sm text-gray-600 space-y-1">
-            <p className="font-medium text-gray-700">Photo Requirements:</p>
+          <div className="text-sm text-fg-secondary space-y-1">
+            <p className="font-medium text-fg-secondary">Photo Requirements:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Recent passport-size photo</li>
               <li>Clear face, looking at camera</li>
@@ -186,7 +186,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-soft rounded-lg transition-colors disabled:opacity-50"
             >
               <Upload className="w-4 h-4" />
               {uploading ? 'Uploading...' : 'Choose Photo'}

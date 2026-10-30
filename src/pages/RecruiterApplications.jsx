@@ -66,18 +66,18 @@ function getApplicationFields(appData = {}) {
 
 function ComplianceBadge({ status, summary, size = 'default' }) {
   const styles = {
-    red: 'bg-rose-100 text-rose-700 border-rose-200',
-    amber: 'bg-amber-100 text-amber-700 border-amber-200',
-    green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    red: 'bg-danger-soft text-danger border-danger-line',
+    amber: 'bg-warning-soft text-warning border-warning-line',
+    green: 'bg-success-soft text-success border-success-line',
   }
   const sizeClass = size === 'compact'
     ? 'rounded-lg px-2.5 py-1 text-[11px] font-semibold'
-    : 'rounded-xl px-3 py-1.5 text-xs font-semibold'
+    : 'rounded-control px-3 py-1.5 text-xs font-semibold'
 
   const label = status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Unknown'
 
   return (
-    <div className={`inline-flex items-center border ${sizeClass} ${styles[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+    <div className={`inline-flex items-center border ${sizeClass} ${styles[status] || 'bg-raised text-fg-secondary border-line'}`}>
       <span>{label}</span>
       {typeof summary === 'number' ? <span className="ml-2">{summary}</span> : null}
     </div>
@@ -911,7 +911,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   if (permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
       </div>
     )
   }
@@ -920,7 +920,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">You do not have permission to view applications.</p>
+          <p className="text-fg-secondary">You do not have permission to view applications.</p>
         </div>
       </div>
     )
@@ -1015,7 +1015,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         <tbody>
           {apps.length === 0 ? (
             <tr>
-              <td colSpan={showRelevance ? 14 : 12} className="px-6 py-12 text-center text-gray-500">
+              <td colSpan={showRelevance ? 14 : 12} className="px-6 py-12 text-center text-fg-muted">
                 No applications found
               </td>
             </tr>
@@ -1023,13 +1023,13 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
             apps.map((app) => (
               <tr key={app.id}>
                 <td className="tracker-cell--sticky-1 tracker-cell--nowrap">
-                  <span className="font-mono text-xs font-medium text-blue-700">{app.reference_number}</span>
+                  <span className="font-mono text-xs font-medium text-accent-text">{app.reference_number}</span>
                 </td>
                 <td className="tracker-cell--sticky-2 tracker-cell--primary tracker-cell--nowrap">
                   <button
                     type="button"
                     onClick={() => navigate(`/application/view/${app.public_token}`)}
-                    className="block max-w-[13rem] truncate text-left hover:text-blue-700"
+                    className="block max-w-[13rem] truncate text-left hover:text-accent-text"
                     title={app.full_name}
                   >
                     {app.full_name}
@@ -1051,22 +1051,22 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                   <>
                     <td className="tracker-cell--nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-2 rounded-full bg-blue-600" style={{ width: `${app.similarity * 100}%` }} />
+                        <div className="h-2 w-20 overflow-hidden rounded-full bg-line">
+                          <div className="h-2 rounded-full bg-accent-fill" style={{ width: `${app.similarity * 100}%` }} />
                         </div>
-                        <span className="text-xs font-medium text-gray-600">{(app.similarity * 100).toFixed(0)}%</span>
+                        <span className="text-xs font-medium text-fg-secondary">{(app.similarity * 100).toFixed(0)}%</span>
                       </div>
                     </td>
                     <td className="tracker-cell--nowrap">
                       {analyzingWithLLM && !app.llmAnalysis ? (
-                        <div className="flex items-center gap-2 text-purple-600">
-                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-purple-600"></div>
+                        <div className="flex items-center gap-2 text-progress">
+                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-progress"></div>
                           <span className="text-xs font-medium">Analyzing...</span>
                         </div>
                       ) : app.llmAnalysis ? (
                         <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-fg-muted">—</span>
                       )}
                     </td>
                   </>
@@ -1083,19 +1083,19 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                     />
                     <button
                       onClick={() => navigate(`/application/view/${app.public_token}`)}
-                      className="inline-flex rounded-lg p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                      className="inline-flex rounded-lg p-2 text-fg-muted transition-colors hover:bg-accent-soft hover:text-accent-text"
                       title="View application"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     {app.status === 'hired' ? (
-                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-slate-500" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
+                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-fg-muted" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
                         Contract ends
                         <input
                           type="date"
                           value={app.contract_end_date || ''}
                           onChange={(event) => updateContractEndDate(app.id, event.target.value)}
-                          className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
+                          className="rounded-lg border border-line px-2 py-1 text-xs outline-none focus:border-accent"
                         />
                       </label>
                     ) : null}
@@ -1125,10 +1125,10 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-auto bg-white/30">
+        <div className="flex-1 overflow-auto bg-surface/30">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
             </div>
           ) : (
             <>
@@ -1136,11 +1136,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
               {activeTab === 'all' && (
                 <div className="space-y-6">
                   <PageHeader
-                    eyebrow="Applications Workspace"
-                    title="Browse and manage submitted applications."
-                    description="Use the internal left rail for stage navigation, search within the current queue, and move candidates forward from the same pane."
+                    title="Applications"
                     actions={backgroundRefreshing ? (
-                      <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-raised px-3 py-2 text-sm text-fg-secondary">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Syncing updates
                       </div>
@@ -1149,18 +1147,18 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
                   <div className="recruiter-panel overflow-hidden">
                     <div className="grid min-h-[38rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
-                      <aside className="border-b border-gray-200 bg-[rgba(247,245,239,0.9)] p-4 lg:border-b-0 lg:border-r lg:p-5">
+                      <aside className="border-b border-line bg-surface p-4 lg:border-b-0 lg:border-r lg:p-5">
                         <div className="mb-4 flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Queue Nav</p>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="text-xs font-semibold text-accent-text">Queue Nav</p>
+                            <p className="mt-1 text-xs text-fg-muted">
                               {showDetailedStatusNav ? 'Detailed statuses are visible.' : 'Showing main stages only.'}
                             </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => setShowDetailedStatusNav(prev => !prev)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                            className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                           >
                             <PanelLeft className="h-3.5 w-3.5" />
                             {showDetailedStatusNav ? 'Hide menu' : 'Show menu'}
@@ -1180,7 +1178,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                               : groupTotal
 
                             return (
-                              <div key={group.id} className="rounded-2xl border border-gray-200 bg-white/85">
+                              <div key={group.id} className="rounded-card border border-line bg-surface/85">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1190,57 +1188,57 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                                     }
                                     toggleGroup(group.id)
                                   }}
-                                  className="w-full rounded-2xl px-4 py-3 text-left transition hover:bg-gray-50"
+                                  className="w-full rounded-control px-4 py-3 text-left transition hover:bg-raised"
                                 >
                                   <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                                     <div className="flex min-w-0 items-center gap-2">
                                       {showDetailedStatusNav ? (
                                         isExpanded ? (
-                                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-fg-muted" />
                                         ) : (
-                                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-fg-muted" />
                                         )
                                       ) : null}
-                                      <GroupIcon className="h-4 w-4 flex-shrink-0 text-gray-500" />
-                                      <span className="truncate text-sm font-semibold text-gray-800">{group.label}</span>
+                                      <GroupIcon className="h-4 w-4 flex-shrink-0 text-fg-muted" />
+                                      <span className="truncate text-sm font-semibold text-fg">{group.label}</span>
                                     </div>
                                     <span className={`inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs font-medium ${
-                                      !showDetailedStatusNav && statusFilter === primaryStatus.value
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}>
+ !showDetailedStatusNav && statusFilter === primaryStatus.value
+ ? 'bg-accent-soft text-accent-text'
+ : 'bg-raised text-fg-secondary'
+ }`}>
                                       {primaryCount}
                                     </span>
                                   </div>
 
                                   {!showDetailedStatusNav ? (
-                                    <div className="mt-2 pl-6 text-xs text-gray-500">
+                                    <div className="mt-2 pl-6 text-xs text-fg-muted">
                                       {primaryStatus.label}
                                     </div>
                                   ) : null}
                                 </button>
 
                                 {showDetailedStatusNav && isExpanded ? (
-                                  <div className="border-t border-gray-100 px-3 py-3">
+                                  <div className="border-t border-line px-3 py-3">
                                     <div className="space-y-2">
                                       {group.statuses.map(status => (
                                         <button
                                           key={status.value}
                                           type="button"
                                           onClick={() => updateStatusFilter(status.value)}
-                                          className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
-                                            statusFilter === status.value
-                                              ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                          }`}
+                                          className={`w-full rounded-control border px-3 py-2.5 text-left text-sm transition ${
+ statusFilter === status.value
+ ? 'border-accent/40 bg-accent-soft text-accent-text'
+ : 'border-line bg-surface text-fg-secondary hover:border-line-input hover:bg-raised'
+ }`}
                                         >
                                           <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                                             <span className="truncate font-medium">{status.label}</span>
                                             <span className={`inline-flex h-6 min-w-9 items-center justify-center rounded-full px-2 text-xs font-medium ${
-                                              statusFilter === status.value
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-gray-100 text-gray-600'
-                                            }`}>
+ statusFilter === status.value
+ ? 'bg-accent-soft text-accent-text'
+ : 'bg-raised text-fg-secondary'
+ }`}>
                                               {statusCounts[status.value] || 0}
                                             </span>
                                           </div>
@@ -1255,12 +1253,12 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         </div>
                       </aside>
 
-                      <div className="min-w-0 bg-white/65">
-                        <div className="border-b border-gray-200/80 px-5 py-4 md:px-6">
+                      <div className="min-w-0 bg-surface/65">
+                        <div className="border-b border-line/80 px-5 py-4 md:px-6">
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-sm font-medium text-gray-700">
+                                <p className="text-sm font-medium text-fg-secondary">
                                   {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2">
@@ -1268,19 +1266,19 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                                   <ComplianceBadge status="amber" summary={complianceCounts.amber} size="compact" />
                                   <ComplianceBadge status="green" summary={complianceCounts.green} size="compact" />
                                 </div>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-fg-muted">
                                   {includeRejected ? '(Rejected candidates included)' : '(Rejected candidates hidden)'}
                                 </span>
                               </div>
 
                               {statusFilter === 'all' && (
-                                <label htmlFor="includeRejected" className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <label htmlFor="includeRejected" className="inline-flex items-center gap-2 text-sm text-fg-secondary cursor-pointer">
                                   <input
                                     type="checkbox"
                                     id="includeRejected"
                                     checked={includeRejected}
                                     onChange={(e) => setIncludeRejected(e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="h-4 w-4 rounded border-line-input text-accent-text focus:ring-accent"
                                   />
                                   <span>Include Rejected Candidates</span>
                                 </label>
@@ -1289,20 +1287,20 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
                             <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[34rem] xl:flex-row xl:items-center xl:justify-end">
                               <div className="relative w-full xl:w-96">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
                                 <input
                                   type="text"
                                   value={searchTerm}
                                   onChange={(e) => setSearchTerm(e.target.value)}
                                   placeholder="Search by name, email, reference..."
-                                  className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                                  className="w-full rounded-card border border-line-input bg-surface pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-accent"
                                 />
                               </div>
                               <div className="w-full xl:w-48">
                                 <select
                                   value={complianceFilter}
                                   onChange={(e) => setComplianceFilter(e.target.value)}
-                                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                                  className="w-full rounded-control border border-line-input bg-surface px-4 py-2.5 text-sm text-fg-secondary focus:border-transparent focus:ring-2 focus:ring-accent"
                                 >
                                   <option value="all">All compliance</option>
                                   <option value="red">Red</option>
@@ -1337,9 +1335,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
               {activeTab === 'search' && (
                 <div className="workspace-surface-grid">
                   <PageHeader
-                    eyebrow="Search Workspace"
-                    title="Search the applicant pool."
-                    description="Use AI Search for semantic matching or Manual Search for direct recruiter filters and browsing."
+                    title="Search"
                     actions={<SegmentedControl options={searchTabs} value={searchMode} onChange={setSearchMode} />}
                   />
 
@@ -1348,18 +1344,14 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       <div className="recruiter-panel p-5 md:p-6">
                         <div className="space-y-5">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">AI Search</p>
-                            <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Describe the profile you need, then review the ranked matches.</h3>
-                            <p className="mt-2 max-w-4xl text-sm leading-6 text-gray-600">
-                              AI Search should be a simple recruiter flow: make sure embeddings are ready, enter a prompt, and inspect the ranked candidate results below. No separate filter controls are needed here.
-                            </p>
+                            <h3 className="mt-2 text-xl font-semibold tracking-tight text-fg">Describe the profile you need</h3>
                           </div>
 
                           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                            <div className="rounded-2xl border border-gray-200 bg-white/85 p-5">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prompt</p>
+                            <div className="rounded-card border border-line bg-surface/85 p-5">
+                              <p className="text-xs font-semibold text-accent-text">Prompt</p>
                               {embeddingReadinessLoading ? (
-                                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                <div className="mt-4 rounded-control border border-line bg-raised px-4 py-3 text-sm text-fg-secondary">
                                   Checking embedding readiness...
                                 </div>
                               ) : null}
@@ -1378,12 +1370,8 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                               </div>
                             </div>
 
-                            <div id="embedding-setup-panel" className="rounded-2xl border border-gray-200 bg-white/85 p-5">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Before First Search</p>
-                              <h4 className="mt-2 text-lg font-semibold text-gray-900">Generate embeddings once.</h4>
-                              <p className="mt-2 text-sm text-gray-600">
-                                Recruiters should not have to guess this. AI Search depends on embeddings being generated first, but it is a setup step, not something you repeat every time you search.
-                              </p>
+                            <div id="embedding-setup-panel" className="rounded-card border border-line bg-surface/85 p-5">
+                              <h4 className="mt-2 text-lg font-semibold text-fg">Generate embeddings once.</h4>
                               <div className="mt-4">
                                 <EmbeddingGenerator
                                   onGenerated={() => {
@@ -1402,10 +1390,9 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       {aiSearchLoading && aiSearchResults.length === 0 ? (
                         <div className="recruiter-panel p-8">
                           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                            <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
                             <div>
-                              <p className="text-sm font-medium text-gray-900">Running AI Search</p>
-                              <p className="mt-1 text-sm text-gray-600">The search is in progress. Results will appear here without replacing the rest of the page.</p>
+                              <p className="text-sm font-medium text-fg">Running AI Search</p>
                             </div>
                           </div>
                         </div>
@@ -1413,11 +1400,10 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         <>
                           <WorkspaceToolbar
                             title={`${aiSearchResults.length} AI search result${aiSearchResults.length === 1 ? '' : 's'}`}
-                            subtitle={aiSearchQuery ? `Query: ${aiSearchQuery}` : 'Semantic candidate search'}
                             actions={(
                               <>
                                 {analyzingWithLLM ? (
-                                  <span className="rounded-full bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800">
+                                  <span className="rounded-full bg-accent-soft px-3 py-2 text-sm font-medium text-accent-text">
                                     AI confidence is still enriching top matches
                                   </span>
                                 ) : null}
@@ -1449,7 +1435,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         <EmptyState
                           icon={Sparkles}
                           title="No AI search has been run yet"
-                          description="Generate embeddings once if needed, enter a recruiter prompt, and run AI Search. Results and confidence scoring will appear here after the first query."
                         />
                       )}
                     </>
@@ -1460,29 +1445,28 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       <div className="recruiter-panel p-5 md:p-6">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Manual Search</p>
-                            <p className="mt-1 text-sm text-gray-600">Choose the candidate pool, refine the filters, then review the matching results below.</p>
+                            <p className="text-xs font-semibold text-accent-text">Manual Search</p>
                           </div>
-                          <div className="inline-flex rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
+                          <div className="inline-flex rounded-card border border-line bg-surface p-1">
                             <button
                               type="button"
                               onClick={() => setManualScope('active')}
-                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-                                includeActive && !includeHired && !includeRejected && !includeWithdrawn
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:bg-slate-50'
-                              }`}
+                              className={`rounded-control px-4 py-2 text-sm font-medium transition ${
+ includeActive && !includeHired && !includeRejected && !includeWithdrawn
+ ? 'bg-accent-fill text-on-accent'
+ : 'text-fg-secondary hover:bg-raised'
+ }`}
                             >
                               Active
                             </button>
                             <button
                               type="button"
                               onClick={() => setManualScope('archived')}
-                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-                                !includeActive && includeHired && includeRejected && includeWithdrawn
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:bg-slate-50'
-                              }`}
+                              className={`rounded-control px-4 py-2 text-sm font-medium transition ${
+ !includeActive && includeHired && includeRejected && includeWithdrawn
+ ? 'bg-accent-fill text-on-accent'
+ : 'text-fg-secondary hover:bg-raised'
+ }`}
                             >
                               Archived
                             </button>
@@ -1500,7 +1484,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         <>
                           <WorkspaceToolbar
                             title={`${displayedApplications.length} candidate${displayedApplications.length === 1 ? '' : 's'}`}
-                            subtitle="Manual recruiter search"
                             chips={manualFilterChips}
                             actions={(
                               <button
@@ -1530,7 +1513,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         <EmptyState
                           icon={SlidersHorizontal}
                           title="No candidates match these manual filters"
-                          description="Broaden the primary filters first, then re-apply certificate, visa, or availability filters only after you have a workable talent pool."
                           action={(
                             <button
                               type="button"

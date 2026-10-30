@@ -52,16 +52,16 @@ const CANDIDATE_FILTERS = [
 function TextField({ label, value, onChange, placeholder = '', type = 'text', required = false }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">
+      <span className="block font-medium text-fg-secondary">
         {label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
   )
@@ -70,14 +70,14 @@ function TextField({ label, value, onChange, placeholder = '', type = 'text', re
 function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">
+      <span className="block font-medium text-fg-secondary">
         {label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -93,13 +93,13 @@ function SelectField({ label, value, onChange, options, placeholder = 'Select an
 function TextAreaField({ label, value, onChange, placeholder = '', rows = 4 }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">{label}</span>
+      <span className="block font-medium text-fg-secondary">{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
   )
@@ -107,32 +107,31 @@ function TextAreaField({ label, value, onChange, placeholder = '', rows = 4 }) {
 
 function ToggleField({ label, checked, onChange, description }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm">
+    <label className="flex cursor-pointer items-start gap-3 rounded-control border border-line bg-surface px-4 py-3 text-sm">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        className="mt-1 h-4 w-4 rounded border-line-input text-accent-text focus:ring-accent"
       />
       <span>
-        <span className="block font-medium text-gray-800">{label}</span>
-        {description ? <span className="block text-xs text-gray-500">{description}</span> : null}
+        <span className="block font-medium text-fg">{label}</span>
+        {description ? <span className="block text-xs text-fg-muted">{description}</span> : null}
       </span>
     </label>
   )
 }
 
-function Panel({ title, description, icon: PanelIcon, children, className = '' }) {
+function Panel({ title, icon: PanelIcon, children, className = '' }) {
   void PanelIcon
   return (
     <section className={`recruiter-panel p-5 sm:p-6 ${className}`}>
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+        <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
           <PanelIcon className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <h2 className="text-lg font-semibold text-fg">{title}</h2>
         </div>
       </div>
       {children}
@@ -944,11 +943,11 @@ export default function RecruiterWorkspace() {
 
   if (permLoading || loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
     )
@@ -958,7 +957,7 @@ export default function RecruiterWorkspace() {
 
   if (!canAccessWorkspace) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
@@ -973,28 +972,26 @@ export default function RecruiterWorkspace() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Workspace"
-          title="Daily recruiting workspace"
-          description="Manage requirements, candidates, and candidate pipeline stages from the same operating surface."
+          title="Workspace"
           actions={(
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={reloadWorkspace}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 Refresh
               </button>
               <Link
                 to="/recruiter/kpi"
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
               >
                 <ArrowRight className="h-4 w-4" />
                 Open KPI
@@ -1004,22 +1001,22 @@ export default function RecruiterWorkspace() {
         />
 
         {error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">
             {success}
           </div>
         ) : null}
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <StatCard label="Open requirements" value={requirementStat.open} icon={ClipboardList} tone="info" hint="Requirements currently needing candidate flow." />
-          <StatCard label="Open positions" value={requirementStat.openPositions} icon={CheckCircle2} tone="warning" hint="Remaining slots across active requirements." />
-          <StatCard label="Active candidates" value={candidateStat.active} icon={Users} tone="success" hint="Candidates that are not archived or deleted." />
-          <StatCard label="In pipeline" value={candidateStat.pipeline} icon={ArrowRight} tone="accent" hint="Candidates linked to an active requirement pipeline." />
+          <StatCard label="Open requirements" value={requirementStat.open} icon={ClipboardList} tone="info" />
+          <StatCard label="Open positions" value={requirementStat.openPositions} icon={CheckCircle2} tone="warning" />
+          <StatCard label="Active candidates" value={candidateStat.active} icon={Users} tone="success" />
+          <StatCard label="In pipeline" value={candidateStat.pipeline} icon={ArrowRight} tone="accent" />
         </div>
 
         <div className="mt-6">
@@ -1030,7 +1027,6 @@ export default function RecruiterWorkspace() {
           <div className="mt-6 space-y-6">
             <Panel
               title={requirementForm.id ? 'Edit requirement' : 'Add requirement'}
-              description="Replicate the spreadsheet-style requirement row input with a compact recruiter form."
               icon={Plus}
             >
               <form className="space-y-4" onSubmit={handleRequirementSubmit}>
@@ -1150,7 +1146,6 @@ export default function RecruiterWorkspace() {
 
             <Panel
               title="Requirement rows"
-              description="Spreadsheet-style rows with quick close, archive, and delete controls."
               icon={ClipboardList}
             >
               <div className="mb-4">
@@ -1162,7 +1157,6 @@ export default function RecruiterWorkspace() {
                   <EmptyState
                     icon={ClipboardList}
                     title="No requirement rows"
-                    description="Create the first requirement or switch to All to view archived rows."
                   />
                 ) : visibleRequirementRows.map((requirement) => {
                   const ownerName = recruiters.find((item) => item.id === requirement.owner_recruiter_id)?.full_name || 'Recruiter'
@@ -1170,36 +1164,36 @@ export default function RecruiterWorkspace() {
                   const archived = Boolean(requirement.archived_at || requirement.deleted_at)
                   const canDeleteRequirement = canDeleteRequirements || sameDay(requirement.created_at, new Date())
                   return (
-                    <div key={requirement.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={requirement.id} className="rounded-card border border-line bg-surface p-4">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => populateRequirementForm(requirement)}
-                              className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
+                              className="text-left text-base font-semibold text-fg hover:text-accent-text"
                             >
                               {requirement.req_id_display}
                             </button>
-                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                            <span className="rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-fg-secondary">
                               {requirement.status}
                             </span>
                             {archived ? (
-                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              <span className="rounded-full bg-warning-soft px-2.5 py-1 text-xs font-medium text-warning">
                                 Archived
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-2 text-sm text-slate-600">
+                          <p className="mt-2 text-sm text-fg-secondary">
                             {requirement.customer_name || 'No customer'} · {requirement.vessel_name || 'No vessel'} · {vesselTypes.find((item) => item.id === requirement.vessel_type_id)?.name || 'Unknown vessel type'}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             Rank: {ranks.find((item) => item.id === requirement.rank_id)?.name || 'Unknown'} · Positions: {requirement.positions_required} · Joined: {requirement.joinedCount} · Open positions: {requirement.openPositions}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             Opened {formatDate(requirement.date_opened)} · Updated {formatRelativeTime(requirement.updated_at)}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             Logged by {creatorName} · Owner {ownerName}
                           </p>
                         </div>
@@ -1240,7 +1234,6 @@ export default function RecruiterWorkspace() {
           <div className="mt-6 space-y-6">
             <Panel
               title="Create candidate"
-              description="Candidates can be entered without a requirement, then attached later."
               icon={UserPlus}
             >
               <form className="space-y-4" onSubmit={handleCandidateSubmit}>
@@ -1368,7 +1361,6 @@ export default function RecruiterWorkspace() {
 
             <Panel
               title="Candidate rows"
-              description="Open, unattached, pipeline, joined, and archived views for the live candidate list."
               icon={Users}
             >
               <div className="mb-4">
@@ -1380,45 +1372,44 @@ export default function RecruiterWorkspace() {
                   <EmptyState
                     icon={Users}
                     title="No candidates"
-                    description="Create the first candidate or switch to All to view archived rows."
                   />
                 ) : visibleCandidateRows.map((candidate) => {
                   const joinedRequirement = candidate.attachedJunctions.find((junction) => junction.status === 'joined')
                   const application = applicationByProspectId[candidate.id]
                   return (
-                    <div key={candidate.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={candidate.id} className="rounded-card border border-line bg-surface p-4">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
                               onClick={() => navigate(`/recruiter/workspace/prospects/${candidate.id}`, { state: { from: `${location.pathname}${location.search}` } })}
-                              className="text-left text-base font-semibold text-slate-900 hover:text-blue-700"
+                              className="text-left text-base font-semibold text-fg hover:text-accent-text"
                             >
                               {candidate.name}
                             </button>
-                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                            <span className="rounded-full bg-raised px-2.5 py-1 text-xs font-medium text-fg-secondary">
                               {candidate.status}
                             </span>
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${formatCandidateApplicationStatus(candidate) === 'green' ? 'bg-emerald-100 text-emerald-700' : formatCandidateApplicationStatus(candidate) === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${formatCandidateApplicationStatus(candidate) === 'green' ? 'bg-success-soft text-success' : formatCandidateApplicationStatus(candidate) === 'amber' ? 'bg-warning-soft text-warning' : 'bg-danger-soft text-danger'}`}>
                               Application {candidate.applicationStatus}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm text-slate-600">
+                          <p className="mt-2 text-sm text-fg-secondary">
                             {candidate.email} · {candidate.telephone}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             Rank: {ranks.find((item) => item.id === candidate.rank_applied_for_id)?.name || 'Unknown'} · Vessel type: {vesselTypes.find((item) => item.id === candidate.vessel_type_id)?.name || 'Unknown'}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             Last activity {formatRelativeTime(candidate.last_activity_at)} · Added by {recruiters.find((item) => item.id === candidate.created_by_recruiter_id)?.full_name || 'Recruiter'}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-fg-muted">
                             {candidate.attachedJunctions.length === 0 ? 'Unattached' : `${candidate.attachedJunctions.length} requirement link(s)`}
                             {joinedRequirement ? ` · Joined requirement ${requirementById[joinedRequirement.requirement_id]?.req_id_display || joinedRequirement.requirement_id}` : ''}
                           </p>
                           {application?.reference_number ? (
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-fg-muted">
                               Application ref: {application.reference_number}
                             </p>
                           ) : null}
@@ -1473,8 +1464,8 @@ export default function RecruiterWorkspace() {
                 })}
               </div>
 
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-medium text-slate-900">Attach existing candidate to a requirement</p>
+              <div className="mt-6 rounded-card border border-line bg-raised p-4">
+                <p className="text-sm font-medium text-fg">Attach existing candidate to a requirement</p>
                 <form className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={handleAttachment}>
                   <SelectField
                     label="Candidate"

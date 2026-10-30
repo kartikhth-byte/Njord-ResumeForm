@@ -198,14 +198,14 @@ export default function RecruiterProspectDetail() {
         label: 'Prospect created',
         detail: `${prospect.name} entered the live prospect pool.`,
         when: prospect.created_at,
-        tone: 'bg-blue-100 text-blue-800',
+        tone: 'bg-accent-soft text-accent-text',
       },
       ...notes.map((note) => ({
         id: `note-${note.id}`,
         label: note.is_transition_note ? 'Transition note' : 'Prospect note',
         detail: note.body,
         when: note.edited_at || note.created_at,
-        tone: note.visibility === 'master_only' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-800',
+        tone: note.visibility === 'master_only' ? 'bg-warning-soft text-warning' : 'bg-raised text-fg',
       })),
       ...junctions.map((junction) => {
         const requirement = linkedRequirementMap[junction.requirement_id]
@@ -216,7 +216,7 @@ export default function RecruiterProspectDetail() {
             ? `${requirement.req_id_display} · ${formatDisplayValue(requirement.customer_name || 'Customer not set')}`
             : junction.requirement_id,
           when: junction.updated_at,
-          tone: 'bg-indigo-100 text-indigo-800',
+          tone: 'bg-accent-soft text-accent-text',
         }
       }),
       ...applications.map((application) => ({
@@ -224,7 +224,7 @@ export default function RecruiterProspectDetail() {
         label: 'Application linked',
         detail: application.reference_number,
         when: application.updated_at || application.created_at,
-        tone: 'bg-emerald-100 text-emerald-800',
+        tone: 'bg-success-soft text-success',
       })),
     ]
 
@@ -240,14 +240,14 @@ export default function RecruiterProspectDetail() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -272,14 +272,13 @@ export default function RecruiterProspectDetail() {
 
   if (!prospect) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={Users}
             title="Prospect not found"
-            description="The prospect may have been archived, deleted, or the ID may be incorrect."
             action={
               <button
                 type="button"
@@ -449,16 +448,14 @@ export default function RecruiterProspectDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Prospect Detail"
             title={prospect.name}
-            description="Read the current prospect record, linked requirements, notes, and applications in one place."
             actions={
               <div className="flex flex-wrap items-center gap-3">
                 {canExportCsv ? (
@@ -501,62 +498,61 @@ export default function RecruiterProspectDetail() {
               <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
                 {statusMeta.label}
               </span>
-              {prospect.archived_at ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Archived</span> : null}
-              {prospect.deleted_at ? <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Deleted</span> : null}
+              {prospect.archived_at ? <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Archived</span> : null}
+              {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
           </PageHeader>
 
           <div className="workspace-kpi-grid">
-            <StatCard label="Notes" value={notes.length} icon={FileText} tone="accent" hint="Internal and transition notes on the prospect record." />
-            <StatCard label="Linked requirements" value={junctions.length} icon={Layers3} tone="accent" hint="Requirement matches and pipeline junctions." />
-            <StatCard label="Applications" value={applications.length} icon={Users} tone="success" hint="Application records linked to this prospect." />
-            <StatCard label="Last activity" value={formatRelativeTime(prospect.last_activity_at)} icon={Clock} tone="info" hint="Most recent update on the prospect record." />
+            <StatCard label="Notes" value={notes.length} icon={FileText} tone="accent" />
+            <StatCard label="Linked requirements" value={junctions.length} icon={Layers3} tone="accent" />
+            <StatCard label="Applications" value={applications.length} icon={Users} tone="success" />
+            <StatCard label="Last activity" value={formatRelativeTime(prospect.last_activity_at)} icon={Clock} tone="info" />
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prospect Overview</p>
+                <p className="text-xs font-semibold text-accent-text">Prospect Overview</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Rank applied for</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDisplayValue(rankName)}</p>
+                    <p className="text-sm font-medium text-fg-muted">Rank applied for</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(rankName)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Vessel type</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDisplayValue(vesselName)}</p>
+                    <p className="text-sm font-medium text-fg-muted">Vessel type</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(vesselName)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Nationality</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{nationalityName}</p>
+                    <p className="text-sm font-medium text-fg-muted">Nationality</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{nationalityName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Experience in rank</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{prospect.exp_in_rank_months} month{prospect.exp_in_rank_months === 1 ? '' : 's'}</p>
+                    <p className="text-sm font-medium text-fg-muted">Experience in rank</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{prospect.exp_in_rank_months} month{prospect.exp_in_rank_months === 1 ? '' : 's'}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Phone</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{prospect.telephone}</p>
+                    <p className="text-sm font-medium text-fg-muted">Phone</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{prospect.telephone}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Email</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950 break-words">{prospect.email}</p>
+                    <p className="text-sm font-medium text-fg-muted">Email</p>
+                    <p className="mt-1 text-base font-semibold text-fg break-words">{prospect.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Lead source</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{prospect.lead_source || 'Not provided'}</p>
+                    <p className="text-sm font-medium text-fg-muted">Lead source</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{prospect.lead_source || 'Not provided'}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">First contacted</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDateTime(prospect.first_contacted_at)}</p>
+                    <p className="text-sm font-medium text-fg-muted">First contacted</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDateTime(prospect.first_contacted_at)}</p>
                   </div>
                 </div>
               </div>
 
               <div className="recruiter-panel overflow-hidden">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Linked requirements</p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-950">Requirement matches and junction history</h2>
+                <div className="border-b border-line px-6 py-4">
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Requirement matches and junction history</h2>
                 </div>
                 <div className="divide-y">
                   {junctions.length === 0 ? (
@@ -564,7 +560,6 @@ export default function RecruiterProspectDetail() {
                       <EmptyState
                         icon={Layers3}
                         title="No linked requirements yet"
-                        description="This prospect has not been attached to a requirement yet."
                         action={
                           <button
                             type="button"
@@ -582,28 +577,28 @@ export default function RecruiterProspectDetail() {
                       const authorName = authorMap[junction.last_transition_by_recruiter_id]?.full_name || authorMap[junction.assigned_by_recruiter_id]?.full_name || 'Recruiter'
 
                       return (
-                        <div key={junction.id} className="p-6 transition-colors hover:bg-gray-50/70">
+                        <div key={junction.id} className="p-6 transition-colors hover:bg-raised/70">
                           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-3">
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <h3 className="text-lg font-semibold text-fg">
                                   {requirement ? requirement.req_id_display : junction.requirement_id}
                                 </h3>
                                 <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />
                               </div>
-                              <div className="grid gap-2 text-sm text-gray-600 md:grid-cols-2">
+                              <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">
                                 <div>
-                                  <span className="font-medium text-gray-700">Requirement:</span>{' '}
+                                  <span className="font-medium text-fg-secondary">Requirement:</span>{' '}
                                   {requirement ? formatDisplayValue(requirement.customer_name || 'Customer not set') : 'Not loaded'}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-gray-700">Updated:</span> {formatRelativeTime(junction.updated_at)}
+                                  <span className="font-medium text-fg-secondary">Updated:</span> {formatRelativeTime(junction.updated_at)}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-gray-700">Last transition by:</span> {authorName}
+                                  <span className="font-medium text-fg-secondary">Last transition by:</span> {authorName}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-gray-700">Joined:</span> {formatDateTime(junction.joined_at)}
+                                  <span className="font-medium text-fg-secondary">Joined:</span> {formatDateTime(junction.joined_at)}
                                 </div>
                               </div>
                             </div>
@@ -626,9 +621,8 @@ export default function RecruiterProspectDetail() {
               </div>
 
               <div className="recruiter-panel overflow-hidden">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Notes</p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-950">Internal and transition notes</h2>
+                <div className="border-b border-line px-6 py-4">
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Internal and transition notes</h2>
                 </div>
                 <div className="divide-y">
                   {notes.length === 0 ? (
@@ -645,18 +639,18 @@ export default function RecruiterProspectDetail() {
                       return (
                         <div key={note.id} className="p-6">
                           <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-sm font-semibold text-slate-900">{authorName}</p>
+                            <p className="text-sm font-semibold text-fg">{authorName}</p>
                             {note.is_transition_note ? (
-                              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Transition note</span>
+                              <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-text">Transition note</span>
                             ) : null}
                             {note.visibility === 'master_only' ? (
-                              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Master only</span>
+                              <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">Master only</span>
                             ) : (
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Internal</span>
+                              <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Internal</span>
                             )}
                           </div>
-                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{note.body}</p>
-                          <p className="mt-3 text-xs text-slate-500">
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-fg-secondary">{note.body}</p>
+                          <p className="mt-3 text-xs text-fg-muted">
                             {formatDateTime(note.edited_at || note.created_at)}
                           </p>
                         </div>
@@ -667,30 +661,26 @@ export default function RecruiterProspectDetail() {
               </div>
 
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Invite and bounce recovery</p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-950">Send a new invite or correct the email before resending</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  If the candidate’s address changed or a bounce was recorded, update the email first and then send the invite again.
-                </p>
+                <h2 className="mt-2 text-lg font-semibold text-fg">Send a new invite or correct the email before resending</h2>
 
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-700">Invite email</span>
+                    <span className="text-sm font-medium text-fg-secondary">Invite email</span>
                     <input
                       type="email"
                       value={inviteEmail}
                       onChange={(event) => setInviteEmail(event.target.value)}
                       disabled={!canEditProspect}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+                      className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                     />
                   </label>
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-700">Personal message</span>
+                    <span className="text-sm font-medium text-fg-secondary">Personal message</span>
                     <textarea
                       value={inviteMessage}
                       onChange={(event) => setInviteMessage(event.target.value)}
                       rows={4}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+                      className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                       placeholder="Optional note to the candidate"
                     />
                   </label>
@@ -706,21 +696,21 @@ export default function RecruiterProspectDetail() {
                     {inviteLoading ? 'Sending...' : 'Send invite'}
                   </button>
                   {prospect.bounce_flag ? (
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                    <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">
                       Bounce flag is set
                     </span>
                   ) : null}
                 </div>
 
                 {inviteStatus ? (
-                  <p className="mt-3 text-sm text-slate-600">{inviteStatus}</p>
+                  <p className="mt-3 text-sm text-fg-secondary">{inviteStatus}</p>
                 ) : null}
               </div>
             </div>
 
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Applications</p>
+                <p className="text-xs font-semibold text-accent-text">Applications</p>
                 <div className="mt-4 space-y-3">
                   {applications.length === 0 ? (
                     <EmptyState
@@ -735,12 +725,12 @@ export default function RecruiterProspectDetail() {
                           key={application.id}
                           type="button"
                           onClick={() => navigate(`/application/view/${application.public_token}`)}
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-teal-300 hover:bg-white"
+                          className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left transition hover:border-accent hover:bg-surface"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-sm font-semibold text-slate-950">{application.reference_number}</p>
-                              <p className="mt-1 text-sm text-slate-600">{formatDateTime(application.created_at)}</p>
+                              <p className="text-sm font-semibold text-fg">{application.reference_number}</p>
+                              <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
                             </div>
                             <StatusBadge status={application.status} />
                           </div>
@@ -748,13 +738,13 @@ export default function RecruiterProspectDetail() {
                       ) : (
                         <div
                           key={application.id}
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left"
+                          className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-sm font-semibold text-slate-950">{application.reference_number}</p>
-                              <p className="mt-1 text-sm text-slate-600">{formatDateTime(application.created_at)}</p>
-                              <p className="mt-2 text-xs text-slate-500">Application access required to open the live record.</p>
+                              <p className="text-sm font-semibold text-fg">{application.reference_number}</p>
+                              <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
+                              <p className="mt-2 text-xs text-fg-muted">Application access required to open the live record.</p>
                             </div>
                             <StatusBadge status={application.status} />
                           </div>
@@ -766,22 +756,21 @@ export default function RecruiterProspectDetail() {
               </div>
 
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Activity feed</p>
+                <p className="text-xs font-semibold text-accent-text">Activity feed</p>
                 <div className="mt-4 space-y-3">
                   {activityItems.length === 0 ? (
                     <EmptyState
                       icon={Clock}
                       title="No activity yet"
-                      description="The prospect activity feed will populate as notes, requirements, and applications are added."
                     />
                   ) : (
                     activityItems.slice(0, 10).map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div key={item.id} className="rounded-control border border-line bg-raised px-4 py-4">
                         <div className="flex flex-wrap items-center gap-3">
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.tone}`}>{item.label}</span>
-                          <span className="text-xs text-slate-500">{formatRelativeTime(item.when)}</span>
+                          <span className="text-xs text-fg-muted">{formatRelativeTime(item.when)}</span>
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-slate-700">{item.detail}</p>
+                        <p className="mt-2 text-sm leading-6 text-fg-secondary">{item.detail}</p>
                       </div>
                     ))
                   )}

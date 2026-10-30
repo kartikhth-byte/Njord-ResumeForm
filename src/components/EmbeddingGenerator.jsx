@@ -94,31 +94,25 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
   const isDisabled = isGenerating || cooldownRemaining > 0
 
   return (
-    <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 p-5">
+    <div className="rounded-card border border-progress-line p-5 bg-raised">
       <div className="mb-4 flex items-center gap-3">
-        <Sparkles className="h-5 w-5 text-purple-600" />
+        <Sparkles className="h-5 w-5 text-progress" />
         <div>
-          <h3 className="text-base font-semibold text-gray-900">AI Search Setup</h3>
-          <p className="text-sm text-gray-600">Generate embeddings for semantic search</p>
+          <h3 className="text-base font-semibold text-fg">AI Search Setup</h3>
+          <p className="text-sm text-fg-secondary">Generate embeddings for semantic search</p>
         </div>
       </div>
 
       {!result && !error && !isGenerating && (
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">
-            Generate embeddings once to enable AI Search for the current application pool. Recruiters do not need to run this before every search.
-          </p>
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <div className="rounded-control border border-accent/40 bg-accent-soft px-4 py-3 text-sm text-accent-text">
             <p className="font-medium">When to run this</p>
-            <p className="mt-1">
-              Run it the first time AI Search is used, then run it again only after new applications are submitted or when you want recently updated applicant data included in AI results.
-            </p>
           </div>
           
           {cooldownRemaining > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <Clock className="w-4 h-4 text-orange-600" />
-              <span className="text-sm text-orange-700">
+            <div className="flex items-center gap-2 p-3 bg-warning-soft border border-warning-line rounded-lg">
+              <Clock className="w-4 h-4 text-warning" />
+              <span className="text-sm text-warning">
                 Rate limit active. Try again in {formatCooldown(cooldownRemaining)}
               </span>
             </div>
@@ -127,11 +121,11 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
           <button
             onClick={handleGenerate}
             disabled={isDisabled}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-medium transition-colors ${
-              isDisabled
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-purple-600 text-white hover:bg-purple-700'
-            }`}
+            className={`inline-flex items-center gap-2 rounded-control px-4 py-2.5 font-medium transition-colors ${
+ isDisabled
+ ? 'bg-line-strong text-fg-muted cursor-not-allowed'
+ : 'bg-progress text-bg hover:bg-progress'
+ }`}
           >
             <Sparkles className="w-4 h-4" />
             Generate Embeddings
@@ -139,44 +133,41 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
               <span className="text-xs">({formatCooldown(cooldownRemaining)})</span>
             )}
           </button>
-          <p className="text-xs text-gray-500">
-            Safe default: run this once after new applications arrive, then use AI Search normally.
-          </p>
         </div>
       )}
 
       {isGenerating && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-            <span className="text-sm font-medium text-gray-700">
+            <Loader2 className="h-5 w-5 animate-spin text-progress" />
+            <span className="text-sm font-medium text-fg-secondary">
               Generating embeddings... {progress.current} of {progress.total}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-line rounded-full h-2">
             <div
-              className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+              className="bg-progress h-2 rounded-full transition-all duration-300"
               style={{
                 width: progress.total > 0 ? `${(progress.current / progress.total) * 100}%` : '0%'
               }}
             />
           </div>
-          <p className="text-xs text-gray-500">This may take a minute...</p>
+          <p className="text-xs text-fg-muted">This may take a minute...</p>
         </div>
       )}
 
       {result && (
-        <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
-          <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
+        <div className="flex items-start gap-3 rounded-card border border-success-line bg-success-soft p-4">
+          <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-success" />
           <div>
-            <p className="font-medium text-green-900">Success!</p>
-            <p className="text-sm text-green-700">{result.message}</p>
+            <p className="font-medium text-success">Success!</p>
+            <p className="text-sm text-success">{result.message}</p>
             {result.failed > 0 && (
-              <p className="text-xs text-orange-600 mt-1">
+              <p className="text-xs text-warning mt-1">
                 Note: {result.failed} embeddings failed. Check console for details.
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-fg-muted mt-2">
               Rate limit: {COOLDOWN_MINUTES} minute cooldown active
             </p>
           </div>
@@ -184,15 +175,15 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
       )}
 
       {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+        <div className="flex items-start gap-3 rounded-card border border-danger-line bg-danger-soft p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" />
           <div>
-            <p className="font-medium text-red-900">Error</p>
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="font-medium text-danger">Error</p>
+            <p className="text-sm text-danger">{error}</p>
             {cooldownRemaining === 0 && (
               <button
                 onClick={handleGenerate}
-                className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+                className="mt-2 text-sm text-danger hover:text-danger underline"
               >
                 Try Again
               </button>

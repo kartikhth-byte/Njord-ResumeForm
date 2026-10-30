@@ -62,7 +62,7 @@ export default function HandledBySelect({
       value={value || ''}
       onChange={handleChange}
       disabled={disabled || saving}
-      className={`rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:opacity-60 ${className}`}
+      className={`rounded-control border border-line bg-surface px-2 py-1.5 text-xs font-medium outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60 ${className}`}
     >
       <option value="">Unassigned</option>
       {recruiters.map((recruiter) => (
@@ -77,7 +77,7 @@ export default function HandledBySelect({
 
   return (
     <label className="inline-flex items-center gap-2 text-sm">
-      <span className="text-xs font-medium text-slate-500">Handled by</span>
+      <span className="text-xs font-medium text-fg-muted">Handled by</span>
       {select}
     </label>
   )

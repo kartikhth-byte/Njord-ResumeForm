@@ -142,26 +142,24 @@ export default function RecruiterCandidatesPage() {
 
   if (permLoading || tracker.loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Candidates"
-          title="Candidate funnel"
-          description="Every candidate in the funnel from first contact to joining. Only joined candidates count as success — join flags, days to join, and pipeline status are calculated automatically."
+          title="Candidates"
           actions={(
             <div className="flex flex-wrap gap-3">
               {canExportData() ? (
@@ -169,7 +167,7 @@ export default function RecruiterCandidatesPage() {
                   type="button"
                   onClick={exportCsv}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export CSV'}
@@ -178,14 +176,14 @@ export default function RecruiterCandidatesPage() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
               <Link
                 to="/recruiter/workspace?tab=candidates"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <Plus className="h-4 w-4" />
                 Add candidate
@@ -195,19 +193,19 @@ export default function RecruiterCandidatesPage() {
         />
 
         {exportError ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {exportError}
           </div>
         ) : null}
 
         {tracker.error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-6 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-5 py-6 text-sm text-danger">
             <p className="font-semibold">Could not load the candidate funnel.</p>
             <p className="mt-1">{tracker.error}</p>
             <button
               type="button"
               onClick={tracker.reload}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="mt-4 inline-flex items-center gap-2 rounded-control border border-danger-line bg-surface px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               <RefreshCcw className="h-4 w-4" />
               Try again
@@ -216,10 +214,10 @@ export default function RecruiterCandidatesPage() {
         ) : (
         <>
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Active pipeline" value={viewCounts.active} icon={Users} tone="accent" hint="Candidates still moving through the funnel." />
-          <StatCard label="Joined" value={viewCounts.joined} icon={CheckCircle2} tone="success" hint="Candidates who joined a vessel — the success metric." />
-          <StatCard label="Contact-to-join conversion" value={formatPercent(conversion)} icon={TrendingUp} tone="accent" hint="Joined candidates over all candidates touched. Target: 8–12%." />
-          <StatCard label="Avg days to join" value={avgDaysToJoin == null ? '—' : formatDays(avgDaysToJoin)} icon={UserPlus} tone="warning" hint="Average speed from first contact to joining." />
+          <StatCard label="Active pipeline" value={viewCounts.active} icon={Users} tone="accent" />
+          <StatCard label="Joined" value={viewCounts.joined} icon={CheckCircle2} tone="success" />
+          <StatCard label="Contact-to-join conversion" value={formatPercent(conversion)} icon={TrendingUp} tone="accent" />
+          <StatCard label="Avg days to join" value={avgDaysToJoin == null ? '—' : formatDays(avgDaysToJoin)} icon={UserPlus} tone="warning" />
         </div>
 
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -234,21 +232,21 @@ export default function RecruiterCandidatesPage() {
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Search</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Search</span>
                 <input
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Name, email, rank, requirement…"
-                  className="w-56 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Stage</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Stage</span>
                 <select
                   value={stageFilter}
                   onChange={(event) => setStageFilter(event.target.value)}
-                  className="w-40 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-40 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All stages</option>
                   {FUNNEL_STAGES.map((stage) => (
@@ -257,11 +255,11 @@ export default function RecruiterCandidatesPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Recruiter</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
                 <select
                   value={recruiterFilter}
                   onChange={(event) => setRecruiterFilter(event.target.value)}
-                  className="w-44 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All recruiters</option>
                   {tracker.data.recruiters.map((recruiter) => (
@@ -272,21 +270,21 @@ export default function RecruiterCandidatesPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Contacted from</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Contacted from</span>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => setDateFrom(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Contacted to</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Contacted to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
             </div>
@@ -296,7 +294,6 @@ export default function RecruiterCandidatesPage() {
             <EmptyState
               icon={Users}
               title="No candidates match"
-              description="Adjust the filters, or add a candidate from the Workspace."
             />
           ) : (
             <div className="tracker-table-wrap max-h-[38rem] overflow-y-auto">
@@ -321,7 +318,7 @@ export default function RecruiterCandidatesPage() {
                     <tr key={row.id}>
                       <td className="tracker-cell--primary">
                         <div>{row.name}</div>
-                        <div className="mt-0.5 text-xs font-normal text-slate-500">{row.email}</div>
+                        <div className="mt-0.5 text-xs font-normal text-fg-muted">{row.email}</div>
                       </td>
                       <td className="tracker-cell--nowrap">{formatDate(row.contactedAt)}</td>
                       <td className="tracker-cell--nowrap">{row.recruiterName}</td>
@@ -329,7 +326,7 @@ export default function RecruiterCandidatesPage() {
                         {row.primaryRequirement ? (
                           <Link
                             to={`/recruiter/workspace/requirements/${row.primaryRequirement.id}`} state={{ from: `${location.pathname}${location.search}` }}
-                            className="text-blue-700 hover:underline"
+                            className="text-accent-text hover:underline"
                           >
                             {row.requirementLabel}
                           </Link>
@@ -340,24 +337,24 @@ export default function RecruiterCandidatesPage() {
                       <td className="tracker-cell--nowrap">{row.rankName}</td>
                       <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
                       <td>
-                        <span className={`tracker-pill ${STAGE_BADGE_CLASSES[row.stage] || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`tracker-pill ${STAGE_BADGE_CLASSES[row.stage] || 'bg-raised text-fg-secondary'}`}>
                           {row.stage}
                         </span>
                         {row.isArchived ? (
-                          <span className="tracker-pill ml-1.5 bg-slate-200 text-slate-600">Archived</span>
+                          <span className="tracker-pill ml-1.5 bg-line text-fg-secondary">Archived</span>
                         ) : null}
                       </td>
                       <td className="tracker-cell--nowrap">{row.joinedAt ? formatDate(row.joinedAt) : '—'}</td>
                       <td className="tracker-cell--num">{row.daysToJoin ?? '—'}</td>
                       <td className="tracker-cell--nowrap">
                         {row.inActivePipeline ? (
-                          <span className="tracker-pill bg-sky-100 text-sky-800">
+                          <span className="tracker-pill bg-accent-soft text-accent-text">
                             {row.daysSinceContact == null ? 'Active · not contacted' : `Active · ${row.daysSinceContact}d`}
                           </span>
                         ) : row.cycleCompleted ? (
-                          <span className="tracker-pill bg-green-100 text-green-800">Completed</span>
+                          <span className="tracker-pill bg-success-soft text-success">Completed</span>
                         ) : (
-                          <span className="tracker-pill bg-slate-100 text-slate-600">Closed</span>
+                          <span className="tracker-pill bg-raised text-fg-secondary">Closed</span>
                         )}
                       </td>
                       <td className="max-w-[16rem] tracker-cell--muted">
@@ -370,7 +367,7 @@ export default function RecruiterCandidatesPage() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-fg-muted">
             {filteredRows.length} candidate{filteredRows.length === 1 ? '' : 's'} shown of {rows.length} tracked.
           </p>
         </section>

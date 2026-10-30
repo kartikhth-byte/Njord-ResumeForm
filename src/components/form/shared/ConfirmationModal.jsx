@@ -6,24 +6,24 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
   const typeStyles = {
     warning: {
       icon: AlertTriangle,
-      iconColor: 'text-amber-600',
-      bgColor: 'bg-amber-50',
-      borderColor: 'border-amber-200',
-      buttonColor: 'bg-amber-600 hover:bg-amber-700',
+      iconColor: 'text-warning',
+      bgColor: 'bg-warning-soft',
+      borderColor: 'border-warning-line',
+      buttonColor: 'bg-warning hover:bg-warning',
     },
     success: {
       icon: CheckCircle,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      buttonColor: 'bg-green-600 hover:bg-green-700',
+      iconColor: 'text-success',
+      bgColor: 'bg-success-soft',
+      borderColor: 'border-success-line',
+      buttonColor: 'bg-success hover:bg-success',
     },
     danger: {
       icon: AlertTriangle,
-      iconColor: 'text-red-600',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
-      buttonColor: 'bg-red-600 hover:bg-red-700',
+      iconColor: 'text-danger',
+      bgColor: 'bg-danger-soft',
+      borderColor: 'border-danger-line',
+      buttonColor: 'bg-danger hover:bg-danger',
     },
   }
 
@@ -40,11 +40,11 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="relative bg-surface rounded-lg max-w-md w-full">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            className="absolute top-4 right-4 text-fg-muted hover:text-fg-secondary"
           >
             <X className="w-5 h-5" />
           </button>
@@ -57,12 +57,12 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
             </div>
 
             {/* Title */}
-            <h3 className="mt-4 text-lg font-semibold text-gray-900 text-center">
+            <h3 className="mt-4 text-lg font-semibold text-fg text-center">
               {title}
             </h3>
 
             {/* Message */}
-            <div className="mt-2 text-sm text-gray-600 text-center">
+            <div className="mt-2 text-sm text-fg-secondary text-center">
               {message}
             </div>
 
@@ -70,18 +70,18 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
             <div className="mt-6 flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2 border border-line-input text-fg-secondary rounded-lg hover:bg-raised transition-colors font-medium"
               >
                 {cancelText}
               </button>
               <button
                 onClick={onConfirm}
                 disabled={isLoading}
-                className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors font-medium ${style.buttonColor} disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                className={`flex-1 px-4 py-2 text-fg rounded-lg transition-colors font-medium ${style.buttonColor} disabled:bg-fg-muted disabled:cursor-not-allowed`}
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-line border-t-transparent rounded-full animate-spin"></div>
                     Loading...
                   </span>
                 ) : (

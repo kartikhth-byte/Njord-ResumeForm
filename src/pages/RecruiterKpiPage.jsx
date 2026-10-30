@@ -22,6 +22,7 @@ import { formatDateTime, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { HBarChart, TrendChart, ColumnChart, ChartLegend } from '../components/charts/SimpleCharts'
+import { chartColor, toneColor } from '../constants/chartColors'
 import {
   AlertTriangle,
   ArrowRight,
@@ -53,7 +54,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 function TargetPill({ ok, children }) {
   return (
-    <span className={`tracker-pill ${ok ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+    <span className={`tracker-pill ${ok ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`}>
       {children}
     </span>
   )
@@ -184,7 +185,7 @@ export default function RecruiterKpiPage() {
       .filter(([, value]) => value > 0)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-      .map(([label, value]) => ({ label, value, color: '#2a78d6' }))
+      .map(([label, value]) => ({ label, value, color: chartColor(1) }))
 
     const dwellMap = {}
     tracker.data.applications
@@ -199,11 +200,11 @@ export default function RecruiterKpiPage() {
         label: status.replaceAll('_', ' '),
         value: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length),
         hint: `${values.length} app${values.length === 1 ? '' : 's'}`,
-        color: '#7f77dd',
+        color: chartColor(5),
       }))
       .sort((a, b) => b.value - a.value)
 
-    const funnelColors = ['#b5d4f4', '#85b7eb', '#5f9de2', '#378add', '#2a78d6', '#1d9e75', '#e24b4a', '#888780']
+    const funnelColors = [chartColor(2), chartColor(1), chartColor(5), chartColor(4), chartColor(6), toneColor('success'), toneColor('danger'), toneColor('neutral')]
     const funnelItems = FUNNEL_STAGES.map((stage, index) => ({
       label: stage,
       value: metrics.stageCounts[stage] || 0,
@@ -404,11 +405,11 @@ export default function RecruiterKpiPage() {
 
   if (permLoading || (hasKpiAccess && tracker.loading)) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
     )
@@ -418,7 +419,7 @@ export default function RecruiterKpiPage() {
   // per-recruiter scorecard) cannot be opened by direct URL without access.
   if (!hasKpiAccess) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -438,15 +439,13 @@ export default function RecruiterKpiPage() {
   const conversionOk = metrics.conversionRate >= 0.08
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="KPI Dashboard"
-          title="Recruitment live dashboard"
-          description="Live management view — no manual update needed. Success = joined candidates only."
+          title="KPI"
           actions={(
             <div className="flex flex-wrap gap-3">
               {canExportData() ? (
@@ -454,7 +453,7 @@ export default function RecruiterKpiPage() {
                   type="button"
                   onClick={exportSummary}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export summary'}
@@ -463,7 +462,7 @@ export default function RecruiterKpiPage() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
@@ -473,11 +472,11 @@ export default function RecruiterKpiPage() {
         >
           <div className="mt-5 flex flex-wrap items-end gap-4">
             <label className="text-sm">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Recruiter</span>
+              <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
               <select
                 value={recruiterFilter}
                 onChange={(event) => setRecruiterFilter(event.target.value)}
-                className="w-56 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               >
                 <option value="">All recruiters</option>
                 {tracker.data.recruiters.map((recruiter) => (
@@ -487,26 +486,26 @@ export default function RecruiterKpiPage() {
                 ))}
               </select>
             </label>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600">
-              <span className="font-medium text-slate-900">Report date:</span> {formatDateTime(new Date().toISOString())}
+            <div className="rounded-control border border-line bg-surface px-4 py-2.5 text-sm text-fg-secondary">
+              <span className="font-medium text-fg">Report date:</span> {formatDateTime(new Date().toISOString())}
             </div>
           </div>
         </PageHeader>
 
         {exportError ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {exportError}
           </div>
         ) : null}
 
         {tracker.error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-6 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-5 py-6 text-sm text-danger">
             <p className="font-semibold">Could not load the live dashboard.</p>
             <p className="mt-1">{tracker.error}</p>
             <button
               type="button"
               onClick={tracker.reload}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="mt-4 inline-flex items-center gap-2 rounded-control border border-danger-line bg-surface px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               <RefreshCcw className="h-4 w-4" />
               Try again
@@ -523,12 +522,12 @@ export default function RecruiterKpiPage() {
         {/* Needs action now */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex items-start gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${actions.total > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-card ${actions.total > 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Needs action now</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-fg">Needs action now</h2>
+              <p className="mt-1 text-sm text-fg-secondary">
                 {actions.total > 0
                   ? `${actions.total} item${actions.total === 1 ? '' : 's'} waiting on a recruiter.`
                   : 'All clear — nothing is waiting on you right now.'}
@@ -542,13 +541,13 @@ export default function RecruiterKpiPage() {
                 key={row.id}
                 to={`/recruiter/workspace/requirements/${row.id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
-                className="rounded-2xl border border-rose-200 bg-rose-50 p-4 transition hover:border-rose-300"
+                className="rounded-card border border-danger-line bg-danger-soft p-4 transition hover:border-danger-line"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-rose-900">{row.reqId}</span>
-                  <span className="tracker-pill bg-rose-100 text-rose-800">Overdue</span>
+                  <span className="font-semibold text-danger">{row.reqId}</span>
+                  <span className="tracker-pill bg-danger-soft text-danger">Overdue</span>
                 </div>
-                <p className="mt-1 text-sm text-rose-800">
+                <p className="mt-1 text-sm text-danger">
                   {row.vessel_name || 'Vessel TBC'} · {row.rankName} · {row.daysOpen} days open (target {row.targetDays})
                 </p>
               </Link>
@@ -558,48 +557,45 @@ export default function RecruiterKpiPage() {
                 key={row.id}
                 to={`/recruiter/workspace/requirements/${row.id}`}
                 state={{ from: `${location.pathname}${location.search}` }}
-                className="rounded-2xl border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300"
+                className="rounded-card border border-warning-line bg-warning-soft p-4 transition hover:border-warning-line"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-amber-900">{row.reqId}</span>
-                  <span className="tracker-pill bg-amber-100 text-amber-800">Near target</span>
+                  <span className="font-semibold text-warning">{row.reqId}</span>
+                  <span className="tracker-pill bg-warning-soft text-warning">Near target</span>
                 </div>
-                <p className="mt-1 text-sm text-amber-800">
+                <p className="mt-1 text-sm text-warning">
                   {row.vessel_name || 'Vessel TBC'} · {row.rankName} · {row.daysOpen} of {row.targetDays} target days used
                 </p>
               </Link>
             ))}
             {actions.staleReview.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300">
-                <div className="font-semibold text-amber-900">{actions.staleReview.length} application{actions.staleReview.length === 1 ? '' : 's'} awaiting review</div>
-                <p className="mt-1 text-sm text-amber-800">Submitted more than 7 days ago and still not in review.</p>
+              <Link to="/recruiter/applications" className="rounded-card border border-warning-line bg-warning-soft p-4 transition hover:border-warning-line">
+                <div className="font-semibold text-warning">{actions.staleReview.length} application{actions.staleReview.length === 1 ? '' : 's'} awaiting review</div>
+                <p className="mt-1 text-sm text-warning">Submitted more than 7 days ago and still not in review.</p>
               </Link>
             ) : null}
             {actions.unassigned.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300">
-                <div className="font-semibold text-slate-900">{actions.unassigned.length} live application{actions.unassigned.length === 1 ? '' : 's'} unassigned</div>
-                <p className="mt-1 text-sm text-slate-600">No handling recruiter set — assign them in the pipeline.</p>
+              <Link to="/recruiter/applications" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
+                <div className="font-semibold text-fg">{actions.unassigned.length} live application{actions.unassigned.length === 1 ? '' : 's'} unassigned</div>
               </Link>
             ) : null}
             {actions.unclaimedInvites.length > 0 ? (
-              <Link to="/recruiter/workspace?tab=candidates" className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300">
-                <div className="font-semibold text-slate-900">{actions.unclaimedInvites.length} invite{actions.unclaimedInvites.length === 1 ? '' : 's'} not claimed</div>
-                <p className="mt-1 text-sm text-slate-600">Sent over 3 days ago with no sign-in — chase or resend.</p>
+              <Link to="/recruiter/workspace?tab=candidates" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
+                <div className="font-semibold text-fg">{actions.unclaimedInvites.length} invite{actions.unclaimedInvites.length === 1 ? '' : 's'} not claimed</div>
               </Link>
             ) : null}
             {actions.contractsEnding.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-2xl border border-purple-200 bg-purple-50 p-4 transition hover:border-purple-300">
-                <div className="font-semibold text-purple-900">{actions.contractsEnding.length} contract{actions.contractsEnding.length === 1 ? '' : 's'} ending within 45 days</div>
-                <p className="mt-1 text-sm text-purple-800">Hired crew coming available — plan their next placement now.</p>
+              <Link to="/recruiter/applications" className="rounded-card border border-progress-line bg-progress-soft p-4 transition hover:border-progress-line">
+                <div className="font-semibold text-progress">{actions.contractsEnding.length} contract{actions.contractsEnding.length === 1 ? '' : 's'} ending within 45 days</div>
               </Link>
             ) : null}
             {actions.eventsToday.length > 0 ? (
-              <Link to="/recruiter/calendar" className="rounded-2xl border border-blue-200 bg-blue-50 p-4 transition hover:border-blue-300">
-                <div className="flex items-center gap-2 font-semibold text-blue-900">
+              <Link to="/recruiter/calendar" className="rounded-card border border-accent/40 bg-accent-soft p-4 transition hover:border-accent">
+                <div className="flex items-center gap-2 font-semibold text-accent-text">
                   <CalendarDays className="h-4 w-4" />
                   {actions.eventsToday.length} event{actions.eventsToday.length === 1 ? '' : 's'} today
                 </div>
-                <p className="mt-1 text-sm text-blue-800">
+                <p className="mt-1 text-sm text-accent-text">
                   {actions.eventsToday.slice(0, 2).map((event) => event.event_title || event.event_type).join(' · ')}
                 </p>
               </Link>
@@ -609,10 +605,10 @@ export default function RecruiterKpiPage() {
 
         {/* Requirement delivery */}
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" hint="Approved positions still open." />
-          <StatCard label="Closed requirements" value={metrics.closedRequirementsCount} icon={CheckCircle2} tone="success" hint="Requirements where all positions have joined." />
-          <StatCard label="Open positions" value={metrics.openPositions} icon={Ship} tone="warning" hint="Balance positions still to be closed." />
-          <StatCard label="Joined vs required" value={`${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}`} icon={ArrowRight} tone="accent" hint="Delivery against approved demand." />
+          <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" />
+          <StatCard label="Closed requirements" value={metrics.closedRequirementsCount} icon={CheckCircle2} tone="success" />
+          <StatCard label="Open positions" value={metrics.openPositions} icon={Ship} tone="warning" />
+          <StatCard label="Joined vs required" value={`${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}`} icon={ArrowRight} tone="accent" />
         </div>
 
         {/* Daily activity + funnel health */}
@@ -626,7 +622,7 @@ export default function RecruiterKpiPage() {
               <div className="stat-card__icon"><CheckCircle2 className="w-5 h-5" /></div>
             </div>
             <p className="stat-card__hint">
-              Closed requirements / total requirements. <TargetPill ok={closureOk}>Target ≥ 95%</TargetPill>
+              <TargetPill ok={closureOk}>Target ≥ 95%</TargetPill>
             </p>
           </div>
           <div className="stat-card">
@@ -638,7 +634,7 @@ export default function RecruiterKpiPage() {
               <div className="stat-card__icon"><TrendingUp className="w-5 h-5" /></div>
             </div>
             <p className="stat-card__hint">
-              Joined / total candidates touched. <TargetPill ok={conversionOk}>Target 8–12%</TargetPill>
+              <TargetPill ok={conversionOk}>Target 8–12%</TargetPill>
             </p>
           </div>
           <div className="stat-card">
@@ -649,15 +645,14 @@ export default function RecruiterKpiPage() {
               </div>
               <div className="stat-card__icon"><Hourglass className="w-5 h-5" /></div>
             </div>
-            <p className="stat-card__hint">Cycle speed from first contact to joining.</p>
           </div>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Candidates contacted today" value={metrics.contactedTodayCount} icon={PhoneCall} tone="accent" hint="Daily input metric. Target: 15–25 per recruiter." />
-          <StatCard label="Candidates joined today" value={metrics.joinedTodayCount} icon={UserPlus} tone="success" hint="Daily result metric — success = joined only." />
-          <StatCard label="Active pipeline" value={metrics.activePipelineCount} icon={Users} tone="accent" hint="Candidates still moving through the funnel." />
-          <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" hint="Submitted to customer → customer decision. Slow clients are visible here, not blamed on recruiters." />
+          <StatCard label="Candidates contacted today" value={metrics.contactedTodayCount} icon={PhoneCall} tone="accent" />
+          <StatCard label="Candidates joined today" value={metrics.joinedTodayCount} icon={UserPlus} tone="success" />
+          <StatCard label="Active pipeline" value={metrics.activePipelineCount} icon={Users} tone="accent" />
+          <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" />
         </div>
 
         {/* Pipeline by stage + requirement ageing */}
@@ -665,15 +660,15 @@ export default function RecruiterKpiPage() {
           <section className="recruiter-panel p-5 sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
                   <Layers3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Pipeline by stage</h2>
-                  <p className="mt-1 text-sm text-slate-600">Where every live candidate currently sits.</p>
+                  <h2 className="text-lg font-semibold text-fg">Pipeline by stage</h2>
+                  <p className="mt-1 text-sm text-fg-secondary">Where every live candidate currently sits.</p>
                 </div>
               </div>
-              <Link to="/recruiter/candidates" className="text-sm font-medium text-blue-700 hover:underline">
+              <Link to="/recruiter/candidates" className="text-sm font-medium text-accent-text hover:underline">
                 View candidates
               </Link>
             </div>
@@ -689,7 +684,7 @@ export default function RecruiterKpiPage() {
                         style={{ width: `${Math.round((count / maxStageCount) * 100)}%`, opacity: count === 0 ? 0 : 1 }}
                       />
                     </div>
-                    <span className="w-8 text-right text-sm font-semibold tabular-nums text-slate-900">{count}</span>
+                    <span className="w-8 text-right text-sm font-semibold tabular-nums text-fg">{count}</span>
                   </div>
                 )
               })}
@@ -699,15 +694,14 @@ export default function RecruiterKpiPage() {
           <section className="recruiter-panel p-5 sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
                   <Hourglass className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Open requirement ageing</h2>
-                  <p className="mt-1 text-sm text-slate-600">Oldest open requirements first — these need attention.</p>
+                  <h2 className="text-lg font-semibold text-fg">Open requirement ageing</h2>
                 </div>
               </div>
-              <Link to="/recruiter/requirements" className="text-sm font-medium text-blue-700 hover:underline">
+              <Link to="/recruiter/requirements" className="text-sm font-medium text-accent-text hover:underline">
                 View requirements
               </Link>
             </div>
@@ -734,7 +728,7 @@ export default function RecruiterKpiPage() {
                     {metrics.requirementAgeing.slice(0, 8).map((row) => (
                       <tr key={row.id}>
                         <td className="tracker-cell--primary tracker-cell--nowrap">
-                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-blue-700 hover:underline">
+                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
                             {row.reqId}
                           </Link>
                         </td>
@@ -759,12 +753,11 @@ export default function RecruiterKpiPage() {
         {/* Recruiter scorecard */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Recruiter scorecard</h2>
-              <p className="mt-1 text-sm text-slate-600">Daily input, joins, conversion, and live pipeline per recruiter.</p>
+              <h2 className="text-lg font-semibold text-fg">Recruiter scorecard</h2>
             </div>
           </div>
           {metrics.scorecard.length === 0 ? (
@@ -792,9 +785,9 @@ export default function RecruiterKpiPage() {
                     <tr key={row.id}>
                       <td className="tracker-cell--primary">
                         <div>{row.name}</div>
-                        {row.roleName ? <div className="mt-0.5 text-xs font-normal text-slate-500">{row.roleName}</div> : null}
+                        {row.roleName ? <div className="mt-0.5 text-xs font-normal text-fg-muted">{row.roleName}</div> : null}
                       </td>
-                      <td className={`tracker-cell--num ${row.contactedToday >= 15 ? 'text-emerald-700 font-semibold' : ''}`}>{row.contactedToday}</td>
+                      <td className={`tracker-cell--num ${row.contactedToday >= 15 ? 'text-success font-semibold' : ''}`}>{row.contactedToday}</td>
                       <td className="tracker-cell--num">{row.totalTouched}</td>
                       <td className="tracker-cell--num font-semibold">{row.joined}</td>
                       <td className="tracker-cell--num">{formatPercent(row.conversionRate)}</td>
@@ -806,7 +799,7 @@ export default function RecruiterKpiPage() {
               </table>
             </div>
           )}
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-fg-muted">
             Core rule: success = joined candidates only. Contacted-today target is 15–25 per recruiter; conversion target 8–12%.
             Handling = live applications assigned via the Handled-by selector{metrics.unassignedHandledApplications > 0 ? ` (${metrics.unassignedHandledApplications} active unassigned)` : ''}.
           </p>
@@ -817,33 +810,32 @@ export default function RecruiterKpiPage() {
         {kpiTab === 'charts' ? (
         <>
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Activity vs results, weekly</h2>
-          <p className="mb-4 mt-1 text-sm text-slate-600">Contacts are the input, joins are the outcome — the gap between the two is your conversion story.</p>
-          <ChartLegend entries={[{ label: 'Candidates contacted', color: '#2a78d6' }, { label: 'Joins', color: '#1d9e75' }]} />
+          <h2 className="text-lg font-semibold text-fg">Activity vs results, weekly</h2>
+          <ChartLegend entries={[{ label: 'Candidates contacted', color: chartColor(1) }, { label: 'Joins', color: toneColor('success') }]} />
           <TrendChart
             labels={charts.weekLabels}
             series={[
-              { label: 'Contacted', color: '#2a78d6', points: charts.contacts, fill: true },
-              { label: 'Joined', color: '#1d9e75', points: charts.joins, dashed: true },
+              { label: 'Contacted', color: chartColor(1), points: charts.contacts, fill: true },
+              { label: 'Joined', color: toneColor('success'), points: charts.joins, dashed: true },
             ]}
           />
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Funnel by stage</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-600">Where every live candidate currently sits.</p>
+            <h2 className="text-lg font-semibold text-fg">Funnel by stage</h2>
+            <p className="mb-4 mt-1 text-sm text-fg-secondary">Where every live candidate currently sits.</p>
             <HBarChart items={charts.funnelItems} />
           </section>
           <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Open requirements by age</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-600">Share of target days already used.</p>
+            <h2 className="text-lg font-semibold text-fg">Open requirements by age</h2>
+            <p className="mb-4 mt-1 text-sm text-fg-secondary">Share of target days already used.</p>
             <ColumnChart
               items={[
-                { label: 'On track', value: charts.buckets.onTrack, color: '#0ca30c' },
-                { label: 'Past 50%', value: charts.buckets.past50, color: '#fab219' },
-                { label: 'Near target', value: charts.buckets.near, color: '#ec835a' },
-                { label: 'Overdue', value: charts.buckets.overdue, color: '#d03b3b' },
+                { label: 'On track', value: charts.buckets.onTrack, color: toneColor('success') },
+                { label: 'Past 50%', value: charts.buckets.past50, color: toneColor('warning') },
+                { label: 'Near target', value: charts.buckets.near, color: chartColor(1) },
+                { label: 'Overdue', value: charts.buckets.overdue, color: toneColor('danger') },
               ]}
             />
           </section>
@@ -851,8 +843,8 @@ export default function RecruiterKpiPage() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Open positions by rank</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-600">Demand map — where sourcing effort is needed.</p>
+            <h2 className="text-lg font-semibold text-fg">Open positions by rank</h2>
+            <p className="mb-4 mt-1 text-sm text-fg-secondary">Demand map — where sourcing effort is needed.</p>
             {charts.demandItems.length === 0 ? (
               <EmptyState icon={Ship} title="No open positions" description="Open requirements will populate the demand map." />
             ) : (
@@ -860,8 +852,7 @@ export default function RecruiterKpiPage() {
             )}
           </section>
           <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Time sitting in current stage</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-600">Average days since the last move, per pipeline status — the bottleneck finder. Becomes exact time-in-stage as status history accrues.</p>
+            <h2 className="text-lg font-semibold text-fg">Time sitting in current stage</h2>
             {charts.dwellItems.length === 0 ? (
               <EmptyState icon={Hourglass} title="No live applications" description="Submitted applications will populate this chart." />
             ) : (
@@ -877,44 +868,44 @@ export default function RecruiterKpiPage() {
           {[
             {
               title: 'Weekly management report (PDF)',
-              description: 'Every KPI with targets, open requirement ageing, and the recruiter scorecard — ready for the Monday meeting.',
+              description: 'KPIs, requirement ageing, recruiter scorecard.',
               action: generateWeeklyPdf,
             },
             {
               title: 'Requirement closure report (CSV)',
-              description: 'Per requirement: customer, dates, days to close, target, and on-time status. Your fill-rate proof per client.',
+              description: 'Days to close and on-time status per requirement.',
               action: generateClosureCsv,
             },
             {
               title: 'Recruiter productivity report (CSV)',
-              description: 'Contacts, joins, conversion, live pipeline, and handling load per recruiter.',
+              description: 'Contacts, joins and conversion per recruiter.',
               action: generateProductivityCsv,
             },
             {
               title: 'Funnel drop-off report (CSV)',
-              description: 'Candidate counts and share per funnel stage — spot where the pipeline leaks.',
+              description: 'Candidates per funnel stage.',
               action: generateFunnelCsv,
             },
           ].map((report) => (
             <section key={report.title} className="recruiter-panel flex flex-col p-5 sm:p-6">
-              <h2 className="text-base font-semibold text-slate-900">{report.title}</h2>
-              <p className="mt-1 flex-1 text-sm text-slate-600">{report.description}</p>
+              <h2 className="text-base font-semibold text-fg">{report.title}</h2>
+              <p className="mt-1 flex-1 text-sm text-fg-secondary">{report.description}</p>
               {canExportData() ? (
                 <button
                   type="button"
                   onClick={report.action}
                   disabled={exporting}
-                  className="mt-4 inline-flex w-fit items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="mt-4 inline-flex w-fit items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Generating…' : 'Generate'}
                 </button>
               ) : (
-                <p className="mt-4 text-xs text-slate-500">Export permission required.</p>
+                <p className="mt-4 text-xs text-fg-muted">Export permission required.</p>
               )}
             </section>
           ))}
-          <p className="text-xs text-slate-500 md:col-span-2">
+          <p className="text-xs text-fg-muted md:col-span-2">
             All reports respect the recruiter filter above and are logged in the export audit trail. Generated {formatDate(new Date().toISOString())}.
           </p>
         </div>

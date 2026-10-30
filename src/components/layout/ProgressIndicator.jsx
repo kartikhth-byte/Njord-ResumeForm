@@ -24,11 +24,10 @@ export default function ProgressIndicator({ currentSection = 1, completedSection
       <div className="applicant-progress-bar__inner">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Application Progress</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-900">
+            <h2 className="mt-2 text-lg font-semibold text-fg">
               Section {currentSection}: {FORM_SECTION_NAME_MAP[currentSection]}
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-muted">
               {completedSections.length}/{SECTIONS.length} sections complete
             </p>
           </div>

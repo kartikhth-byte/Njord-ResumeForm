@@ -127,15 +127,11 @@ export default function Section19({ data = {}, onUpdate }) {
   return (
     <div className="space-y-8">
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Final declarations</p>
         <h2 className="applicant-section-title">Additional information and declarations</h2>
-        <p className="applicant-section-copy">
-          Provide any additional information and complete the mandatory declarations
-        </p>
       </div>
 
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Additional Information</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Additional Information</h3>
 
         <FormTextArea
           label="Additional Information About Your Application"
@@ -196,7 +192,7 @@ export default function Section19({ data = {}, onUpdate }) {
       </div>
 
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Availability & Preferences</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Availability & Preferences</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
@@ -242,14 +238,13 @@ export default function Section19({ data = {}, onUpdate }) {
 
       <div className="applicant-section-card space-y-6">
         <div>
-          <p className="applicant-section-kicker">Final declarations</p>
-          <h3 className="text-lg font-semibold text-gray-900">Declaration & consent</h3>
-          <p className="mt-1 text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-fg">Declaration & consent</h3>
+          <p className="mt-1 text-sm text-fg-secondary">
             These confirmations are mandatory before you can submit your application.
           </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50/80 p-4">
+        <div className="space-y-3 rounded-card border border-line bg-raised/80 p-4">
           <FormCheckbox
             label="I declare that the information provided in this application is true, complete, and accurate to the best of my knowledge."
             name="accuracyDeclaration"
@@ -288,9 +283,9 @@ export default function Section19({ data = {}, onUpdate }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
-          <h4 className="text-base font-semibold text-gray-900">Electronic signature</h4>
-          <p className="mt-1 text-sm text-gray-600">
+        <div className="rounded-card border border-line bg-accent-soft/70 p-5">
+          <h4 className="text-base font-semibold text-fg">Electronic signature</h4>
+          <p className="mt-1 text-sm text-fg-secondary">
             Entering your details below acts as your confirmation that the declarations above are accepted.
           </p>
 
@@ -332,10 +327,10 @@ export default function Section19({ data = {}, onUpdate }) {
         </div>
 
         {allDeclarationsChecked && formData.fullName && formData.signatureDate && formData.placeOfSigning && (
-          <div className="rounded-2xl border border-green-300 bg-green-50 p-5 text-green-900">
+          <div className="rounded-card border border-success-line bg-success-soft p-5 text-success">
             <p className="text-xl font-semibold">Section 19 Complete!</p>
             <p className="mt-2 text-base">
-              All mandatory declarations and digital signature have been provided for this section. Please ensure all other sections are complete before proceeding to review and submit.
+              Declarations complete.
             </p>
           </div>
         )}

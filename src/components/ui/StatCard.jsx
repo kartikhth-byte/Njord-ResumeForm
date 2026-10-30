@@ -1,4 +1,5 @@
-export default function StatCard({ label, value, tone = 'default', icon: Icon, hint }) {
+// Label + value only; `hint` is intentionally not rendered (docs/ui-theme-spec.md §12).
+export default function StatCard({ label, value, tone = 'default', icon: Icon }) {
   return (
     <div className={`stat-card stat-card--${tone}`}>
       <div className="stat-card__header">
@@ -12,7 +13,6 @@ export default function StatCard({ label, value, tone = 'default', icon: Icon, h
           </div>
         ) : null}
       </div>
-      {hint ? <p className="stat-card__hint">{hint}</p> : null}
     </div>
   )
 }

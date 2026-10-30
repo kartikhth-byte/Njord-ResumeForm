@@ -97,66 +97,61 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
             onClick={onClose}
             className="recruiter-modal__close"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-fg-muted" />
           </button>
         </div>
 
         {/* Content */}
         <div className="recruiter-modal__body space-y-6">
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>📋 Required Documents:</strong> The following documents will need to be collected from the candidate before they can be marked as "Hired". You can track document submission progress in the application details.
-            </p>
-          </div>
 
           {/* Documents Checklist */}
           <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900">Documents Checklist</h3>
+            <h3 className="font-semibold text-fg">Documents Checklist</h3>
             
             <div className="space-y-2">
               {requiredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex items-start gap-3 p-3 bg-raised rounded-lg border border-line"
                 >
-                  <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-5 h-5 text-fg-muted mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-fg">
                       {doc.label}
-                      {doc.required && <span className="text-red-500 ml-1">*</span>}
+                      {doc.required && <span className="text-danger ml-1">*</span>}
                     </p>
                     {!doc.required && (
-                      <p className="text-xs text-gray-500 mt-0.5">Optional</p>
+                      <p className="text-xs text-fg-muted mt-0.5">Optional</p>
                     )}
                   </div>
                 </div>
               ))}
             </div>
 
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-fg-muted mt-2">
               * Required documents must be submitted before candidate can be hired
             </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Notes <span className="text-gray-400">(Optional)</span>
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
+              Additional Notes <span className="text-fg-muted">(Optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any special instructions or notes about document collection..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
             />
           </div>
 
           {/* Warning */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-900">
-              <strong>⚠️ Note:</strong> Moving to "Documents Pending" will send a notification to the candidate requesting these documents. Make sure the candidate has accepted the offer before proceeding.
+          <div className="bg-warning-soft border border-warning-line rounded-lg p-4">
+            <p className="text-sm text-warning">
+              <strong>⚠️ Note:</strong> The candidate is notified to send these documents.
             </p>
           </div>
 

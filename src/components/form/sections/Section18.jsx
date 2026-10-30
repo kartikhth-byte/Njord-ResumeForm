@@ -206,20 +206,13 @@ export default function Section18({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">References</p>
         <h2 className="applicant-section-title">Professional references</h2>
-        <p className="applicant-section-copy">
-          Provide your current or immediate past employer details first, then add at least 2-3 professional references.
-        </p>
       </div>
 
       <div className="applicant-record-card">
         <div className="applicant-record-card__header">
           <div>
             <h3 className="applicant-record-card__title">Employer Contact Permission</h3>
-            <p className="applicant-record-card__subtitle">
-              Let us know whether we may contact your last employer for reference checks.
-            </p>
           </div>
         </div>
 
@@ -249,9 +242,6 @@ export default function Section18({ data = {}, onUpdate }) {
             <h3 className="applicant-record-card__title">
               Current or Immediate Past Employer
             </h3>
-            <p className="applicant-record-card__subtitle">
-              Please provide the name and address of your current or immediate past employer.
-            </p>
           </div>
         </div>
 
@@ -280,7 +270,7 @@ export default function Section18({ data = {}, onUpdate }) {
 
           <div>
             <label className="applicant-field__label">
-              Address <span className="text-red-500">*</span>
+              Address <span className="text-danger">*</span>
             </label>
             <textarea
               name="currentEmployer-address"
@@ -315,7 +305,7 @@ export default function Section18({ data = {}, onUpdate }) {
         {references.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              className="w-12 h-12 text-fg-muted mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -327,8 +317,7 @@ export default function Section18({ data = {}, onUpdate }) {
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            <p className="text-gray-600 mb-2">No professional references added yet</p>
-            <p className="text-sm text-gray-500 mb-4">Add references from former supervisors or colleagues</p>
+            <p className="text-fg-secondary mb-2">No professional references added yet</p>
             <button
               onClick={handleAddReference}
               className="applicant-action applicant-action--primary"
@@ -348,9 +337,6 @@ export default function Section18({ data = {}, onUpdate }) {
                     Reference {index + 1}
                     {reference.name && ` - ${reference.name}`}
                     </h3>
-                    <p className="applicant-record-card__subtitle">
-                      Choose supervisors or senior colleagues who can speak directly to your maritime performance.
-                    </p>
                   </div>
                   <button
                     onClick={() => handleRemoveReference(index)}
@@ -400,7 +386,7 @@ export default function Section18({ data = {}, onUpdate }) {
 
                   <div>
                     <label className="applicant-field__label">
-                      Address <span className="text-red-500">*</span>
+                      Address <span className="text-danger">*</span>
                     </label>
                     <textarea
                       name={`reference-${index}-address`}
@@ -493,7 +479,7 @@ export default function Section18({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddReference}
-              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Reference</span>
@@ -508,16 +494,16 @@ export default function Section18({ data = {}, onUpdate }) {
         <div className="applicant-section-card applicant-section-card--muted">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-amber-900 mb-1">
+              <h3 className="text-sm font-semibold text-warning mb-1">
                 Best Practices for References
               </h3>
-              <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-                <li>Provide at least 2-3 professional references (more is better)</li>
+              <ul className="text-sm text-warning space-y-1 list-disc list-inside">
+                <li>Add at least 2 references.</li>
                 <li>Choose people who supervised your work directly</li>
                 <li>Recent references are more valuable (from last 5 years)</li>
                 <li>Always ask permission before listing someone as a reference</li>
@@ -527,39 +513,20 @@ export default function Section18({ data = {}, onUpdate }) {
           </div>
         </div>
 
-        {/* General Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex gap-3">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900 mb-1">
-                Important Information
-              </h3>
-              <p className="text-sm text-blue-800">
-                Professional references play a crucial role in the hiring process. Employers will contact these individuals to verify your work history, performance, and character. Choose references who can speak positively about your technical skills, work ethic, safety awareness, and ability to work in a team. Former captains, chief engineers, and fleet managers make excellent references.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Privacy Notice */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-success-soft border border-success-line rounded-lg p-4">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-green-900 mb-1">
+              <h3 className="text-sm font-semibold text-success mb-1">
                 Privacy & Confidentiality
               </h3>
-              <p className="text-sm text-green-800">
-                Reference information will be kept confidential and used solely for employment verification purposes. We will only contact your references after receiving your explicit consent and typically during the final stages of the recruitment process.
+              <p className="text-sm text-success">
+                References are confidential and contacted only with your consent.
               </p>
             </div>
           </div>

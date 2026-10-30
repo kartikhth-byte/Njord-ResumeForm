@@ -88,7 +88,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-gray-600">
+      <div className="flex items-center gap-2 text-fg-secondary">
         <Loader2 className="w-4 h-4 animate-spin" />
         <span className="text-sm">Checking connection...</span>
       </div>
@@ -97,7 +97,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
 
   if (isConnected) {
     return (
-      <div className="flex items-center gap-2 text-green-600">
+      <div className="flex items-center gap-2 text-success">
         <CheckCircle className="w-4 h-4" />
         <span className="text-sm font-medium">Teams Connected</span>
       </div>
@@ -107,7 +107,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
   return (
     <button
       onClick={connect}
-      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      className="flex items-center gap-2 px-4 py-2 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover"
     >
       <svg className="w-5 h-5" viewBox="0 0 23 23">
         <path d="M11 0H0V11H11V0Z" fill="#F25022"/>

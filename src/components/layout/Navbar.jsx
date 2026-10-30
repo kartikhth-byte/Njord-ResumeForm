@@ -57,7 +57,7 @@ export default function Navbar({ onMobileMenuToggle, currentSection = 1 }) {
             {isInForm && (
               <button
                 onClick={onMobileMenuToggle}
-                className="lg:hidden rounded-2xl border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50"
+                className="lg:hidden rounded-card border border-line bg-surface p-2 text-fg-secondary transition hover:bg-raised"
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -77,29 +77,29 @@ export default function Navbar({ onMobileMenuToggle, currentSection = 1 }) {
                 onClick={() => setShowSectionDropdown(!showSectionDropdown)}
                 className="applicant-topbar__section-button"
               >
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-fg-secondary">
                   Section {currentSection}: {FORM_SECTION_NAME_MAP[currentSection]}
                 </span>
-                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showSectionDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-fg-muted transition-transform ${showSectionDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}
               {showSectionDropdown && (
-                <div className="absolute top-full z-50 mt-2 max-h-96 w-96 overflow-y-auto rounded-[24px] border border-slate-200 bg-white py-2 shadow-xl">
+                <div className="absolute top-full z-50 mt-2 max-h-96 w-96 overflow-y-auto rounded-[24px] border border-line bg-surface py-2 shadow-overlay">
                   {SECTIONS.map((section) => (
                     <button
                       key={section.number}
                       onClick={() => handleSectionClick(section.number)}
-                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
-                        currentSection === section.number ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                      }`}
+                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-raised ${
+ currentSection === section.number ? 'bg-accent-soft text-accent-text' : 'text-fg-secondary'
+ }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                          currentSection === section.number
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-600'
-                        }`}>
+ currentSection === section.number
+ ? 'bg-accent-fill text-on-accent'
+ : 'bg-line text-fg-secondary'
+ }`}>
                           {section.number}
                         </span>
                         <span className="text-sm">{section.name}</span>
@@ -117,41 +117,41 @@ export default function Navbar({ onMobileMenuToggle, currentSection = 1 }) {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="applicant-topbar__user-button"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white">
-                <span className="text-sm font-medium text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-fill text-on-accent">
+                <span className="text-sm font-medium text-fg">
                   {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="hidden sm:block text-left">
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-fg">
                   {user?.user_metadata?.full_name || 'User'}
                 </div>
-                <div className="text-xs text-gray-500">{user?.email}</div>
+                <div className="text-xs text-fg-muted">{user?.email}</div>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-fg-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* User Dropdown */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-[24px] border border-slate-200 bg-white py-2 shadow-xl">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-[24px] border border-line bg-surface py-2 shadow-overlay">
+                <div className="px-4 py-2 border-b border-line">
+                  <div className="text-sm font-medium text-fg">
                     {user?.user_metadata?.full_name || 'User'}
                   </div>
-                  <div className="text-xs text-gray-500 truncate">{user?.email}</div>
+                  <div className="text-xs text-fg-muted truncate">{user?.email}</div>
                 </div>
                 <button
                   onClick={() => {
                     navigate('/dashboard')
                     setShowUserMenu(false)
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full text-left px-4 py-2 text-sm text-fg-secondary hover:bg-raised transition-colors"
                 >
                   Dashboard
                 </button>
                 <button
                   onClick={handleSignOut}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger-soft transition-colors"
                 >
                   Sign Out
                 </button>

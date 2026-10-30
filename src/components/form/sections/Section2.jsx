@@ -277,10 +277,7 @@ const autoCapitalize = (value) => {
     <div className="space-y-8">
       {/* Section Header */}
       <div>
-<h2 className="text-2xl font-bold text-gray-900">Section 2: Personal & Contact Details</h2>
-        <p className="text-gray-600 mt-1">
-          Provide your personal information and contact details
-        </p>
+<h2 className="text-2xl font-semibold text-fg">Section 2: Personal & Contact Details</h2>
       </div>
 
       {/* Photo Upload */}
@@ -291,7 +288,7 @@ const autoCapitalize = (value) => {
 
       {/* Personal Information */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Personal Information</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Personal Information</h3>
 
         {/* Name Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -415,7 +412,7 @@ const autoCapitalize = (value) => {
 
       {/* Contact Information */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Contact Information</h3>
 
         <FormInput
           label="Email Address"
@@ -564,7 +561,7 @@ const autoCapitalize = (value) => {
 
       {/* Next of Kin */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Next of Kin</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Next of Kin</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
@@ -597,9 +594,9 @@ const autoCapitalize = (value) => {
             name="nextOfKin.addressDifferent"
             checked={formData.nextOfKin.addressDifferent}
             onChange={handleChange}
-            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
           />
-          <label htmlFor="nextOfKinAddressDifferent" className="ml-3 block text-sm font-medium text-gray-700">
+          <label htmlFor="nextOfKinAddressDifferent" className="ml-3 block text-sm font-medium text-fg-secondary">
             Next of Kin has different address
           </label>
         </div>
@@ -623,9 +620,9 @@ const autoCapitalize = (value) => {
             name="nextOfKin.phoneDifferent"
             checked={formData.nextOfKin.phoneDifferent}
             onChange={handleChange}
-            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
           />
-          <label htmlFor="nextOfKinPhoneDifferent" className="ml-3 block text-sm font-medium text-gray-700">
+          <label htmlFor="nextOfKinPhoneDifferent" className="ml-3 block text-sm font-medium text-fg-secondary">
             Next of Kin has different phone number
           </label>
         </div>
@@ -645,7 +642,7 @@ const autoCapitalize = (value) => {
 
       {/* Emergency Contact */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Emergency Contact</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Emergency Contact</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput

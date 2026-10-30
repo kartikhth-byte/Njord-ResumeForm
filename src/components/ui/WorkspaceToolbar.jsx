@@ -1,11 +1,11 @@
-export default function WorkspaceToolbar({ title, subtitle, actions, chips = [] }) {
+// Title, chips and actions; `subtitle` is intentionally not rendered (docs/ui-theme-spec.md §12).
+export default function WorkspaceToolbar({ title, actions, chips = [] }) {
   return (
     <div className="workspace-toolbar">
       <div className="workspace-toolbar__content">
         <div>
           <div className="workspace-toolbar__title-row">
             <h2 className="workspace-toolbar__title">{title}</h2>
-            {subtitle ? <p className="workspace-toolbar__subtitle">{subtitle}</p> : null}
           </div>
 
           {chips.length > 0 ? (

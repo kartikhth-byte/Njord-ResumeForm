@@ -1,6 +1,6 @@
 # UI Theme Spec — Warm Compact
 
-Status: draft · 2026-10-30 · not implemented
+Status: implemented on branch `ui/warm-theme` · 2026-10-30
 
 ## 1. Goal
 

@@ -78,13 +78,13 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-raised">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-            <p className="text-gray-600 mb-4">Please refresh the page and try again</p>
+            <h1 className="text-2xl font-semibold text-fg mb-2">Something went wrong</h1>
+            <p className="text-fg-secondary mb-4">Please refresh the page and try again</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover"
             >
               Refresh Page
             </button>
@@ -135,7 +135,7 @@ function RootRedirect() {
   if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
       </div>
     )
   }

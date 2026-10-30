@@ -142,21 +142,17 @@ export default function Section10({ data = {}, onUpdate }) {
     <div className="space-y-8">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Health readiness</p>
         <h2 className="applicant-section-title">Medical fitness and vaccination</h2>
-        <p className="applicant-section-copy">
-          Provide your medical fitness certificates and vaccination records
-        </p>
       </div>
 
       {/* Medical Fitness Section */}
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Medical Fitness Certificates</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Medical Fitness Certificates</h3>
 
         <div className="space-y-6">
           {formData.medicalFitness.length === 0 ? (
             <div className="applicant-empty-state">
-              <p className="text-gray-600 mb-4">No medical certificates added yet</p>
+              <p className="text-fg-secondary mb-4">No medical certificates added yet</p>
               <button
                 onClick={handleAddMedical}
                 className="applicant-action applicant-action--primary"
@@ -172,9 +168,6 @@ export default function Section10({ data = {}, onUpdate }) {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h4 className="applicant-record-card__title">Medical Certificate {index + 1}</h4>
-                      <p className="applicant-record-card__subtitle">
-                        Record the certificate type and validity period for each medical clearance you hold.
-                      </p>
                     </div>
                     <button
                       onClick={() => handleRemoveMedical(index)}
@@ -220,7 +213,7 @@ export default function Section10({ data = {}, onUpdate }) {
 
               <button
                 onClick={handleAddMedical}
-                className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+                className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
               >
                 <Plus className="w-5 h-5" />
                 <span className="font-medium">Add Another Medical Certificate</span>
@@ -232,7 +225,7 @@ export default function Section10({ data = {}, onUpdate }) {
 
       {/* Vaccination Records */}
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Vaccination Records</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Vaccination Records</h3>
 
         {/* Yellow Fever */}
         <div className="space-y-3">
@@ -242,15 +235,15 @@ export default function Section10({ data = {}, onUpdate }) {
               id="yellowFever"
               checked={formData.vaccinations.yellowFever.received}
               onChange={(e) => handleYellowFeverChange('received', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="yellowFever" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="yellowFever" className="ml-3 block text-sm font-medium text-fg-secondary">
               Yellow Fever Vaccination
             </label>
           </div>
 
           {formData.vaccinations.yellowFever.received && (
-            <div className="ml-7 space-y-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="ml-7 space-y-4 bg-warning-soft border border-warning-line rounded-lg p-4">
               {/* NEW: Lifetime Validity Checkbox */}
               <div className="flex items-start">
                 <input
@@ -258,18 +251,18 @@ export default function Section10({ data = {}, onUpdate }) {
                   id="yellowFeverLifetime"
                   checked={formData.vaccinations.yellowFever.lifetimeValidity}
                   onChange={(e) => handleYellowFeverChange('lifetimeValidity', e.target.checked)}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="yellowFeverLifetime" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="yellowFeverLifetime" className="ml-3 block text-sm font-medium text-fg-secondary">
                   This certificate has lifetime validity (no expiry date)
                 </label>
               </div>
 
               {/* NEW: Information Alert */}
               {formData.vaccinations.yellowFever.lifetimeValidity && (
-                <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-blue-800">
+                <div className="flex items-start gap-2 p-3 bg-accent-soft border border-accent/40 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-accent-text flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-accent-text">
                     Certificates with lifetime validity will not trigger expiry warnings.
                   </p>
                 </div>
@@ -306,9 +299,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="covidVaccinated"
               checked={formData.vaccinations.covidVaccinated}
               onChange={(e) => handleVaccinationChange('covidVaccinated', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="covidVaccinated" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="covidVaccinated" className="ml-3 block text-sm font-medium text-fg-secondary">
               COVID-19 Vaccination
             </label>
           </div>
@@ -344,9 +337,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="hepatitisA"
               checked={formData.vaccinations.hepatitisA}
               onChange={(e) => handleVaccinationChange('hepatitisA', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="hepatitisA" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="hepatitisA" className="ml-3 block text-sm font-medium text-fg-secondary">
               Hepatitis A
             </label>
           </div>
@@ -372,9 +365,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="hepatitisB"
               checked={formData.vaccinations.hepatitisB}
               onChange={(e) => handleVaccinationChange('hepatitisB', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="hepatitisB" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="hepatitisB" className="ml-3 block text-sm font-medium text-fg-secondary">
               Hepatitis B
             </label>
           </div>
@@ -400,9 +393,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="typhoid"
               checked={formData.vaccinations.typhoid}
               onChange={(e) => handleVaccinationChange('typhoid', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="typhoid" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="typhoid" className="ml-3 block text-sm font-medium text-fg-secondary">
               Typhoid
             </label>
           </div>
@@ -428,9 +421,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="tetanus"
               checked={formData.vaccinations.tetanus}
               onChange={(e) => handleVaccinationChange('tetanus', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="tetanus" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="tetanus" className="ml-3 block text-sm font-medium text-fg-secondary">
               Tetanus
             </label>
           </div>
@@ -456,9 +449,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="measles"
               checked={formData.vaccinations.measles}
               onChange={(e) => handleVaccinationChange('measles', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="measles" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="measles" className="ml-3 block text-sm font-medium text-fg-secondary">
               Measles
             </label>
           </div>
@@ -484,9 +477,9 @@ export default function Section10({ data = {}, onUpdate }) {
               id="polio"
               checked={formData.vaccinations.polio}
               onChange={(e) => handleVaccinationChange('polio', e.target.checked)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
             />
-            <label htmlFor="polio" className="ml-3 block text-sm font-medium text-gray-700">
+            <label htmlFor="polio" className="ml-3 block text-sm font-medium text-fg-secondary">
               Polio
             </label>
           </div>
@@ -515,19 +508,6 @@ export default function Section10({ data = {}, onUpdate }) {
             onChange={(e) => handleVaccinationChange('otherVaccinations', e.target.value)}
             placeholder="List any other vaccinations you have received"
           />
-        </div>
-      </div>
-
-      {/* Information Alert */}
-      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-900">
-          <p className="font-semibold mb-1">Important Information</p>
-          <p>
-            Medical certificates and vaccinations are required for maritime employment. 
-            Ensure all information is accurate and certificates are valid. You will receive 
-            automatic expiry warnings at 90, 60, and 30 days before expiration.
-          </p>
         </div>
       </div>
     </div>

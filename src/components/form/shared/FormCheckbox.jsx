@@ -21,16 +21,16 @@ const FormCheckbox = forwardRef(({
           checked={checked}
           onChange={onChange}
           className={`mt-1 w-4 h-4 rounded border-2 transition-colors cursor-pointer focus:ring-2 focus:ring-offset-2 ${
-            error
-              ? 'border-red-300 text-red-600 focus:ring-red-500'
-              : 'border-gray-300 text-blue-600 focus:ring-blue-500'
-          }`}
+ error
+ ? 'border-danger-line text-danger focus:ring-danger/40'
+ : 'border-line-input text-accent-text focus:ring-accent'
+ }`}
           {...props}
         />
         <span className="flex-1">
-          <span className={`applicant-toggle-card__title ${error ? 'text-red-900' : ''}`}>
+          <span className={`applicant-toggle-card__title ${error ? 'text-danger' : ''}`}>
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-danger ml-1">*</span>}
           </span>
           {helpText && (
             <span className="applicant-toggle-card__copy block">{helpText}</span>
@@ -41,7 +41,7 @@ const FormCheckbox = forwardRef(({
       {/* Error Message */}
       {error && (
         <p className="applicant-field__error ml-7">
-          <span className="text-red-500">⚠</span>
+          <span className="text-danger">⚠</span>
           <span>{error}</span>
         </p>
       )}

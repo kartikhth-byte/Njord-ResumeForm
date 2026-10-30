@@ -197,7 +197,7 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
             onClick={onClose}
             className="recruiter-modal__close"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-fg-muted" />
           </button>
         </div>
 
@@ -205,15 +205,15 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
         <form onSubmit={handleSubmit}>
           <div className="recruiter-modal__body space-y-6">
           {/* Mode Toggle */}
-          <div className="flex items-center justify-center gap-2 p-1 bg-gray-100 rounded-lg">
+          <div className="flex items-center justify-center gap-2 p-1 bg-raised rounded-lg">
             <button
               type="button"
               onClick={() => setMode('form')}
               className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === 'form'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+ mode === 'form'
+ ? 'bg-surface text-accent-text '
+ : 'text-fg-secondary hover:text-fg'
+ }`}
             >
               📝 Fill Details
             </button>
@@ -221,10 +221,10 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
               type="button"
               onClick={() => setMode('upload')}
               className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === 'upload'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+ mode === 'upload'
+ ? 'bg-surface text-accent-text '
+ : 'text-fg-secondary hover:text-fg'
+ }`}
             >
               📄 Upload Document
             </button>
@@ -233,7 +233,7 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
           {/* Upload Mode */}
           {mode === 'upload' && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-line-input rounded-lg p-8 text-center hover:border-accent transition-colors">
                 <input
                   type="file"
                   id="offer-document"
@@ -245,20 +245,20 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
                   htmlFor="offer-document"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <div className="p-4 bg-blue-50 rounded-full mb-4">
-                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="p-4 bg-accent-soft rounded-full mb-4">
+                    <svg className="w-8 h-8 text-accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
-                  <p className="text-base font-medium text-gray-900 mb-1">
+                  <p className="text-base font-medium text-fg mb-1">
                     {uploadedFile ? uploadedFile.name : 'Click to upload offer letter'}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-fg-muted">
                     PDF or Word document (Max 5MB)
                   </p>
                 </label>
                 {uploadedFile && (
-                  <div className="mt-4 flex items-center justify-center gap-2 text-green-600">
+                  <div className="mt-4 flex items-center justify-center gap-2 text-success">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
@@ -269,22 +269,22 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
 
               {/* Internal Notes (for upload mode) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Internal Notes <span className="text-gray-400">(Optional)</span>
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
+                  Internal Notes <span className="text-fg-muted">(Optional)</span>
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => handleChange('notes', e.target.value)}
                   placeholder="Any internal notes about this offer..."
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
 
               {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  <strong>📧 What happens next:</strong> The candidate will receive an email with your uploaded offer letter document attached. The application status will be changed to "Offered".
+              <div className="bg-accent-soft border border-accent/40 rounded-lg p-4">
+                <p className="text-sm text-accent-text">
+                  <strong>📧 What happens next:</strong> Candidate gets the offer by email. Status changes to Offered.
                 </p>
               </div>
             </div>
@@ -295,12 +295,12 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
             <>
           {/* Position Details */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Position Details</h3>
+            <h3 className="font-semibold text-fg">Position Details</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Position / Rank <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
+                  Position / Rank <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
@@ -308,12 +308,12 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
                   onChange={(e) => handleChange('position', e.target.value)}
                   placeholder="e.g., Chief Engineer"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Vessel Type
                 </label>
                 <input
@@ -321,33 +321,33 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
                   value={formData.vesselType}
                   onChange={(e) => handleChange('vesselType', e.target.value)}
                   placeholder="e.g., Container Ship"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Vessel Name <span className="text-gray-400">(if assigned)</span>
+              <label className="block text-sm font-medium text-fg-secondary mb-2">
+                Vessel Name <span className="text-fg-muted">(if assigned)</span>
               </label>
               <input
                 type="text"
                 value={formData.vesselName}
                 onChange={(e) => handleChange('vesselName', e.target.value)}
                 placeholder="e.g., MV Ocean Explorer"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Compensation */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Compensation Package</h3>
+            <h3 className="font-semibold text-fg">Compensation Package</h3>
             
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Salary <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
+                  Monthly Salary <span className="text-danger">*</span>
                 </label>
                 <input
                   type="number"
@@ -355,18 +355,18 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
                   onChange={(e) => handleChange('salary', e.target.value)}
                   placeholder="e.g., 5000"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Currency
                 </label>
                 <select
                   value={formData.currency}
                   onChange={(e) => handleChange('currency', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 >
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -377,33 +377,33 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Additional Benefits <span className="text-gray-400">(Optional)</span>
+              <label className="block text-sm font-medium text-fg-secondary mb-2">
+                Additional Benefits <span className="text-fg-muted">(Optional)</span>
               </label>
               <textarea
                 value={formData.additionalBenefits}
                 onChange={(e) => handleChange('additionalBenefits', e.target.value)}
                 placeholder="e.g., Health insurance, Annual leave allowance, Flight tickets, etc."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Contract Details */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Contract Details</h3>
+            <h3 className="font-semibold text-fg">Contract Details</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contract Duration <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
+                  Contract Duration <span className="text-danger">*</span>
                 </label>
                 <select
                   value={formData.contractDuration}
                   onChange={(e) => handleChange('contractDuration', e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 >
                   <option value="">Select duration</option>
                   <option value="3 months">3 Months</option>
@@ -416,8 +416,8 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expected Joining Date <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
+                  Expected Joining Date <span className="text-danger">*</span>
                 </label>
                 <input
                   type="date"
@@ -425,7 +425,7 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
                   onChange={(e) => handleChange('joiningDate', e.target.value)}
                   required
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </div>
             </div>
@@ -433,23 +433,22 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
 
           {/* Internal Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Internal Notes <span className="text-gray-400">(Not sent to candidate)</span>
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
+              Internal Notes <span className="text-fg-muted">(Not sent to candidate)</span>
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => handleChange('notes', e.target.value)}
               placeholder="Any internal notes about this offer..."
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
             />
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>📧 What happens next:</strong> The candidate will receive an offer letter email with all the details above. 
-              The application status will be changed to "Offered".
+          <div className="bg-accent-soft border border-accent/40 rounded-lg p-4">
+            <p className="text-sm text-accent-text">
+              Candidate gets the offer by email. Status changes to Offered.
             </p>
           </div>
           </>

@@ -110,11 +110,7 @@ export default function Section9({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Qualifications</p>
         <h2 className="applicant-section-title">GMDSS certificates</h2>
-        <p className="applicant-section-copy">
-          List all your Global Maritime Distress and Safety System (GMDSS) certificates
-        </p>
       </div>
 
       {/* GMDSS List */}
@@ -122,7 +118,7 @@ export default function Section9({ data = {}, onUpdate }) {
         {gmdss.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              className="w-12 h-12 text-fg-muted mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -134,7 +130,7 @@ export default function Section9({ data = {}, onUpdate }) {
                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
               />
             </svg>
-            <p className="text-gray-600 mb-4">No GMDSS certificates added yet</p>
+            <p className="text-fg-secondary mb-4">No GMDSS certificates added yet</p>
             <button
               onClick={handleAddGMDSS}
               className="applicant-action applicant-action--primary"
@@ -151,9 +147,6 @@ export default function Section9({ data = {}, onUpdate }) {
                 <div className="applicant-record-card__header">
                   <div>
                     <h3 className="applicant-record-card__title">GMDSS Certificate {index + 1}</h3>
-                    <p className="applicant-record-card__subtitle">
-                      Add each GOC, ROC, or related radio communications certificate that is currently valid.
-                    </p>
                   </div>
                   <button
                     onClick={() => handleRemoveGMDSS(index)}
@@ -230,30 +223,13 @@ export default function Section9({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddGMDSS}
-              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another GMDSS Certificate</span>
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div className="applicant-section-card applicant-section-card--muted">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">About GMDSS</h3>
-            <p className="text-sm text-blue-800">
-              GMDSS certificates are mandatory for deck officers working on vessels equipped with GMDSS equipment. Common types include GOC (General Operator Certificate) and ROC (Restricted Operator Certificate).
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )

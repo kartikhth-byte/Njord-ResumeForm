@@ -144,25 +144,21 @@ shoeSizeUnit: data.shoeSizeUnit || '',
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Deployment readiness</p>
         <h2 className="applicant-section-title">Physical and uniform details</h2>
-        <p className="applicant-section-copy">
-          Provide your physical characteristics and uniform sizes for proper equipment fitting
-        </p>
       </div>
 
       {/* Form Fields */}
       <div className="space-y-5">
         {/* Physical Characteristics */}
         <div className="space-y-5">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Physical Characteristics</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Physical Characteristics</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Height with Unit */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-fg-secondary mb-1">
                 Height
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-danger ml-1">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
@@ -175,11 +171,11 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                     step="0.01"
                     min="0"
                     placeholder="e.g., 180"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      touched.height && errors.height
-                        ? 'border-red-500'
-                        : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent ${
+ touched.height && errors.height
+ ? 'border-danger'
+ : 'border-line-input'
+ }`}
                   />
                 </div>
                 <FormSelect
@@ -190,16 +186,16 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                 />
               </div>
               {touched.height && errors.height && (
-                <p className="mt-1 text-sm text-red-600">{errors.height}</p>
+                <p className="mt-1 text-sm text-danger">{errors.height}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">Your height</p>
+              <p className="mt-1 text-sm text-fg-muted">Your height</p>
             </div>
 
             {/* Weight with Unit */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-fg-secondary mb-1">
                 Weight
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-danger ml-1">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
@@ -212,11 +208,11 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                     step="0.01"
                     min="0"
                     placeholder="e.g., 75"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      touched.weight && errors.weight
-                        ? 'border-red-500'
-                        : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent ${
+ touched.weight && errors.weight
+ ? 'border-danger'
+ : 'border-line-input'
+ }`}
                   />
                 </div>
                 <FormSelect
@@ -227,9 +223,9 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                 />
               </div>
               {touched.weight && errors.weight && (
-                <p className="mt-1 text-sm text-red-600">{errors.weight}</p>
+                <p className="mt-1 text-sm text-danger">{errors.weight}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">Your weight</p>
+              <p className="mt-1 text-sm text-fg-muted">Your weight</p>
             </div>
           </div>
 
@@ -260,14 +256,14 @@ shoeSizeUnit: data.shoeSizeUnit || '',
 
         {/* Uniform Sizes */}
         <div className="space-y-5">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Uniform & Safety Equipment Sizes</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Uniform & Safety Equipment Sizes</h3>
 
 {/* Shoe Size with Unit */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+    <label className="block text-sm font-medium text-fg-secondary mb-1">
       Shoe Size
-      <span className="text-red-500 ml-1">*</span>
+      <span className="text-danger ml-1">*</span>
     </label>
     <input
       type="text"
@@ -276,16 +272,16 @@ shoeSizeUnit: data.shoeSizeUnit || '',
       onChange={handleChange}
       onBlur={() => handleBlur('shoeSize')}
       placeholder="e.g., 42 or 9 or 8"
-      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-        touched.shoeSize && errors.shoeSize
-          ? 'border-red-500'
-          : 'border-gray-300'
-      }`}
+      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent ${
+ touched.shoeSize && errors.shoeSize
+ ? 'border-danger'
+ : 'border-line-input'
+ }`}
     />
     {touched.shoeSize && errors.shoeSize && (
-      <p className="mt-1 text-sm text-red-600">{errors.shoeSize}</p>
+      <p className="mt-1 text-sm text-danger">{errors.shoeSize}</p>
     )}
-    <p className="mt-1 text-sm text-gray-500">Enter your shoe size number</p>
+    <p className="mt-1 text-sm text-fg-muted">Enter your shoe size number</p>
   </div>
 
   <FormSelect
@@ -336,25 +332,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
               helpText="Waist size (cm/inches) or letter size"
               error={touched.uniformTrouserSize ? errors.uniformTrouserSize : ''}
             />
-          </div>
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              Important
-            </h3>
-            <p className="text-sm text-blue-800">
-              Accurate uniform and safety equipment sizes are essential for your comfort and safety onboard. These measurements help ensure proper fit of work clothes, safety gear, and life-saving equipment.
-            </p>
           </div>
         </div>
       </div>

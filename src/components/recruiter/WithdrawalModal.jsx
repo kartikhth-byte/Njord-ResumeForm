@@ -102,49 +102,49 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
             onClick={onClose}
             className="recruiter-modal__close"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-fg-muted" />
           </button>
         </div>
 
         {/* Content */}
         <div className="recruiter-modal__body space-y-4">
           {/* Warning */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-sm text-orange-900">
-              <strong>⚠️ Important:</strong> This will mark the application as "Withdrawn". The candidate information will be preserved, and you can reopen the application later if needed.
+          <div className="bg-warning-soft border border-warning-line rounded-lg p-4">
+            <p className="text-sm text-warning">
+              <strong>⚠️ Important:</strong> Marks the application Withdrawn. You can reopen it later.
             </p>
           </div>
 
           {/* Application Info */}
-          <div className="bg-gray-50 rounded-lg p-3">
+          <div className="bg-raised rounded-lg p-3">
             <div className="text-sm space-y-1">
               <div className="flex justify-between">
-                <span className="text-gray-600">Candidate:</span>
-                <span className="font-medium text-gray-900">{application.full_name}</span>
+                <span className="text-fg-secondary">Candidate:</span>
+                <span className="font-medium text-fg">{application.full_name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Current Status:</span>
-                <span className="font-medium text-gray-900 capitalize">
+                <span className="text-fg-secondary">Current Status:</span>
+                <span className="font-medium text-fg capitalize">
                   {application.status.replace('_', ' ')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Position:</span>
-                <span className="font-medium text-gray-900">{application.applied_rank}</span>
+                <span className="text-fg-secondary">Position:</span>
+                <span className="font-medium text-fg">{application.applied_rank}</span>
               </div>
             </div>
           </div>
 
           {/* Withdrawal Reason */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reason for Withdrawal <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
+              Reason for Withdrawal <span className="text-danger">*</span>
             </label>
             <select
               value={withdrawalReason}
               onChange={(e) => setWithdrawalReason(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-warning/40 focus:border-transparent"
             >
               <option value="">Select a reason...</option>
               {withdrawalReasons.map((reason) => (
@@ -157,15 +157,15 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
 
           {/* Additional Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Notes <span className="text-gray-400">(Optional)</span>
+            <label className="block text-sm font-medium text-fg-secondary mb-2">
+              Additional Notes <span className="text-fg-muted">(Optional)</span>
             </label>
             <textarea
               value={withdrawalNotes}
               onChange={(e) => setWithdrawalNotes(e.target.value)}
               placeholder="Add any additional details about the withdrawal..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-warning/40 focus:border-transparent"
             />
           </div>
 
@@ -183,7 +183,7 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
               type="button"
               onClick={handleConfirm}
               disabled={loading || !withdrawalReason}
-              className="workspace-action-button min-w-[12rem] justify-center bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+              className="workspace-action-button min-w-[12rem] justify-center bg-warning text-bg hover:bg-warning disabled:opacity-50"
             >
               {loading ? (
                 <>

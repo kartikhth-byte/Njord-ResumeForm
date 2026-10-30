@@ -12,11 +12,11 @@ export function RejectedCandidatesFilterCheckbox({ includeRejected, setIncludeRe
         type="checkbox"
         checked={includeRejected}
         onChange={(e) => setIncludeRejected(e.target.checked)}
-        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+        className="w-4 h-4 text-accent-text bg-raised border-line-input rounded focus:ring-accent focus:ring-2"
       />
       <div className="flex items-center gap-2">
-        <XCircle className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
-        <span className="text-sm text-gray-700 group-hover:text-gray-900 font-medium">
+        <XCircle className="w-4 h-4 text-fg-muted group-hover:text-fg-secondary" />
+        <span className="text-sm text-fg-secondary group-hover:text-fg font-medium">
           Include Rejected Candidates
         </span>
       </div>

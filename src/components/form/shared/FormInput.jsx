@@ -13,7 +13,7 @@ const FormInput = forwardRef(({
       {label && (
         <label className="applicant-field__label">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
 
@@ -21,10 +21,10 @@ const FormInput = forwardRef(({
       <input
         ref={ref}
         className={`applicant-field__input ${
-          error
-            ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-            : ''
-        }`}
+ error
+ ? 'border-danger-line focus:border-danger focus:ring-danger/40'
+ : ''
+ }`}
         {...props}
       />
 
@@ -36,7 +36,7 @@ const FormInput = forwardRef(({
       {/* Error Message */}
       {error && (
         <p className="applicant-field__error">
-          <span className="text-red-500">⚠</span>
+          <span className="text-danger">⚠</span>
           <span>{error}</span>
         </p>
       )}

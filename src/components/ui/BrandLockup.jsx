@@ -15,8 +15,7 @@ export default function BrandLockup({ compact = false, align = 'left' }) {
         <img className="brand-lockup__logo" src={njordLogoSrc} alt="Njord Mariners First" />
 
         <div className="brand-lockup__product">
-          <span className="brand-lockup__product-label">Njord Holmes</span>
-          <span className="brand-lockup__product-copy">Recruitment Intelligence Workspace</span>
+          <span className="brand-lockup__product-label">Holmes</span>
         </div>
       </div>
     </div>

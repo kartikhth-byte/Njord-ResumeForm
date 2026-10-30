@@ -44,8 +44,8 @@ export default function RecruiterSettings() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-slate-900" />
-          <p className="text-slate-600">Loading settings workspace...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-fg" />
+          <p className="text-fg-secondary">Loading settings workspace...</p>
         </div>
       </div>
     )
@@ -58,27 +58,21 @@ export default function RecruiterSettings() {
   const settingsCards = [
     {
       key: 'team',
-      eyebrow: 'Access Control',
       title: 'Team Management',
-      description: 'Manage recruiter accounts, role coverage, and access across the hiring team.',
       icon: Users,
       onClick: () => openSection('team'),
       visible: canManageTeam()
     },
     {
       key: 'integrations',
-      eyebrow: 'Runtime Config',
       title: 'Integrations & Secrets',
-      description: 'Manage Microsoft, mail, AI, and app runtime values without editing environment files.',
       icon: KeyRound,
       onClick: () => openSection('integrations'),
       visible: true
     },
     {
       key: 'worksheets',
-      eyebrow: 'Customer Documents',
       title: 'Worksheet Templates & Mappings',
-      description: 'Upload customer worksheet templates and adjust the field-to-cell mapping section by section.',
       icon: FileSpreadsheet,
       onClick: () => openSection('worksheets'),
       visible: true
@@ -98,9 +92,7 @@ export default function RecruiterSettings() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Recruiter Admin"
             title="Settings"
-            description="Manage the recruiter workspace entry points and admin surfaces from one place."
           />
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -111,19 +103,17 @@ export default function RecruiterSettings() {
                   key={card.key}
                   type="button"
                   onClick={card.onClick}
-                  className="recruiter-panel p-6 text-left transition hover:-translate-y-0.5 hover:shadow-lg"
+                  className="recruiter-panel p-6 text-left transition hover:-translate-y-0.5"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">{card.eyebrow}</p>
-                      <h2 className="mt-3 text-xl font-semibold text-gray-900">{card.title}</h2>
-                      <p className="mt-3 text-sm leading-6 text-gray-600">{card.description}</p>
+                      <h2 className="mt-3 text-xl font-semibold text-fg">{card.title}</h2>
                     </div>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-card bg-surface text-fg-secondary">
                       <CardIcon className="h-5 w-5" />
                     </span>
                   </div>
-                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-fg">
                     Open section
                     <ArrowRight className="h-4 w-4" />
                   </div>
@@ -134,15 +124,14 @@ export default function RecruiterSettings() {
 
           {canManageTeam() && activeSection === 'team' ? (
             <section ref={teamSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
+              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Active Section</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Team Management</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-fg">Team Management</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
                 >
                   <X className="h-4 w-4" />
                   Close section
@@ -154,15 +143,14 @@ export default function RecruiterSettings() {
 
           {activeSection === 'integrations' ? (
             <section ref={integrationsSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
+              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Active Section</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Integrations &amp; Secrets</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-fg">Integrations &amp; Secrets</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
                 >
                   <X className="h-4 w-4" />
                   Close section
@@ -174,15 +162,14 @@ export default function RecruiterSettings() {
 
           {activeSection === 'worksheets' ? (
             <section ref={worksheetSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
+              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Active Section</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Worksheet Templates &amp; Mappings</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-fg">Worksheet Templates &amp; Mappings</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
                 >
                   <X className="h-4 w-4" />
                   Close section

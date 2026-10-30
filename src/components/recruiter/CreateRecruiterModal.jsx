@@ -137,9 +137,6 @@ const handleSubmit = async (e) => {
             <div>
               <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
               <h2 className="recruiter-modal__title">Add Team Member</h2>
-              <p className="recruiter-modal__subtitle">
-                Create a recruiter login and assign the right access level before sharing credentials.
-              </p>
             </div>
           </div>
           <button type="button" onClick={handleClose} className="recruiter-modal__close">
@@ -152,7 +149,7 @@ const handleSubmit = async (e) => {
             <div className="recruiter-note recruiter-note--info mb-5">
               <p className="recruiter-note__title">Credential handoff</p>
               <p className="recruiter-note__body">
-                A password is generated and shown after creation. Share it securely with the new recruiter.
+                A password is shown after creation.
               </p>
             </div>
 
@@ -201,7 +198,7 @@ const handleSubmit = async (e) => {
                     Generate
                   </button>
                 </div>
-                <p className="recruiter-form-hint">Minimum 6 characters. Generated passwords are easiest to onboard with.</p>
+                <p className="recruiter-form-hint">At least 6 characters.</p>
               </div>
 
               <div className="recruiter-form-field recruiter-form-field--full">

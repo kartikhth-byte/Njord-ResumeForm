@@ -132,14 +132,14 @@ export default function RecruiterSetup() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="recruiter-panel w-full max-w-lg p-10 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-900 text-white shadow-lg">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-accent-fill text-on-accent">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-fg">
             Preparing recruiter setup
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Checking whether the initial master recruiter account has already been configured.
+          <p className="mt-3 text-sm leading-6 text-fg-secondary">
+            Checking setup…
           </p>
         </div>
       </div>
@@ -150,23 +150,17 @@ export default function RecruiterSetup() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="recruiter-panel w-full max-w-xl p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-success-soft text-success">
             <Lock className="h-8 w-8" />
           </div>
-          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Recruiter Access Locked
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg">
             Setup already complete
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-600">
-            The Master Recruiter account has already been created. This setup page is now locked.
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-fg-secondary">
+            Setup is complete. This page is locked.
           </p>
           <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
             <p className="recruiter-note__title">Next step</p>
-            <p className="recruiter-note__body">
-              Sign in with your recruiter account to manage candidate review, search, and status workflows.
-            </p>
           </div>
           <button
             onClick={() => navigate('/recruiter/login')}
@@ -183,16 +177,13 @@ export default function RecruiterSetup() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
         <div className="recruiter-panel w-full max-w-xl p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-700">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-success-soft text-success">
             <CheckCircle className="h-8 w-8" />
           </div>
-          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Recruiter Setup
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg">
             Setup complete
           </h2>
-          <p className="mt-4 text-sm leading-6 text-slate-600">
+          <p className="mt-4 text-sm leading-6 text-fg-secondary">
             Master Recruiter account created successfully.
           </p>
           <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
@@ -201,7 +192,7 @@ export default function RecruiterSetup() {
               <strong>Email:</strong> {formData.email}
             </p>
           </div>
-          <p className="mt-6 text-sm text-slate-500">
+          <p className="mt-6 text-sm text-fg-muted">
             Redirecting to login page in 3 seconds...
           </p>
         </div>
@@ -213,42 +204,26 @@ export default function RecruiterSetup() {
     <div className="recruiter-shell min-h-screen px-4 py-10">
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="recruiter-panel p-8 lg:p-10">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-slate-900 text-white shadow-lg">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-accent-fill text-on-accent">
             <Shield className="h-8 w-8" />
           </div>
-          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            One-time configuration
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-fg">
             Create the master recruiter account
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
-            This is the administrative entry point for the recruiting system. The first account created
-            here becomes the master recruiter with permission to manage access, workflows, and team setup.
-          </p>
 
           <div className="mt-8 space-y-4">
-            <div className="recruiter-note recruiter-note--info">
-              <p className="recruiter-note__title">What this account controls</p>
-              <p className="recruiter-note__body">
-                Recruiter access management, candidate review workflows, search, and downstream status actions.
-              </p>
-            </div>
             <div className="recruiter-note recruiter-note--warning">
               <p className="recruiter-note__title">Locked after completion</p>
               <p className="recruiter-note__body">
-                Once the first master recruiter is created, this setup screen is no longer available.
+                This page locks once the account is created.
               </p>
             </div>
           </div>
         </section>
 
         <section className="recruiter-panel p-8">
-          <div className="border-b border-slate-200/70 pb-5">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Account details</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Use a team-owned email address so future access and alerts remain under recruiter control.
-            </p>
+          <div className="border-b border-line/70 pb-5">
+            <h2 className="text-2xl font-semibold tracking-tight text-fg">Account details</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -322,7 +297,7 @@ export default function RecruiterSetup() {
             <div className="recruiter-note recruiter-note--info">
               <p className="recruiter-note__title">Access level</p>
               <p className="recruiter-note__body">
-                This account will have full recruiter administration permissions, including the ability to create and manage other recruiter accounts.
+                Full admin access, including managing recruiters.
               </p>
             </div>
 
@@ -342,9 +317,6 @@ export default function RecruiterSetup() {
             </button>
           </form>
 
-          <p className="mt-5 text-xs leading-6 text-slate-500">
-            This page will self-lock after the first master recruiter is created.
-          </p>
         </section>
       </div>
     </div>

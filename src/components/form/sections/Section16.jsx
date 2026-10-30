@@ -238,11 +238,7 @@ export default function Section16({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Experience</p>
         <h2 className="applicant-section-title">Sea service and employment history</h2>
-        <p className="applicant-section-copy">
-          List all your sea service experience in chronological order (most recent first)
-        </p>
       </div>
 
       {/* Total Service Summary */}
@@ -250,7 +246,7 @@ export default function Section16({ data = {}, onUpdate }) {
         <div className="applicant-summary-banner">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -261,7 +257,7 @@ export default function Section16({ data = {}, onUpdate }) {
                 {totalService.months > 0 && `${totalService.months} ${totalService.months === 1 ? 'month' : 'months'} `}
                 {totalService.days > 0 && `${totalService.days} ${totalService.days === 1 ? 'day' : 'days'}`}
               </p>
-              <p className="text-sm text-blue-600 mt-1">
+              <p className="text-sm text-accent-text mt-1">
                 Approximately {totalService.totalDays} days total
               </p>
             </div>
@@ -274,7 +270,7 @@ export default function Section16({ data = {}, onUpdate }) {
         {seaService.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              className="w-12 h-12 text-fg-muted mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -286,8 +282,7 @@ export default function Section16({ data = {}, onUpdate }) {
                 d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
               />
             </svg>
-            <p className="text-gray-600 mb-2">No sea service records added yet</p>
-            <p className="text-sm text-gray-500 mb-4">Add your vessel experience starting with most recent</p>
+            <p className="text-fg-secondary mb-2">No sea service records added yet</p>
             <button
               onClick={handleAddService}
               className="applicant-action applicant-action--primary"
@@ -331,7 +326,7 @@ export default function Section16({ data = {}, onUpdate }) {
                 <div className="space-y-4">
                   {/* Vessel Details */}
                   <div className="space-y-4">
-                    <h4 className="text-md font-semibold text-gray-700 border-b pb-2">Vessel Details</h4>
+                    <h4 className="text-md font-semibold text-fg-secondary border-b pb-2">Vessel Details</h4>
                     
                     <FormInput
                       label="Vessel Name"
@@ -469,7 +464,7 @@ export default function Section16({ data = {}, onUpdate }) {
 
                   {/* Employment Details */}
                   <div className="space-y-4">
-                    <h4 className="text-md font-semibold text-gray-700 border-b pb-2">Employment Details</h4>
+                    <h4 className="text-md font-semibold text-fg-secondary border-b pb-2">Employment Details</h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormInput
@@ -600,32 +595,13 @@ export default function Section16({ data = {}, onUpdate }) {
             {/* Add Another Button */}
             <button
               onClick={handleAddService}
-              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-slate-300"
+              className="applicant-action applicant-action--secondary w-full justify-center border border-dashed border-line-input"
             >
               <Plus className="w-5 h-5" />
               <span className="font-medium">Add Another Sea Service Record</span>
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Box */}
-      <div className="applicant-section-card applicant-section-card--muted">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1 a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              Important Information
-            </h3>
-            <p className="text-sm text-blue-800">
-              List your sea service in reverse chronological order (most recent first). Include all vessels you have served on, even short-term assignments. Accurate sea service records are essential for career progression and certificate upgrades. You will need to provide discharge books and sea service testimonials during verification.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -73,9 +73,7 @@ export default function CleanupDrafts() {
     <div className="applicant-shell">
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Applicant Utility"
-          title="Clean Up Duplicate Drafts"
-          description="Use this recovery tool if multiple in-progress application drafts were created for the same applicant."
+          title="Clean up duplicate drafts"
           actions={
             <button
               type="button"
@@ -91,29 +89,26 @@ export default function CleanupDrafts() {
         <div className="utility-card mt-8 overflow-hidden">
           <div className="utility-card__header">
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-blue-100 p-3 text-blue-700">
+              <div className="rounded-card bg-accent-soft p-3 text-accent-text">
                 <Wrench className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Draft recovery</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  The tool keeps the most recent `new` draft with no `submitted_at` value and removes older duplicates.
-                </p>
+                <h2 className="text-xl font-semibold text-fg">Draft recovery</h2>
               </div>
             </div>
           </div>
 
           <div className="utility-card__body">
             {status ? (
-              <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                <p className="whitespace-pre-wrap text-sm text-blue-900">{status}</p>
+              <div className="mb-6 rounded-card border border-accent/40 bg-accent-soft p-4">
+                <p className="whitespace-pre-wrap text-sm text-accent-text">{status}</p>
               </div>
             ) : null}
 
-            <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
+            <div className="rounded-[24px] border border-warning-line bg-warning-soft p-5">
               <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700" />
-                <div className="text-sm leading-6 text-amber-900">
+                <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning" />
+                <div className="text-sm leading-6 text-warning">
                   <p className="font-semibold">What this does</p>
                   <ul className="mt-2 list-disc space-y-1 pl-5">
                     <li>Finds all draft applications with status `new` and no submission timestamp.</li>

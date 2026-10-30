@@ -28,22 +28,22 @@ const POSITIVE_STAGE_RANK = {
 }
 
 export const STAGE_BADGE_CLASSES = {
-  Contacted: 'bg-sky-100 text-sky-800',
-  Screened: 'bg-indigo-100 text-indigo-800',
-  Shortlisted: 'bg-blue-100 text-blue-800',
-  Interviewed: 'bg-violet-100 text-violet-800',
-  Approved: 'bg-emerald-100 text-emerald-800',
-  Joined: 'bg-green-100 text-green-800',
-  Rejected: 'bg-rose-100 text-rose-800',
-  Withdrawn: 'bg-slate-200 text-slate-700',
+  Contacted: 'bg-accent-soft text-accent-text',
+  Screened: 'bg-accent-soft text-accent-text',
+  Shortlisted: 'bg-accent-soft text-accent-text',
+  Interviewed: 'bg-progress-soft text-progress',
+  Approved: 'bg-success-soft text-success',
+  Joined: 'bg-success-soft text-success',
+  Rejected: 'bg-danger-soft text-danger',
+  Withdrawn: 'bg-line text-fg-secondary',
 }
 
 export const ON_TIME_BADGE_CLASSES = {
-  'On Time': 'bg-emerald-100 text-emerald-800',
-  'On Track': 'bg-sky-100 text-sky-800',
-  Delayed: 'bg-rose-100 text-rose-800',
-  Overdue: 'bg-amber-100 text-amber-800',
-  '—': 'bg-slate-100 text-slate-600',
+  'On Time': 'bg-success-soft text-success',
+  'On Track': 'bg-accent-soft text-accent-text',
+  Delayed: 'bg-danger-soft text-danger',
+  Overdue: 'bg-warning-soft text-warning',
+  '—': 'bg-raised text-fg-secondary',
 }
 
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/

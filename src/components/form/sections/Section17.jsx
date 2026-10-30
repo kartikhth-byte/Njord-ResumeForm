@@ -130,17 +130,13 @@ export default function Section17({ data = {}, onUpdate }) {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Capability profile</p>
         <h2 className="applicant-section-title">Technical experience and skills</h2>
-        <p className="applicant-section-copy">
-          Detail your technical skills, equipment experience, and specialized competencies
-        </p>
       </div>
 
       <div className="space-y-8">
         {/* Navigation Equipment */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Navigation Equipment</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Navigation Equipment</h3>
           
           <div className="space-y-3">
             <div className="flex items-start">
@@ -150,9 +146,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="ecdis"
                 checked={formData.ecdis}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="ecdis" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="ecdis" className="ml-3 block text-sm font-medium text-fg-secondary">
                 ECDIS (Electronic Chart Display and Information System)
               </label>
             </div>
@@ -176,9 +172,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="radar"
                 checked={formData.radar}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="radar" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="radar" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Radar Navigation
               </label>
             </div>
@@ -202,9 +198,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="arpa"
                   checked={formData.arpa}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="arpa" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="arpa" className="ml-3 block text-sm font-medium text-fg-secondary">
                   ARPA (Automatic Radar Plotting Aids)
                 </label>
               </div>
@@ -216,9 +212,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="gps"
                   checked={formData.gps}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="gps" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="gps" className="ml-3 block text-sm font-medium text-fg-secondary">
                   GPS / GNSS
                 </label>
               </div>
@@ -230,9 +226,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="gyroCompass"
                   checked={formData.gyroCompass}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="gyroCompass" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="gyroCompass" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Gyro Compass
                 </label>
               </div>
@@ -244,9 +240,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="autopilot"
                   checked={formData.autopilot}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="autopilot" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="autopilot" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Autopilot Systems
                 </label>
               </div>
@@ -258,9 +254,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="vhf"
                   checked={formData.vhf}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="vhf" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="vhf" className="ml-3 block text-sm font-medium text-fg-secondary">
                   VHF / GMDSS Equipment
                 </label>
               </div>
@@ -270,7 +266,7 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Cargo Operations */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Cargo Operations</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Cargo Operations</h3>
           
           <div className="space-y-3">
             <div className="flex items-start">
@@ -280,9 +276,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="cargoComputers"
                 checked={formData.cargoComputers}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="cargoComputers" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="cargoComputers" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Cargo Computer Systems
               </label>
             </div>
@@ -305,9 +301,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="loadmaster"
                 checked={formData.loadmaster}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="loadmaster" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="loadmaster" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Loadmaster / Loading Instruments
               </label>
             </div>
@@ -331,9 +327,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="inertGasSystem"
                   checked={formData.inertGasSystem}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="inertGasSystem" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="inertGasSystem" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Inert Gas System (IGS)
                 </label>
               </div>
@@ -345,9 +341,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="cargoPumps"
                   checked={formData.cargoPumps}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="cargoPumps" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="cargoPumps" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Cargo Pump Operations
                 </label>
               </div>
@@ -359,9 +355,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="ballastSystem"
                   checked={formData.ballastSystem}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="ballastSystem" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="ballastSystem" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Ballast System Operations
                 </label>
               </div>
@@ -371,7 +367,7 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Engine Room Equipment */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Engine Room Equipment</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Engine Room Equipment</h3>
           
           <div className="space-y-4">
             <FormInput
@@ -400,9 +396,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="boilerExperience"
                   checked={formData.boilerExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="boilerExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="boilerExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Boiler Operations & Maintenance
                 </label>
               </div>
@@ -414,9 +410,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="purifierExperience"
                   checked={formData.purifierExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="purifierExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="purifierExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Purifiers (Oil/Water)
                 </label>
               </div>
@@ -428,9 +424,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="compressorExperience"
                   checked={formData.compressorExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="compressorExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="compressorExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Air Compressors
                 </label>
               </div>
@@ -442,9 +438,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="refrigerationExperience"
                   checked={formData.refrigerationExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="refrigerationExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="refrigerationExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Refrigeration Systems
                 </label>
               </div>
@@ -456,9 +452,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="pneumaticControls"
                   checked={formData.pneumaticControls}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="pneumaticControls" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="pneumaticControls" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Pneumatic Control Systems
                 </label>
               </div>
@@ -470,9 +466,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="hydraulicSystems"
                   checked={formData.hydraulicSystems}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="hydraulicSystems" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="hydraulicSystems" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Hydraulic Systems
                 </label>
               </div>
@@ -482,7 +478,7 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Electrical Systems */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Electrical Systems</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Electrical Systems</h3>
           
           <div className="space-y-3">
             <div className="flex items-start">
@@ -492,9 +488,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="electricalExperience"
                 checked={formData.electricalExperience}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="electricalExperience" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="electricalExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Electrical Systems Experience
               </label>
             </div>
@@ -519,9 +515,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="generatorExperience"
                   checked={formData.generatorExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="generatorExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="generatorExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Generator Operations & Maintenance
                 </label>
               </div>
@@ -533,9 +529,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="highVoltageExperience"
                   checked={formData.highVoltageExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="highVoltageExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="highVoltageExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   High Voltage Systems (above 1kV)
                 </label>
               </div>
@@ -547,9 +543,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="plcExperience"
                   checked={formData.plcExperience}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="plcExperience" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="plcExperience" className="ml-3 block text-sm font-medium text-fg-secondary">
                   PLC (Programmable Logic Controller)
                 </label>
               </div>
@@ -559,7 +555,7 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Software Skills */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Software & Computer Skills</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Software & Computer Skills</h3>
           
           <div className="space-y-3">
             <div className="flex items-start">
@@ -569,9 +565,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="msOffice"
                 checked={formData.msOffice}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="msOffice" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="msOffice" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Microsoft Office (Word, Excel, PowerPoint)
               </label>
             </div>
@@ -594,9 +590,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="maintenanceSoftware"
                 checked={formData.maintenanceSoftware}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="maintenanceSoftware" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="maintenanceSoftware" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Maintenance Management Software
               </label>
             </div>
@@ -619,9 +615,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="weatherSoftware"
                 checked={formData.weatherSoftware}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="weatherSoftware" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="weatherSoftware" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Weather Routing Software
               </label>
             </div>
@@ -641,7 +637,7 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Special Skills */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Special Skills & Qualifications</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Special Skills & Qualifications</h3>
           
           <div className="space-y-3">
             <div className="flex items-start">
@@ -651,9 +647,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="welding"
                 checked={formData.welding}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="welding" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="welding" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Welding
               </label>
             </div>
@@ -676,9 +672,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="craneOperation"
                 checked={formData.craneOperation}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="craneOperation" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="craneOperation" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Crane Operation
               </label>
             </div>
@@ -701,9 +697,9 @@ export default function Section17({ data = {}, onUpdate }) {
                 name="dynamicPositioning"
                 checked={formData.dynamicPositioning}
                 onChange={handleChange}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
-              <label htmlFor="dynamicPositioning" className="ml-3 block text-sm font-medium text-gray-700">
+              <label htmlFor="dynamicPositioning" className="ml-3 block text-sm font-medium text-fg-secondary">
                 Dynamic Positioning (DP)
               </label>
             </div>
@@ -727,9 +723,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="rigging"
                   checked={formData.rigging}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="rigging" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="rigging" className="ml-3 block text-sm font-medium text-fg-secondary">
                   Rigging & Lifting Operations
                 </label>
               </div>
@@ -741,9 +737,9 @@ export default function Section17({ data = {}, onUpdate }) {
                   name="rov"
                   checked={formData.rov}
                   onChange={handleChange}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
-                <label htmlFor="rov" className="ml-3 block text-sm font-medium text-gray-700">
+                <label htmlFor="rov" className="ml-3 block text-sm font-medium text-fg-secondary">
                   ROV (Remotely Operated Vehicle)
                 </label>
               </div>
@@ -753,10 +749,10 @@ export default function Section17({ data = {}, onUpdate }) {
 
         {/* Additional Skills */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Additional Skills & Experience</h3>
+          <h3 className="text-lg font-semibold text-fg border-b pb-2">Additional Skills & Experience</h3>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg-secondary mb-1">
               Other Technical Skills or Experience
             </label>
             <textarea
@@ -764,31 +760,9 @@ export default function Section17({ data = {}, onUpdate }) {
               value={formData.additionalSkills}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
               placeholder="List any other technical skills, certifications, or experience not covered above..."
             />
-            <p className="mt-1 text-sm text-gray-500">
-              Include any specialized training, unique equipment experience, or technical competencies
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">
-              Technical Skills Matter
-            </h3>
-            <p className="text-sm text-blue-800">
-              Be thorough in listing your technical skills and equipment experience. Specific makes and models of equipment you have worked with can significantly enhance your application. Specialized skills like DP operations, high voltage systems, or specific cargo handling experience are highly valued by employers.
-            </p>
           </div>
         </div>
       </div>

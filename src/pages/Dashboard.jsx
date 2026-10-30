@@ -32,6 +32,7 @@ import BrandLockup from '../components/ui/BrandLockup'
 import { clearActiveDraftId, isActiveDraftExplicit, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { FORM_SECTION_NUMBERS } from '../constants/formSections'
 import { calculateDraftProgress, hasMeaningfulDraftData, isDraftSectionComplete } from '../utils/applicationProgress'
+import { badgeClassesForStatus } from '../constants/statusTones'
 
 const SECTION_INFO = [
   { id: 1, title: 'Availability & Application', icon: Calendar },
@@ -74,20 +75,7 @@ function getApplicantStatusLabel(status) {
 }
 
 function getApplicantStatusTone(status) {
-  const tones = {
-    under_review: 'bg-blue-100 text-blue-800',
-    test_scheduled: 'bg-orange-100 text-orange-800',
-    test_passed: 'bg-teal-100 text-teal-800',
-    interview_scheduled: 'bg-purple-100 text-purple-800',
-    interview_passed: 'bg-indigo-100 text-indigo-800',
-    offered: 'bg-emerald-100 text-emerald-800',
-    offer_accepted: 'bg-emerald-100 text-emerald-800',
-    documents_pending: 'bg-amber-100 text-amber-800',
-    hired: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    withdrawn: 'bg-gray-100 text-gray-800'
-  }
-  return tones[status] || 'bg-slate-100 text-slate-800'
+  return badgeClassesForStatus(status)
 }
 
 const TERMINAL_APPLICATION_STATUSES = ['hired', 'rejected', 'withdrawn']
@@ -391,8 +379,8 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
-          <p className="text-gray-600">Loading your applications...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-accent" />
+          <p className="text-fg-secondary">Loading your applications...</p>
         </div>
       </div>
     )
@@ -400,13 +388,13 @@ export default function Dashboard() {
 
   return (
     <div className="applicant-shell">
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-line bg-surface/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <BrandLockup compact />
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{user?.user_metadata?.full_name || user?.email}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
+              <p className="text-sm font-medium text-fg">{user?.user_metadata?.full_name || user?.email}</p>
+              <p className="text-xs text-fg-muted">{user?.email}</p>
             </div>
             <button onClick={handleSignOut} className="applicant-action applicant-action--secondary">
               Sign Out
@@ -419,9 +407,7 @@ export default function Dashboard() {
         <div className="space-y-6">
           <div className="applicant-hero">
             <PageHeader
-              eyebrow="Applicant Dashboard"
-              title="Manage your maritime application journey"
-              description="Track your active draft, understand what happens next after submission, and return to each section without losing context."
+              title="Your application"
               actions={(
                 draftApplication ? (
                   <button onClick={handleStartApplication} className="applicant-action applicant-action--primary">
@@ -440,33 +426,28 @@ export default function Dashboard() {
             <div className="applicant-stat">
               <p className="applicant-stat__label">Submitted Applications</p>
               <p className="applicant-stat__value">{applications.length}</p>
-              <p className="applicant-stat__hint">Applications already sent to recruiters.</p>
             </div>
             <div className="applicant-stat">
               <p className="applicant-stat__label">Draft Progress</p>
               <p className="applicant-stat__value">{draftApplication ? `${calculateProgress()}%` : '0%'}</p>
-              <p className="applicant-stat__hint">Completion level of your current draft.</p>
             </div>
             <div className="applicant-stat">
               <p className="applicant-stat__label">Completed Sections</p>
               <p className="applicant-stat__value">{draftApplication ? completedSectionCount : 0}</p>
-              <p className="applicant-stat__hint">Sections with required information complete.</p>
             </div>
             <div className="applicant-stat">
               <p className="applicant-stat__label">Next Best Action</p>
               <p className="applicant-stat__value text-[1.3rem] leading-tight">{draftApplication ? 'Continue draft' : applications.length > 0 ? 'Track status' : 'Begin application'}</p>
-              <p className="applicant-stat__hint">The clearest step forward right now.</p>
             </div>
           </div>
 
           {!draftApplication && applications.length === 0 && (
             <div className="applicant-panel p-12 text-center">
               <div className="mx-auto max-w-md">
-                <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-                  <FileText className="h-10 w-10 text-blue-600" />
+                <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-accent-soft">
+                  <FileText className="h-10 w-10 text-accent-text" />
                 </div>
-                <h3 className="mb-3 text-2xl font-bold text-gray-900">Ready to apply for a maritime position?</h3>
-                <p className="mb-8 text-gray-600">Start your application now. Progress is saved automatically, and you can return anytime.</p>
+                <h3 className="mb-3 text-2xl font-semibold text-fg">Ready to apply for a maritime position?</h3>
                 <button onClick={handleStartApplication} className="applicant-action applicant-action--primary">
                   Apply now
                   <ArrowRight className="h-4 w-4" />
@@ -476,19 +457,15 @@ export default function Dashboard() {
           )}
 
           {showStartOptions && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 px-4 py-10 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-accent-fill/45 px-4 py-10">
               <div className="applicant-panel w-full max-w-2xl p-6 md:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Application Start Options</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-gray-900">Choose how you want to begin</h3>
-                    <p className="mt-3 text-sm leading-6 text-gray-600">
-                      Start from a clean application or reuse information from a previous submission. If you already have a draft, you can continue it instead of replacing it.
-                    </p>
+                    <h3 className="mt-2 text-2xl font-semibold text-fg">Choose how you want to begin</h3>
                   </div>
                   <button
                     onClick={() => setShowStartOptions(false)}
-                    className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+                    className="rounded-full border border-line px-3 py-1 text-sm text-fg-muted transition hover:border-line-input hover:text-fg-secondary"
                   >
                     Close
                   </button>
@@ -498,44 +475,33 @@ export default function Dashboard() {
                   {draftApplication && (
                     <button
                       onClick={handleContinueDraft}
-                      className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-left transition hover:border-blue-300 hover:bg-blue-100"
+                      className="rounded-card border border-accent/40 bg-accent-soft p-5 text-left transition hover:border-accent hover:bg-accent-soft"
                     >
-                      <p className="text-sm font-semibold text-blue-800">Continue existing draft</p>
-                      <p className="mt-2 text-sm leading-6 text-blue-900/80">
-                        Resume the draft you already started and keep all current progress.
-                      </p>
+                      <p className="text-sm font-semibold text-accent-text">Continue existing draft</p>
                     </button>
                   )}
 
                   <button
                     onClick={() => handleDiscardDraftAndCreate('blank')}
                     disabled={isCreatingApplication}
-                    className="rounded-2xl border border-gray-200 bg-white p-5 text-left transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-card border border-line bg-surface p-5 text-left transition hover:border-line-input hover:bg-raised disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <p className="text-sm font-semibold text-gray-900">Start blank</p>
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                      Begin a completely empty application and enter every section from scratch.
-                    </p>
+                    <p className="text-sm font-semibold text-fg">Start blank</p>
                   </button>
 
                   {applications.length > 0 && (
                     <button
                       onClick={() => handleDiscardDraftAndCreate('reuse')}
                       disabled={isCreatingApplication}
-                      className="rounded-2xl border border-gray-200 bg-white p-5 text-left transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                      className="rounded-card border border-line bg-surface p-5 text-left transition hover:border-line-input hover:bg-raised disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
                     >
-                      <p className="text-sm font-semibold text-gray-900">Reuse previous data</p>
-                      <p className="mt-2 text-sm leading-6 text-gray-600">
-                        Create a new draft prefilled from your most recent submitted application, then update only what has changed.
-                      </p>
+                      <p className="text-sm font-semibold text-fg">Reuse previous data</p>
                     </button>
                   )}
                 </div>
 
                 {draftApplication ? (
-                  <p className="mt-5 text-xs leading-5 text-gray-500">
-                    Starting a new application will replace your current draft so you do not end up with multiple active drafts.
-                  </p>
+                  <p className="mt-5 text-xs text-fg-muted">This replaces your current draft.</p>
                 ) : null}
               </div>
             </div>
@@ -549,27 +515,24 @@ export default function Dashboard() {
                     <div>
                       <div className="mb-2 flex items-center gap-2">
                         <span className="applicant-chip">Draft in progress</span>
-                        <span className="text-sm text-gray-500">Autosave enabled</span>
+                        <span className="text-sm text-fg-muted">Autosave enabled</span>
                       </div>
-                      <h3 className="text-2xl font-semibold tracking-tight text-gray-900">Your application is underway</h3>
-                      <p className="mt-2 text-sm leading-6 text-gray-600">
-                        Continue from where you left off. You can jump directly into any section below and return for review when you are ready to submit.
-                      </p>
+                      <h3 className="text-2xl font-semibold tracking-tight text-fg">Your application is underway</h3>
                     </div>
-                    <button onClick={handleDiscardDraft} className="text-sm text-red-600 hover:text-red-700 hover:underline">
+                    <button onClick={handleDiscardDraft} className="text-sm text-danger hover:text-danger hover:underline">
                       Discard draft
                     </button>
                   </div>
 
-                  <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mt-6 rounded-card border border-line bg-raised p-5">
                     <div className="mb-3 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className="text-sm font-semibold text-blue-700">{calculateProgress()}% complete</span>
+                      <span className="text-sm font-medium text-fg-secondary">Progress</span>
+                      <span className="text-sm font-semibold text-accent-text">{calculateProgress()}% complete</span>
                     </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div className="h-3 rounded-full bg-blue-600 transition-all duration-300" style={{ width: `${calculateProgress()}%` }} />
+                    <div className="h-3 w-full rounded-full bg-line">
+                      <div className="h-3 rounded-full bg-accent-fill transition-all duration-300" style={{ width: `${calculateProgress()}%` }} />
                     </div>
-                    <p className="mt-3 text-sm text-gray-600">Last saved: {new Date(draftApplication.updated_at).toLocaleString()}</p>
+                    <p className="mt-3 text-sm text-fg-secondary">Last saved: {new Date(draftApplication.updated_at).toLocaleString()}</p>
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-3">
@@ -583,26 +546,20 @@ export default function Dashboard() {
                 </div>
 
                 <div className="applicant-panel p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Submission Readiness</p>
-                  <h3 className="mt-2 text-xl font-semibold text-gray-900">Prepare for final review</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Before submission, confirm your identity documents, certificates, medical data, and sea-service history are complete and up to date.
-                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-fg">Prepare for final review</h3>
                   <div className="mt-5 space-y-3">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                      <p className="text-sm font-semibold text-gray-900">What happens next</p>
-                      <p className="mt-2 text-sm text-gray-600">After submission you will receive a reference number and be able to track the application from this dashboard.</p>
+                    <div className="rounded-card border border-line bg-surface p-4">
+                      <p className="text-sm font-semibold text-fg">What happens next</p>
                     </div>
-                    <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
-                      <p className="text-sm font-semibold text-gray-900">Useful tip</p>
-                      <p className="mt-2 text-sm text-gray-600">Use the review step to catch missing dates, incomplete declarations, or outdated document entries before sending your application.</p>
+                    <div className="rounded-card border border-dashed border-line bg-raised p-4">
+                      <p className="text-sm font-semibold text-fg">Useful tip</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="applicant-panel p-6">
-                <h3 className="mb-6 text-lg font-semibold text-gray-900">Application Sections</h3>
+                <h3 className="mb-6 text-lg font-semibold text-fg">Application Sections</h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {SECTION_INFO.map(section => {
                     const Icon = section.icon
@@ -611,14 +568,14 @@ export default function Dashboard() {
                       <button
                         key={section.id}
                         onClick={() => navigate(`/application/form/section/${section.id}`)}
-                        className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-400 hover:bg-blue-50"
+                        className="group flex items-center gap-3 rounded-card border border-line bg-surface p-4 text-left transition-all hover:border-accent hover:bg-accent-soft"
                       >
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isCompleted ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isCompleted ? 'bg-success-soft text-success' : 'bg-raised text-fg-muted'}`}>
                           {isCompleted ? <CheckCircle className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Section {section.id}</p>
-                          <p className="truncate text-xs text-gray-600">{section.title}</p>
+                          <p className="text-xs font-medium text-fg group-hover:text-accent-text">Section {section.id}</p>
+                          <p className="truncate text-xs text-fg-secondary">{section.title}</p>
                         </div>
                       </button>
                     )
@@ -631,7 +588,7 @@ export default function Dashboard() {
           {applications.length > 0 && (
             <div className="applicant-panel p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">Your Applications</h3>
+                <h3 className="text-xl font-semibold text-fg">Your Applications</h3>
                 {!draftApplication && !hasActivePipelineApplication ? (
                   <button onClick={handleStartApplication} className="applicant-action applicant-action--primary">
                     Create new application
@@ -640,49 +597,49 @@ export default function Dashboard() {
               </div>
 
               {hasActivePipelineApplication ? (
-                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="mb-4 rounded-control border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning">
                   A new application can be started only after your current recruitment process is completed.
                 </div>
               ) : null}
 
               <div className="space-y-4">
                 {applications.map(app => (
-                  <div key={app.id} className="rounded-2xl border border-gray-200 p-5 transition-colors hover:border-blue-300">
+                  <div key={app.id} className="rounded-card border border-line p-5 transition-colors hover:border-accent">
                     <div className="flex items-center justify-between gap-6">
                       <div className="flex-1">
                         <div className="mb-3 flex flex-wrap items-center gap-2">
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getApplicantStatusTone(app.status)}`}>
                             {getApplicantStatusLabel(app.status)}
                           </span>
-                          <span className="text-sm text-gray-500">Application record</span>
+                          <span className="text-sm text-fg-muted">Application record</span>
                         </div>
 
                         {app.reference_number ? (
                           <div className="mb-2 flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Ref:</span>
-                            <span className="text-sm font-mono font-semibold text-blue-600">{app.reference_number}</span>
+                            <span className="text-xs text-fg-muted">Ref:</span>
+                            <span className="text-sm font-mono font-semibold text-accent-text">{app.reference_number}</span>
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(app.reference_number)
                                 setCopiedRef(app.reference_number)
                                 setTimeout(() => setCopiedRef(null), 2000)
                               }}
-                              className="rounded p-1 transition-colors hover:bg-gray-100"
+                              className="rounded p-1 transition-colors hover:bg-raised"
                               title="Copy reference number"
                             >
                               {copiedRef === app.reference_number ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <CheckCircle className="h-4 w-4 text-success" />
                               ) : (
-                                <FileText className="h-4 w-4 text-gray-400" />
+                                <FileText className="h-4 w-4 text-fg-muted" />
                               )}
                             </button>
                           </div>
                         ) : null}
 
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-fg">
                           {formatDisplayValue(app.application_data?.data?.section1?.appliedForRank || app.applied_rank) || 'Position not specified'}
                         </p>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-fg-muted">
                           Submitted: {new Date(app.submitted_at).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',

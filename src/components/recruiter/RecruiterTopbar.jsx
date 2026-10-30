@@ -51,7 +51,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
           <button
             type="button"
             onClick={() => navigate('/recruiter/settings')}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-fg-muted transition hover:bg-raised hover:text-fg"
             title="Settings"
             aria-label="Settings"
           >
@@ -65,28 +65,28 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
             onClick={() => setShowUserMenu((prev) => !prev)}
             className="applicant-topbar__user-button"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white">
-              <span className="text-sm font-medium text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-fill text-on-accent">
+              <span className="text-sm font-medium text-fg">
                 {displayName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="hidden sm:block text-left">
-              <div className="text-sm font-medium text-gray-900">{displayName}</div>
-              <div className="text-xs text-gray-500">{displayEmail}</div>
+              <div className="text-sm font-medium text-fg">{displayName}</div>
+              <div className="text-xs text-fg-muted">{displayEmail}</div>
             </div>
             <ChevronDown
-              className={`w-4 h-4 text-gray-500 transition-transform ${
-                showUserMenu ? 'rotate-180' : ''
-              }`}
+              className={`w-4 h-4 text-fg-muted transition-transform ${
+ showUserMenu ? 'rotate-180' : ''
+ }`}
             />
           </button>
 
           {showUserMenu ? (
-            <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-[24px] border border-slate-200 bg-white py-2 shadow-xl">
-              <div className="border-b border-gray-100 px-4 py-3">
-                <div className="text-sm font-medium text-gray-900">{displayName}</div>
-                <div className="text-xs text-gray-500">{displayEmail}</div>
-                <div className="mt-1 text-xs font-medium text-teal-700">{role || 'Recruiter'}</div>
+            <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-[24px] border border-line bg-surface py-2 shadow-overlay">
+              <div className="border-b border-line px-4 py-3">
+                <div className="text-sm font-medium text-fg">{displayName}</div>
+                <div className="text-xs text-fg-muted">{displayEmail}</div>
+                <div className="mt-1 text-xs font-medium text-accent-text">{role || 'Recruiter'}</div>
               </div>
               <button
                 type="button"
@@ -94,7 +94,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                   navigate('/recruiter/dashboard')
                   setShowUserMenu(false)
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm text-fg-secondary transition-colors hover:bg-raised"
               >
                 Dashboard
               </button>
@@ -104,7 +104,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                   navigate('/recruiter/workspace')
                   setShowUserMenu(false)
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm text-fg-secondary transition-colors hover:bg-raised"
               >
                 Workspace
               </button>
@@ -114,7 +114,7 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                   navigate('/recruiter/applications')
                   setShowUserMenu(false)
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm text-fg-secondary transition-colors hover:bg-raised"
               >
                 Applications
               </button>
@@ -124,14 +124,14 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
                   navigate('/recruiter/workspace?tab=candidates')
                   setShowUserMenu(false)
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm text-fg-secondary transition-colors hover:bg-raised"
               >
                 Candidates
               </button>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                className="w-full px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft"
               >
                 Sign Out
               </button>

@@ -63,15 +63,12 @@ export default function AuthCallback() {
   return (
     <div className="public-shell flex min-h-screen items-center justify-center px-4">
       <div className="public-card max-w-md text-center">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-accent-soft text-accent-text">
           <Loader2 className="h-10 w-10 animate-spin" />
         </div>
-        <h1 className="mt-6 text-3xl font-bold tracking-[-0.04em] text-slate-900">
+        <h1 className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-fg">
           Completing sign in
         </h1>
-        <p className="mt-3 text-slate-600">
-          We’re confirming your account and routing you to the right dashboard.
-        </p>
       </div>
     </div>
   )

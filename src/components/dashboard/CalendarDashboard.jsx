@@ -22,15 +22,15 @@ import PageHeader from '../ui/PageHeader'
 const EVENT_TYPE_CONFIG = {
   interview: {
     icon: Video,
-    badgeColor: 'bg-blue-100 text-blue-800',
+    badgeColor: 'bg-accent-soft text-accent-text',
     label: 'Interview',
-    markerColor: 'bg-blue-500'
+    markerColor: 'bg-accent-fill'
   },
   test: {
     icon: FileText,
-    badgeColor: 'bg-purple-100 text-purple-800',
+    badgeColor: 'bg-progress-soft text-progress',
     label: 'Test',
-    markerColor: 'bg-purple-500'
+    markerColor: 'bg-progress'
   }
 }
 
@@ -250,8 +250,8 @@ export default function CalendarDashboard() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-slate-600" />
-          <p className="text-slate-600">Loading calendar workspace...</p>
+          <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-fg-secondary" />
+          <p className="text-fg-secondary">Loading calendar workspace...</p>
         </div>
       </div>
     )
@@ -265,13 +265,13 @@ export default function CalendarDashboard() {
     return (
       <div className="recruiter-panel p-6">
         <div className="flex items-start gap-3">
-          <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-red-600" />
+          <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-danger" />
           <div>
-            <h3 className="mb-1 font-semibold text-red-900">Error Loading Calendar</h3>
-            <p className="text-sm text-red-700">{error}</p>
+            <h3 className="mb-1 font-semibold text-danger">Error Loading Calendar</h3>
+            <p className="text-sm text-danger">{error}</p>
             <button
               onClick={fetchScheduledEvents}
-              className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="mt-4 rounded-control bg-accent-fill px-4 py-2 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
             >
               Refresh events
             </button>
@@ -284,25 +284,23 @@ export default function CalendarDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Calendar Workspace"
         title="Calendar"
-        description="Use the month view to spot event-heavy dates, then inspect the selected day in the agenda panel."
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-2 shadow-sm">
+            <div className="flex items-center gap-2 rounded-control border border-line bg-surface px-2 py-2">
               <button
                 onClick={() => setActiveMonth((current) => addMonths(current, -1))}
-                className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                className="rounded-card p-2 text-fg-secondary transition hover:bg-raised hover:text-fg"
                 aria-label="Previous month"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <span className="min-w-[10rem] text-center text-sm font-semibold text-slate-900">
+              <span className="min-w-[10rem] text-center text-sm font-semibold text-fg">
                 {formatMonthLabel(activeMonth)}
               </span>
               <button
                 onClick={() => setActiveMonth((current) => addMonths(current, 1))}
-                className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                className="rounded-card p-2 text-fg-secondary transition hover:bg-raised hover:text-fg"
                 aria-label="Next month"
               >
                 <ChevronRight className="h-5 w-5" />
@@ -313,7 +311,7 @@ export default function CalendarDashboard() {
                 setActiveMonth(startOfMonth(today))
                 setSelectedDate(today)
               }}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+              className="rounded-control border border-line bg-surface px-4 py-3 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
             >
               Current month
             </button>
@@ -339,11 +337,11 @@ export default function CalendarDashboard() {
               <button
                 key={option.id}
                 onClick={() => setSelectedType(option.id)}
-                className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-                  selectedType === option.id
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900'
-                }`}
+                className={`rounded-control px-4 py-2 text-sm font-medium transition ${
+ selectedType === option.id
+ ? 'bg-accent-fill text-on-accent '
+ : 'border border-line bg-surface text-fg-secondary hover:border-line-input hover:text-fg'
+ }`}
               >
                 {option.label} ({typeSummary[option.id]})
               </button>
@@ -352,16 +350,16 @@ export default function CalendarDashboard() {
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-[20rem]">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search by applicant, rank, reference, platform..."
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-card border border-line bg-surface py-3 pl-11 pr-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/30"
               />
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-fg-muted">
               {lastSyncedAt
                 ? `Last synced ${lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                 : 'Sync pending'}
@@ -372,20 +370,20 @@ export default function CalendarDashboard() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.85fr)]">
         <section className="recruiter-panel overflow-hidden">
-          <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+          <div className="border-b border-line px-5 py-5 sm:px-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="recruiter-page-header__eyebrow !mb-2">Month View</p>
-                <h2 className="text-2xl font-semibold text-slate-900">{formatMonthLabel(activeMonth)}</h2>
+                <h2 className="text-2xl font-semibold text-fg">{formatMonthLabel(activeMonth)}</h2>
               </div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-fg-muted">
                 {monthEvents.length} {monthEvents.length === 1 ? 'event' : 'events'} in this month
               </div>
             </div>
           </div>
 
           <div className="p-4 sm:p-6">
-            <div className="mb-3 grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            <div className="mb-3 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-fg-muted">
               {CALENDAR_DAY_LABELS.map((label) => (
                 <div key={label} className="py-2">
                   {label}
@@ -406,31 +404,31 @@ export default function CalendarDashboard() {
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDate(startOfDay(date))}
-                    className={`min-h-[6.75rem] rounded-2xl border p-3 text-left transition ${
-                      isSelected
-                        ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                        : isCurrentMonth
-                        ? 'border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:shadow-sm'
-                        : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300'
-                    }`}
+                    className={`min-h-[6.75rem] rounded-card border p-3 text-left transition ${
+ isSelected
+ ? 'border-fg bg-accent-fill text-on-accent '
+ : isCurrentMonth
+ ? 'border-line bg-surface text-fg hover:border-line-input '
+ : 'border-line bg-raised text-fg-muted hover:border-line-input'
+ }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span
                         className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
-                          isSelected
-                            ? 'bg-white/15 text-white'
-                            : isToday
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'text-inherit'
-                        }`}
+ isSelected
+ ? 'bg-surface/15 text-fg'
+ : isToday
+ ? 'bg-accent-soft text-accent-text'
+ : 'text-inherit'
+ }`}
                       >
                         {date.getDate()}
                       </span>
                       {eventCount > 0 ? (
                         <span
                           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            isSelected ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}
+ isSelected ? 'bg-surface/15 text-fg' : 'bg-raised text-fg-secondary'
+ }`}
                         >
                           {eventCount}
                         </span>
@@ -442,8 +440,8 @@ export default function CalendarDashboard() {
                         <span
                           key={type}
                           className={`h-2.5 w-2.5 rounded-full ${
-                            isSelected ? 'bg-white' : EVENT_TYPE_CONFIG[type]?.markerColor || 'bg-slate-300'
-                          }`}
+ isSelected ? 'bg-surface' : EVENT_TYPE_CONFIG[type]?.markerColor || 'bg-line-strong'
+ }`}
                         />
                       ))}
                     </div>
@@ -455,10 +453,10 @@ export default function CalendarDashboard() {
         </section>
 
         <aside className="recruiter-panel overflow-hidden">
-          <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+          <div className="border-b border-line px-5 py-5 sm:px-6">
             <p className="recruiter-page-header__eyebrow !mb-2">Selected Date</p>
-            <h2 className="text-2xl font-semibold text-slate-900">{formatAgendaDate(selectedDate)}</h2>
-            <p className="mt-2 text-sm text-slate-500">
+            <h2 className="text-2xl font-semibold text-fg">{formatAgendaDate(selectedDate)}</h2>
+            <p className="mt-2 text-sm text-fg-muted">
               {selectedDateEvents.length
                 ? `${selectedDateEvents.length} scheduled ${selectedDateEvents.length === 1 ? 'event' : 'events'}`
                 : 'No scheduled interviews or tests for this date.'}
@@ -467,12 +465,9 @@ export default function CalendarDashboard() {
 
           <div className="space-y-4 p-4 sm:p-6">
             {selectedDateEvents.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-                <CalendarIcon className="mx-auto mb-3 h-10 w-10 text-slate-400" />
-                <h3 className="text-lg font-semibold text-slate-900">No events on this date</h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Pick another highlighted date or adjust your search and event filters.
-                </p>
+              <div className="rounded-control border border-dashed border-line-input bg-raised px-6 py-12 text-center">
+                <CalendarIcon className="mx-auto mb-3 h-10 w-10 text-fg-muted" />
+                <h3 className="text-lg font-semibold text-fg">No events on this date</h3>
               </div>
             ) : (
               selectedDateEvents.map((event) => {
@@ -481,17 +476,17 @@ export default function CalendarDashboard() {
                 const timeUntil = getTimeUntil(event.scheduled_date, event.scheduled_time)
 
                 return (
-                  <article key={event.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <article key={event.id} className="rounded-card border border-line bg-surface p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <div className={`rounded-2xl p-3 ${config.badgeColor}`}>
+                        <div className={`rounded-card p-3 ${config.badgeColor}`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-900">
+                          <h3 className="text-lg font-semibold text-fg">
                             {event.event_title || `${config.label} - ${event.applications?.reference_number || 'Pending reference'}`}
                           </h3>
-                          <p className="mt-1 text-sm text-slate-500">
+                          <p className="mt-1 text-sm text-fg-muted">
                             {event.profiles?.full_name || 'Applicant'}{event.applications?.reference_number ? ` • ${event.applications.reference_number}` : ''}
                           </p>
                         </div>
@@ -503,21 +498,21 @@ export default function CalendarDashboard() {
                         </span>
                         <span
                           className={`text-xs font-medium ${
-                            timeUntil.isPast
-                              ? 'text-slate-500'
-                              : timeUntil.isToday
-                              ? 'text-orange-600'
-                              : 'text-emerald-600'
-                          }`}
+ timeUntil.isPast
+ ? 'text-fg-muted'
+ : timeUntil.isToday
+ ? 'text-warning'
+ : 'text-success'
+ }`}
                         >
                           {timeUntil.text}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3 text-sm text-fg-secondary sm:grid-cols-2">
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-slate-400" />
+                        <Clock className="h-4 w-4 text-fg-muted" />
                         <span>
                           {event.eventDate?.toLocaleTimeString('en-US', {
                             hour: '2-digit',
@@ -527,19 +522,19 @@ export default function CalendarDashboard() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-slate-400" />
+                        <User className="h-4 w-4 text-fg-muted" />
                         <span>{event.applications?.applied_rank || 'Rank pending'}</span>
                       </div>
 
                       {event.location_details ? (
                         <div className="flex items-center gap-2 sm:col-span-2">
-                          <MapPin className="h-4 w-4 text-slate-400" />
+                          <MapPin className="h-4 w-4 text-fg-muted" />
                           {String(event.location_details).startsWith('http') ? (
                             <a
                               href={event.location_details}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-600 transition hover:text-blue-800 hover:underline"
+                              className="inline-flex items-center gap-1 text-accent-text transition hover:text-accent-text hover:underline"
                             >
                               Open meeting link
                               <ExternalLink className="h-3.5 w-3.5" />
@@ -552,7 +547,7 @@ export default function CalendarDashboard() {
                     </div>
 
                     {event.event_description ? (
-                      <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                      <p className="mt-4 rounded-control bg-raised px-4 py-3 text-sm text-fg-secondary">
                         {event.event_description}
                       </p>
                     ) : null}

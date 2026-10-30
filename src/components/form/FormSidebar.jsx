@@ -95,12 +95,12 @@ export default function FormSidebar({ applicationData }) {
   }
 
   return (
-    <aside className="w-80 border-r border-gray-200 bg-white/90 backdrop-blur flex flex-col h-screen sticky top-0">
+    <aside className="w-80 border-r border-line bg-surface/90 flex flex-col h-screen sticky top-0">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-line">
         <button
           onClick={() => navigate(returnToReview ? '/application/review' : '/dashboard')}
-          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          className="mb-4 flex items-center gap-2 text-fg-secondary hover:text-fg"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -108,19 +108,17 @@ export default function FormSidebar({ applicationData }) {
           <span className="text-sm font-medium">{returnToReview ? 'Back to Review' : 'Back to Dashboard'}</span>
         </button>
         
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Resume Application</p>
-        <h1 className="mt-2 text-xl font-bold text-gray-900 mb-1">Complete your profile</h1>
-        <p className="text-sm text-gray-600">Work through the guided sections, then review everything before submitting.</p>
+        <h1 className="mt-2 text-xl font-semibold text-fg mb-1">Complete your profile</h1>
         
         {/* Progress Bar */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-700">Overall Progress</span>
-            <span className="text-xs font-bold text-blue-600">{calculateProgress()}%</span>
+            <span className="text-xs font-medium text-fg-secondary">Overall Progress</span>
+            <span className="text-xs font-semibold text-accent-text">{calculateProgress()}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div className="w-full bg-line rounded-full h-2.5">
             <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+              className="bg-accent-fill h-2.5 rounded-full transition-all duration-500"
               style={{ width: `${calculateProgress()}%` }}
             />
           </div>
@@ -140,28 +138,28 @@ export default function FormSidebar({ applicationData }) {
                 key={section.id}
                 onClick={() => handleSectionClick(section.id)}
                 className={`applicant-step w-full text-left ${
-                  isCurrent
-                    ? 'is-current'
-                    : status === 'complete'
-                    ? 'is-complete text-green-900 hover:bg-green-100'
-                    : status === 'incomplete'
-                    ? 'bg-red-50 text-red-900 hover:bg-red-100'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+ isCurrent
+ ? 'is-current'
+ : status === 'complete'
+ ? 'is-complete text-success hover:bg-success-soft'
+ : status === 'incomplete'
+ ? 'bg-danger-soft text-danger hover:bg-danger-soft'
+ : 'text-fg-secondary hover:bg-raised'
+ }`}
               >
                 {/* Icon/Status */}
-                <div className={`flex-shrink-0 ${isCurrent ? 'text-white' : ''}`}>
+                <div className={`flex-shrink-0 ${isCurrent ? 'text-fg' : ''}`}>
                   {status === 'complete' && !isCurrent ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <CheckCircle className="w-5 h-5 text-success" />
                   ) : status === 'incomplete' && !isCurrent ? (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <AlertCircle className="w-5 h-5 text-danger" />
                   ) : isCurrent ? (
                     <div className="applicant-step__number">
-                      <span className="text-xs font-bold">{section.id}</span>
+                      <span className="text-xs font-semibold">{section.id}</span>
                     </div>
                   ) : (
                     <div className="applicant-step__number">
-                      <span className="text-xs font-bold">{section.id}</span>
+                      <span className="text-xs font-semibold">{section.id}</span>
                     </div>
                   )}
                 </div>
@@ -170,17 +168,17 @@ export default function FormSidebar({ applicationData }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 flex-shrink-0 ${
-                      isCurrent 
-                        ? 'text-white' 
-                        : status === 'complete' 
-                        ? 'text-green-600' 
-                        : status === 'incomplete'
-                        ? 'text-red-600'
-                        : 'text-gray-400'
-                    }`} />
+ isCurrent 
+ ? 'text-fg' 
+ : status === 'complete' 
+ ? 'text-success' 
+ : status === 'incomplete'
+ ? 'text-danger'
+ : 'text-fg-muted'
+ }`} />
                     <span className={`text-sm font-medium truncate ${
-                      isCurrent ? 'text-white' : ''
-                    }`}>
+ isCurrent ? 'text-fg' : ''
+ }`}>
                       {section.shortTitle}
                     </span>
                   </div>
@@ -189,12 +187,12 @@ export default function FormSidebar({ applicationData }) {
                 {/* Section Number Badge (for non-current) */}
                 {!isCurrent && (
                   <span className={`text-xs font-semibold ${
-                    status === 'complete' 
-                      ? 'text-green-700' 
-                      : status === 'incomplete'
-                      ? 'text-red-700'
-                      : 'text-gray-400'
-                  }`}>
+ status === 'complete' 
+ ? 'text-success' 
+ : status === 'incomplete'
+ ? 'text-danger'
+ : 'text-fg-muted'
+ }`}>
                     {section.id}
                   </span>
                 )}
@@ -205,7 +203,7 @@ export default function FormSidebar({ applicationData }) {
       </nav>
 
       {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-line">
         <button
           onClick={() => navigate('/application/review')}
           className="applicant-action applicant-action--primary w-full"

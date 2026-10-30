@@ -168,8 +168,6 @@ body {
 .recruiter-page-header__eyebrow {
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: rgb(var(--accent-text));
   margin-bottom: 0.75rem;
 }
@@ -485,8 +483,6 @@ body {
 
 .workspace-hero__eyebrow {
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   font-weight: 600;
   color: rgb(var(--accent-text));
 }
@@ -612,8 +608,6 @@ body {
 .recruiter-modal__eyebrow {
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: rgb(var(--fg-secondary));
 }
 
@@ -916,8 +910,6 @@ body {
 .public-eyebrow {
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .public-title {
@@ -1131,6 +1123,10 @@ body {
   height: auto;
   flex-shrink: 0;
   object-fit: contain;
+  /* Logo artwork has an opaque white background: always present it on a white plate. */
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 2px 8px;
 }
 
 .brand-lockup__product {
@@ -1159,7 +1155,7 @@ body {
 }
 
 .brand-lockup--compact .brand-lockup__logo {
-  width: 210px;
+  width: 120px;
 }
 
 .brand-lockup--compact .brand-lockup__product-label {
@@ -1310,8 +1306,6 @@ body {
 .applicant-hero__eyebrow {
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: rgb(var(--accent-text));
 }
 
@@ -1472,8 +1466,6 @@ body {
 .applicant-section-kicker {
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: rgb(var(--accent-text));
 }
 
@@ -1669,7 +1661,7 @@ body {
 
   .brand-lockup__logo,
   .brand-lockup--compact .brand-lockup__logo {
-    width: 164px;
+    width: 120px;
   }
 
   .brand-lockup__product-copy {
@@ -1725,8 +1717,6 @@ body {
   color: rgb(var(--fg-secondary));
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   text-align: left;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid rgb(var(--line));

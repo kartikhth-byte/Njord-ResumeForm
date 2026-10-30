@@ -24,8 +24,8 @@ export default function CalendarDashboardPage() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-slate-900"></div>
-          <p className="text-slate-600">Loading calendar workspace...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-fg"></div>
+          <p className="text-fg-secondary">Loading calendar workspace...</p>
         </div>
       </div>
     )
@@ -36,11 +36,11 @@ export default function CalendarDashboardPage() {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center px-4">
         <div className="recruiter-panel max-w-lg p-8 text-center">
-          <h2 className="mb-2 text-2xl font-bold text-red-600">Access Denied</h2>
-          <p className="text-slate-600">
+          <h2 className="mb-2 text-2xl font-semibold text-danger">Access Denied</h2>
+          <p className="text-fg-secondary">
             You don't have permission to access this page.
           </p>
-          <Link to="/recruiter/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
+          <Link to="/recruiter/dashboard" className="mt-4 inline-block text-accent-text hover:underline">
             Return to recruiter dashboard
           </Link>
         </div>

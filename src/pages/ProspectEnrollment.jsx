@@ -65,28 +65,28 @@ function formatTimestamp(value) {
 }
 
 function getStatusTone(status) {
-  if (!status) return 'bg-gray-100 text-gray-700'
-  if (status === 'open' || status === 'shortlisted') return 'bg-emerald-100 text-emerald-700'
+  if (!status) return 'bg-raised text-fg-secondary'
+  if (status === 'open' || status === 'shortlisted') return 'bg-success-soft text-success'
   if (status === 'closed' || status === 'customer_accepted' || status === 'joined') {
-    return 'bg-blue-100 text-blue-700'
+    return 'bg-accent-soft text-accent-text'
   }
   if (status === 'cancelled' || status === 'withdrawn' || status === 'customer_rejected') {
-    return 'bg-rose-100 text-rose-700'
+    return 'bg-danger-soft text-danger'
   }
-  return 'bg-amber-100 text-amber-700'
+  return 'bg-warning-soft text-warning'
 }
 
 function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">
+      <span className="block font-medium text-fg-secondary">
         {label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
@@ -102,16 +102,16 @@ function SelectField({ label, value, onChange, options, placeholder = 'Select an
 function TextField({ label, value, onChange, placeholder = '', type = 'text', required = false }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">
+      <span className="block font-medium text-fg-secondary">
         {label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
   )
@@ -120,13 +120,13 @@ function TextField({ label, value, onChange, placeholder = '', type = 'text', re
 function TextAreaField({ label, value, onChange, placeholder = '', rows = 4 }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="block font-medium text-gray-700">{label}</span>
+      <span className="block font-medium text-fg-secondary">{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
   )
@@ -134,16 +134,16 @@ function TextAreaField({ label, value, onChange, placeholder = '', rows = 4 }) {
 
 function ToggleField({ label, checked, onChange, description }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm">
+    <label className="flex cursor-pointer items-start gap-3 rounded-control border border-line bg-surface px-4 py-3 text-sm">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        className="mt-1 h-4 w-4 rounded border-line-input text-accent-text focus:ring-accent"
       />
       <span>
-        <span className="block font-medium text-gray-800">{label}</span>
-        {description ? <span className="block text-xs text-gray-500">{description}</span> : null}
+        <span className="block font-medium text-fg">{label}</span>
+        {description ? <span className="block text-xs text-fg-muted">{description}</span> : null}
       </span>
     </label>
   )
@@ -154,12 +154,12 @@ function SectionCard({ title, description, icon, children, className = '' }) {
   return (
     <section className={`recruiter-panel p-5 sm:p-6 ${className}`}>
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+        <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <h2 className="text-lg font-semibold text-fg">{title}</h2>
+          <p className="mt-1 text-sm text-fg-secondary">{description}</p>
         </div>
       </div>
       {children}
@@ -568,13 +568,13 @@ export default function ProspectEnrollment() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
-            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
-            <p className="text-sm text-slate-600">Loading prospect enrollment workspace...</p>
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-accent-text" />
+            <p className="text-sm text-fg-secondary">Loading prospect enrollment workspace...</p>
           </div>
         </div>
       </div>
@@ -583,7 +583,7 @@ export default function ProspectEnrollment() {
 
   if (!canAccessWorkspace) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
         <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
@@ -603,28 +603,26 @@ export default function ProspectEnrollment() {
   const liveProspects = prospects.filter((prospect) => prospect.status !== 'rejected').length
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
       <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Prospect Enrollment"
           title="Recruiter enrollment workspace"
-          description="Create prospects, attach them to requirements, and move the prospect-to-requirement workflow forward without leaving the recruiter console."
           actions={(
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={reloadWorkspace}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Refresh
               </button>
               <Link
                 to="/recruiter/applications"
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
               >
                 <ArrowRight className="h-4 w-4" />
                 Open applications workspace
@@ -634,22 +632,22 @@ export default function ProspectEnrollment() {
         />
 
         {error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">
             {success}
           </div>
         ) : null}
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <StatCard label="Prospects" value={totalProspects} icon={Users} tone="info" hint="Prospects visible to this recruiter." />
-          <StatCard label="Live prospects" value={liveProspects} icon={UserPlus} tone="success" hint="Prospects that are not rejected." />
-          <StatCard label="Open requirements" value={openRequirementsCount} icon={BriefcaseBusiness} tone="warning" hint="Requirements available for shortlisting." />
-          <StatCard label="Active junctions" value={junctionCount} icon={ClipboardList} tone="info" hint="Prospect-to-requirement links loaded into the workspace." />
+          <StatCard label="Prospects" value={totalProspects} icon={Users} tone="info" />
+          <StatCard label="Live prospects" value={liveProspects} icon={UserPlus} tone="success" />
+          <StatCard label="Open requirements" value={openRequirementsCount} icon={BriefcaseBusiness} tone="warning" />
+          <StatCard label="Active junctions" value={junctionCount} icon={ClipboardList} tone="info" />
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
@@ -664,7 +662,7 @@ export default function ProspectEnrollment() {
                 description="This recruiter account can view prospects and requirements, but it cannot create new prospects."
               />
             ) : openRequirements.length === 0 ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <div className="rounded-control border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning">
                 No open requirements are available yet.
               </div>
             ) : (
@@ -726,7 +724,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!createForm.requirementId || !createForm.name || !createForm.dob || !createForm.nationalityId || !createForm.expInRankMonths || !createForm.telephone || !createForm.email}
                 >
                   <UserPlus className="h-4 w-4" />
@@ -769,7 +767,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!attachForm.prospectId || !attachForm.requirementId}
                 >
                   <Link2 className="h-4 w-4" />
@@ -815,7 +813,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!prospectNoteForm.prospectId || !prospectNoteForm.body.trim()}
                 >
                   <Send className="h-4 w-4" />
@@ -859,7 +857,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!requirementRemarkForm.requirementId || !requirementRemarkForm.body.trim()}
                 >
                   <Send className="h-4 w-4" />
@@ -935,7 +933,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!requirementTransitionForm.requirementId || !requirementTransitionForm.expectedVersion || !requirementTransitionForm.newStatus}
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -1009,7 +1007,7 @@ export default function ProspectEnrollment() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={!junctionTransitionForm.prospectRequirementId || !junctionTransitionForm.expectedVersion || !junctionTransitionForm.newStatus}
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -1035,15 +1033,15 @@ export default function ProspectEnrollment() {
                   description="Create the first prospect or refresh the workspace after deployment."
                 />
               ) : prospects.map((prospect) => (
-                <div key={prospect.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div key={prospect.id} className="rounded-card border border-line bg-surface p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-slate-900">{prospect.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">{prospect.email}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="font-semibold text-fg">{prospect.name}</div>
+                      <div className="mt-1 text-xs text-fg-muted">{prospect.email}</div>
+                      <div className="mt-1 text-xs text-fg-muted">
                         Nationality: {countryNameById.get(prospect.nationality_id) || prospect.nationality_id}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-fg-muted">
                         Rank: {rankNameById.get(prospect.rank_applied_for_id) || prospect.rank_applied_for_id}
                       </div>
                     </div>
@@ -1056,7 +1054,7 @@ export default function ProspectEnrollment() {
                       <button
                         type="button"
                         onClick={() => setProspectNoteForm((current) => ({ ...current, prospectId: prospect.id }))}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-full border border-line px-3 py-1 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                       >
                         Note
                       </button>
@@ -1065,7 +1063,7 @@ export default function ProspectEnrollment() {
                       <button
                         type="button"
                         onClick={() => setAttachForm((current) => ({ ...current, prospectId: prospect.id }))}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-full border border-line px-3 py-1 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                       >
                         Attach
                       </button>
@@ -1090,17 +1088,17 @@ export default function ProspectEnrollment() {
                   description="Open requirements will appear here once the schema is deployed."
                 />
               ) : requirements.map((requirement) => (
-                <div key={requirement.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div key={requirement.id} className="rounded-card border border-line bg-surface p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-slate-900">{requirement.req_id_display}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="font-semibold text-fg">{requirement.req_id_display}</div>
+                      <div className="mt-1 text-xs text-fg-muted">
                         {requirement.customer_name || 'No customer name'}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-fg-muted">
                         Vessel: {requirement.vessel_name || vesselTypeNameById.get(requirement.vessel_type_id) || requirement.vessel_type_id}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-fg-muted">
                         Opened: {formatTimestamp(requirement.created_at)}
                       </div>
                     </div>
@@ -1113,7 +1111,7 @@ export default function ProspectEnrollment() {
                       <button
                         type="button"
                         onClick={() => setRequirementRemarkForm((current) => ({ ...current, requirementId: requirement.id }))}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-full border border-line px-3 py-1 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                       >
                         Remark
                       </button>
@@ -1126,7 +1124,7 @@ export default function ProspectEnrollment() {
                           requirementId: requirement.id,
                           expectedVersion: String(requirement.version || ''),
                         }))}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-full border border-line px-3 py-1 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                       >
                         Transition
                       </button>
@@ -1154,16 +1152,16 @@ export default function ProspectEnrollment() {
                 const prospect = prospects.find((item) => item.id === junction.prospect_id)
                 const requirement = requirements.find((item) => item.id === junction.requirement_id)
                 return (
-                  <div key={junction.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div key={junction.id} className="rounded-card border border-line bg-surface p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-slate-900">
+                        <div className="font-semibold text-fg">
                           {prospect?.name || junction.prospect_id}
                         </div>
-                        <div className="mt-1 text-xs text-slate-500">
+                        <div className="mt-1 text-xs text-fg-muted">
                           {requirement?.req_id_display || junction.requirement_id}
                         </div>
-                        <div className="mt-1 text-xs text-slate-500">
+                        <div className="mt-1 text-xs text-fg-muted">
                           Created: {formatTimestamp(junction.created_at)}
                         </div>
                       </div>
@@ -1180,7 +1178,7 @@ export default function ProspectEnrollment() {
                             prospectRequirementId: junction.id,
                             expectedVersion: String(junction.version || ''),
                           }))}
-                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                          className="rounded-full border border-line px-3 py-1 text-xs font-medium text-fg-secondary transition hover:bg-raised"
                         >
                           Transition
                         </button>
@@ -1193,9 +1191,9 @@ export default function ProspectEnrollment() {
           </SectionCard>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-dashed border-slate-200 bg-white/80 p-5 text-sm text-slate-600">
+        <div className="mt-6 rounded-card border border-dashed border-line bg-surface/80 p-5 text-sm text-fg-secondary">
           <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-4 w-4 text-amber-500" />
+            <AlertCircle className="mt-0.5 h-4 w-4 text-warning" />
             <p>
               The new prospect-enrollment RPCs are wired into the recruiter console here. If a transition or note action fails, the server-side permission or version guard is usually the first thing to check.
             </p>
