@@ -13,9 +13,7 @@
 
 ## Current Design Direction
 
-- light, high-clarity backgrounds
-- glassy/soft panel styling
-- strong typography for dashboard headings
+- superseded by `docs/ui-theme-spec.md` (warm compact theme: recruiter dark, applicant light)
 - clear role separation between applicant and recruiter surfaces
 
 ## Current Gaps
