@@ -988,19 +988,19 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
   const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
   return (
-    <div className="tracker-table-wrap tracker-table-wrap--plain overflow-y-visible">
-      <table className="tracker-table tracker-table--tiles">
+    <div className="tracker-table-wrap overflow-y-visible">
+      <table className="tracker-table">
         <thead>
           <tr>
             <th className="tracker-cell--sticky-1">Reference</th>
             <th className="tracker-cell--sticky-2">Name</th>
+            <th>Status</th>
+            <th>Compliance</th>
             <th>Email</th>
             <th>Phone</th>
             <th>Present rank</th>
             <th>Applied rank</th>
             <th>Vessel type</th>
-            <th>Status</th>
-            <th>Compliance</th>
             <th>Submitted</th>
             {showRelevance ? (
               <>
@@ -1035,6 +1035,8 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                     {app.full_name}
                   </button>
                 </td>
+                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
+                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} size="compact" /></td>
                 <td className="tracker-cell--nowrap tracker-cell--muted">
                   <span className="block max-w-[13rem] truncate" title={app.email}>{app.email || '—'}</span>
                 </td>
@@ -1042,8 +1044,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.last_rank) || '—'}</td>
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.desired_rank) || '—'}</td>
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.vessel_type) || '—'}</td>
-                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
-                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} size="compact" /></td>
                 <td className="tracker-cell--nowrap tracker-cell--muted">
                   {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
                 </td>

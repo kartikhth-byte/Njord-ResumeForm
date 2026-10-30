@@ -21,7 +21,7 @@ export default function MobileMenu({ isOpen, onClose, currentSection = 1, comple
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-accent-fill/50 lg:hidden"
+        className="fixed inset-0 z-40 bg-black/50 lg:hidden"
         onClick={onClose}
       />
 

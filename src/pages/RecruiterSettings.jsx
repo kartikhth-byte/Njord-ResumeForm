@@ -8,7 +8,7 @@ import RecruiterTeamSection from '../components/recruiter/RecruiterTeamSection'
 import RecruiterIntegrationsSection from '../components/recruiter/RecruiterIntegrationsSection'
 import RecruiterWorksheetMappingsSection from '../components/recruiter/RecruiterWorksheetMappingsSection'
 import PageHeader from '../components/ui/PageHeader'
-import { Users, KeyRound, ArrowRight, X, FileSpreadsheet } from 'lucide-react'
+import { Users, KeyRound, ArrowRight, FileSpreadsheet } from 'lucide-react'
 
 export default function RecruiterSettings() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -58,23 +58,23 @@ export default function RecruiterSettings() {
   const settingsCards = [
     {
       key: 'team',
-      title: 'Team Management',
+      title: 'Team',
       icon: Users,
-      onClick: () => openSection('team'),
+      onClick: () => openSection(activeSection === 'team' ? null : 'team'),
       visible: canManageTeam()
     },
     {
       key: 'integrations',
-      title: 'Integrations & Secrets',
+      title: 'Integrations',
       icon: KeyRound,
-      onClick: () => openSection('integrations'),
+      onClick: () => openSection(activeSection === 'integrations' ? null : 'integrations'),
       visible: true
     },
     {
       key: 'worksheets',
-      title: 'Worksheet Templates & Mappings',
+      title: 'Worksheet templates',
       icon: FileSpreadsheet,
-      onClick: () => openSection('worksheets'),
+      onClick: () => openSection(activeSection === 'worksheets' ? null : 'worksheets'),
       visible: true
     }
   ].filter(card => card.visible)
@@ -95,7 +95,7 @@ export default function RecruiterSettings() {
             title="Settings"
           />
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {settingsCards.map(card => {
               const CardIcon = card.icon
               return (
@@ -103,20 +103,14 @@ export default function RecruiterSettings() {
                   key={card.key}
                   type="button"
                   onClick={card.onClick}
-                  className="recruiter-panel p-6 text-left transition hover:-translate-y-0.5"
+                  aria-pressed={activeSection === card.key}
+                  className={`flex items-center gap-3 rounded-card border p-4 text-left transition ${
+                    activeSection === card.key ? 'border-accent bg-raised' : 'border-line bg-surface hover:border-line-strong'
+                  }`}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="mt-3 text-xl font-semibold text-fg">{card.title}</h2>
-                    </div>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-card bg-surface text-fg-secondary">
-                      <CardIcon className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-fg">
-                    Open section
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
+                  <CardIcon className="h-5 w-5 text-accent" />
+                  <span className="flex-1 text-base font-medium text-fg">{card.title}</span>
+                  <ArrowRight className="h-4 w-4 text-fg-muted" />
                 </button>
               )
             })}
@@ -124,57 +118,18 @@ export default function RecruiterSettings() {
 
           {canManageTeam() && activeSection === 'team' ? (
             <section ref={teamSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
-                <div>
-                  <h2 className="mt-2 text-2xl font-semibold text-fg">Team Management</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
-                >
-                  <X className="h-4 w-4" />
-                  Close section
-                </button>
-              </div>
               <RecruiterTeamSection currentUserId={user?.id} embedded />
             </section>
           ) : null}
 
           {activeSection === 'integrations' ? (
             <section ref={integrationsSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
-                <div>
-                  <h2 className="mt-2 text-2xl font-semibold text-fg">Integrations &amp; Secrets</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
-                >
-                  <X className="h-4 w-4" />
-                  Close section
-                </button>
-              </div>
               <RecruiterIntegrationsSection />
             </section>
           ) : null}
 
           {activeSection === 'worksheets' ? (
             <section ref={worksheetSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
-                <div>
-                  <h2 className="mt-2 text-2xl font-semibold text-fg">Worksheet Templates &amp; Mappings</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
-                >
-                  <X className="h-4 w-4" />
-                  Close section
-                </button>
-              </div>
               <RecruiterWorksheetMappingsSection />
             </section>
           ) : null}

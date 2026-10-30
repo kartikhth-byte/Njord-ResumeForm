@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { Children, isValidElement, useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
@@ -306,14 +306,16 @@ export default function ViewApplication() {
   const visas = applicationData?.section5?.visas || []
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
-  const summaryCardTitle = isApplicantView ? 'Application snapshot' : 'Recruiter summary'
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
-  const summaryStats = [
-    { label: 'Certificates', value: certificates.length, icon: BadgeCheck, tone: 'accent', hint: 'CoC entries on file.' },
-    { label: 'Endorsements', value: endorsements.length, icon: Anchor, hint: 'Flag-state endorsements recorded.' },
-    { label: 'Sea Service Entries', value: seaService.length, icon: BriefcaseBusiness, hint: 'Previous contracts and vessel experience.' },
-    { label: 'Visas', value: visas.length, icon: CalendarDays, tone: 'warning', hint: 'Travel and port-entry documents.' }
-  ]
+  const summaryRows = [
+    { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
+    { label: 'Nationality', value: applicationData?.section2?.nationality },
+    { label: 'Age', value: applicationData?.section2?.age },
+    { label: 'Certificates', value: certificates.length },
+    { label: 'Endorsements', value: endorsements.length },
+    { label: 'Sea service entries', value: seaService.length },
+    { label: 'Visas', value: visas.length },
+  ].filter((row) => row.value !== null && row.value !== undefined && row.value !== '')
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
   const requirementCompliance = linkedRequirement
@@ -402,7 +404,7 @@ export default function ViewApplication() {
       {worksheetModalOpen ? (
         <div className="fixed inset-0 z-50 print:hidden">
           <div
-            className="absolute inset-0 bg-accent-fill/55 backdrop-blur-[3px]"
+            className="absolute inset-0 bg-black/55"
             onClick={() => !worksheetGenerating && setWorksheetModalOpen(false)}
           />
 
@@ -565,19 +567,29 @@ export default function ViewApplication() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold tracking-wide text-fg-secondary">
-                      {application.reference_number}
-                    </span>
+                    {application.reference_number ? (
+                      <button
+                        type="button"
+                        title="Copy reference"
+                        onClick={() => {
+                          navigator.clipboard.writeText(application.reference_number)
+                          setCopiedRef(true)
+                          setTimeout(() => setCopiedRef(false), 2000)
+                        }}
+                        className="rounded-control bg-raised px-2 py-0.5 font-mono text-xs text-fg-secondary transition hover:text-fg"
+                      >
+                        {copiedRef ? 'Copied' : application.reference_number}
+                      </button>
+                    ) : null}
                     <StatusBadge status={application.status} />
                   </div>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-fg">{fullName || 'Unnamed candidate'}</h2>
-                  <p className="mt-1 text-sm text-fg-secondary">
+                  <p className="mt-2 text-sm text-fg-secondary">
                     {formatDisplayValue(applicationData?.section1?.appliedForRank) || 'Rank not specified'} • {formatDisplayValue(applicationData?.section1?.vesselType) || 'Vessel preference not specified'}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3 rounded-card border border-dashed border-line bg-raised p-4">
+              <div className="mt-5 space-y-2">
                 <div className="flex items-center gap-3 text-sm text-fg-secondary">
                   <Mail className="h-4 w-4 text-fg-muted" />
                   <span>{applicationData?.section2?.email || 'No email provided'}</span>
@@ -594,7 +606,7 @@ export default function ViewApplication() {
 
               {isRecruiterView ? (
                 <div className="mt-5">
-                  <div className="mt-3 rounded-card border border-line bg-surface p-4">
+                  <div>
                     <SequentialStatusControl
                       emphasis
                       applicationId={application.id}
@@ -604,44 +616,21 @@ export default function ViewApplication() {
                     />
                   </div>
                 </div>
-              ) : (
-                <div className="mt-5 rounded-card border border-line bg-surface p-4">
-                  <div className="mt-3">
-                    <StatusBadge status={application.status} />
-                  </div>
-                </div>
-              )}
+              ) : null}
 
-              <div className="mt-5 grid grid-cols-1 gap-3">
-                {summaryStats.map(stat => (
-                  <StatCard key={stat.label} {...stat} />
+              <dl className="mt-5 divide-y divide-line border-t border-line text-sm">
+                {summaryRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between gap-3 py-2">
+                    <dt className="text-fg-secondary">{row.label}</dt>
+                    <dd className="font-medium text-fg">{row.value}</dd>
+                  </div>
                 ))}
-              </div>
-
-              <div className="mt-5 rounded-card border border-dashed border-line bg-surface p-4">
-                <p className="text-sm font-semibold text-fg">{summaryCardTitle}</p>
-                <div className="mt-3 space-y-3 text-sm text-fg-secondary">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Nationality</span>
-                    <span className="font-medium text-fg">{applicationData?.section2?.nationality || 'Not provided'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Age</span>
-                    <span className="font-medium text-fg">{applicationData?.section2?.age || 'Not provided'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Submission date</span>
-                    <span className="font-medium text-fg">
-                      {application.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </dl>
             </div>
           </aside>
 
-          <div className="space-y-6">
-            <div className="recruiter-panel p-6 print:shadow-none print:border">
+          <div className="flex flex-col gap-6">
+            <div className="recruiter-panel hidden p-6 print:block print:shadow-none print:border">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-fg">{fullName || 'Application view'}</h2>
@@ -1132,20 +1121,28 @@ export default function ViewApplication() {
 }
 
 // Helper Components
+const isEmptyValue = (value) =>
+  value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+
+// Empty fields are hidden; a section with nothing filled in collapses to one line.
 function ViewSection({ title, children }) {
+  const visibleChildren = Children.toArray(children).filter(
+    (child) => !(isValidElement(child) && child.type === ViewRow && isEmptyValue(child.props.value))
+  )
   return (
     <div className="recruiter-panel p-6 print:shadow-none print:border print:break-inside-avoid">
-      <h3 className="mb-5 border-b border-line pb-3 text-lg font-semibold tracking-tight text-fg">{title}</h3>
-      {children}
+      <h3 className={`text-base font-semibold text-fg ${visibleChildren.length ? 'mb-3 border-b border-line pb-3' : ''}`}>{title}</h3>
+      {visibleChildren.length ? visibleChildren : <p className="text-sm text-fg-muted">Nothing provided.</p>}
     </div>
   )
 }
 
 function ViewRow({ label, value }) {
+  if (isEmptyValue(value)) return null
   return (
-    <div className="flex flex-col gap-1 border-b border-line py-3 last:border-b-0 md:flex-row">
-      <span className="w-full text-sm font-medium text-fg-muted md:w-1/3">{label}</span>
-      <span className="w-full text-sm text-fg md:w-2/3">{value || 'Not provided'}</span>
+    <div className="flex flex-col gap-1 border-b border-line py-2 last:border-b-0 md:flex-row">
+      <span className="w-full text-sm text-fg-secondary md:w-1/3">{label}</span>
+      <span className="w-full text-sm text-fg md:w-2/3">{value}</span>
     </div>
   )
 }

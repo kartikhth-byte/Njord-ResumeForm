@@ -421,24 +421,18 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="applicant-stat-grid">
-            <div className="applicant-stat">
-              <p className="applicant-stat__label">Submitted Applications</p>
-              <p className="applicant-stat__value">{applications.length}</p>
+          {draftApplication ? (
+            <div className="applicant-stat-grid">
+              <div className="applicant-stat">
+                <p className="applicant-stat__label">Draft progress</p>
+                <p className="applicant-stat__value">{`${calculateProgress()}%`}</p>
+              </div>
+              <div className="applicant-stat">
+                <p className="applicant-stat__label">Sections complete</p>
+                <p className="applicant-stat__value">{completedSectionCount}</p>
+              </div>
             </div>
-            <div className="applicant-stat">
-              <p className="applicant-stat__label">Draft Progress</p>
-              <p className="applicant-stat__value">{draftApplication ? `${calculateProgress()}%` : '0%'}</p>
-            </div>
-            <div className="applicant-stat">
-              <p className="applicant-stat__label">Completed Sections</p>
-              <p className="applicant-stat__value">{draftApplication ? completedSectionCount : 0}</p>
-            </div>
-            <div className="applicant-stat">
-              <p className="applicant-stat__label">Next Best Action</p>
-              <p className="applicant-stat__value text-[1.3rem] leading-tight">{draftApplication ? 'Continue draft' : applications.length > 0 ? 'Track status' : 'Begin application'}</p>
-            </div>
-          </div>
+          ) : null}
 
           {!draftApplication && applications.length === 0 && (
             <div className="applicant-panel p-12 text-center">
@@ -456,7 +450,7 @@ export default function Dashboard() {
           )}
 
           {showStartOptions && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-accent-fill/45 px-4 py-10">
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4 py-10">
               <div className="applicant-panel w-full max-w-2xl p-6 md:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -587,7 +581,7 @@ export default function Dashboard() {
           {applications.length > 0 && (
             <div className="applicant-panel p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-fg">Your Applications</h3>
+                <h3 className="text-base font-semibold text-fg">Applications</h3>
                 {!draftApplication && !hasActivePipelineApplication ? (
                   <button onClick={handleStartApplication} className="applicant-action applicant-action--primary">
                     Create new application
