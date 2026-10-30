@@ -1,10 +1,10 @@
-export default function PageHeader({ eyebrow, title, description, actions, children }) {
+// Title + actions only. Eyebrow/description props are intentionally not rendered
+// (minimal-text rule, docs/ui-theme-spec.md §12); remove them from call sites during migration.
+export default function PageHeader({ title, actions, children }) {
   return (
     <div className="recruiter-page-header">
       <div className="recruiter-page-header__body">
-        {eyebrow && <p className="recruiter-page-header__eyebrow">{eyebrow}</p>}
         <h1 className="recruiter-page-header__title">{title}</h1>
-        {description && <p className="recruiter-page-header__description">{description}</p>}
         {children}
       </div>
 

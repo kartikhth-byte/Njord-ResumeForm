@@ -241,3 +241,20 @@ Each phase passes `npm run lint` and `npm run build`. Work happens on branch `ui
 - Status badges and compliance RAG are readable in both themes and keep their text labels.
 - Applicant form inputs don't trigger zoom on iOS Safari.
 - No card shadows and no gradients remain.
+
+## 12. Copy: minimal text
+
+The UI should read like a tool, not a landing page. This applies to every page and is done in the same pass as each page's color migration.
+
+- **No marketing copy inside the app.** No hero panels, feature lists, taglines or "why this is great" text, including on login.
+- **Page headers:** title + actions only. No eyebrow, no description (`PageHeader` no longer renders them).
+- **Section and card headers:** a title only. Add a single line of helper text only when the user would otherwise not know what to do.
+- **Stat cards:** label + value. No explanatory hint.
+- **Empty states:** one short line + one action.
+- **Fields:** a label. Placeholders only when they show a format (e.g. a date). Helper text only for genuinely ambiguous fields.
+- **Buttons:** verb first, 1–3 words, sentence case ("Sign in", "Export PDF").
+- **Errors:** one short sentence saying what to do ("Enter a valid email."). No "Please", no "Error:" prefix.
+- **Confirmations and notes:** one line. Long explanations go in a tooltip or are cut.
+- **Casing:** sentence case for titles, labels and buttons. No ALL-CAPS eyebrows.
+
+Reference: `RecruiterLogin` and `LoginPage` (logo, title, fields, button, one link).
