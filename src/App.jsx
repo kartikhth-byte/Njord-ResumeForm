@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParam
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
 import { usePermissions } from './hooks/usePermissions'
+import { useThemeForRoute } from './hooks/useThemeForRoute'
 
 import ApplicantRoute from './components/auth/ApplicantRoute'
 import RecruiterRoute from './components/auth/RecruiterRoute'
@@ -152,10 +153,16 @@ function RecruiterRequirementDetailRedirect() {
   return <Navigate to={`/recruiter/workspace/requirements/${requirementId}`} replace />
 }
 
+function ThemeSync() {
+  useThemeForRoute()
+  return null
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <Router>
+        <ThemeSync />
         <AuthProvider>
           <Routes>
             {/* Public Routes */}

@@ -15,6 +15,7 @@ import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import StatCard from '../components/ui/StatCard'
 import { buildApplicationCompliance, buildRequirementComplianceOverlay } from '../utils/applicationCompliance'
+import { useTheme } from '../hooks/useThemeForRoute'
 
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
@@ -43,6 +44,7 @@ export default function ViewApplication() {
   const [searchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
   const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
+  useTheme(userType === 'recruiter' ? 'dark' : 'light')
   const { canExportData } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [application, setApplication] = useState(null)

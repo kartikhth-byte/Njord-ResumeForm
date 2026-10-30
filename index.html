@@ -5,6 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>njord-resumeform</title>
+    <script>
+      (function () {
+        var p = location.pathname
+        var dark = ['/recruiter', '/dashboard/expiry', '/dashboard/calendar', '/cleanup-drafts'].some(function (x) {
+          return p === x || p.indexOf(x + '/') === 0
+        })
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
