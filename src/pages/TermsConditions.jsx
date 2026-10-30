@@ -3,7 +3,6 @@ export default function TermsConditions() {
     <div className="public-doc-shell">
       <div className="public-doc-card">
         <div className="public-doc-header">
-          <p className="public-eyebrow text-accent-text">Njordships Legal</p>
           <h1 className="public-doc-title">Terms and Conditions</h1>
           <p className="public-doc-copy">
             These terms govern how applicants and recruiter users access and use the maritime recruitment portal.

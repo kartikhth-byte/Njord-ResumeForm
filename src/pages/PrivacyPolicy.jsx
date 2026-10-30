@@ -3,7 +3,6 @@ export default function PrivacyPolicy() {
     <div className="public-doc-shell">
       <div className="public-doc-card">
         <div className="public-doc-header">
-          <p className="public-eyebrow text-accent-text">Njordships Legal</p>
           <h1 className="public-doc-title">Privacy Policy</h1>
           <p className="public-doc-copy">
             This policy explains what applicant and recruiter information we collect, why we collect it, and how we protect it.
