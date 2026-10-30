@@ -193,7 +193,6 @@ const RejectionModal = ({
               <UserX className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Candidate outcome</p>
               <h2 className="recruiter-modal__title">Reject application</h2>
               <p className="recruiter-modal__subtitle">
                 {applicant?.name || applicant?.applicant_name || 'Unknown Candidate'}
@@ -393,7 +392,7 @@ const RejectionModal = ({
  px-6 py-2 rounded-lg font-medium transition-all
  ${!rejectionCategory || isSubmitting
  ? 'bg-line-strong text-fg-muted cursor-not-allowed'
- : 'bg-danger text-bg hover:bg-danger '
+ : 'border border-danger-line bg-danger-soft text-danger hover:border-danger '
  }
  `}
           >

@@ -13,7 +13,7 @@ import DocumentsChecklistModal from './recruiter/DocumentsChecklistModal'
 import WithdrawalModal from './recruiter/WithdrawalModal'
 import RejectionModal from './recruiter/RejectionModal'
 
-export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange, application, autoOpenInterview = false, onAutoOpenComplete, showHandledBy = true }) {
+export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange, application, autoOpenInterview = false, onAutoOpenComplete, showHandledBy = true, emphasis = false }) {
   const { profile, user } = useAuth()
   // Who is currently handling this application (feeds the KPI dashboard).
   const [handledBy, setHandledBy] = useState(application?.handling_recruiter_id || null)
@@ -383,13 +383,13 @@ useEffect(() => {
 
   return (
     <>
-      <div className="flex items-center gap-1">
-        {/* Main Action Button */}
+      <div className={`flex items-center gap-2 ${emphasis ? 'flex-wrap' : 'flex-nowrap'}`}>
+        {/* Main Action Button: accent only where it is the page's main decision (emphasis) */}
         {!isTerminal && nextStatus && (
           <button
             onClick={handleNextStage}
             disabled={loading}
-            className="workspace-action-button workspace-action-button--primary group relative rounded-card text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className={`workspace-action-button ${emphasis ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'} group relative text-sm disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -405,7 +405,7 @@ useEffect(() => {
           <button
             onClick={handleDeclineOffer}
             disabled={loading}
-            className="inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-control bg-danger px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-danger disabled:opacity-50"
+            className="workspace-action-button border border-danger-line bg-danger-soft text-sm text-danger transition-colors hover:border-danger disabled:opacity-50"
             title="Decline Offer"
           >
             <XCircle className="w-4 h-4" />

@@ -86,7 +86,6 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
               <FileText className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Documents workflow</p>
               <h2 className="recruiter-modal__title">Start documents collection</h2>
               <p className="recruiter-modal__subtitle">
                 {application.reference_number} - {application.full_name}

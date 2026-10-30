@@ -1,5 +1,3 @@
-const njordLogoSrc = new URL('../../../njord_logo.png', import.meta.url).href
-
 export const authLabelClass = 'mb-1.5 block text-sm font-medium text-fg-secondary'
 export const authInputClass =
   'w-full rounded-control border border-line-input bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40'
@@ -10,11 +8,8 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
-          {/* Logo artwork has an opaque white background, so it always sits on a white plate. */}
-          <div className="rounded-card bg-surface px-4 py-2">
-            <img src={njordLogoSrc} alt="Njord" className="h-10 w-auto" />
-          </div>
+        <div className="mb-8 text-center">
+          <span className="brand-lockup__wordmark">Holmes</span>
         </div>
         <div className="rounded-card border border-line bg-surface p-6">
           <h1 className="text-xl font-semibold text-fg">{title}</h1>

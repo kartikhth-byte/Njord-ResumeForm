@@ -179,7 +179,6 @@ if (reminderError) {
               <PencilLine className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
               <h3 className="recruiter-modal__title">Schedule competency test</h3>
               <p className="recruiter-modal__subtitle">
                 {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} - {application.reference_number} - {application.applied_rank}

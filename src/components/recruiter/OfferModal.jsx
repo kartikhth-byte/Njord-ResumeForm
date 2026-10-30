@@ -186,7 +186,6 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
               <Briefcase className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Offer workflow</p>
               <h2 className="recruiter-modal__title">Make job offer</h2>
               <p className="recruiter-modal__subtitle">
                 {application.reference_number} - {application.full_name}

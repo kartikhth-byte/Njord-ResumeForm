@@ -125,7 +125,6 @@ export default function ReopenApplicationButton({ application, onReopened }) {
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="recruiter-modal__eyebrow">Status Management</p>
                   <h2 className="recruiter-modal__title">{getTitle()}</h2>
                   <p className="recruiter-modal__subtitle">
                     Moves the application back to Under review.
@@ -194,7 +193,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
               <button
                 onClick={handleReopen}
                 disabled={loading}
-                className="workspace-action-button bg-warning text-bg hover:bg-warning disabled:opacity-50"
+                className="workspace-action-button border border-warning-line bg-warning-soft text-warning hover:border-warning disabled:opacity-50"
               >
                 {loading ? (
                   <>

@@ -154,11 +154,12 @@ export default function RecruiterTeamSection({ currentUserId, embedded = false }
 
   return (
     <div className={embedded ? 'space-y-6' : ''}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="recruiter-page-header__eyebrow !mb-2">Access Control</p>
-          <h2 className="text-3xl font-semibold text-fg">Team Management</h2>
-        </div>
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-start ${embedded ? 'sm:justify-end' : 'sm:justify-between'}`}>
+        {embedded ? null : (
+          <div>
+            <h2 className="text-2xl font-semibold text-fg">Team</h2>
+          </div>
+        )}
 
         <button
           type="button"
@@ -166,7 +167,7 @@ export default function RecruiterTeamSection({ currentUserId, embedded = false }
           className="workspace-action-button workspace-action-button--primary"
         >
           <Plus className="h-4 w-4" />
-          Add Team Member
+          Add member
         </button>
       </div>
 

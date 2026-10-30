@@ -1,5 +1,4 @@
-const njordLogoSrc = new URL('../../../njord_logo.png', import.meta.url).href
-
+// Holmes wordmark (text only). The Njord logo is no longer shown in the app.
 export default function BrandLockup({ compact = false, align = 'left' }) {
   const rootClass = [
     'brand-lockup',
@@ -11,13 +10,7 @@ export default function BrandLockup({ compact = false, align = 'left' }) {
 
   return (
     <div className={rootClass}>
-      <div className="brand-lockup__row">
-        <img className="brand-lockup__logo" src={njordLogoSrc} alt="Njord Mariners First" />
-
-        <div className="brand-lockup__product">
-          <span className="brand-lockup__product-label">Holmes</span>
-        </div>
-      </div>
+      <span className="brand-lockup__wordmark">Holmes</span>
     </div>
   )
 }

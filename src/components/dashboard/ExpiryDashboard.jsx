@@ -10,31 +10,32 @@ const URGENCY_CONFIG = {
   all: {
     badgeColor: 'bg-raised text-fg-secondary',
     label: 'All',
-    description: 'Every tracked expiry inside the current 90-day window'
+    dot: 'bg-fg-muted',
+    description: 'Next 90 days'
   },
   expired: {
     badgeColor: 'bg-danger-soft text-danger',
-    cardClass: 'border-danger-line bg-danger-soft',
     label: 'Expired',
-    description: 'Already past the document expiry date'
+    dot: 'bg-danger',
+    description: 'Past expiry date'
   },
   critical: {
     badgeColor: 'bg-warning-soft text-warning',
-    cardClass: 'border-warning-line bg-warning-soft',
     label: 'Critical',
-    description: 'Expires within 30 days'
+    dot: 'bg-warning',
+    description: 'Within 30 days'
   },
   urgent: {
     badgeColor: 'bg-warning-soft text-warning',
-    cardClass: 'border-warning-line bg-warning-soft',
     label: 'Urgent',
-    description: 'Expires within 30-60 days'
+    dot: 'bg-warning',
+    description: '30–60 days'
   },
   moderate: {
     badgeColor: 'bg-success-soft text-success',
-    cardClass: 'border-success-line bg-success-soft',
     label: 'Moderate',
-    description: 'Expires within 60-90 days'
+    dot: 'bg-success',
+    description: '60–90 days'
   }
 }
 
@@ -248,28 +249,17 @@ export default function ExpiryDashboard() {
             <button
               key={key}
               onClick={() => setSelectedUrgency(key)}
-              className={`rounded-card border p-5 text-left transition ${
- active
- ? 'border-fg bg-raised text-fg '
- : `${config.cardClass || 'border-line bg-surface'} hover:border-line-strong`
+              aria-pressed={active}
+              className={`rounded-card border p-4 text-left transition ${
+                active ? 'border-accent bg-raised' : 'border-line bg-surface hover:border-line-strong'
               }`}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className={`text-xs font-semibold ${active ? 'text-fg/70' : 'text-fg-muted'}`}>
-                    {config.label}
-                  </p>
-                  <h3 className={`mt-3 text-4xl font-semibold ${active ? 'text-fg' : 'text-fg'}`}>
-                    {summary[key]}
-                  </h3>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${active ? 'bg-surface/15 text-fg' : config.badgeColor}`}>
-                  {config.label}
-                </span>
-              </div>
-              <p className={`mt-4 text-sm ${active ? 'text-fg/75' : 'text-fg-secondary'}`}>
-                {config.description}
+              <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
+                <span className={`h-2 w-2 rounded-full ${config.dot}`} aria-hidden="true" />
+                {config.label}
               </p>
+              <p className="mt-1 text-2xl font-semibold text-fg">{summary[key]}</p>
+              <p className="mt-1 text-xs text-fg-muted">{config.description}</p>
             </button>
           )
         })}
@@ -278,15 +268,9 @@ export default function ExpiryDashboard() {
       <div className="recruiter-panel overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-line p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="recruiter-page-header__eyebrow !mb-2">Results</p>
             <h2 className="text-2xl font-semibold text-fg">
               {filteredDocuments.length} {filteredDocuments.length === 1 ? 'document' : 'documents'}
             </h2>
-            <p className="mt-2 text-sm text-fg-muted">
-              {selectedUrgency === 'all'
-                ? 'Showing every tracked document inside the expiry window.'
-                : `Filtered to ${URGENCY_CONFIG[selectedUrgency].label.toLowerCase()} documents.`}
-            </p>
           </div>
 
           <div className="relative w-full lg:w-[24rem]">

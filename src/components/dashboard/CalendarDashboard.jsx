@@ -339,7 +339,7 @@ export default function CalendarDashboard() {
                 onClick={() => setSelectedType(option.id)}
                 className={`rounded-control px-4 py-2 text-sm font-medium transition ${
  selectedType === option.id
- ? 'bg-accent-fill text-on-accent '
+ ? 'border border-line-strong bg-raised text-fg'
  : 'border border-line bg-surface text-fg-secondary hover:border-line-input hover:text-fg'
  }`}
               >
@@ -373,7 +373,6 @@ export default function CalendarDashboard() {
           <div className="border-b border-line px-5 py-5 sm:px-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="recruiter-page-header__eyebrow !mb-2">Month View</p>
                 <h2 className="text-2xl font-semibold text-fg">{formatMonthLabel(activeMonth)}</h2>
               </div>
               <div className="text-sm text-fg-muted">
@@ -404,9 +403,9 @@ export default function CalendarDashboard() {
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDate(startOfDay(date))}
-                    className={`min-h-[6.75rem] rounded-card border p-3 text-left transition ${
+                    className={`min-h-[4.5rem] rounded-card border p-2 text-left transition ${
  isSelected
- ? 'border-fg bg-accent-fill text-on-accent '
+ ? 'border-accent bg-raised text-fg '
  : isCurrentMonth
  ? 'border-line bg-surface text-fg hover:border-line-input '
  : 'border-line bg-raised text-fg-muted hover:border-line-input'
@@ -454,7 +453,6 @@ export default function CalendarDashboard() {
 
         <aside className="recruiter-panel overflow-hidden">
           <div className="border-b border-line px-5 py-5 sm:px-6">
-            <p className="recruiter-page-header__eyebrow !mb-2">Selected Date</p>
             <h2 className="text-2xl font-semibold text-fg">{formatAgendaDate(selectedDate)}</h2>
             <p className="mt-2 text-sm text-fg-muted">
               {selectedDateEvents.length

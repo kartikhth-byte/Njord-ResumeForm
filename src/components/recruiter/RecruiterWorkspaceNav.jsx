@@ -82,10 +82,9 @@ export default function RecruiterWorkspaceNav() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-      <div className="recruiter-panel overflow-hidden p-4 sm:p-5">
-        <div className="recruiter-nav-scroll -mx-1 overflow-x-auto overflow-y-hidden px-1">
-          <div className="inline-flex w-max flex-nowrap gap-2">
+    <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+      <nav className="recruiter-nav-scroll -mx-1 overflow-x-auto overflow-y-hidden border-b border-line px-1 pb-3">
+        <div className="inline-flex w-max flex-nowrap gap-1">
           {items.map(item => {
             const ItemIcon = item.icon
             const active = isActive(item)
@@ -94,19 +93,16 @@ export default function RecruiterWorkspaceNav() {
                 key={item.key}
                 type="button"
                 onClick={() => navigate(item.path)}
-                className={`workspace-action-button flex-none whitespace-nowrap ${
-                  active ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'
-                }`}
+                className={`recruiter-nav-item ${active ? 'is-active' : ''}`}
                 aria-current={active ? 'page' : undefined}
               >
-                <ItemIcon className="w-4 h-4" />
+                <ItemIcon className="h-4 w-4 text-accent" />
                 {item.label}
               </button>
             )
           })}
-          </div>
         </div>
-      </div>
+      </nav>
     </div>
   )
 }

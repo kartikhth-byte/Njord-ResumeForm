@@ -452,7 +452,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
               <Calendar className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Interview workflow</p>
               <h3 className="recruiter-modal__title">Schedule interview</h3>
               <p className="recruiter-modal__subtitle">
                 Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}

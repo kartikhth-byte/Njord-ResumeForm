@@ -1150,10 +1150,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       <aside className="border-b border-line bg-surface p-4 lg:border-b-0 lg:border-r lg:p-5">
                         <div className="mb-4 flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-xs font-semibold text-accent-text">Queue Nav</p>
-                            <p className="mt-1 text-xs text-fg-muted">
-                              {showDetailedStatusNav ? 'Detailed statuses are visible.' : 'Showing main stages only.'}
-                            </p>
                           </div>
                           <button
                             type="button"
@@ -1349,7 +1345,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 
                           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
                             <div className="rounded-card border border-line bg-surface/85 p-5">
-                              <p className="text-xs font-semibold text-accent-text">Prompt</p>
+                              <p className="text-sm font-medium text-fg">Prompt</p>
                               {embeddingReadinessLoading ? (
                                 <div className="mt-4 rounded-control border border-line bg-raised px-4 py-3 text-sm text-fg-secondary">
                                   Checking embedding readiness...
@@ -1445,7 +1441,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                       <div className="recruiter-panel p-5 md:p-6">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                           <div>
-                            <p className="text-xs font-semibold text-accent-text">Manual Search</p>
+                            <p className="text-sm font-medium text-fg">Manual Search</p>
                           </div>
                           <div className="inline-flex rounded-card border border-line bg-surface p-1">
                             <button

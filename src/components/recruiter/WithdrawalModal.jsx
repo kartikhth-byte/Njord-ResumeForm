@@ -91,7 +91,6 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Closure workflow</p>
               <h2 className="recruiter-modal__title">Withdraw application</h2>
               <p className="recruiter-modal__subtitle">
                 {application.reference_number}
@@ -183,7 +182,7 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
               type="button"
               onClick={handleConfirm}
               disabled={loading || !withdrawalReason}
-              className="workspace-action-button min-w-[12rem] justify-center bg-warning text-bg hover:bg-warning disabled:opacity-50"
+              className="workspace-action-button min-w-[12rem] justify-center border border-warning-line bg-warning-soft text-warning hover:border-warning disabled:opacity-50"
             >
               {loading ? (
                 <>

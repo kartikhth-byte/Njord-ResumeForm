@@ -295,7 +295,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
                 <CheckCircle className="h-6 w-6" />
               </div>
               <div>
-                <p className="recruiter-modal__eyebrow">Interview workflow</p>
                 <h3 className="recruiter-modal__title">Update interview result</h3>
                 <p className="recruiter-modal__subtitle">
                   Candidate: {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} • {application.reference_number}

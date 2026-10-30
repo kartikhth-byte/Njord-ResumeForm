@@ -389,15 +389,14 @@ export default function Dashboard() {
   return (
     <div className="applicant-shell">
       <header className="sticky top-0 z-50 border-b border-line bg-surface/90">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <BrandLockup compact />
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-fg">{user?.user_metadata?.full_name || user?.email}</p>
-              <p className="text-xs text-fg-muted">{user?.email}</p>
-            </div>
-            <button onClick={handleSignOut} className="applicant-action applicant-action--secondary">
-              Sign Out
+          <div className="flex items-center gap-3">
+            <p className="hidden max-w-[16rem] truncate text-sm text-fg-secondary sm:block">
+              {user?.user_metadata?.full_name || user?.email}
+            </p>
+            <button onClick={handleSignOut} className="applicant-action applicant-action--secondary whitespace-nowrap">
+              Sign out
             </button>
           </div>
         </div>
@@ -405,7 +404,7 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          <div className="applicant-hero">
+          <div>
             <PageHeader
               title="Your application"
               actions={(

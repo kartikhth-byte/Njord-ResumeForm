@@ -513,7 +513,6 @@ export default function RecruiterProspectDetail() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Prospect Overview</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Rank applied for</p>
@@ -710,7 +709,7 @@ export default function RecruiterProspectDetail() {
 
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Applications</p>
+                <p className="text-sm font-medium text-fg">Applications</p>
                 <div className="mt-4 space-y-3">
                   {applications.length === 0 ? (
                     <EmptyState
@@ -756,7 +755,7 @@ export default function RecruiterProspectDetail() {
               </div>
 
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Activity feed</p>
+                <p className="text-sm font-medium text-fg">Activity feed</p>
                 <div className="mt-4 space-y-3">
                   {activityItems.length === 0 ? (
                     <EmptyState

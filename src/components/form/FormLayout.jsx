@@ -187,7 +187,6 @@ export default function FormLayout({ children }) {
             {/* Auto-Save Status Indicator */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-control border border-line bg-surface/80 px-5 py-4 text-sm">
               <div>
-                <p className="text-xs font-semibold text-accent-text">Guided Form</p>
               </div>
               <div className="flex items-center space-x-2 text-sm">
               {saveStatus === 'saving' && (

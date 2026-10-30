@@ -134,7 +134,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
               <UserCog className="h-5 w-5" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
               <h2 className="recruiter-modal__title">Edit Team Member</h2>
               <p className="recruiter-modal__subtitle">
                 Update role coverage or reset credentials for {member.email}.

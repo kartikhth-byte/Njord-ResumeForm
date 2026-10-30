@@ -460,7 +460,6 @@ export default function RecruiterRequirementDetail() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Requirement Overview</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Customer</p>
@@ -586,7 +585,7 @@ export default function RecruiterRequirementDetail() {
 
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Remarks</p>
+                <p className="text-sm font-medium text-fg">Remarks</p>
                 <div className="mt-4 space-y-3">
                   {remarks.length === 0 ? (
                     <EmptyState
@@ -622,7 +621,7 @@ export default function RecruiterRequirementDetail() {
               </div>
 
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold text-accent-text">Activity feed</p>
+                <p className="text-sm font-medium text-fg">Activity feed</p>
                 <div className="mt-4 space-y-3">
                   {activityItems.length === 0 ? (
                     <EmptyState

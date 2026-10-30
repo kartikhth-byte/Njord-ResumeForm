@@ -294,7 +294,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                 <CheckCircle className="h-6 w-6" />
               </div>
               <div>
-              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
               <h3 className="recruiter-modal__title">
                 Update Test Result
               </h3>

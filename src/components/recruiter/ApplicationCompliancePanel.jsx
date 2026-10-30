@@ -1,14 +1,18 @@
+// Neutral card; tone shows only on the dot and the number (docs/ui-theme-spec.md §12).
 function ComplianceSummaryCard({ label, value, tone }) {
   const toneClasses = {
-    red: 'border-danger-line bg-danger-soft text-danger',
-    amber: 'border-warning-line bg-warning-soft text-warning',
-    green: 'border-success-line bg-success-soft text-success',
+    red: { dot: 'bg-danger', value: 'text-danger' },
+    amber: { dot: 'bg-warning', value: 'text-warning' },
+    green: { dot: 'bg-success', value: 'text-success' },
   }
 
   return (
-    <div className={`rounded-card border p-4 ${toneClasses[tone]}`}>
-      <p className="text-xs font-semibold">{label}</p>
-      <p className="mt-2 text-3xl font-semibold">{value}</p>
+    <div className="rounded-card border border-line bg-surface p-4">
+      <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
+        <span className={`h-2 w-2 rounded-full ${toneClasses[tone].dot}`} aria-hidden="true" />
+        {label}
+      </p>
+      <p className={`mt-1 text-2xl font-semibold ${value > 0 ? toneClasses[tone].value : 'text-fg-muted'}`}>{value}</p>
     </div>
   )
 }
@@ -21,8 +25,8 @@ function ComplianceStatusPill({ status }) {
   }
 
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>
-      {status}
+    <span className={`inline-flex rounded-control px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
+      {status ? status[0].toUpperCase() + status.slice(1) : ''}
     </span>
   )
 }
@@ -37,9 +41,7 @@ function reviewFlagStyles(status) {
 
 export default function ApplicationCompliancePanel({
   compliance,
-  eyebrow = 'Recruiter Compliance Review',
-  title = 'Documents, training, and review flags',
-  description = 'This is a recruiter-side readiness pass based on the submitted application data. It highlights missing items, near-expiry records, and sea-service gaps so the review starts with the highest-risk issues.',
+  title = 'Compliance',
 }) {
   if (!compliance) return null
 
@@ -47,9 +49,7 @@ export default function ApplicationCompliancePanel({
     <div className="recruiter-panel p-6 print:shadow-none print:border">
       <div className="flex flex-col gap-3 border-b border-line pb-5 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold text-accent-text">{eyebrow}</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-fg">{title}</h3>
-          <p className="mt-2 max-w-3xl text-sm text-fg-secondary">{description}</p>
+          <h3 className="text-lg font-semibold text-fg">{title}</h3>
         </div>
         <ComplianceStatusPill status={compliance.overallStatus} />
       </div>
@@ -62,7 +62,7 @@ export default function ApplicationCompliancePanel({
 
       {compliance.redFlags.length > 0 ? (
         <div className="mt-6 rounded-card border border-line bg-raised p-4">
-          <p className="text-xs font-semibold text-fg-secondary">Recruiter Review Flags</p>
+          <p className="text-sm font-medium text-fg">Review flags</p>
           <div className="mt-3 space-y-3">
             {compliance.redFlags.map((flag, index) => {
               const cardStyles = reviewFlagStyles(flag.status)
@@ -87,7 +87,7 @@ export default function ApplicationCompliancePanel({
 
       {compliance.metadata?.vesselApplicabilityReasons?.length > 0 ? (
         <div className="mt-6 rounded-card border border-accent/40 bg-accent-soft p-4">
-          <p className="text-xs font-semibold text-accent-text">Applicability Triggers</p>
+          <p className="text-sm font-medium text-fg">Applicability Triggers</p>
           <div className="mt-3 space-y-2">
             {compliance.metadata.vesselApplicabilityReasons.map((reason) => (
               <p key={reason} className="text-sm text-accent-text">

@@ -124,7 +124,7 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
             className={`inline-flex items-center gap-2 rounded-control px-4 py-2.5 font-medium transition-colors ${
  isDisabled
  ? 'bg-line-strong text-fg-muted cursor-not-allowed'
- : 'bg-progress text-bg hover:bg-progress'
+ : 'workspace-action-button--secondary'
  }`}
           >
             <Sparkles className="w-4 h-4" />

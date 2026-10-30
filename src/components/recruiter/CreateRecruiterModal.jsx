@@ -135,7 +135,6 @@ const handleSubmit = async (e) => {
               <ShieldPlus className="h-5 w-5" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
               <h2 className="recruiter-modal__title">Add Team Member</h2>
             </div>
           </div>

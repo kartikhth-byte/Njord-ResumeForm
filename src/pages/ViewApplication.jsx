@@ -306,7 +306,6 @@ export default function ViewApplication() {
   const visas = applicationData?.section5?.visas || []
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
-  const summaryEyebrow = isApplicantView ? 'Application Summary' : 'Candidate Summary'
   const summaryCardTitle = isApplicantView ? 'Application snapshot' : 'Recruiter summary'
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryStats = [
@@ -595,9 +594,9 @@ export default function ViewApplication() {
 
               {isRecruiterView ? (
                 <div className="mt-5">
-                  <p className="text-xs font-semibold text-accent-text">Decision Actions</p>
                   <div className="mt-3 rounded-card border border-line bg-surface p-4">
                     <SequentialStatusControl
+                      emphasis
                       applicationId={application.id}
                       currentStatus={application.status}
                       onStatusChange={refreshApplication}
@@ -607,7 +606,6 @@ export default function ViewApplication() {
                 </div>
               ) : (
                 <div className="mt-5 rounded-card border border-line bg-surface p-4">
-                  <p className="text-xs font-semibold text-accent-text">Application Status</p>
                   <div className="mt-3">
                     <StatusBadge status={application.status} />
                   </div>
@@ -646,7 +644,6 @@ export default function ViewApplication() {
             <div className="recruiter-panel p-6 print:shadow-none print:border">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-accent-text">{summaryEyebrow}</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-fg">{fullName || 'Application view'}</h2>
                   <p className="mt-2 text-sm text-fg-secondary">
                     Submitted on {application.submitted_at ? new Date(application.submitted_at).toLocaleDateString('en-US', {
@@ -683,9 +680,7 @@ export default function ViewApplication() {
             <div className={`grid gap-6 ${requirementCompliance ? 'xl:grid-cols-2' : ''}`}>
               <ApplicationCompliancePanel
                 compliance={compliance}
-                eyebrow="Recruiter Compliance Review"
                 title="Documents, training, and review flags"
-                description="This is the general recruiter-side readiness pass based on the submitted application data."
               />
               {requirementCompliance ? (
                 <ApplicationCompliancePanel

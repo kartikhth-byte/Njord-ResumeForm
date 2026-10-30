@@ -99,7 +99,6 @@ export default function RecruiterResetPassword() {
     <div className="public-shell public-auth-shell">
       <div className="public-auth-grid">
         <section className="public-hero-card">
-          <div className="public-eyebrow text-success">Recruiter Security</div>
           <h1 className="public-title">Set a new password for your recruiter account.</h1>
         </section>
 
