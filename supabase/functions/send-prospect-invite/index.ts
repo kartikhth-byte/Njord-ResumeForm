@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 
 interface ProspectInviteRequest {
   prospectId: string
@@ -136,7 +137,7 @@ serve(async (req) => {
 
     const appUrl = runtimeSettings.APP_URL?.replace(/\/$/, '')
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const overrideInbox = runtimeSettings.APPLICANT_NOTIFICATION_EMAIL?.trim()
 
     if (!appUrl || !resendApiKey) {
@@ -165,7 +166,7 @@ serve(async (req) => {
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <tr>
             <td style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">NJORD Ships</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">${BRAND.name}</h1>
               <p style="margin: 6px 0 0 0; color: #dbeafe; font-size: 14px;">Recruiter invitation to the applicant portal</p>
             </td>
           </tr>
@@ -176,7 +177,7 @@ serve(async (req) => {
                 Hello ${safeName},
               </p>
               <p style="margin: 0 0 14px 0; color: #475569; font-size: 16px; line-height: 1.6;">
-                ${escapeHtml(invitedBy)} has invited you to continue your maritime profile in the NJORD Ships applicant portal.
+                ${escapeHtml(invitedBy)} has invited you to continue your maritime profile in the Holmes applicant portal.
               </p>
               ${safeMessage ? `
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin: 20px 0;">
@@ -216,7 +217,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: emailFrom,
         to: [recipientEmail],
-        subject: 'Invitation to continue your NJORD Ships profile',
+        subject: 'Invitation to continue your Holmes profile',
         html,
         tags: {
           category: 'prospect_invite',

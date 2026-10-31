@@ -76,7 +76,7 @@ export const sendTestRetakeApprovedEmail = async (arg1, arg2) => {
     applicantEmail: p.email,
     applicantName: p.name,
     referenceNumber: p.ref,
-    testLink: p.testLink || arg2 || 'https://njord-assessment.com/login',
+    testLink: p.testLink || arg2 || '',
     expiryDate: expiryDate,
     attemptNumber: p.attemptNumber || 2
   });

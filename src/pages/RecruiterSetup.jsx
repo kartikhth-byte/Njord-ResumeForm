@@ -251,7 +251,7 @@ export default function RecruiterSetup() {
                 value={formData.email}
                 onChange={handleChange}
                 className="recruiter-form-input"
-                placeholder="admin@njordships.com"
+                placeholder="admin@company.com"
               />
             </div>
 

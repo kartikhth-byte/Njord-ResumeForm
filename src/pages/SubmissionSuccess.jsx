@@ -152,15 +152,6 @@ export default function SubmissionSuccess() {
             </div>
           </div>
         </div>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-fg-secondary">
-            Need help? Contact us at{' '}
-            <a href="mailto:support@njordships.com" className="text-accent-text hover:text-accent-text font-medium">
-              support@njordships.com
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   )

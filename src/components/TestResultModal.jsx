@@ -495,7 +495,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                       required={result === 'retake'}
                       value={formData.newTestUrl}
                       onChange={(e) => setFormData({ ...formData, newTestUrl: e.target.value })}
-                      placeholder="https://test.njord.com/assessment/xyz123"
+                      placeholder="https://assessment.example.com/test"
                       className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                     />
                   </div>

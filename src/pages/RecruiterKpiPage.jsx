@@ -269,7 +269,7 @@ export default function RecruiterKpiPage() {
           ]),
         },
       ],
-      footerNote: 'Success = joined candidates only. Generated from the live NjordHR KPI tracker.',
+      footerNote: 'Success = joined candidates only. Generated from the Holmes KPI tracker.',
     })
   })
 

@@ -19,7 +19,7 @@ export default function TermsConditions() {
           <section className="public-doc-section">
           <h2>1. Acceptance of Terms</h2>
           <p className="text-fg-secondary mb-4">
-            By submitting an application through Njordships Maritime Recruitment Portal, you agree to be bound by these Terms and Conditions.
+            By submitting an application through Holmes, you agree to be bound by these Terms and Conditions.
           </p>
           </section>
 
@@ -39,7 +39,7 @@ export default function TermsConditions() {
           <section className="public-doc-section">
           <h2>3. Background Verification</h2>
           <p className="text-fg-secondary mb-4">
-            You authorize Njordships to conduct comprehensive background checks including:
+            You authorize the recruiting company to conduct comprehensive background checks including:
           </p>
           <ul className="list-disc ml-6 text-fg-secondary mb-4">
             <li>Employment history verification</li>
@@ -65,7 +65,7 @@ export default function TermsConditions() {
           <section className="public-doc-section">
           <h2>5. Liability</h2>
           <p className="text-fg-secondary mb-4">
-            Njordships is not liable for:
+            The recruiting company is not liable for:
           </p>
           <ul className="list-disc ml-6 text-fg-secondary mb-4">
             <li>Application processing delays</li>
@@ -91,7 +91,7 @@ export default function TermsConditions() {
           <section className="public-doc-section">
           <h2>7. Contact Information</h2>
           <p className="text-fg-secondary mb-4">
-            For questions about these terms, contact: <strong>legal@njordships.com</strong>
+            For questions about these terms, contact the recruitment team that invited you.
           </p>
           </section>
         </div>

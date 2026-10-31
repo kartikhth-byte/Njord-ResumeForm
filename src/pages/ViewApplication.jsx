@@ -542,8 +542,7 @@ export default function ViewApplication() {
       {/* Print Header - Only visible when printing */}
       <div className="hidden print:block bg-surface p-8 border-b">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-fg mb-2">Njordships Maritime Recruitment</h1>
-          <p className="text-fg-secondary">Seafarer Application</p>
+          <h1 className="text-3xl font-semibold text-fg mb-2">Seafarer application</h1>
         </div>
       </div>
 
@@ -1109,9 +1108,8 @@ export default function ViewApplication() {
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-fg-muted print:mt-12">
-          <p>Njordships Maritime Recruitment • recruitment@njordships.com</p>
           {application.reference_number && (
-            <p className="mt-1">Reference Number: {application.reference_number}</p>
+            <p>Reference number: {application.reference_number}</p>
           )}
         </div>
       </div>

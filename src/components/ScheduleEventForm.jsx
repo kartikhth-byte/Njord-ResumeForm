@@ -63,7 +63,7 @@ export default function ScheduleEventForm({ eventType, onDataChange }) {
       // Call edge function to create Google Meet
       const { data, error } = await supabase.functions.invoke('create-google-meet', {
         body: {
-          summary: `${eventType === 'interview' ? 'Interview' : 'Test'} - NJORD Ships`,
+          summary: `${eventType === 'interview' ? 'Interview' : 'Test'}`,
           description: `Maritime ${eventType} session`,
           startDateTime: startDateTime.toISOString(),
           endDateTime: endDateTime.toISOString(),

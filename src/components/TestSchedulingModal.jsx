@@ -237,7 +237,7 @@ if (reminderError) {
                   required
                   value={formData.testUrl}
                   onChange={(e) => setFormData({ ...formData, testUrl: e.target.value })}
-                  placeholder="https://test.njord.com/assessment/xyz123"
+                  placeholder="https://assessment.example.com/test"
                   className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
                 <p className="text-xs text-fg-muted mt-1">

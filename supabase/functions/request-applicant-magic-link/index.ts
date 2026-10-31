@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 
 const MAGIC_LINK_REQUEST_LIMIT = 3
 const MIN_RESPONSE_DELAY_MS = 700
@@ -93,7 +94,7 @@ async function sendApplicantMagicLink({
         <table width="640" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);">
           <tr>
             <td style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); padding: 32px;">
-              <p style="margin: 0; color: #bfdbfe; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">Njordships Applicant Access</p>
+              <p style="margin: 0; color: #bfdbfe; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">Holmes</p>
               <h1 style="margin: 10px 0 0 0; color: #ffffff; font-size: 28px;">Your sign-in link is ready</h1>
             </td>
           </tr>
@@ -139,7 +140,7 @@ async function sendApplicantMagicLink({
     body: JSON.stringify({
       from: emailFrom,
       to: [deliveryAddress],
-      subject: 'Njordships applicant access link',
+      subject: 'Your Holmes sign-in link',
       html,
     }),
   })
@@ -179,7 +180,7 @@ serve(async (req) => {
     ], supabaseClient)
 
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const appUrl = runtimeSettings.APP_URL || Deno.env.get('APP_URL') || Deno.env.get('VITE_APP_URL') || 'http://localhost:3000'
     const applicantNotificationEmail = runtimeSettings.APPLICANT_NOTIFICATION_EMAIL || ''
 

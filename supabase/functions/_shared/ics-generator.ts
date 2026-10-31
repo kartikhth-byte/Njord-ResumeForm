@@ -31,7 +31,7 @@ export function generateICS(event: ICSEvent): string {
   const dtStamp = formatICSDate(new Date())
 
   // Generate unique UID
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@njordships.com`
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@holmes.local`
 
   // Escape special characters in text fields
   const escapeText = (text: string): string => {
@@ -46,7 +46,7 @@ export function generateICS(event: ICSEvent): string {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//NJORD Ships//Maritime Recruitment//EN',
+    'PRODID:-//Holmes//Recruitment//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:REQUEST',
     'BEGIN:VEVENT',
@@ -78,15 +78,15 @@ export function generateICS(event: ICSEvent): string {
 // Example usage:
 // const ics = generateICS({
 //   summary: 'Interview for Chief Officer Position',
-//   description: 'Maritime interview with NJORD Ships recruitment team',
+//   description: 'Maritime interview with the recruitment team',
 //   location: 'Zoom Meeting',
 //   startDate: '2025-12-25',
 //   startTime: '14:00',     // Works with HH:MM
 //   // OR
 //   startTime: '14:00:00',  // Also works with HH:MM:SS
 //   durationMinutes: 60,
-//   organizerEmail: 'recruitment@njordships.com',
-//   organizerName: 'NJORD Ships Recruitment',
+//   organizerEmail: BRAND.contactEmail,
+//   organizerName: BRAND.team,
 //   attendeeEmail: 'candidate@example.com',
 //   attendeeName: 'John Doe',
 //   url: 'https://zoom.us/j/123456789'

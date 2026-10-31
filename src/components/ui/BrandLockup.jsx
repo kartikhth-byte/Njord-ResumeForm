@@ -1,4 +1,4 @@
-// Holmes wordmark (text only). The Njord logo is no longer shown in the app.
+// Holmes wordmark (text only).
 export default function BrandLockup({ compact = false, align = 'left' }) {
   const rootClass = [
     'brand-lockup',

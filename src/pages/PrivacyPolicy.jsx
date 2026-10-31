@@ -65,7 +65,7 @@ export default function PrivacyPolicy() {
           <section className="public-doc-section">
           <h2>5. Contact Us</h2>
           <p className="text-fg-secondary mb-4">
-            For privacy-related questions, contact us at: <strong>privacy@njordships.com</strong>
+            For privacy-related questions, contact the recruitment team that invited you.
           </p>
           </section>
         </div>
