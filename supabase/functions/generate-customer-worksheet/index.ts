@@ -456,13 +456,11 @@ function populateEndReferences(worksheet: ExcelJS.Worksheet, payload: Record<str
 async function tryInsertPhoto(workbook: ExcelJS.Workbook, worksheet: ExcelJS.Worksheet, payload: Record<string, unknown>, supabase: ReturnType<typeof createAdminSupabaseClient>) {
   const photoStoragePath = normalizeText(getByPath(payload, 'section2.photoStoragePath'))
   if (!photoStoragePath) return
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-  if (!supabaseUrl) return
-  const photoUrl = `${supabaseUrl}/storage/v1/object/public/application-photos/${encodeURI(photoStoragePath)}`
   try {
-    const response = await fetch(photoUrl)
-    if (!response.ok) return
-    const bytes = new Uint8Array(await response.arrayBuffer())
+    // Private bucket: download with the service-role client.
+    const { data: blob, error } = await supabase.storage.from('application-photos').download(photoStoragePath)
+    if (error || !blob) return
+    const bytes = new Uint8Array(await blob.arrayBuffer())
     const imageId = workbook.addImage({ buffer: bytes, extension: 'png' })
     worksheet.addImage(imageId, 'G5:H14')
   } catch {
