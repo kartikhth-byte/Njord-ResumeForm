@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
         <div className="public-doc-header">
           <h1 className="public-doc-title">Privacy Policy</h1>
           <p className="public-doc-copy">
-            This policy explains what applicant and recruiter information we collect, why we collect it, and how we protect it.
+            This policy explains how applicant and recruiter information is handled through Holmes.
           </p>
         </div>
 

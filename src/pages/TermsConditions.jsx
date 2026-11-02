@@ -5,7 +5,7 @@ export default function TermsConditions() {
         <div className="public-doc-header">
           <h1 className="public-doc-title">Terms and Conditions</h1>
           <p className="public-doc-copy">
-            These terms govern how applicants and recruiter users access and use the maritime recruitment portal.
+            Holmes is in development and is operated by Kartik Raghavan. It serves recruiting organizations. These terms govern how applicants and recruiter users access and use the platform.
           </p>
         </div>
 
