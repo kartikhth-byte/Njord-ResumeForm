@@ -78,7 +78,8 @@ serve(async (req) => {
     {
       error: 'Worksheet generation has moved to the hosted worksheet service. Configure WORKSHEET_SERVICE_URL and use that endpoint instead.',
     },
-    501
+    501,
+    corsHeaders
   )
 })
 
@@ -1035,7 +1036,7 @@ function sanitizeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '-')
 }
 
-function json(payload: unknown, status = 200) {
+function json(payload: unknown, status = 200, corsHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
