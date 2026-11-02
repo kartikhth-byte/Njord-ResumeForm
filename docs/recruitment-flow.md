@@ -19,7 +19,7 @@ All routes resolve to one active case for that person and requirement. Preserve 
 
 ## Case Progression
 
-The case, **not** `applications.status`, tracks initial review/contact, confirmed interest and availability, test scheduling/result, and interview scheduling/result. Failed, rejected, withdrawn, and no-show outcomes remain case events with reasons and audit history. Passing both test and interview is necessary but not sufficient for an automatic email: an authorized recruiter makes the selection decision and explicitly sends the long-form invitation. No AI match or status update sends it automatically.
+The case, **not** `applications.status`, tracks initial review/contact, confirmed interest and availability, test scheduling/result, and interview scheduling/result. Failed, rejected, withdrawn, and no-show outcomes remain case events with reasons and audit history. Passing the test (or a recruiter-recorded waiver with a reason) and passing the interview is necessary but not sufficient for an automatic email: the recruiter makes the selection decision and explicitly sends the long-form invitation. No AI match or status update sends it automatically.
 
 The invited candidate reviews prefilled resume facts, supplies missing information, and submits the long form. Only confirmed fields are copied; uncertain/unknown facts are left for the candidate. Holmes uses the completed form for the relevant customer worksheet. Customer submission, offer, documents, and joining remain recruiter/customer workflow events on the case. Exact customer-review and offer ordering after the form needs product sign-off; it must not be inferred from today's application status sequence.
 
@@ -44,6 +44,6 @@ The customer portal shows only its own requirements and authorized candidate sub
 
 - Direct interest appears on the correct requirement; Available candidates appear without search; Needle search is optional. Each path creates or reuses the same case.
 - A recruiter can record test and interview outcomes before any long-form row exists. Failed or withdrawn candidates are not invited.
-- The invite action is unavailable until both passes and selection are recorded. Sending is explicit, auditable, and idempotent.
+- The invite action is unavailable until a test pass (or reasoned waiver), an interview pass, and the recruiter's selection are recorded. Sending is explicit, auditable, and idempotent.
 - Candidate-confirmed form data generates the correct customer worksheet; no unverified extracted value is silently submitted.
 - Deduplication preserves source history and prevents duplicate active cases without exposing another organization's private data.

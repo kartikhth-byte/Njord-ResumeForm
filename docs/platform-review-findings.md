@@ -34,8 +34,8 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 *Decision/test:* verify the live project for Needle tables; run Needle in its own project (or schema) with its own keys before any integration work.
 
 **F6. Today's status control can jump straight past test and interview.**
-`src/components/SequentialStatusControl.jsx:184-189` offers "Skip to" any status two or more steps ahead (e.g. `submitted` → `offered`). The target gate (`recruitment-flow.md:47`) requires both passes plus selection, and no doc says whether skipping a test is ever legitimate (senior ranks often skip it).
-*Decision:* state whether test (and interview) can be waived; if yes, a waiver is an explicit, reasoned, role-restricted event — not a skip. Remove free "Skip to" from the new case control.
+`src/components/SequentialStatusControl.jsx:184-189` offers "Skip to" any status two or more steps ahead (e.g. `submitted` → `offered`). The target gate (`recruitment-flow.md:47`) requires a test pass, an interview pass and selection before the long form.
+*Decided 2026-11-02:* a test may be waived; a waiver is an explicit event recorded by a recruiter with a reason — not a skip. Remove free "Skip to" from the new case control.
 
 ### P2
 
@@ -59,7 +59,7 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 |---|---|---|---|
 | 1 | Organization model | One shared deployment and database; `organization_id` on every tenant-owned row; operator staff are a separate platform role outside organization memberships; multi-company users via a memberships table. | **Resolve now** (the column), defer multi-org RLS until a second organization signs. |
 | 2 | Candidate visibility and data rights | Sourced/imported resumes private to the originating organization; shared directory only for portal candidates who opt in; interest in a requirement grants that organization access to the profile for that requirement; revocation hides the profile from new searches but keeps existing cases. Existing Needle corpus: not imported into the shared pool (F4). | Resolve the corpus rule now; defer the rest to the portal phase. |
-| 3 | Recruitment state machine | See §3. Owner to confirm: test waiver allowed?, who may select, principal review before or after the long form. | **Resolve now** (first slice depends on it). |
+| 3 | Recruitment state machine | **Decided 2026-11-02:** test may be waived (recorded, with reason); the recruiter makes the final selection after the interview; the long form follows selection. Still open: when the candidate is submitted to the principal relative to the form, and the offer sequence. See §3. | **Mostly resolved**; principal/offer ordering open. |
 | 4 | Terminology | **Interest** (candidate-initiated, lightweight), **Case** (person × requirement workflow), **Application form** (long post-selection form; keep table `applications` for compatibility, relabel in UI/reports). | **Resolve now.** |
 | 5 | Dedup and claims | Identity precedence: verified account > email **and** (phone or DOB) agree → *propose*; never auto-merge. Links are rows (reversible), not destructive merges. One active case per person × requirement; a reopened requirement starts a new cycle number. | Resolve the claim fix (F3) now; full dedup with the portal. |
 | 6 | Publication and availability | Organization admin publishes; listing shows rank, vessel type, joining window, contract length, nationality rules — no principal name unless chosen. Availability expires after 30 days without reconfirmation. | Defer to portal phase. |
@@ -70,9 +70,9 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 
 **States** (one active case per person × requirement; history kept as append-only events):
 
-`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_failed` | `test_no_show` | `test_waived`* → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` → `form_invited` → `form_submitted` → `submitted_to_principal` → `principal_accepted` | `principal_rejected` → `offered` → `offer_accepted` | `offer_declined` → `documents_pending` → `joined`
+`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_waived` (reason) | `test_failed` | `test_no_show` → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` (recruiter) → `form_invited` (explicit) → `form_submitted` → `submitted_to_principal`† → `principal_accepted` | `principal_rejected` → `offered` → `offer_accepted` | `offer_declined` → `documents_pending` → `joined`
 
-Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). *`test_waived` only if decision 3 allows it.
+Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). †Position of principal submission and offer relative to the form is still open (decision 3).
 
 **Who may do what** (✓ allowed · — denied; all actions audited; no AI, search or status change sends email):
 
@@ -82,8 +82,8 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 | Record contact, confirmation | — | ✓ | ✓ | ✓ | — | — |
 | Schedule test / interview | — | ✓ | ✓ | ✓ | — | — |
 | Record test / interview result | — | ✓ | ✓ | — | — | — |
-| Waive test (if allowed) | — | ✓ | — | — | — | — |
-| Select | — | ✓ | ✓ (confirm) | — | — | — |
+| Waive test (reason required) | — | ✓ | ✓ | — | — | — |
+| Select (after interview) | — | ✓ | ✓ | — | — | — |
 | Send form invite (explicit, idempotent) | — | ✓ | ✓ | — | — | — |
 | Submit to principal / record principal decision | — | ✓ | ✓ | — | — | own requirements only |
 | Withdraw | — | ✓ | ✓ | — | own case | — |
@@ -102,11 +102,12 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 4. `test_failed`, `interview_failed`, `*_no_show`, `withdrawn`, `rejected` cases cannot be invited, via UI or API.
 5. Sending the invite twice sends one email and logs one event.
 6. No status change or event sends an email except the explicit invite and existing explicit sends.
-7. "Skip to" is not available on cases; waiver (if enabled) requires org-admin and a reason.
+7. "Skip to" is not available on cases; a test waiver requires a recruiter and a non-empty reason, and appears in the event history.
 8. Same email invited by two prospects: claim binds to the prospect named in the invite token, not the newest row.
 9. Backfill: every existing prospect-requirement pair has exactly one case; every existing application links to its case; counts on Dashboard/KPI match pre-backfill values.
 10. Feature flag off restores the current UI and data paths unchanged; rollback drops only the new tables.
-11. Coordinator cannot record results, select or invite (API-level denial, not just hidden buttons).
+11. Coordinator cannot record results, waive, select or invite (API-level denial, not just hidden buttons).
+13. `selected` can only be recorded after `interview_passed`; selection itself sends no email.
 12. Every case transition writes an event with actor, time, from/to and reason where required.
 
 ## 5. Recommended order after the first slice
