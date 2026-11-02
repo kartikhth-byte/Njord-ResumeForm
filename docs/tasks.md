@@ -73,7 +73,7 @@ The items below predate this roadmap. Some may already be deployed or superseded
 ## Open Decisions
 
 - Will customers use separate deployments or one shared Holmes deployment? The ordered backlog assumes organization-scoped data and authorization either way; choose before schema work.
-- Decided 2026-11-02: a test may be waived (recorded with a reason); the recruiter makes the final selection after the interview; the long form follows selection. After the long form, the candidate submits documents and the recruiter verifies them; only then is the Excel worksheet sent to the principal. Principal decision, offer and joining follow.
+- Who records the final selection after test and interview, and at what point is a candidate submitted to the customer? The long-form invite gate is fixed; the later customer/offer sequence needs sign-off.
 - Which candidate profile and resume fields may each organization see before and after a direct job application? Define consent and revocation behavior before a shared directory ships.
 - Is a broader branding rollout required across every recruiter/public surface now, or later?
 - Should `Send reset email` remain limited to `Master Recruiter` rows only, or be broadened later?

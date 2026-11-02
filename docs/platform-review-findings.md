@@ -11,7 +11,7 @@ Severity: **P1** blocks build-ready sign-off or risks a privacy/tenancy leak · 
 **F1. "Customer" means two different parties.**
 `prd.md:7`, `decisions.md:27` use *customer* for the manning company that uses Holmes (Njordships). `recruitment-flow.md:24`, `needle-integration.md:51`, `tasks.md:14` use *customer* for the party a candidate is submitted to and the *customer worksheet* is produced for (the principal/shipowner, e.g. CMA CGM). The "customer portal" is therefore undefined: is it for the manning company or for its principal?
 *Fails when:* a permission rule written as "customer sees only its own requirements" is implemented for the wrong party; a principal sees the manning company's pipeline, or a manning company is denied its own data.
-*Decided 2026-11-02:* use **operator** (Holmes owner), **organization** (a manning company using Holmes) and **principal** (the organization's client, e.g. the shipowner, who receives the Excel worksheet once the candidate's documents are verified). Rename "customer portal" to "principal portal" or drop it from scope.
+*Decided 2026-11-02:* use **operator** (Holmes owner), **organization** (a manning company using Holmes) and **principal** (the organization's client, e.g. the shipowner, who receives the Excel worksheet once the offer is accepted and documents are verified; principal steps after hire are out of scope). Rename "customer portal" to "principal portal" or drop it from scope.
 
 **F2. Needle's current identity rules auto-merge on a single signal, contradicting the Holmes contract.**
 `needle/candidate_identity.py:6-11`: *same email OR same phone → same candidate*; *same name + DOB → same candidate*. `needle-integration.md:32` and `recruitment-flow.md:40` forbid silent merges on any single signal.
@@ -34,7 +34,7 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 *Decision/test:* verify the live project for Needle tables; run Needle in its own project (or schema) with its own keys before any integration work.
 
 **F6. Today's status control can jump straight past test and interview.**
-`src/components/SequentialStatusControl.jsx:184-189` offers "Skip to" any status two or more steps ahead (e.g. `submitted` → `offered`). The target gate (`recruitment-flow.md:47`) requires a test pass, an interview pass and selection before the long form.
+`src/components/SequentialStatusControl.jsx:184-189` offers "Skip to" any status two or more steps ahead (e.g. `submitted` → `offered`). The target order requires test (or waiver) and interview before the long-form invite.
 *Decided 2026-11-02:* a test may be waived; a waiver is an explicit event recorded by a recruiter with a reason — not a skip. Remove free "Skip to" from the new case control.
 
 ### P2
@@ -59,7 +59,7 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 |---|---|---|---|
 | 1 | Organization model | One shared deployment and database; `organization_id` on every tenant-owned row; operator staff are a separate platform role outside organization memberships; multi-company users via a memberships table. | **Resolve now** (the column), defer multi-org RLS until a second organization signs. |
 | 2 | Candidate visibility and data rights | Sourced/imported resumes private to the originating organization; shared directory only for portal candidates who opt in; interest in a requirement grants that organization access to the profile for that requirement; revocation hides the profile from new searches but keeps existing cases. Existing Needle corpus: not imported into the shared pool (F4). | Resolve the corpus rule now; defer the rest to the portal phase. |
-| 3 | Recruitment state machine | **Decided 2026-11-02:** test may be waived (recorded, with reason); the recruiter makes the final selection after the interview; the long form follows selection. After the long form, documents are submitted and verified; only then is the Excel worksheet sent to the principal. See §3. | **Resolved.** |
+| 3 | Recruitment state machine | **Decided 2026-11-02:** test may be waived (recruiter, with reason); recruiter makes the final selection; long form invited any time after a passed interview; offer → offer accepted → documents submitted → verified → worksheet sent to principal → hired. Holmes ends at hired. See §3. | **Resolved.** |
 | 4 | Terminology | **Interest** (candidate-initiated, lightweight), **Case** (person × requirement workflow), **Application form** (long post-selection form; keep table `applications` for compatibility, relabel in UI/reports). | **Resolve now.** |
 | 5 | Dedup and claims | Identity precedence: verified account > email **and** (phone or DOB) agree → *propose*; never auto-merge. Links are rows (reversible), not destructive merges. One active case per person × requirement; a reopened requirement starts a new cycle number. | Resolve the claim fix (F3) now; full dedup with the portal. |
 | 6 | Publication and availability | Organization admin publishes; listing shows rank, vessel type, joining window, contract length, nationality rules — no principal name unless chosen. Availability expires after 30 days without reconfirmation. | Defer to portal phase. |
@@ -70,9 +70,11 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 
 **States** (one active case per person × requirement; history kept as append-only events):
 
-`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_waived` (reason) | `test_failed` | `test_no_show` → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` (recruiter) → `form_invited` (explicit) → `form_submitted` → `documents_pending` → `documents_verified` (recruiter) → `submitted_to_principal` (worksheet sent) → `principal_accepted` | `principal_rejected` → `offered` → `offer_accepted` | `offer_declined` → `joined`
+`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_waived` (recruiter, reason) | `test_failed` | `test_no_show` → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` (recruiter) → `offered` → `offer_accepted` | `offer_declined` → `documents_pending` → `documents_verified` (recruiter) → `sent_to_principal` (Excel worksheet) → `hired` (end of Holmes workflow)
 
-Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). Decided 2026-11-02: test waiver allowed; recruiter selects after the interview; long form after selection; documents submitted and verified before the Excel worksheet is sent to the principal.
+Long form (parallel track, not a state): a recruiter may invite it any time after `interview_passed`; it must be `form_submitted` before the worksheet is generated and `sent_to_principal`.
+
+Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). Principal steps after `hired` are out of scope.
 
 **Who may do what** (✓ allowed · — denied; all actions audited; no AI, search or status change sends email):
 
@@ -85,22 +87,22 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 | Waive test (reason required) | — | ✓ | ✓ | — | — | — |
 | Select (after interview) | — | ✓ | ✓ | — | — | — |
 | Send form invite (explicit, idempotent) | — | ✓ | ✓ | — | — | — |
-| Verify documents | — | ✓ | ✓ | — | — | — |
-| Submit to principal / record principal decision | — | ✓ | ✓ | — | — | own requirements only |
+| Make / record offer, verify documents, mark hired | — | ✓ | ✓ | — | — | — |
+| Send worksheet to principal | — | ✓ | ✓ | — | — | — |
 | Withdraw | — | ✓ | ✓ | — | own case | — |
 | Read other organizations' cases | break-glass, logged | — | — | — | — | — |
 
 ## 4. Smallest build-ready first slice: "Recruitment case v1"
 
-**In:** single organization (seeded), `organization_id` on new tables; `recruitment_cases` + append-only `recruitment_case_events`; entry only from today's routes (recruiter adds a prospect to a requirement); test/interview/selection recorded on the case; long-form invite gated on the case; legacy prospect/requirement/application rows backfilled read-only as cases with `source = legacy`; behind a feature flag with KPI read parity; claim fix (F3).
+**In:** single organization (seeded), `organization_id` on new tables; `recruitment_cases` + append-only `recruitment_case_events`; entry only from today's routes (recruiter adds a prospect to a requirement); test, waiver, interview, selection, offer and documents recorded on the case; long-form invite gated on a passed interview; legacy prospect/requirement/application rows backfilled read-only as cases with `source = legacy`; behind a feature flag with KPI read parity; claim fix (F3).
 **Out:** candidate portal, Interest, Available queue, Needle, principal portal, multi-org RLS, prefill, dedup beyond the claim fix.
 
 **Acceptance tests**
 
 1. Adding a prospect to a requirement twice yields one case (idempotency key); a second add records a second source event.
 2. Test and interview results can be recorded with no `applications` row existing.
-3. Invite action is hidden/rejected until `test_passed` (or `test_waived`), `interview_passed` and `selected` are all present.
-4. `test_failed`, `interview_failed`, `*_no_show`, `withdrawn`, `rejected` cases cannot be invited, via UI or API.
+3. Long-form invite is hidden/rejected until `interview_passed` is recorded; it does not require selection or offer.
+4. `interview_failed`, `interview_no_show`, `test_failed`, `test_no_show`, `withdrawn`, `rejected` cases cannot be invited, via UI or API.
 5. Sending the invite twice sends one email and logs one event.
 6. No status change or event sends an email except the explicit invite and existing explicit sends.
 7. "Skip to" is not available on cases; a test waiver requires a recruiter and a non-empty reason, and appears in the event history.
@@ -109,7 +111,8 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 10. Feature flag off restores the current UI and data paths unchanged; rollback drops only the new tables.
 11. Coordinator cannot record results, waive, select or invite (API-level denial, not just hidden buttons).
 13. `selected` can only be recorded after `interview_passed`; selection itself sends no email.
-14. A case cannot be submitted to the principal (and no worksheet is sent) until `documents_verified` is recorded by a recruiter.
+14. The worksheet cannot be generated or sent to the principal until the long form is submitted, the offer is accepted and `documents_verified` is recorded.
+15. `hired` is the final Holmes state; nothing after it is tracked.
 12. Every case transition writes an event with actor, time, from/to and reason where required.
 
 ## 5. Recommended order after the first slice
@@ -120,3 +123,15 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 4. Multi-org RLS and principal portal when the second organization onboards.
 
 Keep scope pinned to what the current customer uses; the portal, Needle service and principal portal are each larger than the first slice.
+
+## 6. Owner decisions (2026-11-02) and source docs that now conflict
+
+Decided order: contact → confirm → test (pass, or recruiter waiver with reason) → interview → recruiter selection → offered → offer accepted → documents submitted → documents verified → Excel worksheet sent to principal → hired. The long form may be invited any time after a passed interview and must be submitted before the worksheet is generated. Holmes ends at hired. Terms: operator, organization, principal.
+
+The source docs were left unchanged for the author to update. Lines that conflict with these decisions:
+
+- `recruitment-flow.md:10` — long form described as "post-selection"; it is post-interview and parallel.
+- `recruitment-flow.md:22,33,47` — invite gated on test pass + interview pass + selection; the gate is a passed interview only.
+- `recruitment-flow.md:24` — customer review/offer ordering "needs sign-off"; now decided (offer → documents → worksheet to principal → hired).
+- `needle-integration.md:13,49,77` — form invited after selection; same correction as above.
+- `prd.md:5,15,76,78,84`, `decisions.md:9,21`, `tasks.md:11,76`, `test-plan.md:24`, `documentation.md:15`, `platform-review-brief.md:30,32,44,56` — same gate/order wording; "customer" used for the principal.
