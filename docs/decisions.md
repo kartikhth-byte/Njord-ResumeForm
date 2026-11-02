@@ -1,5 +1,36 @@
 # Decisions Log
 
+## 2026-11 - Needle Resume Pool Precedes Holmes Applications
+
+Decision:
+- integrate Needle's recruitment intelligence into a Holmes AI tab and requirement-level resume matching, excluding Seajobs download/local-agent workflows
+- use one canonical resume pool across existing Needle resumes, direct intake, candidate-portal intake, and later customer-website intake
+- do not treat a resume record as an already-verified candidate-owned profile; the future candidate login lets a person maintain that profile and resume
+- distinguish a lightweight application/interest in a listed job from the existing long Holmes form, which is completed after test and interview pass to generate the customer Excel worksheet
+- candidate portal owns the candidate-maintained profile and job discovery; Needle powers candidate job search and recruiter candidate/requirement search; Holmes owns recruiter workflow automation after a match or job application
+- recruiter discovery is inbound first: direct interest and consented availability are visible without a search; Needle search extends discovery when obvious leads are insufficient
+- keep Needle independently maintained; Holmes consumes a versioned, pinned service contract and owns only its adapter/workflow. Compatible Needle engine releases are promoted after contract/evaluation tests, not copied or merged wholesale into Holmes.
+- track recruiter-sourced matches and candidate-initiated job interest on a candidate-requirement recruitment case; keep search results advisory and company-specific workflow data access-controlled
+
+Why:
+- avoids duplicate candidates and rankings caused by indexing both resumes and derived applications
+- gives AI search and requirement matching a single resume evidence contract without conflating job interest, recruitment progress, and worksheet data collection
+
+Implementation details and release gates: `docs/needle-integration.md`.
+
+Implementation status: the target case progression is specified in `docs/recruitment-flow.md`, but the current prospect/junction/application schema and invite gate do not yet enforce it. Customer submission and offer ordering after the long form remain open.
+
+## 2026-11 - Holmes Operator And Customer Identity
+
+Decision:
+- Holmes is the product name and is operated by its owner
+- Njordships is a customer, not the operator of Holmes
+- the product aims to serve additional customers; the deployment and customer data-isolation model is still open
+- public legal-page operator wording remains pending owner approval of a legal name and contact method; generic placeholder wording is not approved for publication
+
+Why:
+- keeps product branding, operator identity, and customer identity distinct without inventing a legal entity
+
 ## 2026-03 - Recruiter Role Model Simplified
 
 Decision:

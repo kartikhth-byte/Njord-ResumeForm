@@ -1,6 +1,8 @@
-# Njord Holmes
+# Holmes
 
 Maritime recruitment platform for applicant intake, recruiter operations, and recruiter administration.
+
+Holmes is operated by its owner. Njordships is a customer, and the product is intended to serve additional customers.
 
 This repository contains the active application code for:
 - applicant onboarding and application submission
@@ -12,7 +14,7 @@ This repository contains the active application code for:
 
 ### Applicant
 
-- signs in with Google OAuth
+- signs in through an invite-only emailed magic link
 - completes a 19-section maritime application form
 - saves drafts and submits applications
 
@@ -103,7 +105,7 @@ npm run prototype:cma-cgm -- --template '/Users/kartikraghavan/Downloads/CMA CGM
 
 ### Applicant auth
 
-- Google OAuth through Supabase
+- invite-only emailed magic links through Supabase
 - callback route:
   - `/auth/callback`
 

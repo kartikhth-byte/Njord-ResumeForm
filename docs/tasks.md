@@ -1,8 +1,23 @@
 # Pending Tasks
 
-## High Priority
+## Ordered Product Backlog
 
-- Push migration `2026071101_application_status_history.sql` (status-change audit trail; unlocks true time-in-stage analytics)
+This is the implementation order for the agreed target flow. `docs/recruitment-flow.md` is the workflow contract; `docs/needle-integration.md` is the search/integration contract. None of these milestones is complete merely because an older prospect, application, or AI-search screen exists.
+
+1. **Production baseline and decisions:** audit live migration objects/history and outstanding production security fixes before new schema work. Decide organization ownership, operator access, candidate visibility/consent, and who authorizes selection/customer submission. Verify live state before rerunning any migration or deployment.
+2. **Multi-tenant foundation:** add organizations and memberships; backfill the current customer without changing existing rows' meaning; add organization ownership and published/private state to requirements. Implement and test RLS, storage/API scopes, and explicit operator privileges for two isolated test organizations.
+3. **Candidate/resume identity and dedup:** define provisional Needle resume records versus candidate-owned portal profiles, resume versions, provenance/source history, claim/merge review, consent, and idempotency. Test exact re-upload, revised resume, ambiguous person matches, account claim, and cross-company privacy.
+4. **Correct the pre-form recruitment flow:** implement one active candidate-requirement case with entry source, event history, contact/availability, test/interview outcomes, and explicit selection. Migrate existing prospect/junction/application relationships additively; move test/interview controls off the long-form `applications` status flow. Preserve historical rows and KPI/report compatibility.
+5. **Gate the long form and worksheet:** permit an explicit invite only after both test and interview pass plus selection; keep email sends separate from status changes. Candidate reviews reliable prefill, completes missing fields, and submits the long form for customer Excel generation. Verify invite claim, permission, audit, export fidelity, and rollback.
+6. **Candidate portal and inbound-first recruiter views:** candidate-owned profile/resume and availability; published cross-company job listings and lightweight job interest; requirement Interested queue and Candidates Available queue with Source/provenance, freshness, consent, and direct add-to-case. Keep the existing candidate KPI tracker accessible during the UI transition.
+7. **Needle discovery fallback and upgrade channel:** run the independently maintained Needle engine behind a versioned authenticated contract; deliver the operator AI tab, requirement `Match resumes`, and candidate-facing job search over published requirements. Pin a tested Needle release per environment and automate contract/evaluation tests for periodic upgrades; never auto-deploy Needle `main`. Keep Seajobs download/local-agent tooling out. Validate ranking, evidence, unknowns, cost/latency, tenant boundaries, and recruiter judgments on a reviewed corpus before cutover.
+8. **Customer portal and wider rollout:** expose only each organization's requirements and authorized submissions/decisions; complete onboarding, branding/template ownership, tenant isolation, and operational runbooks before adding customers.
+
+## Existing Production And QA Checklist (Revalidate Status)
+
+The items below predate this roadmap. Some may already be deployed or superseded; confirm against live state and current code before acting. In particular, do not blindly push old migrations or repeat data-changing QA on production.
+
+- Confirm `2026071101_application_status_history.sql` objects and trigger are present in live schema; historical notes say this was deployed, but the backlog was not reconciled.
 - Schedule `process-expiry-warnings` to run daily (Supabase Dashboard → Edge Functions → schedules, or pg_cron); until then it only runs from the new "Send expiry warnings" button on the Expiry page — also confirm the function is deployed to the live project
 
 - Audit ALL migrations from before the schema-only baseline for silently-missing objects: confirmed victims so far are the reference seeds (fixed by 2026071001), lookup RLS state (2026071002), the legacy status-history trigger/table (2026071101/2026071103), and applicant_magic_link_requests (2026071104). Compare each pre-baseline migration's objects against the live schema (`supabase db diff` or dashboard) and replay what's missing
@@ -36,6 +51,8 @@
 
 ## Medium Priority
 
+- Define how additional customers are onboarded: deployment model, customer data isolation, recruiter access, branding, email sender, and worksheet template ownership
+- Review the legal pages for the roles and contact details of the Holmes operator and customer recruiting organizations before wider customer rollout
 - Do a full branding consistency pass beyond the applicant header/dashboard
 - Create a recruiter admin runbook for resets, bootstrap, role changes, and password recovery
 - Create a DB operations runbook for common resets and cleanup flows
@@ -55,6 +72,9 @@
 
 ## Open Decisions
 
+- Will customers use separate deployments or one shared Holmes deployment? The ordered backlog assumes organization-scoped data and authorization either way; choose before schema work.
+- Who records the final selection after test and interview, and at what point is a candidate submitted to the customer? The long-form invite gate is fixed; the later customer/offer sequence needs sign-off.
+- Which candidate profile and resume fields may each organization see before and after a direct job application? Define consent and revocation behavior before a shared directory ships.
 - Is a broader branding rollout required across every recruiter/public surface now, or later?
 - Should `Send reset email` remain limited to `Master Recruiter` rows only, or be broadened later?
 - Is the current 3-role model final, or should any extra recruiter capabilities be split further in future?
@@ -119,12 +139,9 @@
   - shared derivation lives in `src/utils/kpiTracker.js` with data loading in `src/hooks/useKpiTrackerData.js`
   - still needs manual validation against live recruiter data on Vercel
 
-## Recommended Start-Here Order
+## Immediate Next Slice
 
-1. Cleanly commit the current local compliance/docs changes
-2. Do worksheet export validation against the second customer template
-3. Run the manual applicant/recruiter QA flows
-4. Decide whether compliance should also persist a snapshot for dashboard/search/submission-time use
+Start with milestone 1 in the ordered backlog: reconcile the live production baseline and resolve organization ownership/visibility. Existing worksheet and manual QA items above can be verified separately, but they do not replace the pre-form flow redesign.
 
 ## Definition of Done For Major Changes
 

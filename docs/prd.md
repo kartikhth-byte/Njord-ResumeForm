@@ -1,19 +1,18 @@
-# Njord ResumeForm - Platform PRD
+# Holmes - Platform PRD
 
 ## Product Summary
 
-Njord ResumeForm is a maritime recruitment platform for collecting applicant profiles, reviewing maritime qualifications, and operating recruiter workflows from intake through hiring.
+Holmes is the recruiter workflow automation part of an owner-operated maritime recruitment platform. The candidate portal will own candidate-maintained profiles and job discovery; Needle will power candidate job search and recruiter candidate/requirement matching. Holmes handles the requirement-to-hire workflow and the detailed post-selection form used for customer worksheets.
 
-The product now uses the user-facing brand name:
-- `Njord Holmes`
+Njordships is a customer. The product is intended to serve additional customers, with customer-specific needs handled without changing the Holmes product identity. The deployment and data-isolation model for multiple customers is not yet decided.
 
 ## Primary User Groups
 
 ### Applicants
 
-- authenticate with Google OAuth
+- authenticate through invite-only emailed magic links in the current form flow
 - create and manage maritime application drafts
-- complete a 20-section application form
+- complete the current 19-section application form after selection
 - submit applications and track progress
 
 ### Recruiter-Side Users
@@ -48,7 +47,7 @@ The product now uses the user-facing brand name:
 
 ### 1. Applicant Intake
 
-- Google OAuth login
+- invite-only magic-link login for the current long-form workflow
 - draft creation
 - form autosave
 - review and submission flow
@@ -71,14 +70,22 @@ The product now uses the user-facing brand name:
 
 ### 4. AI/Advanced Search
 
-- semantic candidate search
-- LLM-assisted match reasoning
-- manual filters
-- confidence scoring
+- Needle-powered AI workspace in Holmes: projects, chats, staged/refined searches, manual filters, ranked resume results, evidence, feedback, and review actions
+- a requirement-level `Match resumes` action that searches the same pool and explains rankings against the saved requirement
+- one canonical resume pool across Needle, direct intake, candidate-portal intake, and later customer-website intake; applications are downstream records, not a duplicate search corpus
+- a pre-application recruitment pipeline for matched candidates: operator contact and availability confirmation, test pass, interview pass, then invitation to complete the Holmes application
+- a future candidate portal where candidates maintain their own profile/resume, see requirements published by manning companies, and express interest/apply to jobs without completing the long worksheet form at that point
+- the existing long Holmes application remains a post-selection data-collection form, prefilled where reliable from resume facts and completed by the candidate to generate the customer Excel worksheet
+- recruiters see direct interest on a requirement and consented available candidates without running a search; Needle search is an additional discovery route, and all routes enter the same recruitment case
+- Seajobs downloading and local-agent tooling are excluded from the Holmes integration
+
+See `docs/needle-integration.md` for the service boundary, delivery order, and release gates. This integration is planned, not yet shipped.
+
+The authoritative target flow is in `docs/recruitment-flow.md`: direct job interest, an available candidate, or a Needle match enters one candidate-requirement case. Contact, test, and interview occur before the long Holmes form. That form is invited only after both passes and explicit selection, and exists to complete customer worksheet data. Current prospect/application statuses do not yet implement this flow.
 
 ## Applicant Form Scope
 
-The applicant workflow is built around a 20-section form, including:
+The current applicant workflow is built around a 19-section form, covering:
 
 - availability/application details
 - personal/contact details
@@ -110,7 +117,7 @@ The applicant workflow is built around a 20-section form, including:
 
 ## Current Non-Goals
 
-- broad social-login support beyond Google OAuth for applicants
+- broad social-login support for applicants
 - password-based applicant accounts
 - a large recruiter role matrix beyond the 3-role model
 

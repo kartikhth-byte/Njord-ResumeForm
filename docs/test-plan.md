@@ -15,6 +15,18 @@ Current known passing state in this phase:
 - `npm run build` passes on the 2026-06-08 cleanup snapshot
 - `npm run test:smoke` passes on the 2026-06-08 cleanup snapshot (`77 passed, 2 skipped`)
 
+## Future Candidate Identity And Deduplication Gate
+
+Before the candidate portal and Needle-backed recruiter directory go live, test exact resume re-upload, revised resume version, one person arriving from two sources, ambiguous identity held for review, candidate account claim, and repeated apply/add actions for one requirement. Confirm provenance remains visible and cross-company private records cannot be inferred through duplicate checks. See `docs/needle-integration.md`.
+
+## Target Recruitment Flow Gate
+
+Before switching live workflow, test the three entry paths in `docs/recruitment-flow.md` against one case contract: direct job interest, recruiter selection from Available, and a Needle match. Each must be visible without duplicate active cases. Confirm test/interview history can exist before a long-form row; failed, rejected, withdrawn, and no-show cases cannot be invited; passing both alone does not email anyone; explicit selection plus authorized invite creates only one candidate draft. Verify candidate-confirmed prefill, customer worksheet output, legacy application history, and cross-organization denial at DB/API/UI/storage layers. Rollout must be additive and reversible.
+
+## Needle Upgrade Gate
+
+For every promoted Needle release, record the source tag/commit and run the Needle unit/evaluation suite plus Holmes API-contract, authorization, cross-tenant, dedup, requirement-mapping, and browser smoke tests in staging. Compare ranking and explanations on the reviewed resume/requirement benchmark, verify stored facts/schema compatibility, and confirm a rollback to the previous release works. A compatible engine release should not require copying Needle source into Holmes. See `docs/needle-integration.md`.
+
 ## Client Form Export Prototype
 
 Current prototype command:

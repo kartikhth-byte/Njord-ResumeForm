@@ -4,6 +4,18 @@
 
 - Stabilize recruiter/admin workflows, validate worksheet export fidelity, and close out recruiter-side compliance review
 
+## Product Model
+
+- Holmes is operated by its owner; Njordships is a customer, not the product operator
+- the product aims to serve additional customers; the customer onboarding and data-isolation model remains to be defined
+- product boundary: candidate portal owns candidate-maintained profiles and job discovery; Needle powers search/matching for candidates and recruiters; Holmes automates recruiter workflows after a match or job application
+- Needle is the planned AI engine: a Holmes AI tab and requirement-level resume matching will search one canonical resume pool; Holmes applications are downstream, not a duplicate search source. See `docs/needle-integration.md`. This is designed, not implemented.
+- future candidates maintain a profile/resume and can apply to listed jobs with a lightweight expression of interest; recruiter-sourced matches and job interest share a recruitment case for contact, availability, test, and interview
+- recruiter discovery is inbound first: direct interest appears on its requirement and consented available candidates appear in a queue; Needle search is an additional way to find candidates, not a prerequisite for opening those leads
+- the current long Holmes application is distinct: invite only after test and interview pass, prefill from reliable resume facts, let the candidate complete it, then use it for the customer Excel worksheet. Existing application/junction statuses need reconciliation.
+- target flow and current implementation gaps are recorded in `docs/recruitment-flow.md`; the ordered implementation backlog is at the top of `docs/tasks.md`. This flow is not yet enforced in production.
+- Needle remains independently developed; Holmes will consume a pinned, versioned service contract with staging compatibility/evaluation tests for periodic upgrades. See `docs/needle-integration.md`.
+
 ## Completed
 
 - recruiter/applicant auth hardening
