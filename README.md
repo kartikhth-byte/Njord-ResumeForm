@@ -2,7 +2,7 @@
 
 Maritime recruitment platform for applicant intake, recruiter operations, and recruiter administration.
 
-Holmes is operated by its owner. Njordships is a customer, and the product is intended to serve additional customers.
+Holmes is operated by Kartik Raghavan. Njordships is a manning-company customer, and the product is intended to serve additional organizations. The principal is an organization's client receiving the Excel worksheet; organization staff use the recruiter app, not platform-owner access.
 
 This repository contains the active application code for:
 - applicant onboarding and application submission

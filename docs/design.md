@@ -3,7 +3,7 @@
 ## Current Brand
 
 - product name: `Holmes`
-- Holmes is operated by its owner; Njordships is a customer
+- Holmes is operated by Kartik Raghavan; Njordships is a manning-company customer, not the product operator
 - visible identity: text wordmark and `public/favicon.svg`
 - customer names and logos are separate from the Holmes product identity
 
