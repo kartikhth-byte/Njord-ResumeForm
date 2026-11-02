@@ -11,7 +11,7 @@ Severity: **P1** blocks build-ready sign-off or risks a privacy/tenancy leak · 
 **F1. "Customer" means two different parties.**
 `prd.md:7`, `decisions.md:27` use *customer* for the manning company that uses Holmes (Njordships). `recruitment-flow.md:24`, `needle-integration.md:51`, `tasks.md:14` use *customer* for the party a candidate is submitted to and the *customer worksheet* is produced for (the principal/shipowner, e.g. CMA CGM). The "customer portal" is therefore undefined: is it for the manning company or for its principal?
 *Fails when:* a permission rule written as "customer sees only its own requirements" is implemented for the wrong party; a principal sees the manning company's pipeline, or a manning company is denied its own data.
-*Decided 2026-11-02:* use **operator** (Holmes owner), **organization** (a manning company using Holmes) and **principal** (the organization's client, e.g. the shipowner, who receives the Excel worksheet after selection). Rename "customer portal" to "principal portal" or drop it from scope.
+*Decided 2026-11-02:* use **operator** (Holmes owner), **organization** (a manning company using Holmes) and **principal** (the organization's client, e.g. the shipowner, who receives the Excel worksheet once the candidate's documents are verified). Rename "customer portal" to "principal portal" or drop it from scope.
 
 **F2. Needle's current identity rules auto-merge on a single signal, contradicting the Holmes contract.**
 `needle/candidate_identity.py:6-11`: *same email OR same phone → same candidate*; *same name + DOB → same candidate*. `needle-integration.md:32` and `recruitment-flow.md:40` forbid silent merges on any single signal.
@@ -59,7 +59,7 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 |---|---|---|---|
 | 1 | Organization model | One shared deployment and database; `organization_id` on every tenant-owned row; operator staff are a separate platform role outside organization memberships; multi-company users via a memberships table. | **Resolve now** (the column), defer multi-org RLS until a second organization signs. |
 | 2 | Candidate visibility and data rights | Sourced/imported resumes private to the originating organization; shared directory only for portal candidates who opt in; interest in a requirement grants that organization access to the profile for that requirement; revocation hides the profile from new searches but keeps existing cases. Existing Needle corpus: not imported into the shared pool (F4). | Resolve the corpus rule now; defer the rest to the portal phase. |
-| 3 | Recruitment state machine | **Decided 2026-11-02:** test may be waived (recorded, with reason); the recruiter makes the final selection after the interview; the long form follows selection. The Excel worksheet from the long form goes to the principal after selection. See §3. | **Resolved.** |
+| 3 | Recruitment state machine | **Decided 2026-11-02:** test may be waived (recorded, with reason); the recruiter makes the final selection after the interview; the long form follows selection. After the long form, documents are submitted and verified; only then is the Excel worksheet sent to the principal. See §3. | **Resolved.** |
 | 4 | Terminology | **Interest** (candidate-initiated, lightweight), **Case** (person × requirement workflow), **Application form** (long post-selection form; keep table `applications` for compatibility, relabel in UI/reports). | **Resolve now.** |
 | 5 | Dedup and claims | Identity precedence: verified account > email **and** (phone or DOB) agree → *propose*; never auto-merge. Links are rows (reversible), not destructive merges. One active case per person × requirement; a reopened requirement starts a new cycle number. | Resolve the claim fix (F3) now; full dedup with the portal. |
 | 6 | Publication and availability | Organization admin publishes; listing shows rank, vessel type, joining window, contract length, nationality rules — no principal name unless chosen. Availability expires after 30 days without reconfirmation. | Defer to portal phase. |
@@ -70,9 +70,9 @@ Needle's migrations create `public.users`, `public.devices`, `public.candidates`
 
 **States** (one active case per person × requirement; history kept as append-only events):
 
-`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_waived` (reason) | `test_failed` | `test_no_show` → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` (recruiter) → `form_invited` (explicit) → `form_submitted` → `submitted_to_principal` (worksheet sent) → `principal_accepted` | `principal_rejected` → `offered` → `offer_accepted` | `offer_declined` → `documents_pending` → `joined`
+`sourced` / `interested` → `contacted` → `confirmed` (interest + availability) → `test_scheduled` → `test_passed` | `test_waived` (reason) | `test_failed` | `test_no_show` → `interview_scheduled` → `interview_passed` | `interview_failed` | `interview_no_show` → `selected` (recruiter) → `form_invited` (explicit) → `form_submitted` → `documents_pending` → `documents_verified` (recruiter) → `submitted_to_principal` (worksheet sent) → `principal_accepted` | `principal_rejected` → `offered` → `offer_accepted` | `offer_declined` → `joined`
 
-Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). Decided 2026-11-02: test waiver allowed; recruiter selects after the interview; long form after selection; Excel worksheet to the principal after the form.
+Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `rejected` (reason), `closed` (requirement filled/cancelled). Decided 2026-11-02: test waiver allowed; recruiter selects after the interview; long form after selection; documents submitted and verified before the Excel worksheet is sent to the principal.
 
 **Who may do what** (✓ allowed · — denied; all actions audited; no AI, search or status change sends email):
 
@@ -85,6 +85,7 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 | Waive test (reason required) | — | ✓ | ✓ | — | — | — |
 | Select (after interview) | — | ✓ | ✓ | — | — | — |
 | Send form invite (explicit, idempotent) | — | ✓ | ✓ | — | — | — |
+| Verify documents | — | ✓ | ✓ | — | — | — |
 | Submit to principal / record principal decision | — | ✓ | ✓ | — | — | own requirements only |
 | Withdraw | — | ✓ | ✓ | — | own case | — |
 | Read other organizations' cases | break-glass, logged | — | — | — | — | — |
@@ -108,6 +109,7 @@ Terminal from any open state: `withdrawn` (reason, by candidate or recruiter), `
 10. Feature flag off restores the current UI and data paths unchanged; rollback drops only the new tables.
 11. Coordinator cannot record results, waive, select or invite (API-level denial, not just hidden buttons).
 13. `selected` can only be recorded after `interview_passed`; selection itself sends no email.
+14. A case cannot be submitted to the principal (and no worksheet is sent) until `documents_verified` is recorded by a recruiter.
 12. Every case transition writes an event with actor, time, from/to and reason where required.
 
 ## 5. Recommended order after the first slice
