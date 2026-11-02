@@ -60,7 +60,7 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
       setLoading(true)
 
       let offerData = {}
-      let documentUrl = null
+      let documentPath = null
 
       if (mode === 'upload') {
         // Upload file to Supabase Storage
@@ -73,16 +73,12 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
 
         if (uploadError) throw uploadError
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('offer-letters')
-          .getPublicUrl(fileName)
-        
-        documentUrl = urlData.publicUrl
+        // Private bucket: keep the storage path; the Edge Function downloads it server-side.
+        documentPath = fileName
 
         offerData = {
           mode: 'document',
-          document_url: documentUrl,
+          document_path: documentPath,
           document_name: uploadedFile.name,
           offered_at: new Date().toISOString(),
           notes: formData.notes
@@ -122,7 +118,7 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
             applicantEmail: application.email || application.application_data?.data?.section2?.email,
             applicantName: application.full_name,
             referenceNumber: application.reference_number,
-            documentUrl: documentUrl,
+            documentPath: documentPath,
             documentName: uploadedFile.name
           }
         : {
@@ -139,21 +135,13 @@ export default function OfferModal({ application, onClose, onOfferSent }) {
             additionalBenefits: formData.additionalBenefits
           }
 
-      const emailResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-offer-letter`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify(emailPayload)
-        }
-      )
+      // Invoke with the signed-in recruiter's session; the function checks permission.
+      const { error: emailError } = await supabase.functions.invoke('send-offer-letter', {
+        body: emailPayload,
+      })
 
-      if (!emailResponse.ok) {
-        const errorData = await emailResponse.json()
-        console.error('Failed to send offer email:', errorData)
+      if (emailError) {
+        console.error('Failed to send offer email:', emailError)
         // Don't fail the whole operation if email fails
         alert('Offer created but email notification failed. Please contact the candidate manually.')
       } else {

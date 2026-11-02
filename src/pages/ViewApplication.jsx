@@ -117,29 +117,36 @@ export default function ViewApplication() {
       const isAuthenticatedRecruiter = userType === 'recruiter'
       const isAuthenticatedApplicant = userType === 'applicant' && Boolean(user?.id)
 
+      if (!isAuthenticatedRecruiter && !isAuthenticatedApplicant) {
+        // Emailed review link: the token is checked server-side (get_application_for_review);
+        // anonymous visitors have no direct table access.
+        if (!emailAccessToken) {
+          setError('This application link is missing secure access credentials')
+          return
+        }
+        const { data: review, error: reviewError } = await supabase.rpc('get_application_for_review', {
+          p_public_token: publicToken,
+          p_access_token: emailAccessToken,
+        })
+        if (reviewError || !review?.application) {
+          setError('Application not found, expired, or not yet submitted')
+          return
+        }
+        setApplication(review.application)
+        setLinkedRequirement(null)
+        setLinkedRequirementNationalities([])
+        setApplicationData(review.data || {})
+        return
+      }
+
       let appQuery = supabase
         .from('applications')
         .select('*, prospect_id')
         .eq('public_token', publicToken)
         .not('submitted_at', 'is', null)
 
-      if (isAuthenticatedRecruiter) {
-        // Recruiters already passed app auth and can view via the internal workspace.
-      } else if (isAuthenticatedApplicant) {
+      if (isAuthenticatedApplicant) {
         appQuery = appQuery.eq('user_id', user.id)
-      } else if (emailAccessToken) {
-        const encodedToken = new TextEncoder().encode(emailAccessToken)
-        const digest = await crypto.subtle.digest('SHA-256', encodedToken)
-        const accessTokenHash = Array.from(new Uint8Array(digest))
-          .map((byte) => byte.toString(16).padStart(2, '0'))
-          .join('')
-
-        appQuery = appQuery
-          .eq('review_access_token_hash', accessTokenHash)
-          .gt('review_access_token_expires_at', new Date().toISOString())
-      } else {
-        setError('This application link is missing secure access credentials')
-        return
       }
 
       const { data: app, error: appError } = await appQuery.single()
@@ -247,22 +254,25 @@ export default function ViewApplication() {
     }
   }
 
-  // Helper to get photo URL from storage path
-  const getPhotoUrl = (storagePath) => {
-    if (!storagePath) return null
-    
-    // If it's already a full URL, return it
-    if (storagePath.startsWith('http')) {
-      return storagePath
-    }
-    
-    // Otherwise, construct public URL from storage path
-    const { data } = supabase.storage
+  // Photos live in a private bucket: signed URL for signed-in viewers only.
+  // Review-link (anonymous) visitors see no photo.
+  const photoStoragePath = applicationData?.section2?.photoStoragePath || null
+  const [photoUrl, setPhotoUrl] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    setPhotoUrl(null)
+    if (!photoStoragePath || !user) return undefined
+    if (photoStoragePath.startsWith('http')) return undefined
+    supabase.storage
       .from('application-photos')
-      .getPublicUrl(storagePath)
-    
-    return data.publicUrl
-  }
+      .createSignedUrl(photoStoragePath, 3600)
+      .then(({ data }) => {
+        if (!cancelled) setPhotoUrl(data?.signedUrl || null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [photoStoragePath, user])
 
   if (loading) {
     return (
@@ -553,9 +563,9 @@ export default function ViewApplication() {
           <aside className="space-y-6 print:hidden">
             <div className="recruiter-panel p-6 xl:sticky xl:top-6">
               <div className="flex items-start gap-4">
-                {applicationData?.section2?.photoStoragePath ? (
+                {photoUrl ? (
                   <img
-                    src={getPhotoUrl(applicationData.section2.photoStoragePath)}
+                    src={photoUrl}
                     alt={fullName}
                     className="h-20 w-20 rounded-card object-cover border border-line"
                     onError={(e) => {

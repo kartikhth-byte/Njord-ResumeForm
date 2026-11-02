@@ -6,22 +6,21 @@ import { useAuth } from '../../auth/AuthContext'
 export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
   const { user } = useAuth()
   const [uploading, setUploading] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState(currentPhotoPath ? getPhotoUrl(currentPhotoPath) : null)
+  const [previewUrl, setPreviewUrl] = useState(null)
   const fileInputRef = useRef(null)
 
-  function getPhotoUrl(path) {
+  // Private bucket: previews use a short-lived signed URL.
+  async function getPhotoUrl(path) {
     if (!path) return null
-    const { data } = supabase.storage.from('application-photos').getPublicUrl(path)
-    return data.publicUrl
+    const { data } = await supabase.storage.from('application-photos').createSignedUrl(path, 3600)
+    return data?.signedUrl || null
   }
 
   // Update preview when currentPhotoPath prop changes (e.g., after loading from database)
   useEffect(() => {
     console.log('🖼️ PhotoUpload: currentPhotoPath changed to:', currentPhotoPath)
     if (currentPhotoPath) {
-      const url = getPhotoUrl(currentPhotoPath)
-      console.log('🖼️ PhotoUpload: Setting preview URL to:', url)
-      setPreviewUrl(url)
+      getPhotoUrl(currentPhotoPath).then(setPreviewUrl)
     } else {
       console.log('🖼️ PhotoUpload: No photo path, clearing preview')
       setPreviewUrl(null)
@@ -82,7 +81,8 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
     } catch (error) {
       console.error('❌ PhotoUpload: Error uploading photo:', error)
       alert('Failed to upload photo. Please try again.')
-      setPreviewUrl(currentPhotoPath ? getPhotoUrl(currentPhotoPath) : null)
+      if (currentPhotoPath) getPhotoUrl(currentPhotoPath).then(setPreviewUrl)
+      else setPreviewUrl(null)
     } finally {
       setUploading(false)
     }

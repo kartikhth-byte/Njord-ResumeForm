@@ -1,6 +1,6 @@
 // Recruitment case v1 — migration tests against an in-memory Postgres (PGlite).
 // Stubs auth.uid(), has_permission() and the referenced tables; does not touch any real database.
-// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node recruitment_case_v1.test.mjs <path-to>/supabase/migrations/2026110201_recruitment_case_v1.sql
+// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node recruitment_case_v1.test.mjs <path-to>/supabase/migrations/2026110203_recruitment_case_v1.sql
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 const MIG = process.argv[2]
@@ -107,7 +107,7 @@ await ok('16 every transition has an event with actor', async()=>{ const n=(awai
 await rejects('events are append-only', ()=>db.exec(`update recruitment_case_events set reason='x'`), 'append-only')
 // 9 backfill
 await ok('9 backfill: one case per legacy link, idempotent, terminal mapping', async()=>{
-  const rows=await q(`select p.prospect_id, c.status, c.legacy_status, c.application_id, (select count(*)::int from recruitment_case_events e where e.case_id=c.id and e.idempotency_key='backfill:2026110201') ev
+  const rows=await q(`select p.prospect_id, c.status, c.legacy_status, c.application_id, (select count(*)::int from recruitment_case_events e where e.case_id=c.id and e.idempotency_key='backfill:2026110203') ev
      from prospect_requirements p join recruitment_cases c on c.prospect_id=p.prospect_id and c.requirement_id=p.requirement_id and c.source='legacy' order by p.prospect_id`)
   eq(rows.map(r=>[r.status,r.legacy_status,r.ev]),[['legacy','shortlisted',1],['hired','joined',1],['withdrawn','withdrawn',1]],'mapping')
   eq(rows[0].application_id,U(31),'application linked')

@@ -2,7 +2,7 @@
 // Sends offer letter to candidate - supports both form details and uploaded documents
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
+import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
 
@@ -25,7 +25,7 @@ interface OfferLetterUploadMode {
   applicantEmail: string
   applicantName: string
   referenceNumber: string
-  documentUrl: string
+  documentPath: string
   documentName: string
 }
 
@@ -38,6 +38,20 @@ serve(async (req) => {
   }
 
   try {
+    // Only signed-in users with edit_junction_status (recruiter/master) may send offers.
+    const admin = createAdminSupabaseClient()
+    const token = (req.headers.get('Authorization') || '').replace('Bearer ', '')
+    const { data: { user } } = token ? await admin.auth.getUser(token) : { data: { user: null } }
+    const { data: allowed } = user
+      ? await admin.rpc('has_permission', { user_uuid: user.id, permission_name: 'edit_junction_status' })
+      : { data: false }
+    if (allowed !== true) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
     const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
@@ -50,15 +64,18 @@ serve(async (req) => {
 
     if (mode === 'upload') {
       // Upload mode - simple email with document attachment
-      const { documentUrl, documentName } = payload as OfferLetterUploadMode
+      const { documentPath, documentName } = payload as OfferLetterUploadMode
 
-      // Fetch document from URL to get base64 content
-      const docResponse = await fetch(documentUrl)
-      if (!docResponse.ok) {
+      // Private bucket: download by storage path with the service-role client (no arbitrary URLs).
+      if (!documentPath || documentPath.includes('..')) {
+        throw new Error('Missing or invalid document path')
+      }
+      const { data: docBlob, error: docError } = await admin.storage.from('offer-letters').download(documentPath)
+      if (docError || !docBlob) {
         throw new Error('Failed to fetch document from storage')
       }
 
-      const docBuffer = await docResponse.arrayBuffer()
+      const docBuffer = await docBlob.arrayBuffer()
       const docBase64 = btoa(String.fromCharCode(...new Uint8Array(docBuffer)))
 
       emailBody = {
