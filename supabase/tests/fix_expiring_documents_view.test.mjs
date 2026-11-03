@@ -1,0 +1,95 @@
+// Expiring documents view — tests against an in-memory Postgres (PGlite).
+// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node fix_expiring_documents_view.test.mjs <path>/2026110202_close_anonymous_application_access.sql <path>/2026110206_fix_expiring_documents_view.sql
+import { PGlite } from '@electric-sql/pglite'
+import fs from 'node:fs'
+import crypto from 'node:crypto'
+const db = new PGlite()
+const U=(n)=>'00000000-0000-0000-0000-'+String(n).padStart(12,'0')
+const applicant=U(1), other=U(2), recruiter=U(3)
+const tok='raw-access-token-123', hash=crypto.createHash('sha256').update(tok).digest('hex')
+await db.exec(`
+ create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+ grant usage on schema public to anon, authenticated, service_role;
+ create schema auth; grant usage on schema auth to anon, authenticated;
+ create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true),'')::uuid $$;
+ grant execute on function auth.uid() to anon, authenticated;
+ create table public.profiles(id uuid primary key, user_type text);
+ insert into profiles values ('${applicant}','applicant'),('${other}','applicant'),('${recruiter}','recruiter');
+ create table public.applications(id uuid primary key default gen_random_uuid(), user_id uuid, status text default 'new', public_token text, submitted_at timestamptz, review_access_token_hash text, review_access_token_expires_at timestamptz, reference_number text);
+ create table public.application_data(id uuid primary key default gen_random_uuid(), application_id uuid, data jsonb);
+ alter table applications enable row level security; alter table application_data enable row level security;
+ grant all on applications, application_data to anon, authenticated;
+ -- leaky live policies
+ create policy "Public can view by token" on applications for select to anon, authenticated using (public_token is not null and submitted_at is not null);
+ create policy "Anyone can insert" on applications for insert with check (true);
+ create policy "Users own" on applications for all to authenticated using (user_id = auth.uid());
+ create policy "Public data by token" on application_data for select using (exists(select 1 from applications a where a.id=application_id and a.public_token is not null));
+ insert into applications(id,user_id,public_token,submitted_at,review_access_token_hash,review_access_token_expires_at) values
+   ('${U(11)}','${applicant}','pub-11',now(),'${hash}',now()+interval '7 days'),
+   ('${U(12)}','${other}','pub-12',now(),null,null),
+   ('${U(13)}','${applicant}','pub-13',null,null,null);
+ insert into application_data(application_id,data) values ('${U(11)}','{"section2":{"firstName":"A"}}'),('${U(12)}','{"section2":{"firstName":"B"}}'),('${U(13)}','{}');
+ create view public.dashboard_applications as select a.id, a.public_token, d.data from applications a join application_data d on d.application_id=a.id;
+ grant select on dashboard_applications to anon, authenticated;
+ create function public.get_upcoming_events() returns setof applications language sql security definer as $$ select * from applications $$;
+ create function public.reserve_prospect_invite() returns int language sql security definer as $$ select 1 $$;
+ revoke all on function public.reserve_prospect_invite() from public; grant execute on function public.reserve_prospect_invite() to service_role;
+ create function public.has_permission(u uuid, p text) returns boolean language sql stable security definer as $$ select false $$;
+ -- storage stub
+ create schema storage; create table storage.buckets(id text primary key, public boolean);
+ insert into storage.buckets values ('application-photos',true),('offer-letters',true);
+ create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+ alter table storage.objects enable row level security; grant usage on schema storage to anon, authenticated; grant all on storage.objects to anon, authenticated;
+ create function storage.foldername(name text) returns text[] language sql immutable as $$ select string_to_array(name,'/') $$;
+ grant execute on function storage.foldername(text) to anon, authenticated;
+ create policy "public photos" on storage.objects for select using (bucket_id = 'application-photos');
+ insert into storage.objects(bucket_id,name) values ('application-photos','${applicant}/1.png'),('application-photos','${other}/2.png');
+`)
+
+// old (live) view shape, so CREATE OR REPLACE is checked against it
+await db.exec(`create view public.v_expiring_documents as
+  select a.id as application_id, a.reference_number, a.status, 'x'::text as applicant_name, 'y'::text as "position",
+         null::date as expiry_date, 'Passport'::text as document_name, 'passport'::text as document_type,
+         0 as days_until_expiry, null::text as urgency_level
+  from applications a join application_data ad on ad.application_id = a.id where false;
+  grant select on public.v_expiring_documents to anon, authenticated;`)
+await db.exec(fs.readFileSync(process.argv[2],'utf8'))   // 2026110202
+const d=(n)=>{const x=new Date(); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10)}
+const data = {
+  section1:{appliedForRank:'Master'}, section2:{firstName:'Ann', surname:'Lee'},
+  section3:{dateOfExpiry:d(20)}, section4:{dateOfExpiry:'not-a-date'},
+  section5:{visas:[{type:'C1/D',dateOfExpiry:d(50)},{type:'Schengen',dateOfExpiry:d(400)}]},
+  section8:{certificates:[{grade:'Master',dateOfExpiry:d(10),dateRevalidationExpiry:d(80)},{grade:'Chief Mate',dateOfExpiry:'2026-02-30'}]},
+  section9:{gmdss:[{dateOfExpiry:d(-5)}]},
+  section10:{medicalFitness:[{type:'PEME',dateOfExpiry:d(30)}], vaccinations:{yellowFever:{received:true,dateOfExpiry:d(5),lifetimeValidity:true}}},
+  section14:{courses:[{courseName:'Basic Training',dateOfExpiry:d(60)}]},
+  section15:{endorsements:{not:'an array'}}
+}
+await db.query(`update application_data set data=$1 where application_id=$2`, [data, U(11)])
+await db.query(`update application_data set data=$1 where application_id=$2`, [{section3:{dateOfExpiry:d(15)}}, U(12)])
+await db.exec(fs.readFileSync(process.argv[3],'utf8'))   // 2026110206
+let pass=0, fail=0
+const t=async(n,f)=>{try{await f();pass++;console.log('PASS',n)}catch(e){fail++;console.log('FAIL',n,'-',e.message)}}
+const ok=(c,m)=>{if(!c)throw new Error(m)}
+const as=async(role, uid, sql)=>{ await db.exec(`reset role; select set_config('test.uid','${uid||''}',false); set role ${role};`); try { return (await db.query(sql)).rows } finally { await db.exec('reset role') } }
+const all=(await db.query(`select * from v_expiring_documents order by application_id, document_key`)).rows
+const mine=all.filter(r=>r.application_id===U(11))
+const keys=mine.map(r=>r.document_key)
+await t('passport from section3.dateOfExpiry', async()=>ok(keys.includes('passport') && mine.find(r=>r.document_key==='passport').urgency_level==='critical', JSON.stringify(keys)))
+await t('bad CDC date ignored, no error', async()=>ok(!keys.includes('seamanbook'), 'present'))
+await t('visa within 90 days only', async()=>ok(keys.includes('visa:0') && !keys.includes('visa:1'), JSON.stringify(keys)))
+await t('CoC uses revalidation expiry', async()=>{ const r=mine.find(r=>r.document_key==='coc:0'); ok(r && r.days_until_expiry===80 && r.urgency_level==='moderate', JSON.stringify(r)) })
+await t('impossible date (Feb 30) ignored', async()=>ok(!keys.includes('coc:1'), 'present'))
+await t('expired GMDSS listed as expired', async()=>ok(mine.find(r=>r.document_key==='gmdss:0')?.urgency_level==='expired', 'missing'))
+await t('medical from section10.medicalFitness[]', async()=>ok(mine.find(r=>r.document_key==='medical:0')?.document_name==='Medical — PEME', 'missing'))
+await t('lifetime yellow fever excluded', async()=>ok(!keys.includes('yellowfever'), 'present'))
+await t('course listed by name', async()=>ok(mine.find(r=>r.document_key==='course:0')?.document_name==='Basic Training', 'missing'))
+await t('non-array endorsements tolerated', async()=>ok(!keys.some(k=>k.startsWith('endorsement')), 'present'))
+await t('applicant name built from parts', async()=>ok(mine[0].applicant_name==='Ann Lee', mine[0].applicant_name))
+await t('draft application excluded', async()=>ok(!all.some(r=>r.application_id===U(13)), 'draft present'))
+await t('keys unique per application', async()=>ok(new Set(keys).size===keys.length, 'dup'))
+await t('recruiter sees all submitted', async()=>{ const r=await as('authenticated', recruiter, 'select distinct application_id from v_expiring_documents'); ok(r.length===2, r.length) })
+await t('applicant sees only own', async()=>{ const r=await as('authenticated', applicant, 'select distinct application_id from v_expiring_documents'); ok(r.length===1 && r[0].application_id===U(11), JSON.stringify(r)) })
+await t('anon cannot select', async()=>{ try { await as('anon', null, 'select 1 from v_expiring_documents'); throw new Error('allowed') } catch(e){ ok(/permission/.test(e.message), e.message) } })
+await t('re-runnable', ()=>db.exec(fs.readFileSync(process.argv[3],'utf8')))
+console.log(`\n${pass} passed, ${fail} failed`)

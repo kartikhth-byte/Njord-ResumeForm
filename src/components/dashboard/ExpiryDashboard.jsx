@@ -42,11 +42,13 @@ const URGENCY_CONFIG = {
 const DOCUMENT_TYPE_LABELS = {
   passport: 'Passport',
   seaman_book: "Seaman's Book (CDC)",
+  seamanbook: "Seaman's Book (CDC)",
   visa: 'Visa',
   coc: 'Certificate of Competency',
   gmdss: 'GMDSS Certificate',
   medical: 'Medical Certificate',
   yellow_fever: 'Yellow Fever Vaccination',
+  yellowfever: 'Yellow Fever Vaccination',
   course: 'Training Course',
   endorsement: 'Endorsement'
 }
@@ -320,7 +322,7 @@ export default function ExpiryDashboard() {
                   const isExpired = document.days_until_expiry < 0
 
                   return (
-                    <tr key={`${document.application_id}-${document.document_type}`} className="align-top">
+                    <tr key={`${document.application_id}-${document.document_key || document.document_type}`} className="align-top">
                       <td className="px-5 py-4">
                         <div className="font-medium text-fg">{document.applicant_name}</div>
                       </td>
