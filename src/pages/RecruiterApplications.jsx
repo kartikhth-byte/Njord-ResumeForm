@@ -27,9 +27,6 @@ import {
   Search, 
   Eye, 
   Loader2, 
-  PanelLeft,
-  ChevronDown, 
-  ChevronRight,
   FileText,
   Clock,
   CheckCircle,
@@ -279,8 +276,6 @@ const [offerApplication, setOfferApplication] = useState(null)
   // Advanced Search mode toggle
   const [searchMode, setSearchMode] = useState('ai')
   
-  const [showDetailedStatusNav, setShowDetailedStatusNav] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState(['initial', 'test', 'interview', 'final'])
 
   // Status groups for sidebar
   const statusGroups = [
@@ -887,14 +882,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   }
 }
 
-  const toggleGroup = (groupId) => {
-    setExpandedGroups(prev =>
-      prev.includes(groupId)
-        ? prev.filter(g => g !== groupId)
-        : [...prev, groupId]
-    )
-  }
-
   const getPaginatedData = (data) => {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
@@ -1146,108 +1133,73 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                   />
 
                   <div className="recruiter-panel overflow-hidden">
-                    <div className="grid min-h-[38rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
-                      <aside className="border-b border-line bg-surface p-4 lg:border-b-0 lg:border-r lg:p-5">
-                        <div className="mb-4 flex items-start justify-between gap-3">
-                          <div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowDetailedStatusNav(prev => !prev)}
-                            className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-raised"
-                          >
-                            <PanelLeft className="h-3.5 w-3.5" />
-                            {showDetailedStatusNav ? 'Hide menu' : 'Show menu'}
-                          </button>
-                        </div>
-
-                        <div className="space-y-4">
-                          {statusGroups.map(group => {
-                            const GroupIcon = group.icon
-                            const isExpanded = expandedGroups.includes(group.id)
-                            const groupTotal = group.statuses.reduce((sum, status) =>
-                              sum + (statusCounts[status.value] || 0), 0
-                            ) - (group.id === 'initial' ? (statusCounts.all || 0) : 0)
-                            const primaryStatus = group.statuses[0]
-                            const primaryCount = group.id === 'initial'
-                              ? (statusCounts.all || 0)
-                              : groupTotal
-
+                    <div className="min-h-[38rem]">
+                      <div className="border-b border-line px-5 py-4 md:px-6">
+                        <div role="group" aria-label="Pipeline stage" className="flex flex-wrap gap-2">
+                          {[
+                            { id: 'all', label: 'All', first: 'all', subs: [], count: statusCounts.all || 0 },
+                            ...statusGroups.map(group => {
+                              const subs = group.statuses.filter(status => status.value !== 'all')
+                              return {
+                                id: group.id,
+                                label: group.label,
+                                first: subs[0].value,
+                                subs,
+                                count: subs.reduce((sum, status) => sum + (statusCounts[status.value] || 0), 0),
+                              }
+                            }),
+                          ].map(stage => {
+                            const active = stage.id === 'all'
+                              ? statusFilter === 'all'
+                              : stage.subs.some(status => status.value === statusFilter)
                             return (
-                              <div key={group.id} className="rounded-card border border-line bg-surface/85">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!showDetailedStatusNav) {
-                                      updateStatusFilter(primaryStatus.value)
-                                      return
-                                    }
-                                    toggleGroup(group.id)
-                                  }}
-                                  className="w-full rounded-control px-4 py-3 text-left transition hover:bg-raised"
-                                >
-                                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      {showDetailedStatusNav ? (
-                                        isExpanded ? (
-                                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-fg-muted" />
-                                        ) : (
-                                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-fg-muted" />
-                                        )
-                                      ) : null}
-                                      <GroupIcon className="h-4 w-4 flex-shrink-0 text-fg-muted" />
-                                      <span className="truncate text-sm font-semibold text-fg">{group.label}</span>
-                                    </div>
-                                    <span className={`inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs font-medium ${
- !showDetailedStatusNav && statusFilter === primaryStatus.value
- ? 'bg-accent-soft text-accent-text'
- : 'bg-raised text-fg-secondary'
- }`}>
-                                      {primaryCount}
-                                    </span>
-                                  </div>
-
-                                  {!showDetailedStatusNav ? (
-                                    <div className="mt-2 pl-6 text-xs text-fg-muted">
-                                      {primaryStatus.label}
-                                    </div>
-                                  ) : null}
-                                </button>
-
-                                {showDetailedStatusNav && isExpanded ? (
-                                  <div className="border-t border-line px-3 py-3">
-                                    <div className="space-y-2">
-                                      {group.statuses.map(status => (
-                                        <button
-                                          key={status.value}
-                                          type="button"
-                                          onClick={() => updateStatusFilter(status.value)}
-                                          className={`w-full rounded-control border px-3 py-2.5 text-left text-sm transition ${
- statusFilter === status.value
- ? 'border-accent/40 bg-accent-soft text-accent-text'
- : 'border-line bg-surface text-fg-secondary hover:border-line-input hover:bg-raised'
+                              <button
+                                key={stage.id}
+                                type="button"
+                                onClick={() => updateStatusFilter(stage.first)}
+                                aria-pressed={active}
+                                className={`flex min-w-[7rem] flex-col items-start gap-0.5 rounded-card border px-3.5 py-2.5 text-left transition ${
+ active
+ ? 'border-accent-fill bg-accent-soft'
+ : 'border-line bg-surface hover:border-line-strong'
  }`}
-                                        >
-                                          <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                                            <span className="truncate font-medium">{status.label}</span>
-                                            <span className={`inline-flex h-6 min-w-9 items-center justify-center rounded-full px-2 text-xs font-medium ${
- statusFilter === status.value
- ? 'bg-accent-soft text-accent-text'
- : 'bg-raised text-fg-secondary'
- }`}>
-                                              {statusCounts[status.value] || 0}
-                                            </span>
-                                          </div>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
+                              >
+                                <span className="text-xl font-semibold leading-tight text-fg">{stage.count}</span>
+                                <span className="text-xs text-fg-secondary">{stage.label}</span>
+                              </button>
                             )
                           })}
                         </div>
-                      </aside>
+
+                        {(() => {
+                          const activeGroup = statusGroups.find(group =>
+                            group.id !== 'initial' || statusFilter !== 'all'
+                              ? group.statuses.some(status => status.value === statusFilter && status.value !== 'all')
+                              : false
+                          )
+                          if (!activeGroup) return null
+                          return (
+                            <div role="group" aria-label={`${activeGroup.label} statuses`} className="mt-3 flex flex-wrap gap-2">
+                              {activeGroup.statuses.filter(status => status.value !== 'all').map(status => (
+                                <button
+                                  key={status.value}
+                                  type="button"
+                                  onClick={() => updateStatusFilter(status.value)}
+                                  aria-pressed={statusFilter === status.value}
+                                  className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
+ statusFilter === status.value
+ ? 'border-accent/40 bg-accent-soft text-accent-text'
+ : 'border-line bg-surface text-fg-secondary hover:bg-raised'
+ }`}
+                                >
+                                  {status.label}
+                                  <span className="text-fg">{statusCounts[status.value] || 0}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )
+                        })()}
+                      </div>
 
                       <div className="min-w-0 bg-surface/65">
                         <div className="border-b border-line/80 px-5 py-4 md:px-6">
