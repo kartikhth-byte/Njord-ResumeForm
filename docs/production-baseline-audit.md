@@ -1,6 +1,6 @@
 # Production Baseline Audit (before applying recruitment case v1)
 
-Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110204_recruitment_case_v1.sql` must not be applied until every check below is green.
+Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110205_recruitment_case_v1.sql` must not be applied until every check below is green.
 
 ## 1. Migration history
 
