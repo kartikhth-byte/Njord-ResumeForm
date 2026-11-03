@@ -25,6 +25,7 @@ This is the implementation order for the agreed target flow. `docs/recruitment-f
 
 The items below predate this roadmap. Some may already be deployed or superseded; confirm against live state and current code before acting. In particular, do not blindly push old migrations or repeat data-changing QA on production.
 
+- Security follow-up after `2026110200` (applied 2026-11-02): smoke-test recruiter login/profile reads, applicant magic-link profile creation, public catalog reads, and the service-role magic-link request path without changing real candidate data. Review remaining Data API tables, exposed functions/views, storage policies, and access logs; the 13-table fix does not prove whole-project isolation. Keep automatic exposure of new tables off. Move internal tables physically to a private schema only after updating their Edge Function/RPC references and testing those paths.
 - Confirm `2026071101_application_status_history.sql` objects and trigger are present in live schema; historical notes say this was deployed, but the backlog was not reconciled.
 - Schedule `process-expiry-warnings` to run daily (Supabase Dashboard → Edge Functions → schedules, or pg_cron); until then it only runs from the new "Send expiry warnings" button on the Expiry page — also confirm the function is deployed to the live project
 

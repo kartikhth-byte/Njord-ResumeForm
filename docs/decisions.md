@@ -1,5 +1,18 @@
 # Decisions Log
 
+## 2026-11-02 - Contain Public Data API Exposure
+
+Decision:
+- keep browser-consumed tables in `public` for now, protecting them with explicit grants and RLS instead of breaking existing client and Edge Function paths with a schema move
+- deny `anon` and `authenticated` direct table access to internal request/settings and backup tables; retain service-role access for server functions
+- allow public read-only access to the three reference catalogs, and limit profile access to authenticated self/applicant writes and recruiter reads
+- disable Supabase's automatic exposure of new tables; grant future Data API access deliberately, with RLS and role tests
+
+Why:
+- a private schema would remove tables from the Data API, but moving active tables without changing their callers would break live auth and recruiter workflows
+
+Implementation: `2026110200_harden_public_table_access.sql` is live in project `btbqdviuqcpauojmorvx`; complete the remaining flow and security smoke checks in `docs/tasks.md`.
+
 ## 2026-11 - Needle Resume Pool Precedes Holmes Applications
 
 Decision:

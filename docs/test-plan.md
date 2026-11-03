@@ -15,6 +15,10 @@ Current known passing state in this phase:
 - `npm run build` passes on the 2026-06-08 cleanup snapshot
 - `npm run test:smoke` passes on the 2026-06-08 cleanup snapshot (`77 passed, 2 skipped`)
 
+## Public Data API Hardening Gate
+
+For `2026110200`, run `supabase/tests/harden_public_table_access.test.sql` against an isolated PostgreSQL test database, then verify live catalog metadata: all 13 affected tables have RLS enabled; internal tables have no `anon` or `authenticated` grants; `profiles` has no anonymous access and only self/applicant-write or recruiter-read policies; reference catalogs permit anonymous read but no write. Confirm "Automatically expose new tables" is off after a settings-page reload. Smoke-test recruiter login/profile reads, applicant magic-link profile creation, reference catalog reads, and the service-role magic-link request function. Do not use real applicant data for write tests. These checks are separate from, and do not apply, the pending recruitment-case migration.
+
 ## Future Candidate Identity And Deduplication Gate
 
 Before the candidate portal and Needle-backed recruiter directory go live, test exact resume re-upload, revised resume version, one person arriving from two sources, ambiguous identity held for review, candidate account claim, and repeated apply/add actions for one requirement. Confirm provenance remains visible and cross-company private records cannot be inferred through duplicate checks. See `docs/needle-integration.md`.

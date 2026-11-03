@@ -98,6 +98,7 @@
 
 ## Current Verification State
 
+- Production Data API hardening (2026-11-02): `2026110200_harden_public_table_access.sql` is applied to project `btbqdviuqcpauojmorvx`. Nine internal/backup tables now have RLS enabled and no `anon`/`authenticated` table grants; `profiles` has self/applicant-write and recruiter-read policies; `countries`, `ranks`, and `vessel_types` are read-only through RLS. Supabase's "Automatically expose new tables" setting is off and remained off after reload. The 13-table grants/RLS state was checked live; this is effective Data API privacy, not a physical move to a `private` schema. The recruitment-case migration `2026110201` was not applied by this change. Auth and Edge Function smoke checks remain pending.
 - Hardening follow-up on 2026-05-06:
 - remote Supabase project `btbqdviuqcpauojmorvx` has migration `2026050601_enforce_single_active_application_and_add_cors_helper` applied
 - live DB validation passed with an isolated temporary applicant: second active application insert returned `23505` / `unique_active_application_per_user`, terminalizing the first application allowed a new active application, and cleanup left zero temporary validation applications
