@@ -25,6 +25,7 @@
 - Commit or intentionally discard the current local compliance changes so the repo state is clean before the next feature branch starts
 - Delete the TEST requirement `2026-Jul-001` (TEST MV Ocean Star) created during the 2026-07-10 browser validation once no longer needed
 - Verify the new applicant magic-link login end-to-end: `request-applicant-magic-link` edge function deployed to the live project, email delivery, link redemption through `/auth/callback`, and applicant dashboard access (Google login was removed from the applicant UI)
+- Holmes staging applicant smoke (2026-11-03) passed with a temporary implicit-flow workaround: draft save and photo upload persisted; synthetic application NJD-985347 submitted, appeared for the recruiter with its photo, and became read-only. Recheck a newly issued link after deploying the PKCE-compatible token-hash flow.
 - Decide what happens to existing applicant accounts created via Google OAuth (can they still redeem magic links against the same profile?)
 - Perform full manual applicant data-entry test after wiping applicant test data
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split

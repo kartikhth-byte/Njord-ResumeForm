@@ -4,10 +4,11 @@ test.describe('public routes', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
   test('applicant login page renders correctly', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/applicant/login')
 
-    await expect(page.getByRole('heading', { name: 'Applicant login' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Applicant access' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Email me a sign-in link' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
     await expect(page.getByText('Njordships Careers')).toBeVisible()
   })
 
@@ -37,8 +38,8 @@ test.describe('public routes', () => {
   test('auth callback without session returns to applicant login', async ({ page }) => {
     await page.goto('/auth/callback')
 
-    await page.waitForURL('**/login')
-    await expect(page).toHaveURL(/\/login$/)
-    await expect(page.getByRole('heading', { name: 'Applicant login' })).toBeVisible()
+    await page.waitForURL('**/applicant/login')
+    await expect(page).toHaveURL(/\/applicant\/login$/)
+    await expect(page.getByRole('heading', { name: 'Applicant access' })).toBeVisible()
   })
 })
