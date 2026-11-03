@@ -1,6 +1,6 @@
 # Production Baseline Audit (before applying recruitment case v1)
 
-Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110206_recruitment_case_v1.sql` must not be applied until every check below is green.
+Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110207_recruitment_case_v1.sql` must not be applied until every check below is green.
 
 ## 1. Migration history
 
@@ -70,7 +70,7 @@ Paste the outputs into the session. If everything is green, apply the migration 
 
 ## Read-only production audit, 2026-11-03
 
-Project `btbqdviuqcpauojmorvx` was checked through the linked CLI and the production SQL editor. Migration history matches local files through `2026110204`. Unapplied at the time of this audit: recruitment-case v1 and the expiry-view fix (renumbered on 2026-11-03 to `2026110206` and `2026110207` so the focused repair can take `2026110205`). This is a catalog/seed check, **not** a complete schema diff. With Docker running, a schema-only dump of `public` succeeded at `/private/tmp/holmes-prod-public-schema-20261103.sql` and confirmed that the active objects listed below are absent. No candidate rows were dumped, and no migration or production data write was performed.
+Project `btbqdviuqcpauojmorvx` was checked through the linked CLI and the production SQL editor. Migration history matches local files through `2026110204`. Unapplied at the time of this audit: recruitment-case v1 and the expiry-view fix (now `2026110207` and `2026110208` after reserving `0205`/`0206` for the repair and audit compatibility). This is a catalog/seed check, **not** a complete schema diff. With Docker running, a schema-only dump of `public` succeeded at `/private/tmp/holmes-prod-public-schema-20261103.sql` and confirmed that the active objects listed below are absent. No candidate rows were dumped, and no migration or production data write was performed.
 
 - Case-v1 dependencies exist, its organization/case names are free, and none of the checked Needle tables are present. The required case permissions match the three recruiter roles. `prospect_requirements` has zero rows to backfill.
 - Historical RBAC and worksheet tables, 10/10 checked March-May functions, 7/7 triggers, 13/13 policies, 11/11 columns, and both worksheet customer seed rows are present. The worksheet template bucket is private; the four configuration tables have RLS enabled.
@@ -85,11 +85,11 @@ Project `btbqdviuqcpauojmorvx` was checked through the linked CLI and the produc
 
 **Gate:** Do not apply recruitment-case v1 or replay the old migrations. First, make a focused, idempotent repair for the active missing invite/bounce RPCs and requirement role helper, test it on staging, and recheck production. Keep the webhook-events table inaccessible to `anon` and `authenticated` (including explicit grants/RLS checks). Retire the unused 0307 email-only claim helpers under the F3 invite-token design. Resolve the remaining schema comparison against a replayable baseline before the case migration. The cause of the missing objects has not been established; matching migration history alone does not prove how they disappeared.
 
-### Focused repair `2026110205` (written 2026-11-03, NOT APPLIED)
+### Focused repair `2026110205` (staging applied, production pending)
 
 `supabase/migrations/2026110205_repair_invite_bounce_rpcs.sql` restores only `current_recruiter_role_name`, the four invite/bounce RPCs, `prospects.invited_by_recruiter_id` with its index, and `prospect_email_webhook_events`. Function bodies are byte-identical to `2026060308`/`2026060309`. The 0307 email-only claim helpers stay retired. A precheck aborts the transaction before any change if a dependency (`has_permission`, `get_user_role`, `master_recruiter_role_name`, 12-arg `write_audit_event`, `user_roles`, `roles`, `profiles`, required `prospects` columns) is missing.
 
-Grants are explicit because Supabase default privileges grant new functions and tables to `anon` and `authenticated`; the original `revoke ... from public` did not remove those. Modelled in PGlite, the original 0309 left `reserve_prospect_invite` executable by `anon` and the webhook table readable by `authenticated`. Staging, which has the originals, is therefore expected to show the same until the repair runs there. After the repair:
+Grants are explicit because Supabase default privileges grant new functions and tables to `anon` and `authenticated`; the original `revoke ... from public` did not remove those. In a PGlite model, the original 0309 left `reserve_prospect_invite` executable by `anon` and the webhook table readable by `authenticated`. The actual staging catalog instead lacked all five functions, the webhook table, and the inviter column/index before `0205`; it did not exhibit that particular exposure. After the repair:
 
 | Object | anon | authenticated | service_role |
 |---|---|---|---|
@@ -98,6 +98,14 @@ Grants are explicit because Supabase default privileges grant new functions and 
 | `update_prospect_email_and_clear_bounce` | no | execute (checks `auth.uid()` + `edit_prospects`) | execute |
 | `prospect_email_webhook_events` (RLS on, no policies) | none | none | select/insert/update/delete |
 
-Test: `supabase/tests/repair_invite_bounce_rpcs.test.mjs` (22 checks: precheck rollback, production-like apply, grants, behaviour of all five functions, re-run, staging-like apply over the originals).
+Test: `supabase/tests/repair_invite_bounce_rpcs.test.mjs` (22 passing checks: precheck rollback, production-like apply, grants, behaviour of all five functions, re-run, modelled apply over the originals).
 
-Order: staging → verify → production → recheck production catalog. The schema-diff baseline (above) must still be resolved before `2026110206` (recruitment-case v1).
+### Audit action compatibility `2026110206` (staging applied, production pending)
+
+Staging exposed a second dependency missed by the in-memory 0205 test: legacy `audit_log.action` is `NOT NULL`, but `write_audit_event()` and the invite Edge Function's direct audit inserts omit it. Before this fix, rollback-only staging calls to `record_prospect_email_bounce` and `update_prospect_email_and_clear_bounce` failed with SQLSTATE `23502`, `null value in column "action" of relation "audit_log" violates not-null constraint`. The same table/function definitions are in the production schema dump. `2026110206_fill_audit_log_action.sql` adds a BEFORE INSERT trigger that derives `action` from `event_type` only when `action` is absent; legacy explicit actions remain unchanged and rows with neither field still fail. Its six PGlite checks pass.
+
+Both `0205` and `0206` are applied to Holmes staging only. The staging dry runs listed only their respective migration. Live staging checks now pass for the five-function grant matrix, webhook-table RLS and privileges, invite reservation, bounce recording, email correction, the Edge Function's direct audit-insert shape, and a plain Recruiter's same-day requirement soft-delete. All functional probes ran inside explicit transactions followed by rollback; the synthetic prospect and requirement inventory were unchanged. No email was sent. End-to-end Edge Function delivery and browser UI checks remain separate from these database-path checks.
+
+The isolated `fix/repair-invite-bounce-rpcs` worktree was linked to production for a read-only `supabase db push --dry-run`; it listed exactly `0205` and `0206`, with no case or expiry migration. The local staging app was not running at this checkpoint, so an actual Edge Function/UI invite and email-correction smoke remains unverified. Do not apply to production until that staging integration check passes.
+
+Order: finish staging integration checks → repeat production dry run (must list exactly `0205` and `0206`) → production push → recheck catalog and live paths. The schema-diff baseline (above) must still be resolved before `2026110207` (recruitment-case v1).
