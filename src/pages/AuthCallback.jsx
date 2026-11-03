@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -8,12 +8,37 @@ export default function AuthCallback() {
   const navigate = useNavigate()
   const { user, userType, loading, authorizationLoading } = useAuth()
   const [authResolutionTimedOut, setAuthResolutionTimedOut] = useState(false)
+  const [verifying, setVerifying] = useState(
+    () => new URLSearchParams(window.location.search).has('token_hash')
+  )
+  const verifyStartedRef = useRef(false)
+
+  // Applicant sign-in links carry a one-time token_hash (see request-applicant-magic-link).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tokenHash = params.get('token_hash')
+    if (!tokenHash || verifyStartedRef.current) return
+    verifyStartedRef.current = true
+
+    supabase.auth
+      .verifyOtp({ token_hash: tokenHash, type: params.get('type') || 'email' })
+      .then(({ error }) => {
+        if (error) console.error('Sign-in link could not be verified:', error.message)
+      })
+      .finally(() => {
+        params.delete('token_hash')
+        params.delete('type')
+        const query = params.toString()
+        window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`)
+        setVerifying(false)
+      })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
     const waitForSessionResolution = async () => {
-      if (loading || user) return
+      if (loading || user || verifying) return
 
       const timeoutAt = Date.now() + 4000
 
@@ -36,10 +61,10 @@ export default function AuthCallback() {
     return () => {
       cancelled = true
     }
-  }, [loading, user])
+  }, [loading, user, verifying])
 
   useEffect(() => {
-    if (loading || (user && authorizationLoading && !userType)) return
+    if (verifying || loading || (user && authorizationLoading && !userType)) return
 
     if (!user) {
       if (!authResolutionTimedOut) return
@@ -58,7 +83,7 @@ export default function AuthCallback() {
     }
 
     navigate('/applicant/login', { replace: true })
-  }, [user, userType, loading, authorizationLoading, navigate, authResolutionTimedOut])
+  }, [user, userType, loading, authorizationLoading, navigate, authResolutionTimedOut, verifying])
 
   return (
     <div className="public-shell flex min-h-screen items-center justify-center px-4">
