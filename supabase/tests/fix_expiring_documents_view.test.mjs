@@ -67,6 +67,27 @@ const data = {
 }
 await db.query(`update application_data set data=$1 where application_id=$2`, [data, U(11)])
 await db.query(`update application_data set data=$1 where application_id=$2`, [{section3:{dateOfExpiry:d(15)}}, U(12)])
+await db.exec(`
+  create table auth.users(id uuid primary key);
+  insert into auth.users values ('${applicant}'),('${other}'),('${recruiter}');
+  alter table profiles add column full_name text, add column email text;
+  update profiles set email = id::text || '@example.com';
+  create table public.document_expiries(
+    id uuid primary key default gen_random_uuid(),
+    application_id uuid references applications(id) on delete cascade,
+    user_id uuid references auth.users(id) on delete cascade,
+    document_type text, document_name text, section_number int, expiry_date date,
+    issuing_authority text, certificate_number text, place_of_issue text,
+    constraint valid_document_type check (document_type = any (array['passport','seaman_book','visa','coc','gmdss','medical','yellow_fever','course','endorsement'])),
+    constraint valid_section check (section_number = any (array[3,4,5,8,9,10,14,15])));
+  create table public.expiry_notifications(
+    id uuid primary key default gen_random_uuid(),
+    document_expiry_id uuid references document_expiries(id) on delete cascade,
+    application_id uuid, user_id uuid, notification_type text, status text default 'sent',
+    unique (document_expiry_id, notification_type));
+  create function public.get_documents_needing_warnings() returns table(id uuid) language sql security definer as 'select id from document_expiries';
+  grant execute on function public.get_documents_needing_warnings() to authenticated;
+`)
 await db.exec(fs.readFileSync(process.argv[3],'utf8'))   // 2026110206
 let pass=0, fail=0
 const t=async(n,f)=>{try{await f();pass++;console.log('PASS',n)}catch(e){fail++;console.log('FAIL',n,'-',e.message)}}
@@ -76,13 +97,13 @@ const all=(await db.query(`select * from v_expiring_documents order by applicati
 const mine=all.filter(r=>r.application_id===U(11))
 const keys=mine.map(r=>r.document_key)
 await t('passport from section3.dateOfExpiry', async()=>ok(keys.includes('passport') && mine.find(r=>r.document_key==='passport').urgency_level==='critical', JSON.stringify(keys)))
-await t('bad CDC date ignored, no error', async()=>ok(!keys.includes('seamanbook'), 'present'))
+await t('bad CDC date ignored, no error', async()=>ok(!keys.includes('seaman_book'), 'present'))
 await t('visa within 90 days only', async()=>ok(keys.includes('visa:0') && !keys.includes('visa:1'), JSON.stringify(keys)))
 await t('CoC uses revalidation expiry', async()=>{ const r=mine.find(r=>r.document_key==='coc:0'); ok(r && r.days_until_expiry===80 && r.urgency_level==='moderate', JSON.stringify(r)) })
 await t('impossible date (Feb 30) ignored', async()=>ok(!keys.includes('coc:1'), 'present'))
 await t('expired GMDSS listed as expired', async()=>ok(mine.find(r=>r.document_key==='gmdss:0')?.urgency_level==='expired', 'missing'))
 await t('medical from section10.medicalFitness[]', async()=>ok(mine.find(r=>r.document_key==='medical:0')?.document_name==='Medical — PEME', 'missing'))
-await t('lifetime yellow fever excluded', async()=>ok(!keys.includes('yellowfever'), 'present'))
+await t('lifetime yellow fever excluded', async()=>ok(!keys.includes('yellow_fever'), 'present'))
 await t('course listed by name', async()=>ok(mine.find(r=>r.document_key==='course:0')?.document_name==='Basic Training', 'missing'))
 await t('non-array endorsements tolerated', async()=>ok(!keys.some(k=>k.startsWith('endorsement')), 'present'))
 await t('applicant name built from parts', async()=>ok(mine[0].applicant_name==='Ann Lee', mine[0].applicant_name))
@@ -91,5 +112,27 @@ await t('keys unique per application', async()=>ok(new Set(keys).size===keys.len
 await t('recruiter sees all submitted', async()=>{ const r=await as('authenticated', recruiter, 'select distinct application_id from v_expiring_documents'); ok(r.length===2, r.length) })
 await t('applicant sees only own', async()=>{ const r=await as('authenticated', applicant, 'select distinct application_id from v_expiring_documents'); ok(r.length===1 && r[0].application_id===U(11), JSON.stringify(r)) })
 await t('anon cannot select', async()=>{ try { await as('anon', null, 'select 1 from v_expiring_documents'); throw new Error('allowed') } catch(e){ ok(/permission/.test(e.message), e.message) } })
+
+await t('warnings: sync fills document_expiries', async()=>{ const r=await db.query('select * from get_documents_needing_warnings()'); ok(r.rows.length>0, 'none'); const c=(await db.query('select count(*)::int n from document_expiries')).rows[0].n; ok(c>=r.rows.length, 'table '+c) })
+await t('warnings: only within 90 days, with email', async()=>{ const r=(await db.query('select * from get_documents_needing_warnings()')).rows; ok(r.every(x=>x.days_until_expiry<=90 && x.applicant_email), JSON.stringify(r[0])) })
+await t('warnings: ids stable across runs', async()=>{ const a=(await db.query('select id from document_expiries order by id')).rows.map(r=>r.id).join(); await db.query('select * from get_documents_needing_warnings()'); const b=(await db.query('select id from document_expiries order by id')).rows.map(r=>r.id).join(); ok(a===b,'changed') })
+await t('warnings: renewed document clears its old notifications', async()=>{
+  const de=(await db.query(`select id from document_expiries where application_id='${U(11)}' and document_key='passport'`)).rows[0]
+  await db.query(`insert into expiry_notifications(document_expiry_id, notification_type) values ($1,'30_day')`, [de.id])
+  const cur=(await db.query(`select data from application_data where application_id='${U(11)}'`)).rows[0].data
+  cur.section3.dateOfExpiry=d(70); await db.query(`update application_data set data=$1 where application_id='${U(11)}'`, [cur])
+  await db.query('select * from get_documents_needing_warnings()')
+  const n=(await db.query(`select count(*)::int n from expiry_notifications where document_expiry_id=$1`, [de.id])).rows[0].n
+  const same=(await db.query(`select id from document_expiries where application_id='${U(11)}' and document_key='passport'`)).rows[0]
+  ok(n===0 && same.id===de.id, 'n='+n)
+})
+await t('warnings: document removed from form is removed', async()=>{
+  const cur=(await db.query(`select data from application_data where application_id='${U(11)}'`)).rows[0].data
+  cur.section14.courses=[]; await db.query(`update application_data set data=$1 where application_id='${U(11)}'`, [cur])
+  await db.query('select * from get_documents_needing_warnings()')
+  const r=(await db.query(`select 1 from document_expiries where application_id='${U(11)}' and document_key='course:0'`)).rows
+  ok(r.length===0,'still there')
+})
+await t('warnings function not callable by signed-in users', async()=>{ try { await as('authenticated', applicant, 'select * from get_documents_needing_warnings()'); throw new Error('allowed') } catch(e){ ok(/permission/.test(e.message), e.message) } })
 await t('re-runnable', ()=>db.exec(fs.readFileSync(process.argv[3],'utf8')))
 console.log(`\n${pass} passed, ${fail} failed`)
