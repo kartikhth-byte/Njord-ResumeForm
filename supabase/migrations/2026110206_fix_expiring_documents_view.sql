@@ -156,4 +156,18 @@ where docs.expiry_date is not null
 revoke all on public.v_expiring_documents from public, anon;
 grant select on public.v_expiring_documents to authenticated, service_role;
 
+-- get_documents_needing_warnings (SECURITY DEFINER) returns every applicant's
+-- name, email and document expiries. Only process-expiry-warnings (service role)
+-- uses it; signed-in users lose EXECUTE.
+do $$
+declare
+  fn regprocedure := to_regprocedure('public.get_documents_needing_warnings()');
+begin
+  if fn is not null then
+    execute format('revoke all on function %s from public, anon, authenticated', fn);
+    execute format('grant execute on function %s to service_role', fn);
+  end if;
+end;
+$$;
+
 commit;
