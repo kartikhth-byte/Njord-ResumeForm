@@ -5,13 +5,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useAutoSave } from '../../hooks/useAutoSave'
 import { supabase } from '../../lib/supabase'
-import Navbar from '../layout/Navbar'
-import MobileMenu from '../layout/MobileMenu'
 import FormSidebar from './FormSidebar'
 import FormNavigation from './FormNavigation'
-import { validateSection } from '../../utils/sectionValidation'
 import { clearActiveDraftId, getActiveDraftId, setActiveDraftId } from '../../utils/draftSession'
-import { FORM_SECTION_NUMBERS } from '../../constants/formSections'
 
 export default function FormLayout({ children }) {
   const navigate = useNavigate()
@@ -20,7 +16,6 @@ export default function FormLayout({ children }) {
   const { user } = useAuth()
   const [applicationId, setApplicationId] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // ✅ Use useAutoSave hook with correct variable names
   const {
@@ -140,16 +135,6 @@ export default function FormLayout({ children }) {
     lastSaved
   }
 
-  const completedSections = FORM_SECTION_NUMBERS.filter(sectionNumber => {
-    const sectionData = applicationData?.[`section${sectionNumber}`]
-
-    if (!sectionData || Object.keys(sectionData).length === 0) {
-      return false
-    }
-
-    return validateSection(sectionNumber, sectionData).isValid
-  })
-
   if (loading || autoSaveLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-raised">
@@ -163,24 +148,9 @@ export default function FormLayout({ children }) {
 
   return (
     <div className="applicant-shell">
-      <Navbar
-        currentSection={currentSection}
-        onMobileMenuToggle={() => setIsMobileMenuOpen(true)}
-      />
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        currentSection={currentSection}
-        completedSections={completedSections}
-      />
-      
+      <FormSidebar applicationData={applicationData} />
+
       <div className="flex min-w-0">
-        {/* Sidebar */}
-        <FormSidebar 
-          currentSection={currentSection} 
-          applicationData={applicationData}
-        />
-        
         {/* Main Content */}
         <div className="min-w-0 flex-1">
           <div className="mx-auto max-w-5xl p-6">

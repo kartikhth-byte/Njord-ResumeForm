@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
-import Navbar from '../components/layout/Navbar'
+import FormSidebar from '../components/form/FormSidebar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
 import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronUp, Eye, X, ArrowLeft } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
@@ -859,7 +859,7 @@ const handleConfirmSubmit = async () => {
 
   return (
     <div className="applicant-shell">
-      <Navbar />
+      <FormSidebar applicationData={applicationData} mode="review" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

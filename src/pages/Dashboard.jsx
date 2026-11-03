@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
 import PageHeader from '../components/ui/PageHeader'
-import BrandLockup from '../components/ui/BrandLockup'
+import ApplicantSidebar from '../components/applicant/ApplicantSidebar'
 import { clearActiveDraftId, isActiveDraftExplicit, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { FORM_SECTION_NUMBERS } from '../constants/formSections'
 import { calculateDraftProgress, hasMeaningfulDraftData, isDraftSectionComplete } from '../utils/applicationProgress'
@@ -88,7 +88,7 @@ function isSingleActiveApplicationError(error) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [applications, setApplications] = useState([])
   const [draftApplication, setDraftApplication] = useState(null)
@@ -351,15 +351,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      navigate('/')
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
-  }
-
   const calculateProgress = () => {
     return calculateDraftProgress(applicationData, FORM_SECTION_NUMBERS)
   }
@@ -388,19 +379,7 @@ export default function Dashboard() {
 
   return (
     <div className="applicant-shell">
-      <header className="sticky top-0 z-50 border-b border-line bg-surface/90">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <BrandLockup compact />
-          <div className="flex items-center gap-3">
-            <p className="hidden max-w-[16rem] truncate text-sm text-fg-secondary sm:block">
-              {user?.user_metadata?.full_name || user?.email}
-            </p>
-            <button onClick={handleSignOut} className="applicant-action applicant-action--secondary whitespace-nowrap">
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+      <ApplicantSidebar />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">

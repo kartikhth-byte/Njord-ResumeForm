@@ -1818,6 +1818,77 @@ html[data-rail='collapsed'] {
   --rail-w: 64px;
 }
 
+/* Light shell (applicant pages): white panel on a warm grey gutter. */
+[data-theme='light'] {
+  --panel: 255 255 255;
+}
+
+html[data-theme='light'][data-shell='sidebar'] body,
+[data-theme='light'] .recruiter-sidebar,
+[data-theme='light'] .recruiter-mobilebar {
+  background: rgb(243 241 234);
+}
+
+[data-theme='light'] .recruiter-sidebar__item:hover {
+  background: rgb(235 232 223);
+}
+
+[data-theme='light'] .recruiter-sidebar__item.is-active {
+  background: rgb(var(--surface));
+  box-shadow: 0 0 0 1px rgb(var(--line));
+}
+
+.applicant-sidebar {
+  --rail-w: 264px;
+}
+
+html[data-shell='sidebar'] .applicant-shell.recruiter-panel-shell {
+  --rail-w: 264px;
+}
+
+/* Form section steps in the applicant sidebar */
+.applicant-step-item {
+  min-height: 34px;
+  font-size: 13.5px;
+}
+
+.applicant-step-num {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: 999px;
+  background: rgb(var(--surface));
+  color: rgb(var(--fg-muted));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.applicant-step-item[data-state='done'] .applicant-step-num {
+  border-color: rgb(var(--success-line));
+  background: rgb(var(--success-soft));
+  color: rgb(var(--success));
+}
+
+.applicant-step-item[data-state='fix'] .applicant-step-num {
+  border-color: rgb(var(--danger-line));
+  background: rgb(var(--danger-soft));
+  color: rgb(var(--danger));
+}
+
+.applicant-step-item.is-active .applicant-step-num {
+  border-color: rgb(var(--accent-fill));
+  background: rgb(var(--accent-fill));
+  color: rgb(var(--on-accent));
+}
+
+.applicant-step-item .applicant-step-num svg {
+  color: inherit;
+}
+
 .recruiter-sidebar {
   position: fixed;
   inset: 0 auto 0 0;

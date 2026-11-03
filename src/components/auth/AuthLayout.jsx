@@ -8,7 +8,8 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex items-center justify-center gap-2.5">
+          <span className="recruiter-sidebar__mark" aria-hidden="true">H</span>
           <span className="brand-lockup__wordmark">Holmes</span>
         </div>
         <div className="rounded-card border border-line bg-surface p-6">
