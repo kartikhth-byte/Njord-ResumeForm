@@ -16,7 +16,8 @@
 -- v_application_documents first, keyed by (application_id, document_key), so
 -- each document keeps a stable id and its sent-notification history. When a
 -- document's expiry date changes, its old notifications are cleared so the new
--- date gets warnings. NOT APPLIED.
+-- date gets warnings. Documents already inside a warning window when this is
+-- applied are marked as warned without sending (backlog). NOT APPLIED.
 
 begin;
 
@@ -268,6 +269,42 @@ begin
   order by de.expiry_date asc;
 end;
 $function$;
+
+-- One-time backlog handling (owner decision 2026-11-03): no warning was ever sent,
+-- so documents already inside a warning window are marked as warned at their
+-- current level without emailing. Only later levels (e.g. 60 -> 30 days, or
+-- expiry) and documents entering the 90-day window will send.
+select public.sync_document_expiries();
+
+insert into public.expiry_notifications (
+  document_expiry_id, application_id, user_id, notification_type, warning_level,
+  sent_to_applicant, sent_to_recruiter, applicant_email, subject, template_used,
+  status, sent_at, scheduled_for
+)
+select
+  de.id, de.application_id, de.user_id, lvl.notification_type, lvl.warning_level,
+  false, false, p.email, 'Backlog marked as sent without email (2026110206)', 'backlog_no_email',
+  'sent', now(), now()
+from public.document_expiries de
+join public.applications a on a.id = de.application_id
+join public.profiles p on p.id = de.user_id
+cross join lateral (
+  select
+    case
+      when de.expiry_date < current_date then 'expired'
+      when de.expiry_date - current_date <= 30 then '30_day'
+      when de.expiry_date - current_date <= 60 then '60_day'
+      else '90_day'
+    end as notification_type,
+    case
+      when de.expiry_date - current_date <= 30 then 'critical'
+      when de.expiry_date - current_date <= 60 then 'urgent'
+      else 'moderate'
+    end as warning_level
+) lvl
+where a.submitted_at is not null
+  and de.expiry_date - current_date <= 90
+on conflict (document_expiry_id, notification_type) do nothing;
 
 -- get_documents_needing_warnings (SECURITY DEFINER) returns every applicant's
 -- name, email and document expiries. Only process-expiry-warnings (service role)

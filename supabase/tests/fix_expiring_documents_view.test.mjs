@@ -83,7 +83,7 @@ await db.exec(`
   create table public.expiry_notifications(
     id uuid primary key default gen_random_uuid(),
     document_expiry_id uuid references document_expiries(id) on delete cascade,
-    application_id uuid, user_id uuid, notification_type text, status text default 'sent',
+    application_id uuid, user_id uuid, notification_type text, status text default 'sent', warning_level text, sent_to_applicant boolean, sent_to_recruiter boolean, applicant_email text, subject text, template_used text, sent_at timestamptz, scheduled_for timestamptz, error_message text,
     unique (document_expiry_id, notification_type));
   create function public.get_documents_needing_warnings() returns table(id uuid) language sql security definer as 'select id from document_expiries';
   grant execute on function public.get_documents_needing_warnings() to authenticated;
@@ -113,12 +113,20 @@ await t('recruiter sees all submitted', async()=>{ const r=await as('authenticat
 await t('applicant sees only own', async()=>{ const r=await as('authenticated', applicant, 'select distinct application_id from v_expiring_documents'); ok(r.length===1 && r[0].application_id===U(11), JSON.stringify(r)) })
 await t('anon cannot select', async()=>{ try { await as('anon', null, 'select 1 from v_expiring_documents'); throw new Error('allowed') } catch(e){ ok(/permission/.test(e.message), e.message) } })
 
+
+await t('backlog: every in-window document marked at its current level, no email flag', async()=>{
+  const r=(await db.query(`select de.id, de.expiry_date - current_date as d, n.notification_type, n.sent_to_applicant
+    from document_expiries de left join expiry_notifications n on n.document_expiry_id=de.id
+    where de.expiry_date - current_date <= 90`)).rows
+  ok(r.length>0 && r.every(x=>x.notification_type && x.sent_to_applicant===false), JSON.stringify(r))
+  const exp=r.find(x=>x.d<0); ok(!exp || exp.notification_type==='expired', JSON.stringify(exp))
+})
 await t('warnings: sync fills document_expiries', async()=>{ const r=await db.query('select * from get_documents_needing_warnings()'); ok(r.rows.length>0, 'none'); const c=(await db.query('select count(*)::int n from document_expiries')).rows[0].n; ok(c>=r.rows.length, 'table '+c) })
 await t('warnings: only within 90 days, with email', async()=>{ const r=(await db.query('select * from get_documents_needing_warnings()')).rows; ok(r.every(x=>x.days_until_expiry<=90 && x.applicant_email), JSON.stringify(r[0])) })
 await t('warnings: ids stable across runs', async()=>{ const a=(await db.query('select id from document_expiries order by id')).rows.map(r=>r.id).join(); await db.query('select * from get_documents_needing_warnings()'); const b=(await db.query('select id from document_expiries order by id')).rows.map(r=>r.id).join(); ok(a===b,'changed') })
 await t('warnings: renewed document clears its old notifications', async()=>{
   const de=(await db.query(`select id from document_expiries where application_id='${U(11)}' and document_key='passport'`)).rows[0]
-  await db.query(`insert into expiry_notifications(document_expiry_id, notification_type) values ($1,'30_day')`, [de.id])
+  await db.query(`insert into expiry_notifications(document_expiry_id, notification_type) values ($1,'30_day') on conflict do nothing`, [de.id])
   const cur=(await db.query(`select data from application_data where application_id='${U(11)}'`)).rows[0].data
   cur.section3.dateOfExpiry=d(70); await db.query(`update application_data set data=$1 where application_id='${U(11)}'`, [cur])
   await db.query('select * from get_documents_needing_warnings()')
