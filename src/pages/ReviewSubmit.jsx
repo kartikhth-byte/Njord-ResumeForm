@@ -320,12 +320,8 @@ const handleConfirmSubmit = async () => {
     // Navigate to success page with reference number
     markActiveDraftExplicit(false)
     clearActiveDraftId()
-    navigate('/application/success', {
-      state: {
-        referenceNumber,
-        position: formatDisplayValue(position)
-      }
-    })
+    // Confirmation is shown on the read-only application (reference in a banner).
+    navigate(`/application/view/${publicToken}?submitted=1`, { replace: true })
 
   } catch (error) {
     console.error('Error submitting application:', error)

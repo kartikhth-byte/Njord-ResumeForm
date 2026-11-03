@@ -13,7 +13,6 @@ import AuthCallback from './pages/AuthCallback'
 import FormSection from './pages/FormSection'
 import FormLayout from './components/form/FormLayout'
 import ReviewSubmit from './pages/ReviewSubmit'
-import SubmissionSuccess from './pages/SubmissionSuccess'
 import ViewApplication from './pages/ViewApplication'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsConditions from './pages/TermsConditions'
@@ -313,11 +312,8 @@ function App() {
               </ApplicantRoute>
             } />
             
-            <Route path="/application/success" element={
-              <ApplicantRoute>
-                <SubmissionSuccess />
-              </ApplicantRoute>
-            } />
+            {/* Old success page: confirmation now shows on the submitted application. */}
+            <Route path="/application/success" element={<Navigate to="/dashboard" replace />} />
 
             {/* Catch-All Route */}
             <Route path="*" element={<Navigate to="/" replace />} />

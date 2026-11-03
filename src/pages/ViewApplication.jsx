@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import ApplicantSidebar from '../components/applicant/ApplicantSidebar'
+import ApplicantApplicationView from '../components/applicant/ApplicantApplicationView'
+import { TECHNICAL_SKILL_ROWS, formatPhone, formatSkillValue } from '../utils/technicalSkills'
 import { downloadGeneratedWorksheet, getWorksheetExportReadiness, listWorksheetCustomers } from '../services/worksheetConfigService'
 import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeCheck, BriefcaseBusiness, CalendarDays, FileSpreadsheet, Download, X } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
@@ -42,7 +45,7 @@ if (typeof document !== 'undefined') {
 export default function ViewApplication() {
   const { publicToken } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
   const { user, userType, profile, signOut, loading: authLoading, authorizationLoading } = useAuth()
   useTheme(userType === 'recruiter' ? 'dark' : 'light')
@@ -370,6 +373,25 @@ export default function ViewApplication() {
     }
   }
 
+  if (isApplicantView) {
+    return (
+      <div className="applicant-shell">
+        <ApplicantSidebar />
+        <ApplicantApplicationView
+          application={application}
+          applicationData={applicationData}
+          photoUrl={photoUrl}
+          showSubmitted={searchParams.get('submitted') === '1'}
+          onDismissSubmitted={() => {
+            const next = new URLSearchParams(searchParams)
+            next.delete('submitted')
+            setSearchParams(next, { replace: true })
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={isApplicantView ? 'applicant-shell' : 'recruiter-shell'}>
       {isRecruiterView ? (
@@ -609,7 +631,7 @@ export default function ViewApplication() {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-fg-secondary">
                   <Phone className="h-4 w-4 text-fg-muted" />
-                  <span>{applicationData?.section2?.phoneNumber ? `+${applicationData?.section2?.phoneCountryCode || ''} ${applicationData?.section2?.phoneNumber}` : 'No phone provided'}</span>
+                  <span>{formatPhone(applicationData?.section2?.phoneCountryCode, applicationData?.section2?.phoneNumber) || 'No phone provided'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-fg-secondary">
                   <CalendarDays className="h-4 w-4 text-fg-muted" />
@@ -722,7 +744,7 @@ export default function ViewApplication() {
             <ViewRow label="Place of Birth" value={applicationData?.section2?.placeOfBirth} />
             <ViewRow label="Marital Status" value={applicationData?.section2?.maritalStatus} />
             <ViewRow label="Email" value={applicationData?.section2?.email} />
-            <ViewRow label="Phone" value={`+${applicationData?.section2?.phoneCountryCode || ''} ${applicationData?.section2?.phoneNumber || ''}`} />
+            <ViewRow label="Phone" value={formatPhone(applicationData?.section2?.phoneCountryCode, applicationData?.section2?.phoneNumber)} />
             <ViewRow label="Home Telephone" value={applicationData?.section2?.homeTelephoneNumber} />
             <ViewRow label="Address" value={applicationData?.section2?.address} />
             <ViewRow label="City" value={applicationData?.section2?.city} />
@@ -1159,51 +1181,6 @@ export default function ViewApplication() {
 }
 
 // Helper Components
-// Section 17 fields: [key, label, optional detail key (types/makes/level)].
-const TECHNICAL_SKILL_ROWS = [
-  ['ecdis', 'ECDIS', 'ecdisTypes'],
-  ['radar', 'Radar', 'radarTypes'],
-  ['arpa', 'ARPA'],
-  ['gps', 'GPS'],
-  ['gyroCompass', 'Gyro compass'],
-  ['autopilot', 'Autopilot'],
-  ['vhf', 'VHF'],
-  ['cargoComputers', 'Cargo computers', 'cargoComputerTypes'],
-  ['loadmaster', 'Loadmaster', 'loadmasterTypes'],
-  ['inertGasSystem', 'Inert gas system'],
-  ['cargoPumps', 'Cargo pumps'],
-  ['ballastSystem', 'Ballast system'],
-  ['mainEngineExperience', 'Main engine'],
-  ['auxiliaryEngineExperience', 'Auxiliary engine'],
-  ['boilerExperience', 'Boiler'],
-  ['purifierExperience', 'Purifier'],
-  ['compressorExperience', 'Compressor'],
-  ['refrigerationExperience', 'Refrigeration'],
-  ['pneumaticControls', 'Pneumatic controls'],
-  ['hydraulicSystems', 'Hydraulic systems'],
-  ['electricalExperience', 'Electrical', 'electricalVoltage'],
-  ['generatorExperience', 'Generator'],
-  ['highVoltageExperience', 'High voltage'],
-  ['plcExperience', 'PLC'],
-  ['msOffice', 'MS Office', 'msOfficeLevel'],
-  ['maintenanceSoftware', 'Maintenance software', 'maintenanceSoftwareTypes'],
-  ['weatherSoftware', 'Weather software', 'weatherSoftwareTypes'],
-  ['welding', 'Welding', 'weldingTypes'],
-  ['rigging', 'Rigging'],
-  ['craneOperation', 'Crane operation', 'craneTypes'],
-  ['rov', 'ROV'],
-  ['dynamicPositioning', 'Dynamic positioning', 'dpLevel'],
-  ['additionalSkills', 'Additional skills'],
-]
-
-function formatSkillValue(section, key, detailKey) {
-  const value = section?.[key]
-  const detail = detailKey ? section?.[detailKey] : null
-  if (value === true) return detail ? `Yes — ${detail}` : 'Yes'
-  if (typeof value === 'string' && value.trim()) return detail ? `${value} — ${detail}` : value
-  return null
-}
-
 const isEmptyValue = (value) =>
   value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
 
