@@ -45,6 +45,7 @@ export default function Section2({ data = {}, onUpdate }) {
     email: data.email || '',
     phoneCountryCode: data.phoneCountryCode || '',
     phoneNumber: data.phoneNumber || '',
+    homeTelephoneNumber: data.homeTelephoneNumber || '',
     address: data.address || '',
     city: data.city || '',
     state: data.state || '',
@@ -100,6 +101,7 @@ const autoCapitalize = (value) => {
         email: data.email || '',
         phoneCountryCode: data.phoneCountryCode || '',
         phoneNumber: data.phoneNumber || '',
+        homeTelephoneNumber: data.homeTelephoneNumber || '',
         address: data.address || '',
         city: data.city || '',
         state: data.state || '',
@@ -432,6 +434,15 @@ const autoCapitalize = (value) => {
           countryCode={formData.phoneCountryCode}
           phoneNumber={formData.phoneNumber}
           onChange={handlePhoneChange}
+        />
+
+        <FormInput
+          label="Home Telephone (optional)"
+          name="homeTelephoneNumber"
+          type="tel"
+          value={formData.homeTelephoneNumber}
+          onChange={handleChange}
+          placeholder="Landline, with area code"
         />
 
         <FormInput

@@ -723,6 +723,7 @@ export default function ViewApplication() {
             <ViewRow label="Marital Status" value={applicationData?.section2?.maritalStatus} />
             <ViewRow label="Email" value={applicationData?.section2?.email} />
             <ViewRow label="Phone" value={`+${applicationData?.section2?.phoneCountryCode || ''} ${applicationData?.section2?.phoneNumber || ''}`} />
+            <ViewRow label="Home Telephone" value={applicationData?.section2?.homeTelephoneNumber} />
             <ViewRow label="Address" value={applicationData?.section2?.address} />
             <ViewRow label="City" value={applicationData?.section2?.city} />
             <ViewRow label="State" value={applicationData?.section2?.state} />
