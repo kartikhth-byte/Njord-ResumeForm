@@ -364,27 +364,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const signInWithGoogle = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      })
-      
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error('Sign in error:', error)
-      throw error
-    }
-  }
-
   const signOut = async () => {
     const clearLocalAuthState = () => {
       hydratedSessionKeyRef.current = null
@@ -430,7 +409,6 @@ export const AuthProvider = ({ children }) => {
     isApplicant: userType === 'applicant',
     isRecruiter: userType === 'recruiter',
     hasPermission: permissionName => permissions.includes(permissionName),
-    signInWithGoogle,
     signOut,
   }
 
