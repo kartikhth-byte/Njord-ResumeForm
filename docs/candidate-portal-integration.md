@@ -63,6 +63,14 @@ The long-form email stays a magic link; it signs the person in to the one shared
 3. **Every new account gets a profile.** One idempotent server step runs on every sign-in: if this account has no person record, create one, then attach pending invites for this verified email. Records matched only by name, phone or date of birth are proposed for linking, never merged automatically.
 4. **Known gap:** one person using two different emails can still end up with two accounts. Covered by "link your other email" at sign-in (verified by code) and by recruiter-side duplicate suggestions.
 
+### Mobile number as a second identifier (recommended, portal phase)
+
+- Verified once by one-time code; stored in international (E.164) format, validated per country; **one verified number per person** (a second account claiming it is offered "link these accounts", never merged automatically).
+- Used for duplicate checks and account recovery. **Email stays the username and main sign-in**: there is usually no mobile signal at sea, and numbers change or are reassigned.
+- **International candidates:** offer SMS and WhatsApp; delivery and cost vary by country, and WhatsApp is not universal. If no code can be delivered, the account still works on email alone and the number stays unverified (not used for matching).
+- Phone or WhatsApp sign-in can come later as an extra option on the same account.
+- Candidates from several countries means several data-protection laws (e.g. EU GDPR, India DPDP, Philippines Data Privacy Act); the portal terms legal review should cover each market served and cross-border storage.
+
 Changes needed when the portal starts (not now):
 - The invite link carries the invite (case) so sign-in opens that request; the claim binds the person to it (F3).
 - A "Requests" list in the candidate dashboard: every organization asking for a long form.
