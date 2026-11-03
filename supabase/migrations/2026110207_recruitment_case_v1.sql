@@ -2,7 +2,7 @@
 -- Spec: docs/recruitment-flow.md, docs/platform-review-findings.md §3–4.
 -- Additive only: no existing table or status is changed. Writes go through the
 -- RPCs below (security definer); tables are read-only to clients.
--- NOT APPLIED. Run the production baseline audit before applying anywhere.
+-- Applied to Holmes staging on 2026-11-03; not applied to production.
 
 -- ---------------------------------------------------------------------------
 -- Organizations (one seeded organization; multi-organization RLS comes later)
