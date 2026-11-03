@@ -31,11 +31,6 @@ export default function RecruiterLogin() {
           navigate('/recruiter/dashboard', { replace: true })
           return
         }
-
-        if (userType === 'applicant' && user) {
-          navigate('/dashboard', { replace: true })
-          return
-        }
       } catch (sessionError) {
         console.error('Session check error:', sessionError)
       } finally {
@@ -93,6 +88,11 @@ export default function RecruiterLogin() {
 
     if (!email.trim()) {
       setError('Enter your recruiter email first, then use Forgot password.')
+      return
+    }
+
+    if (userType === 'applicant' && user?.email?.toLowerCase() === email.trim().toLowerCase()) {
+      setError('This is your applicant account. Applicants sign in with a magic link; enter a recruiter email to reset a recruiter password.')
       return
     }
 
@@ -180,6 +180,12 @@ export default function RecruiterLogin() {
           <p className="public-form-copy">
             Use your assigned recruiter credentials to access the hiring workspace.
           </p>
+
+          {userType === 'applicant' && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              This browser is signed in as an applicant. Recruiter access requires a separate recruiter account.
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="mt-8 space-y-5">
             <div>

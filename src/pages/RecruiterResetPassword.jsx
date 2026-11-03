@@ -16,26 +16,15 @@ export default function RecruiterResetPassword() {
 
   useEffect(() => {
     if (loading || (user && authorizationLoading && !userType)) return
-
-    if (!user) {
-      setReady(true)
-      return
-    }
-
-    if (userType && userType !== 'recruiter') {
-      navigate('/unauthorized', { replace: true })
-      return
-    }
-
     setReady(true)
-  }, [loading, authorizationLoading, user, userType, navigate])
+  }, [loading, authorizationLoading, user, userType])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
-    if (!user) {
-      setError('This reset link is no longer valid. Please request a fresh password reset email.')
+    if (!user || userType !== 'recruiter') {
+      setError('A verified recruiter recovery session is required. Please request a fresh password reset email for your recruiter account.')
       return
     }
 
@@ -116,14 +105,18 @@ export default function RecruiterResetPassword() {
             Enter your new password below to restore access to the recruiter workspace.
           </p>
 
-          {!user ? (
+          {userType !== 'recruiter' ? (
             <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4">
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
                 <div>
-                  <p className="text-sm font-medium text-red-800">Recovery link invalid</p>
+                  <p className="text-sm font-medium text-red-800">
+                    {userType === 'applicant' ? 'Applicant account detected' : 'Recovery link invalid'}
+                  </p>
                   <p className="mt-1 text-sm text-red-700">
-                    This link may have expired or already been used. Request a fresh reset email from recruiter login.
+                    {userType === 'applicant'
+                      ? 'This browser is signed in as an applicant. Applicants use emailed magic links. To reset a recruiter password, request a link for a separate recruiter account and open it in a private window.'
+                      : 'This link may have expired or we could not verify a recruiter account. Request a fresh reset email from recruiter login.'}
                   </p>
                 </div>
               </div>

@@ -31,6 +31,7 @@
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password
+- Verify recruiter recovery from an applicant-signed-in browser after the recovery-page routing fix; use a real recruiter mailbox, not an applicant email
 - Verify `Coordinator` restricted access against intended product behavior
 - Validate the recruiter export/reporting flows against the live backend
 - Verify the prospect invite / bounce recovery flow against a real recruiter account

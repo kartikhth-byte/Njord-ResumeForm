@@ -115,6 +115,7 @@
 - applicant: emailed magic link only (invite-only; `request-applicant-magic-link` edge function, requested from `/applicant/login`; Google OAuth login was removed from the UI on 2026-07-10)
 - admin-generated applicant links contain an implicit session fragment; the browser client remains on PKCE and the token-hash callback exchanges a one-time token with `verifyOtp` (verified on Holmes staging, including a first-time approved applicant with self-service sign-ups disabled)
 - recruiter: email/password
+- recruiter password recovery requires a verified recruiter session; an existing applicant session gets an explanatory message instead of being redirected to `/unauthorized`
 - the bare root URL and `/login` now route to the recruiter sign-in; applicants always arrive via emailed links
 
 ## Important Commands
