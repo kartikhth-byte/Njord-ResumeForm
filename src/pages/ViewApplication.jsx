@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
+import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import { downloadGeneratedWorksheet, getWorksheetExportReadiness, listWorksheetCustomers } from '../services/worksheetConfigService'
 import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeCheck, BriefcaseBusiness, CalendarDays, FileSpreadsheet, Download, X } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
@@ -43,9 +44,9 @@ export default function ViewApplication() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
-  const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
+  const { user, userType, profile, signOut, loading: authLoading, authorizationLoading } = useAuth()
   useTheme(userType === 'recruiter' ? 'dark' : 'light')
-  const { canExportData } = usePermissions()
+  const { canExportData, role } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [application, setApplication] = useState(null)
   const [applicationData, setApplicationData] = useState(null)
@@ -371,6 +372,9 @@ export default function ViewApplication() {
 
   return (
     <div className={isApplicantView ? 'applicant-shell' : 'recruiter-shell'}>
+      {isRecruiterView ? (
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
+      ) : null}
       <div className="border-b border-line/80 bg-surface/80 print:hidden">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

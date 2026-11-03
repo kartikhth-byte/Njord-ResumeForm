@@ -42,7 +42,9 @@ export function TrendChart({ labels = [], series = [], height = 200 }) {
   const padY = 18
   const innerW = width - padX * 2
   const innerH = height - padY * 2
-  const max = Math.max(1, ...series.flatMap((line) => line.points))
+  // Even max so the midline label is a whole number (all-zero data gave 1 / 1 / 0).
+  const rawMax = Math.max(0, ...series.flatMap((line) => line.points))
+  const max = Math.max(2, Math.ceil(rawMax / 2) * 2)
   const stepX = labels.length > 1 ? innerW / (labels.length - 1) : innerW
 
   const toXY = (value, index) => [

@@ -187,7 +187,7 @@ export default function RecruiterDashboardSimple() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <StatCard label="Open requirements" value={openRequirements.length} icon={ClipboardList} tone="info" />
           <StatCard label="Open positions" value={openPositions} icon={Users} tone="warning" />
           <StatCard label="Active candidates" value={activeCandidates.length} icon={Search} tone="success" />

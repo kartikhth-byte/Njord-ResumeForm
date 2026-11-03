@@ -2045,6 +2045,23 @@ html[data-rail='collapsed'] {
   }
 }
 
+@media print {
+  .recruiter-sidebar,
+  .recruiter-mobilebar,
+  .recruiter-sidebar__backdrop {
+    display: none !important;
+  }
+
+  html[data-shell='sidebar'] .recruiter-panel-shell {
+    min-height: 0;
+    margin: 0;
+    padding-top: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .recruiter-sidebar,
   .recruiter-panel-shell {
