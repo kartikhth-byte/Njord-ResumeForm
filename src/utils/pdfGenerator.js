@@ -163,8 +163,8 @@ export const generateApplicationPDF = async (application, applicationData) => {
     addSection('Sea Service / Employment History', applicationData.section16.seaService)
   }
 
-  if (applicationData.section17?.skills) {
-    addSection('Technical Experience & Skills', applicationData.section17.skills)
+  if (applicationData.section17) {
+    addSection('Technical Experience & Skills', applicationData.section17)
   }
 
   if (applicationData.section18) {

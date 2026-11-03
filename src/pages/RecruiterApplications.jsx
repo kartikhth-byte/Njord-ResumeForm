@@ -524,9 +524,7 @@ useEffect(() => {
         const profile = profilesData.find(p => p.id === app.user_id)
         const section1 = app.application_data?.data?.section1 || {}
         const section2 = app.application_data?.data?.section2 || {}
-        const section5 = app.application_data?.data?.section5 || {}
         const section8 = app.application_data?.data?.section8 || {}
-        const section15 = app.application_data?.data?.section15 || {}
         const section16 = app.application_data?.data?.section16 || {}
         
         const fullName = [
@@ -550,15 +548,10 @@ useEffect(() => {
           age: age,
           experience_years: calculateExperience(section16.seaService),
           available_from: section1.availableFrom || '',
-          total_experience: section5.totalSeaService || '',
           last_vessel: section16.seaService?.[0]?.vesselName || '',
           last_rank: section16.seaService?.[0]?.rankHeld || '',
           coc_number: section8.certificates?.[0]?.certificateNumber || '',
           coc_issuing_country: section8.certificates?.[0]?.issuingAuthority || '',
-          english_proficiency: section15.englishProficiency || '',
-          marlins_score: section15.marlinsScore || '',
-          bmi: section16.bmi || '',
-          blood_group: section16.bloodGroup || '',
           compliance: buildApplicationCompliance(app.application_data?.data || {}),
         }
       }).map((app) => ({

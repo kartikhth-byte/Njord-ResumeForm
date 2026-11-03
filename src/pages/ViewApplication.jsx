@@ -816,6 +816,22 @@ export default function ViewApplication() {
             </ViewSection>
           )}
 
+          {/* Section 7: Dependents */}
+          {applicationData?.section7?.dependents && applicationData.section7.dependents.length > 0 && (
+            <ViewSection title="Dependents">
+              {applicationData.section7.dependents.map((dependent, index) => (
+                <div key={index} className="mb-4 last:mb-0 pb-4 last:pb-0 border-b last:border-b-0">
+                  <div className="space-y-2">
+                    <ViewRow label="Name" value={dependent.name} />
+                    <ViewRow label="Relationship" value={dependent.relationship} />
+                    <ViewRow label="Date of Birth" value={dependent.dateOfBirth} />
+                    <ViewRow label="Gender" value={dependent.gender} />
+                  </div>
+                </div>
+              ))}
+            </ViewSection>
+          )}
+
           {/* Section 8: Certificates */}
           {applicationData?.section8?.certificates && applicationData.section8.certificates.length > 0 && (
             <ViewSection title="Certificates of Competency">
@@ -1055,6 +1071,15 @@ export default function ViewApplication() {
             </ViewSection>
           )}
 
+          {/* Section 17: Technical Experience & Skills */}
+          {applicationData?.section17 && (
+            <ViewSection title="Technical Experience & Skills">
+              {TECHNICAL_SKILL_ROWS.map(([key, label, detailKey]) => (
+                <ViewRow key={key} label={label} value={formatSkillValue(applicationData.section17, key, detailKey)} />
+              ))}
+            </ViewSection>
+          )}
+
           {/* Section 18: References */}
           {applicationData?.section18 && (
             <ViewSection title="Professional References">
@@ -1133,6 +1158,51 @@ export default function ViewApplication() {
 }
 
 // Helper Components
+// Section 17 fields: [key, label, optional detail key (types/makes/level)].
+const TECHNICAL_SKILL_ROWS = [
+  ['ecdis', 'ECDIS', 'ecdisTypes'],
+  ['radar', 'Radar', 'radarTypes'],
+  ['arpa', 'ARPA'],
+  ['gps', 'GPS'],
+  ['gyroCompass', 'Gyro compass'],
+  ['autopilot', 'Autopilot'],
+  ['vhf', 'VHF'],
+  ['cargoComputers', 'Cargo computers', 'cargoComputerTypes'],
+  ['loadmaster', 'Loadmaster', 'loadmasterTypes'],
+  ['inertGasSystem', 'Inert gas system'],
+  ['cargoPumps', 'Cargo pumps'],
+  ['ballastSystem', 'Ballast system'],
+  ['mainEngineExperience', 'Main engine'],
+  ['auxiliaryEngineExperience', 'Auxiliary engine'],
+  ['boilerExperience', 'Boiler'],
+  ['purifierExperience', 'Purifier'],
+  ['compressorExperience', 'Compressor'],
+  ['refrigerationExperience', 'Refrigeration'],
+  ['pneumaticControls', 'Pneumatic controls'],
+  ['hydraulicSystems', 'Hydraulic systems'],
+  ['electricalExperience', 'Electrical', 'electricalVoltage'],
+  ['generatorExperience', 'Generator'],
+  ['highVoltageExperience', 'High voltage'],
+  ['plcExperience', 'PLC'],
+  ['msOffice', 'MS Office', 'msOfficeLevel'],
+  ['maintenanceSoftware', 'Maintenance software', 'maintenanceSoftwareTypes'],
+  ['weatherSoftware', 'Weather software', 'weatherSoftwareTypes'],
+  ['welding', 'Welding', 'weldingTypes'],
+  ['rigging', 'Rigging'],
+  ['craneOperation', 'Crane operation', 'craneTypes'],
+  ['rov', 'ROV'],
+  ['dynamicPositioning', 'Dynamic positioning', 'dpLevel'],
+  ['additionalSkills', 'Additional skills'],
+]
+
+function formatSkillValue(section, key, detailKey) {
+  const value = section?.[key]
+  const detail = detailKey ? section?.[detailKey] : null
+  if (value === true) return detail ? `Yes — ${detail}` : 'Yes'
+  if (typeof value === 'string' && value.trim()) return detail ? `${value} — ${detail}` : value
+  return null
+}
+
 const isEmptyValue = (value) =>
   value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
 
