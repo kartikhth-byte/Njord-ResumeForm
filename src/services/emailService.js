@@ -141,18 +141,6 @@ export const sendRejectionEmail = async (arg1, arg2) => {
   });
 };
 
-export const sendOfferLetterEmail = async (application, offerDetails) => {
-  return invokeEmailFunction('send-offer-letter', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    position: application.desired_rank,
-    startDate: offerDetails.startDate,
-    salary: offerDetails.salary,
-    attachments: offerDetails.attachments || []
-  });
-};
-
 export const logEmail = async (emailData) => {
   try {
     const { error } = await supabase.from('email_logs').insert({
@@ -177,6 +165,5 @@ export default {
   sendTestFailedEmail,
   sendInterviewInvitationEmail,
   sendRejectionEmail,
-  sendOfferLetterEmail,
   logEmail
 };

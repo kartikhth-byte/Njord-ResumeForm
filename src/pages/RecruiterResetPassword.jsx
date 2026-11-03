@@ -13,6 +13,7 @@ export default function RecruiterResetPassword() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
+  const [notRecruiter, setNotRecruiter] = useState(false)
 
   useEffect(() => {
     if (loading || (user && authorizationLoading && !userType)) return
@@ -23,7 +24,9 @@ export default function RecruiterResetPassword() {
     }
 
     if (userType && userType !== 'recruiter') {
-      navigate('/unauthorized', { replace: true })
+      // Explain instead of a bare Access Denied: this reset page is for recruiter accounts.
+      setNotRecruiter(true)
+      setReady(true)
       return
     }
 
@@ -70,6 +73,19 @@ export default function RecruiterResetPassword() {
 
   if (!ready) {
     return <AuthLoading />
+  }
+
+  if (notRecruiter) {
+    return (
+      <AuthLayout title="Not a recruiter account">
+        <p className="text-sm text-fg-secondary">
+          This email belongs to an applicant account. Applicants sign in with an email link, no password.
+        </p>
+        <Link to="/applicant/login" className={`${authButtonClass} mt-6`}>
+          Applicant sign in
+        </Link>
+      </AuthLayout>
+    )
   }
 
   if (success) {
