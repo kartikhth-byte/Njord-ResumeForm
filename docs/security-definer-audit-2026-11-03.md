@@ -12,12 +12,22 @@ For all three, `anon` and `authenticated` EXECUTE are false and `service_role`
 EXECUTE is true. `0208` remains unapplied; `0207` is staging-only.
 The exact `0209` migration and test are on pushed `main` at `e79afab`.
 
+On 2026-11-04, `2026110210_restrict_unscoped_definer_helpers.sql` was applied
+to staging and production from isolated checkouts. Each dry run listed only
+`0210`; both subsequent dry runs reported up to date. All 12 PGlite checks
+passed. Live catalog checks on both projects confirmed the five targeted
+functions deny `anon` and `authenticated` and retain `service_role` EXECUTE.
+The migration and test are on pushed `main` at `8448976`. No expiry data was
+changed and `0208` remains unapplied.
+
 ## Remaining inventory
 
 The production catalog query below returned 42 `public` SECURITY DEFINER
-functions executable by `anon` or `authenticated` after `0209`. This is an
-inventory, not a claim that every function is exploitable. Only three are
-anonymous-executable; all 42 are authenticated-executable.
+functions executable by `anon` or `authenticated` after `0209`, before `0210`.
+This is a historical inventory, not a claim that every function is exploitable.
+Only three were anonymous-executable; all 42 were authenticated-executable.
+`0210` removed direct authenticated access from five entries below, leaving
+37 in this inventory callable by an ordinary signed-in user.
 
 ```sql
 select p.oid::regprocedure::text as fn,
@@ -79,27 +89,24 @@ Authenticated only:
 - `update_prospect_email_and_clear_bounce(uuid,text,text)`
 - `write_audit_event(text,text,text,uuid,text,text,uuid,uuid,uuid,uuid,uuid,jsonb)`
 
-## Confirmed follow-up risks
+## Findings and remaining work
 
-- **P1, applicant contact data:** Live `get_documents_needing_warnings()` has
+- **Closed by `0210`, applicant contact data:** `get_documents_needing_warnings()` had
   no caller check and returns names, emails, and document-expiry details for
   submitted applicants with expired or soon-expiring documents. It is callable
-  by any authenticated user. Only the
-  `process-expiry-warnings` service-role function calls it in repo code. The
-  unapplied `0208` migration includes a revoke for this RPC, but `0208` also
-  changes expiry behavior; close this grant in a focused fix without waiting
-  for that larger migration.
-- **P1, audit integrity:** `write_audit_event(...)` is callable by any
-  authenticated user, accepts caller-supplied actor/entity/payload fields, and
-  has no caller check. Repo callers are server-side service-role code and
-  other SECURITY DEFINER functions. Review and revoke direct client EXECUTE.
-- **P1/P2, unscoped mutation:** `cleanup_old_expiry_records()` deletes expiry
+  by any authenticated user. Only the `process-expiry-warnings` service-role
+  function calls it in repo code. Direct client EXECUTE is now revoked.
+- **Closed by `0210`, audit integrity:** `write_audit_event(...)` accepted
+  caller-supplied actor/entity/payload fields without a caller check. Direct
+  client EXECUTE is now revoked; service-role and trusted definer calls retain
+  access.
+- **Closed by `0210`, unscoped mutation:** `cleanup_old_expiry_records()` deletes expiry
   rows, and `extract_expiries_for_application_sql(uuid)` deletes/reinserts
   expiry rows for an arbitrary application ID. Neither checks the caller.
   `extract_expiries_for_application(uuid)` also accepts arbitrary application
   IDs and invokes an Edge Function using a configured service key. No app or
-  Edge Function source calls these three directly. Restrict direct EXECUTE
-  after checking any scheduled database callers.
+  Edge Function source calls these three directly, and no live cron job calls
+  them. Direct client EXECUTE is now revoked.
 - **Lower-severity data/metadata exposure:** `get_expiring_documents_summary()`
   returns global counts; `get_user_role(uuid)` and `get_user_permissions(uuid)`
   accept any user ID without checking the caller. Review their direct grants
