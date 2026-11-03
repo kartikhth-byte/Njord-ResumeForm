@@ -56,6 +56,13 @@ The long-form email stays a magic link; it signs the person in to the one shared
 | **Has an account under another email** | The link creates a second account. At first sign-in, offer "Already on Holmes with another email? Link it": verify the other email by code, then attach the invite to the existing person and retire the new account. Never merged automatically. |
 | **Found through the portal** (opted in to Available) | The recruiter invites from the portal side; same as "has an account". |
 
+### Account rules (owner requirement 2026-11-03)
+
+1. **The email is the username, and it is verified.** An account becomes usable only after the person opens a link (or enters a code) sent to that address, at every entry point: long-form invite, portal sign-up, invites to Needle-sourced candidates. A password can be added only after that. Bounced invite emails already flag the prospect (`bounce_flag`).
+2. **One account per email.** All entry points use the same account system, which allows one account per email; emails are stored trimmed and lower-cased. Plus-addresses (`name+tag@…`) are different addresses and stay separate accounts.
+3. **Every new account gets a profile.** One idempotent server step runs on every sign-in: if this account has no person record, create one, then attach pending invites for this verified email. Records matched only by name, phone or date of birth are proposed for linking, never merged automatically.
+4. **Known gap:** one person using two different emails can still end up with two accounts. Covered by "link your other email" at sign-in (verified by code) and by recruiter-side duplicate suggestions.
+
 Changes needed when the portal starts (not now):
 - The invite link carries the invite (case) so sign-in opens that request; the claim binds the person to it (F3).
 - A "Requests" list in the candidate dashboard: every organization asking for a long form.
