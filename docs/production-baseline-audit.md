@@ -1,6 +1,6 @@
 # Production Baseline Audit (before applying recruitment case v1)
 
-Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110205_recruitment_case_v1.sql` must not be applied until every check below is green.
+Read-only. Run from your Mac, where the Supabase CLI is linked to project `btbqdviuqcpauojmorvx`. Nothing here changes the database. The migration `supabase/migrations/2026110206_recruitment_case_v1.sql` must not be applied until every check below is green.
 
 ## 1. Migration history
 
@@ -70,7 +70,7 @@ Paste the outputs into the session. If everything is green, apply the migration 
 
 ## Read-only production audit, 2026-11-03
 
-Project `btbqdviuqcpauojmorvx` was checked through the linked CLI and the production SQL editor. Migration history matches local files through `2026110204`; `2026110205` and `2026110206` remain unapplied. This is a catalog/seed check, **not** a complete schema diff. With Docker running, a schema-only dump of `public` succeeded at `/private/tmp/holmes-prod-public-schema-20261103.sql` and confirmed that the active objects listed below are absent. No candidate rows were dumped, and no migration or production data write was performed.
+Project `btbqdviuqcpauojmorvx` was checked through the linked CLI and the production SQL editor. Migration history matches local files through `2026110204`. Unapplied at the time of this audit: recruitment-case v1 and the expiry-view fix (renumbered on 2026-11-03 to `2026110206` and `2026110207` so the focused repair can take `2026110205`). This is a catalog/seed check, **not** a complete schema diff. With Docker running, a schema-only dump of `public` succeeded at `/private/tmp/holmes-prod-public-schema-20261103.sql` and confirmed that the active objects listed below are absent. No candidate rows were dumped, and no migration or production data write was performed.
 
 - Case-v1 dependencies exist, its organization/case names are free, and none of the checked Needle tables are present. The required case permissions match the three recruiter roles. `prospect_requirements` has zero rows to backfill.
 - Historical RBAC and worksheet tables, 10/10 checked March-May functions, 7/7 triggers, 13/13 policies, 11/11 columns, and both worksheet customer seed rows are present. The worksheet template bucket is private; the four configuration tables have RLS enabled.

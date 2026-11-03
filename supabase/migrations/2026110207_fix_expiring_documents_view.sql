@@ -283,7 +283,7 @@ insert into public.expiry_notifications (
 )
 select
   de.id, de.application_id, de.user_id, lvl.notification_type, lvl.warning_level,
-  false, false, p.email, 'Backlog marked as sent without email (2026110206)', 'backlog_no_email',
+  false, false, p.email, 'Backlog marked as sent without email (2026110207)', 'backlog_no_email',
   'sent', now(), now()
 from public.document_expiries de
 join public.applications a on a.id = de.application_id

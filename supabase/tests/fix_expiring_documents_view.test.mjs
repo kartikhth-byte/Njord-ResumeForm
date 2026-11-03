@@ -1,5 +1,5 @@
 // Expiring documents view — tests against an in-memory Postgres (PGlite).
-// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node fix_expiring_documents_view.test.mjs <path>/2026110202_close_anonymous_application_access.sql <path>/2026110206_fix_expiring_documents_view.sql
+// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node fix_expiring_documents_view.test.mjs <path>/2026110202_close_anonymous_application_access.sql <path>/2026110207_fix_expiring_documents_view.sql
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
@@ -88,7 +88,7 @@ await db.exec(`
   create function public.get_documents_needing_warnings() returns table(id uuid) language sql security definer as 'select id from document_expiries';
   grant execute on function public.get_documents_needing_warnings() to authenticated;
 `)
-await db.exec(fs.readFileSync(process.argv[3],'utf8'))   // 2026110206
+await db.exec(fs.readFileSync(process.argv[3],'utf8'))   // 2026110207
 let pass=0, fail=0
 const t=async(n,f)=>{try{await f();pass++;console.log('PASS',n)}catch(e){fail++;console.log('FAIL',n,'-',e.message)}}
 const ok=(c,m)=>{if(!c)throw new Error(m)}

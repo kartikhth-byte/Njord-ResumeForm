@@ -563,10 +563,10 @@ insert into public.recruitment_case_events
   (case_id, organization_id, event_type, to_status, payload, idempotency_key, created_at)
 select c.id, c.organization_id, 'opened', c.status,
        jsonb_build_object('source', 'legacy', 'legacy_status', c.legacy_status),
-       'backfill:2026110205', c.created_at
+       'backfill:2026110206', c.created_at
 from public.recruitment_cases c
 where c.source = 'legacy'
   and not exists (
     select 1 from public.recruitment_case_events e
-    where e.case_id = c.id and e.idempotency_key = 'backfill:2026110205'
+    where e.case_id = c.id and e.idempotency_key = 'backfill:2026110206'
   );
