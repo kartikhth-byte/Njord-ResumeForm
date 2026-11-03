@@ -45,6 +45,23 @@ Date: 2026-11-03 · Status: direction agreed, not built. Build only the "now" it
 3. **Existing portal user:** the form is prefilled from their profile; they check it, add that organization's extra fields, and submit.
 4. Submitting creates the long-form snapshot and a share grant for that organization.
 
+### Invite link → portal, by case
+
+The long-form email stays a magic link; it signs the person in to the one shared account system (identified by email) and opens on that organization's request.
+
+| Case | What happens |
+|---|---|
+| **No account** | The link creates the account on first use. First sign-in: accept portal terms (consent record). The invite is claimed for this person, the long form opens for that organization, and filling it builds their portal profile. Submit = snapshot + share grant. They are now a portal user. |
+| **Has an account, same email** | The link signs in to the existing account. The invite is claimed for their person record; the long form opens prefilled from their profile ("from your profile — confirm"); they check it, add the organization's extra fields, submit. The request also appears in their portal dashboard, so they can act on it without the email. |
+| **Has an account under another email** | The link creates a second account. At first sign-in, offer "Already on Holmes with another email? Link it": verify the other email by code, then attach the invite to the existing person and retire the new account. Never merged automatically. |
+| **Found through the portal** (opted in to Available) | The recruiter invites from the portal side; same as "has an account". |
+
+Changes needed when the portal starts (not now):
+- The invite link carries the invite (case) so sign-in opens that request; the claim binds the person to it (F3).
+- A "Requests" list in the candidate dashboard: every organization asking for a long form.
+- Prefill from the profile using explicit field mappings only (review decision 8).
+- A general portal sign-in. Today `request-applicant-magic-link` only sends a link to emails that belong to an approved prospect; portal users must be able to sign in without an invite.
+
 ## Build now (already on the plan; no extra scope)
 
 1. Invite claim bound to the invite (review F3), in recruitment-case v1 — this is the "join" step.
