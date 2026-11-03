@@ -66,10 +66,15 @@ async function sendApplicantMagicLink({
     throw new Error(linkError.message)
   }
 
-  const actionLink =
-    linkData?.properties?.action_link ||
-    linkData?.action_link ||
-    `${redirectTo}?email=${encodeURIComponent(recipientEmail)}`
+  // Link straight to the app with the one-time token hash; the app exchanges it
+  // with verifyOtp. Admin-built action links return an implicit (#access_token)
+  // session, which the PKCE browser client rejects. Scanners that pre-open the
+  // link do not consume it: only verifyOtp in the browser does.
+  const hashedToken = linkData?.properties?.hashed_token
+  if (!hashedToken) {
+    throw new Error('Sign-in link could not be generated')
+  }
+  const actionLink = `${redirectTo}&token_hash=${encodeURIComponent(hashedToken)}&type=email`
 
   const deliveryAddress = applicantNotificationEmail || recipientEmail
   const deliveryNote =
