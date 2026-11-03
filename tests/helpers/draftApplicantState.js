@@ -7,6 +7,7 @@ import { loadPlaywrightEnv } from '../loadPlaywrightEnv.js'
 const DEFAULT_DRAFT_EMAIL = 'playwright-draft-applicant@example.invalid'
 const DEFAULT_DRAFT_PASSWORD = 'Playwright-Draft-Applicant-123456!'
 const DEFAULT_DRAFT_STATE = 'playwright/.auth/applicant-draft.json'
+const PRODUCTION_PROJECT_REF = 'btbqdviuqcpauojmorvx'
 
 function loadEnv() {
   loadPlaywrightEnv()
@@ -19,7 +20,7 @@ function getBaseOrigin() {
   return new URL(baseUrl).origin
 }
 
-function readFreshDraftState(absoluteStatePath, expectedOrigin) {
+function readFreshDraftState(absoluteStatePath, expectedOrigin, expectedProjectRef) {
   if (!fs.existsSync(absoluteStatePath)) {
     return null
   }
@@ -31,6 +32,11 @@ function readFreshDraftState(absoluteStatePath, expectedOrigin) {
     const authzEntry = storageState.origins?.[0]?.localStorage?.find((entry) => entry.name === 'njord-authz-cache')
 
     if (origin !== expectedOrigin || !tokenEntry || !authzEntry) {
+      return null
+    }
+
+    const authz = JSON.parse(authzEntry.value)
+    if (authz.testProjectRef !== expectedProjectRef) {
       return null
     }
 
@@ -105,8 +111,19 @@ export async function prepareDraftApplicantState() {
   const statePath = getDraftApplicantStorageStatePath()
   const absoluteStatePath = path.resolve(process.cwd(), statePath)
   const expectedOrigin = getBaseOrigin()
+  const supabaseUrl = process.env.VITE_SUPABASE_URL
+  const projectRef = supabaseUrl ? new URL(supabaseUrl).hostname.split('.')[0] : null
+  const allowedProjectRef = process.env.PLAYWRIGHT_DRAFT_TEST_PROJECT_REF
 
-  if (readFreshDraftState(absoluteStatePath, expectedOrigin)) {
+  if (!allowedProjectRef || projectRef !== allowedProjectRef || projectRef === PRODUCTION_PROJECT_REF) {
+    return {
+      prepared: false,
+      reason: 'draft setup requires an explicit non-production PLAYWRIGHT_DRAFT_TEST_PROJECT_REF matching VITE_SUPABASE_URL',
+      statePath,
+    }
+  }
+
+  if (readFreshDraftState(absoluteStatePath, expectedOrigin, projectRef)) {
     return {
       prepared: true,
       reason: 'existing-state',
@@ -114,7 +131,6 @@ export async function prepareDraftApplicantState() {
     }
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -210,6 +226,7 @@ export async function prepareDraftApplicantState() {
               userType: 'applicant',
               role: null,
               permissions: [],
+              testProjectRef: projectRef,
               cachedAt: Date.now(),
             }),
           },

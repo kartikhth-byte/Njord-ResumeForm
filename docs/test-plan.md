@@ -86,6 +86,8 @@ Specific worksheet checks:
 
 ### Automated
 
+- Run write-capable applicant smoke only against a non-production Supabase project. Set `PLAYWRIGHT_DRAFT_TEST_PROJECT_REF` to that project's ref and point `VITE_SUPABASE_URL` at the same project. The setup helper rejects the production project even if the ref is explicitly supplied; cached auth state is tied to the project ref.
+- Public-route checks against a production-backed local build must use `npm run test:smoke -- tests/smoke/public.spec.js --no-deps` so the applicant setup dependency does not write data.
 - applicant authenticated smoke
 - applicant section route smoke across all 19 sections
 - applicant autofill smoke
