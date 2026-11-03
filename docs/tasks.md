@@ -49,11 +49,13 @@ The items below predate this roadmap. Some may already be deployed or superseded
 - Commit or intentionally discard the current local compliance changes so the repo state is clean before the next feature branch starts
 - Delete the TEST requirement `2026-Jul-001` (TEST MV Ocean Star) created during the 2026-07-10 browser validation once no longer needed
 - Verify the new applicant magic-link login end-to-end: `request-applicant-magic-link` edge function deployed to the live project, email delivery, link redemption through `/auth/callback`, and applicant dashboard access (Google login was removed from the applicant UI)
+- Holmes staging applicant smoke (2026-11-03) passed: draft save and photo upload persisted; synthetic application NJD-985347 submitted, appeared for the recruiter with its photo, and became read-only. A newly issued token-hash link opened the dashboard with PKCE retained; a first-time approved applicant also signed in after self-service sign-ups were disabled. The 0204 guard allowed draft creation and a rollback-only submit transition.
 - Decide what happens to existing applicant accounts created via Google OAuth (can they still redeem magic links against the same profile?)
 - Perform full manual applicant data-entry test after wiping applicant test data
 - Manually verify applicant `View application` from the dashboard after the applicant/recruiter view split
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password
+- Verify recruiter recovery from an applicant-signed-in browser after the recovery-page routing fix; use a real recruiter mailbox, not an applicant email
 - Verify `Coordinator` restricted access against intended product behavior
 - Validate the recruiter export/reporting flows against the live backend
 - Verify the prospect invite / bounce recovery flow against a real recruiter account

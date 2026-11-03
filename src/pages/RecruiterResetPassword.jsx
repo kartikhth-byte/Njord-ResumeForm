@@ -13,32 +13,18 @@ export default function RecruiterResetPassword() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
-  const [notRecruiter, setNotRecruiter] = useState(false)
 
   useEffect(() => {
     if (loading || (user && authorizationLoading && !userType)) return
-
-    if (!user) {
-      setReady(true)
-      return
-    }
-
-    if (userType && userType !== 'recruiter') {
-      // Explain instead of a bare Access Denied: this reset page is for recruiter accounts.
-      setNotRecruiter(true)
-      setReady(true)
-      return
-    }
-
     setReady(true)
-  }, [loading, authorizationLoading, user, userType, navigate])
+  }, [loading, authorizationLoading, user, userType])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
-    if (!user) {
-      setError('This link is no longer valid. Request a new one from sign in.')
+    if (!user || userType !== 'recruiter') {
+      setError('A verified recruiter recovery session is required. Please request a fresh password reset email for your recruiter account.')
       return
     }
 
@@ -75,14 +61,16 @@ export default function RecruiterResetPassword() {
     return <AuthLoading />
   }
 
-  if (notRecruiter) {
+  if (user && userType !== 'recruiter') {
     return (
-      <AuthLayout title="Not a recruiter account">
+      <AuthLayout title={userType === 'applicant' ? 'Applicant account detected' : 'Recovery link invalid'}>
         <p className="text-sm text-fg-secondary">
-          This email belongs to an applicant account. Applicants sign in with an email link, no password.
+          {userType === 'applicant'
+            ? 'This browser is signed in as an applicant. Applicants use emailed magic links. To reset a recruiter password, request a link for a separate recruiter account and open it in a private window.'
+            : 'We could not verify a recruiter account. Request a fresh reset email from recruiter login.'}
         </p>
-        <Link to="/applicant/login" className={`${authButtonClass} mt-6`}>
-          Applicant sign in
+        <Link to="/recruiter/login" className={`${authButtonClass} mt-6`}>
+          Back to recruiter sign in
         </Link>
       </AuthLayout>
     )

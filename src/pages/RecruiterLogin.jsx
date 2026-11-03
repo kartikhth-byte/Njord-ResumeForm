@@ -31,11 +31,6 @@ export default function RecruiterLogin() {
           navigate('/recruiter/dashboard', { replace: true })
           return
         }
-
-        if (userType === 'applicant' && user) {
-          navigate('/dashboard', { replace: true })
-          return
-        }
       } catch (sessionError) {
         console.error('Session check error:', sessionError)
       } finally {
@@ -96,6 +91,11 @@ export default function RecruiterLogin() {
       return
     }
 
+    if (userType === 'applicant' && user?.email?.toLowerCase() === email.trim().toLowerCase()) {
+      setError('This is your applicant account. Applicants sign in with a magic link; enter a recruiter email to reset a recruiter password.')
+      return
+    }
+
     setResetLoading(true)
 
     try {
@@ -120,6 +120,11 @@ export default function RecruiterLogin() {
 
   return (
     <AuthLayout title="Recruiter sign in">
+      {userType === 'applicant' && (
+        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          This browser is signed in as an applicant. Recruiter access requires a separate recruiter account.
+        </p>
+      )}
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <label htmlFor="recruiter-email" className={authLabelClass}>Email</label>
@@ -133,7 +138,6 @@ export default function RecruiterLogin() {
             className={authInputClass}
           />
         </div>
-
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label htmlFor="recruiter-password" className="text-sm font-medium text-fg-secondary">Password</label>
