@@ -195,7 +195,7 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 | H3 | AI search page (frame, route sync, unavailable state, sidebar rail on this page), behind a feature flag | N1–N3 |
 | H4 | Match resumes on the requirement page: edge function calling Needle, Matches list, multi-select add, Refine in AI search | N2, N4 |
 | H5 | Add to Holmes dialog: pool or requirement, duplicate check, prefill, provenance columns, View resume | N5; case v1 for the case path |
-| H8 | Leads: allow missing candidate fields for `source = 'needle'` until contacted; require them before moving past contacted (migration, staging first) | owner decision 7 |
+| H8 | Leads: allow missing candidate fields for `source = 'needle'` until contacted; require them before moving past contacted (migration, staging first) | open decision 6 |
 | H6 | Operator → AI section (embedded Needle admin pages) | N6 |
 | H7 | Retire Holmes's application-embedding AI search: Applications "AI search" panel, `AISearch`, `EmbeddingGenerator`, `embeddingService`, `gemini-*-proxy` functions, `application_embeddings` (drop the table only after export and sign-off) | H3 live |
 

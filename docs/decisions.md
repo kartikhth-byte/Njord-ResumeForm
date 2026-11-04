@@ -12,7 +12,15 @@ Decision:
 Why:
 - the owner wants every Needle capability available to recruiters inside Holmes, with one shortlist (Holmes candidates and requirements) rather than two
 
-Open (recommendations in `docs/needle-in-holmes-design.md` §8): embedding Needle's own UI versus a rebuild, corpus rights for the existing pool, the operator role, Coordinator access, retiring Holmes's application search, and resume-sourced leads with missing fields.
+Also decided 2026-11-05:
+- embed Needle's own UI in the Holmes shell
+- each customer searches only its own resume pool; the operator sees all
+- a separate Operator role
+- Coordinators cannot run AI searches (they can open a candidate's resume)
+- retire Holmes's application-embedding search once Needle is embedded
+- every Holmes candidate has a resume in the resume database; candidates enter with name, a phone or an email, and the resume; the recruiter completes phone, email, date of birth and nationality on the first call, before the candidate moves past contacted; email actions need an email
+
+Open (`docs/needle-in-holmes-design.md` §8): who owns the existing Needle pool; the customer intake channel besides Holmes upload.
 
 ## 2026-11-02 - Contain Public Data API Exposure
 
