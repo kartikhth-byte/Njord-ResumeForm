@@ -312,12 +312,9 @@ export default function RecruiterRequirementsPage() {
                     <th>Vessel</th>
                     <th>Type</th>
                     <th>Rank</th>
-                    <th className="tracker-cell--num">Required</th>
-                    <th className="tracker-cell--num">Joined</th>
-                    <th className="tracker-cell--num">Open</th>
+                    <th className="tracker-cell--num">Filled</th>
                     <th>Status</th>
                     <th className="tracker-cell--num">Days open</th>
-                    <th className="tracker-cell--num">Target</th>
                     <th>On-time</th>
                     <th>Recruiter</th>
                     <th>Remarks</th>
@@ -341,16 +338,17 @@ export default function RecruiterRequirementsPage() {
                         <td>{row.vessel_name || '—'}</td>
                         <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
                         <td className="tracker-cell--nowrap">{row.rankName}</td>
-                        <td className="tracker-cell--num">{row.positions_required}</td>
-                        <td className="tracker-cell--num">{row.joinedCount}</td>
-                        <td className={`tracker-cell--num ${row.openPositions > 0 ? 'font-semibold text-warning' : 'text-success'}`}>
-                          {row.openPositions}
+                        <td className="tracker-cell--num tracker-cell--nowrap">
+                          <span className={row.openPositions > 0 ? 'font-semibold text-fg' : 'font-semibold text-success'}>{row.joinedCount}</span>
+                          <span className="text-fg-muted"> / {row.positions_required}</span>
                         </td>
                         <td>
                           <span className={`tracker-pill ${statusMeta.className}`}>{statusMeta.label}</span>
                         </td>
-                        <td className="tracker-cell--num">{row.daysOpen ?? '—'}</td>
-                        <td className="tracker-cell--num tracker-cell--muted">{row.targetDays ?? '—'}</td>
+                        <td className="tracker-cell--num tracker-cell--nowrap">
+                          {row.daysOpen ?? '—'}
+                          {row.targetDays ? <span className="text-fg-muted"> / {row.targetDays}</span> : null}
+                        </td>
                         <td>
                           <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[row.onTimeStatus] || ON_TIME_BADGE_CLASSES['—']}`}>
                             {row.onTimeStatus}

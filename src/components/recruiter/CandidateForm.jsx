@@ -9,6 +9,7 @@ export default function CandidateForm({
   ranks = [],
   vesselTypes = [],
   recruiters = [],
+  canChooseRecruiter = false,
   requirementOptions = [],
   currentRecruiterId = '',
   canAttach = false,
@@ -57,7 +58,9 @@ export default function CandidateForm({
           <TextField label="Candidate name" required value={form.name} onChange={set('name')} placeholder="Full name" />
           <TextField label="Date of birth" type="date" required value={form.dob} onChange={set('dob')} />
           <TextField label="Date contacted" type="date" required value={form.dateContacted} onChange={set('dateContacted')} />
-          <SelectField label="Added by" value={form.addedByRecruiterId} onChange={set('addedByRecruiterId')} options={options(recruiters, 'full_name')} placeholder="Choose recruiter" />
+          {canChooseRecruiter ? (
+            <SelectField label="Added by" value={form.addedByRecruiterId} onChange={set('addedByRecruiterId')} options={options(recruiters, 'full_name')} placeholder="Choose recruiter" />
+          ) : null}
           <SelectField label="Rank" required value={form.rankId} onChange={set('rankId')} options={options(ranks)} placeholder="Choose a rank" />
           <SelectField label="Vessel type" required value={form.vesselTypeId} onChange={set('vesselTypeId')} options={options(vesselTypes)} placeholder="Choose a vessel type" />
           <SelectField label="Nationality" required value={form.nationalityId} onChange={set('nationalityId')} options={options(countries)} placeholder="Choose nationality" />
@@ -86,7 +89,6 @@ export default function CandidateForm({
           label="First time at sea"
           checked={form.isFirstTimeAtSea}
           onChange={set('isFirstTimeAtSea')}
-          description="If checked, previous employer stays optional."
         />
         <TextAreaField label="Notes" value={form.notes} onChange={set('notes')} placeholder="Optional candidate notes" />
         {error ? <p className="text-sm text-danger">{error}</p> : null}

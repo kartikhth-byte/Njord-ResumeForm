@@ -25,6 +25,10 @@ import {
   Users,
 } from 'lucide-react'
 
+// Joined, Rejected and Withdrawn have their own views, so the stage
+// dropdown lists only the active stages.
+const ACTIVE_STAGES = FUNNEL_STAGES.filter((stage) => !['Joined', 'Rejected', 'Withdrawn'].includes(stage))
+
 const VIEW_FILTERS = [
   { value: 'active', label: 'Active pipeline' },
   { value: 'unattached', label: 'Unattached' },
@@ -202,6 +206,7 @@ export default function RecruiterCandidatesPage() {
               ranks={tracker.data.ranks}
               vesselTypes={tracker.data.vesselTypes}
               recruiters={workingRecruiters(tracker.data.recruiters)}
+              canChooseRecruiter={role === 'Master Recruiter' || hasPermission('manage_runtime_settings') || hasPermission('manage_settings')}
               requirementOptions={tracker.data.requirements
                 .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
                 .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` }))}
@@ -264,7 +269,7 @@ export default function RecruiterCandidatesPage() {
                   className="w-40 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All stages</option>
-                  {FUNNEL_STAGES.map((stage) => (
+                  {ACTIVE_STAGES.map((stage) => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
                 </select>
@@ -322,8 +327,7 @@ export default function RecruiterCandidatesPage() {
                     <th>Rank</th>
                     <th>Vessel type</th>
                     <th>Stage</th>
-                    <th>Joined on</th>
-                    <th className="tracker-cell--num">Days to join</th>
+                    <th>Joined</th>
                     <th>Pipeline</th>
                     <th>Notes</th>
                   </tr>
@@ -365,8 +369,10 @@ export default function RecruiterCandidatesPage() {
                           <span className="tracker-pill ml-1.5 bg-line text-fg-secondary">Archived</span>
                         ) : null}
                       </td>
-                      <td className="tracker-cell--nowrap">{row.joinedAt ? formatDate(row.joinedAt) : '—'}</td>
-                      <td className="tracker-cell--num">{row.daysToJoin ?? '—'}</td>
+                      <td className="tracker-cell--nowrap">
+                        {row.joinedAt ? formatDate(row.joinedAt) : '—'}
+                        {row.joinedAt && row.daysToJoin != null ? <span className="text-fg-muted"> · {row.daysToJoin} d</span> : null}
+                      </td>
                       <td className="tracker-cell--nowrap">
                         {row.inActivePipeline ? (
                           <span className="tracker-pill bg-accent-soft text-accent-text">
