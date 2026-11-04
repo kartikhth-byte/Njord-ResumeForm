@@ -5,27 +5,15 @@ import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import FormSidebar from '../components/form/FormSidebar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
-import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronUp, Eye, X, ArrowLeft } from 'lucide-react'
+import { CheckCircle, AlertCircle, Edit, Send, ChevronUp, Eye } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
 import { generateReferenceNumber } from '../utils/referenceGenerator'
-import { validateSection } from '../utils/sectionValidation'
 import PageHeader from '../components/ui/PageHeader'
 import { clearActiveDraftId, getActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
-import { FORM_SECTION_NAME_MAP, FORM_SECTION_NUMBERS, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
+import { FORM_SECTION_NAME_MAP, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
+import { getBlockingSections, getSectionStatuses } from '../utils/applicationProgress'
 
-const SECTION_NAMES = {
-  ...FORM_SECTION_NAME_MAP,
-  1: 'Availability & Application Details',
-  4: "CDC / National Seaman's Book",
-  8: 'National Certificates of Competency',
-  10: 'Medical Fitness & Vaccination',
-  14: 'STCW Courses & Competencies',
-  15: 'Flag State Endorsements',
-  16: 'Sea Service / Employment History',
-  17: 'Technical Experience & Skills',
-  18: 'Professional References',
-  19: 'Additional Information & Declarations',
-}
+const SECTION_NAMES = FORM_SECTION_NAME_MAP
 
 function isReferenceNumberConflict(error) {
   const message = error?.message || ''
@@ -53,9 +41,7 @@ export default function ReviewSubmit() {
   const [applicationData, setApplicationData] = useState({})
   const [applicationId, setApplicationId] = useState(null)
   const [completionStatus, setCompletionStatus] = useState({})
-  const [showIncompleteModal, setShowIncompleteModal] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [incompleteSections, setIncompleteSections] = useState([])
   const [expandedSections, setExpandedSections] = useState({})
 
   useEffect(() => {
@@ -129,31 +115,7 @@ export default function ReviewSubmit() {
   }
 
   const calculateCompletionStatus = (data) => {
-    const status = {}
-    
-    for (const sectionNumber of FORM_SECTION_NUMBERS) {
-      const sectionKey = `section${sectionNumber}`
-      const sectionData = data[sectionKey]
-      
-      if (!sectionData || Object.keys(sectionData).length === 0) {
-        status[sectionNumber] = 'empty'
-      } else {
-        const hasData = Object.values(sectionData).some(value => {
-          if (Array.isArray(value)) return value.length > 0
-          if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0
-          if (typeof value === 'boolean') return true
-          return value !== '' && value !== null && value !== undefined
-        })
-        // Mandatory sections are complete only when they pass the same
-        // validation the form sidebar uses; "has any data" is not enough.
-        if (hasData && MANDATORY_SECTION_NUMBERS.includes(sectionNumber)) {
-          status[sectionNumber] = validateSection(sectionNumber, sectionData).isValid ? 'complete' : 'incomplete'
-        } else {
-          status[sectionNumber] = hasData ? 'complete' : 'empty'
-        }
-      }
-    }
-    
+    const status = getSectionStatuses(data)
     setCompletionStatus(status)
     return status
   }
@@ -176,13 +138,7 @@ export default function ReviewSubmit() {
   }
 
   const validateApplication = () => {
-    const incomplete = []
-
-    MANDATORY_SECTION_NUMBERS.forEach(section => {
-      if (!validateSection(section, applicationData[`section${section}`]).isValid) {
-        incomplete.push(section)
-      }
-    })
+    const incomplete = getBlockingSections(applicationData)
 
     const section19 = applicationData.section19 || {}
     if (!section19.accuracyDeclaration || !section19.backgroundCheckConsent || !section19.dataProcessingConsent) {
@@ -196,14 +152,7 @@ export default function ReviewSubmit() {
   }
 
   const handleSubmitClick = () => {
-    const incomplete = validateApplication()
-    
-    if (incomplete.length > 0) {
-      setIncompleteSections(incomplete)
-      setShowIncompleteModal(true)
-    } else {
-      setShowConfirmModal(true)
-    }
+    if (validateApplication().length === 0) setShowConfirmModal(true)
   }
 
 const handleConfirmSubmit = async () => {
@@ -212,7 +161,6 @@ const handleConfirmSubmit = async () => {
 
     // Get position for success page
     const position = applicationData?.section1?.appliedForRank || 'Maritime Position'
-    console.log('Position:', position)
 
     // Reuse existing identifiers when present to avoid uniqueness conflicts on resubmission.
     const { data: currentApp, error: fetchError } = await supabase
@@ -226,18 +174,9 @@ const handleConfirmSubmit = async () => {
     let referenceNumber = currentApp?.reference_number
     if (!referenceNumber) {
       referenceNumber = await findAvailableReferenceNumber()
-      console.log('Generated unique reference number:', referenceNumber)
-    } else {
-      console.log('Using existing reference number:', referenceNumber)
     }
 
-    let publicToken = currentApp?.public_token
-    if (!publicToken) {
-      publicToken = crypto.randomUUID()
-      console.log('Generated new public_token:', publicToken)
-    } else {
-      console.log('Using existing public_token:', publicToken)
-    }
+    const publicToken = currentApp?.public_token || crypto.randomUUID()
 
     const updatePayload = {
       status: 'submitted',
@@ -255,7 +194,6 @@ const handleConfirmSubmit = async () => {
 
     if ((updateError?.code === '23505' || updateError?.status === 409) && isReferenceNumberConflict(updateError)) {
       referenceNumber = await findAvailableReferenceNumber()
-      console.warn('Reference number collision detected, retrying with:', referenceNumber)
 
       ;({ error: updateError } = await supabase
         .from('applications')
@@ -267,8 +205,6 @@ const handleConfirmSubmit = async () => {
     }
 
     if (isUniqueUserPositionConflict(updateError)) {
-      console.warn('Applied rank conflicts with an existing application, retrying submit without applications.applied_rank')
-
       ;({ error: updateError } = await supabase
         .from('applications')
         .update({
@@ -286,18 +222,12 @@ const handleConfirmSubmit = async () => {
       throw updateError
     }
 
-    console.log('✅ Application updated successfully')
-    console.log('Reference number:', referenceNumber)
-    console.log('Public token:', publicToken)
-
     // Verify the update worked
     const { data: verifyApp, error: verifyError } = await supabase
       .from('applications')
       .select('reference_number, public_token')
       .eq('id', applicationId)
       .single()
-
-    console.log('Verification - Saved values:', verifyApp)
 
     if (verifyError || !verifyApp?.reference_number) {
       console.error('Verification failed:', verifyError)
@@ -306,7 +236,7 @@ const handleConfirmSubmit = async () => {
 
     // Call edge function to send recruiter email
     try {
-      const { data: emailData, error: emailError } = await supabase.functions.invoke(
+      const { error: emailError } = await supabase.functions.invoke(
         'send-application-emails',
         {
           body: { applicationId }
@@ -316,8 +246,6 @@ const handleConfirmSubmit = async () => {
       if (emailError) {
         console.error('Email function error:', emailError)
         // Don't block submission if email fails
-      } else {
-        console.log('Email sent successfully:', emailData)
       }
     } catch (emailError) {
       console.error('Failed to send email:', emailError)
@@ -804,7 +732,7 @@ const handleConfirmSubmit = async () => {
       case 1:
         return sectionData.appliedForRank ? `Applied for: ${formatDisplayValue(sectionData.appliedForRank)}` : 'Incomplete'
       case 2:
-        return sectionData.firstName ? `${sectionData.firstName} ${sectionData.lastName || ''}` : 'Incomplete'
+        return sectionData.firstName ? [sectionData.firstName, sectionData.surname].filter(Boolean).join(' ') : 'Incomplete'
       case 3:
         return sectionData.passportNumber ? `Passport: ${sectionData.passportNumber}` : 'Not provided'
       case 4:
@@ -844,10 +772,8 @@ const handleConfirmSubmit = async () => {
     }
   }
 
-  const completedSections = Object.values(completionStatus).filter(s => s === 'complete').length
-  const totalSections = FORM_SECTION_NUMBERS.length
-  const completionPercentage = Math.round((completedSections / totalSections) * 100)
-  const canSubmit = validateApplication().length === 0
+  const blockingSections = validateApplication()
+  const canSubmit = blockingSections.length === 0
 
   if (loading) {
     return (
@@ -865,38 +791,8 @@ const handleConfirmSubmit = async () => {
       <FormSidebar applicationData={applicationData} mode="review" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="applicant-hero mb-8">
-          <div className="mb-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-2 text-fg-secondary hover:text-fg"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </button>
-          </div>
-
-          <PageHeader
-            title="Review and submit"
-          />
-        </div>
-
-        {/* Progress Card */}
-        <div className="applicant-panel p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-fg">Application Progress</h2>
-            <span className="text-2xl font-semibold text-accent-text">{completionPercentage}%</span>
-          </div>
-          <div className="w-full bg-line rounded-full h-3">
-            <div
-              className="bg-accent-fill h-3 rounded-full transition-all duration-500"
-              style={{ width: `${completionPercentage}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-fg-secondary mt-2">
-            {completedSections} of {totalSections} sections completed
-          </p>
+          <PageHeader title="Review and submit" />
         </div>
 
         {/* Section List */}
@@ -923,16 +819,9 @@ const handleConfirmSubmit = async () => {
                           <AlertCircle className={`w-6 h-6 flex-shrink-0 ${isMandatory ? 'text-danger' : 'text-warning'}`} />
                         )}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-fg">
-                              Section {num}: {SECTION_NAMES[num]}
-                            </h3>
-                            {isMandatory && (
-                              <span className="px-2 py-0.5 bg-danger-soft text-danger text-xs font-semibold rounded">
-                                REQUIRED
-                              </span>
-                            )}
-                          </div>
+                          <h3 className="font-medium text-fg">
+                            {num}. {SECTION_NAMES[num]}
+                          </h3>
                           <p className="text-sm text-fg-secondary mt-1">
                             {getSectionSummary(num)}
                           </p>
@@ -980,126 +869,44 @@ const handleConfirmSubmit = async () => {
           </div>
         </div>
 
-        {/* Submit Section */}
         <div className="applicant-panel p-6">
-          <h2 className="text-xl font-semibold text-fg mb-4">Ready to Submit?</h2>
-          
-          {canSubmit ? (
-            <div className="bg-success-soft border border-success-line rounded-lg p-4 mb-6">
-              <div className="flex gap-3">
-                <CheckCircle className="w-6 h-6 text-success flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-success">All Required Sections Complete!</h3>
-                  <p className="text-sm text-success mt-1">
-                    All required sections are complete.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-danger-soft border border-danger-line rounded-lg p-4 mb-6">
-              <div className="flex gap-3">
-                <AlertTriangle className="w-6 h-6 text-danger flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-danger">Required Sections Incomplete</h3>
-                  <p className="text-sm text-danger mt-1">
-                    Complete all required sections first.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {!canSubmit && (
+            <p className="mb-4 text-sm text-fg-secondary">
+              To submit, complete:{' '}
+              {blockingSections.map((num, index) => (
+                <span key={num}>
+                  {index > 0 ? ', ' : ''}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/application/form/section/${num}?return=review`)}
+                    className="font-medium text-accent-text hover:underline"
+                  >
+                    {SECTION_NAMES[num]}
+                  </button>
+                </span>
+              ))}
+            </p>
           )}
 
-          <div className="space-y-4">
-            <p className="text-sm text-fg-secondary">By submitting, you confirm the information is accurate and complete.</p>
-
-            <button
-              onClick={handleSubmitClick}
-              disabled={submitting || !canSubmit}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-control transition-colors font-semibold text-lg ${
- canSubmit
- ? 'bg-accent-fill text-on-accent hover:bg-accent-fill-hover'
- : 'bg-line-strong text-fg-muted cursor-not-allowed'
- } disabled:bg-fg-muted disabled:cursor-not-allowed`}
-            >
-              {submitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-line border-t-transparent rounded-full animate-spin"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Submit Application
-                </>
-              )}
-            </button>
-
-            {!canSubmit && (
-              <p className="text-xs text-center text-fg-muted">
-                Complete all required sections to enable submission
-              </p>
+          <button
+            onClick={handleSubmitClick}
+            disabled={submitting || !canSubmit}
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-control transition-colors font-semibold text-lg bg-accent-fill text-on-accent hover:bg-accent-fill-hover disabled:bg-line-strong disabled:text-fg-muted disabled:cursor-not-allowed"
+          >
+            {submitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-line border-t-transparent rounded-full animate-spin"></div>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Submit application
+              </>
             )}
-          </div>
+          </button>
         </div>
       </div>
-
-      {/* Incomplete Sections Modal */}
-      {showIncompleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowIncompleteModal(false)}></div>
-          
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-surface rounded-lg max-w-lg w-full">
-              <button
-                onClick={() => setShowIncompleteModal(false)}
-                className="absolute top-4 right-4 text-fg-muted hover:text-fg-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="p-6">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft border border-danger-line">
-                  <AlertTriangle className="h-6 w-6 text-danger" />
-                </div>
-
-                <h3 className="mt-4 text-xl font-semibold text-fg text-center">
-                  Required Sections Incomplete
-                </h3>
-
-                <p className="mt-2 text-sm text-fg-secondary text-center">
-                  Complete these sections first:
-                </p>
-
-                <div className="mt-4 space-y-2">
-                  {incompleteSections.map(sectionNum => (
-                    <button
-                      key={sectionNum}
-                      onClick={() => {
-                        setShowIncompleteModal(false)
-                        navigate(`/application/form/section/${sectionNum}?return=review`)
-                      }}
-                      className="w-full flex items-center justify-between p-3 bg-danger-soft border border-danger-line rounded-lg hover:bg-danger-soft transition-colors"
-                    >
-                      <span className="text-sm font-medium text-danger">
-                        Section {sectionNum}: {SECTION_NAMES[sectionNum]}
-                      </span>
-                      <Edit className="w-4 h-4 text-danger" />
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowIncompleteModal(false)}
-                  className="mt-6 w-full px-4 py-2 bg-line text-fg-secondary rounded-lg hover:bg-line-strong transition-colors font-medium"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Confirm Submit Modal */}
       <ConfirmationModal
@@ -1111,7 +918,6 @@ const handleConfirmSubmit = async () => {
           <div className="space-y-2">
             <p>Are you sure you want to submit your application?</p>
             <p className="font-semibold">You can’t edit it after submitting.</p>
-            <p className="text-xs">You’ll get a confirmation email.</p>
           </div>
         }
         type="success"

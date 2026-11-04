@@ -112,10 +112,7 @@ export default function ApplicantSidebar({ children, footer }) {
             <span className="recruiter-sidebar__avatar" aria-hidden="true">
               {displayName.charAt(0).toUpperCase()}
             </span>
-            <span className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="truncate text-[13px] text-fg">{displayName}</span>
-              <span className="truncate text-xs text-fg-muted">Applicant</span>
-            </span>
+            <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{displayName}</span>
             <button
               type="button"
               onClick={handleSignOut}

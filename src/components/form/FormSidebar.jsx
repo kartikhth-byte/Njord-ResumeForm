@@ -1,8 +1,8 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle, FileText } from 'lucide-react'
-import { validateSection } from '../../utils/sectionValidation'
+import { calculateApplicationProgress, getSectionStatus as sectionStatus } from '../../utils/applicationProgress'
 import ApplicantSidebar from '../applicant/ApplicantSidebar'
-import { FORM_SECTIONS, MANDATORY_SECTION_NUMBERS } from '../../constants/formSections'
+import { FORM_SECTIONS } from '../../constants/formSections'
 
 const SECTIONS = FORM_SECTIONS
 
@@ -16,41 +16,16 @@ export default function FormSidebar({ applicationData, mode = 'form' }) {
   const currentSection = onReview ? null : parseInt(sectionId) || 1
   const returnToReview = onReview || searchParams.get('return') === 'review'
 
-  // Get section status using validation
-  const getSectionStatus = (sectionNum) => {
-    if (!applicationData) return 'empty'
-    
-    const sectionData = applicationData[`section${sectionNum}`]
-    const isMandatory = MANDATORY_SECTION_NUMBERS.includes(sectionNum)
-    
-    // Empty section
-    if (!sectionData || Object.keys(sectionData).length === 0) {
-      return isMandatory ? 'incomplete' : 'empty'
-    }
-    
-    // Validate section
-    const validation = validateSection(sectionNum, sectionData)
-    
-    if (validation.isValid) {
-      return 'complete'
-    } else {
-      return 'incomplete'
-    }
-  }
-
-  // Calculate overall progress based on validation
-  const calculateProgress = () => {
-    if (!applicationData) return 0
-    const completed = SECTIONS.filter(section => getSectionStatus(section.id) === 'complete').length
-    return Math.round((completed / SECTIONS.length) * 100)
-  }
+  const getSectionStatus = (sectionNum) => (
+    sectionStatus(sectionNum, applicationData?.[`section${sectionNum}`])
+  )
 
   const handleSectionClick = (sectionId) => {
     const suffix = returnToReview ? '?return=review' : ''
     navigate(`/application/form/section/${sectionId}${suffix}`)
   }
 
-  const progress = calculateProgress()
+  const progress = calculateApplicationProgress(applicationData)
 
   const footer = onReview ? null : (
     <button
