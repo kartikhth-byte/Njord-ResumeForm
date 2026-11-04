@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
+import MoreMenu from '../components/ui/MoreMenu'
 import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
 import RequirementForm from '../components/recruiter/RequirementForm'
 import {
@@ -324,6 +325,12 @@ export default function RecruiterRequirementDetail() {
     }
   }
 
+  const onCancelRequirement = () => {
+    const reason = window.prompt(`Why is ${requirement.req_id_display} being cancelled?`)
+    if (reason === null) return
+    runAction(() => setRequirementStatus(requirement, 'cancelled', reason), 'Requirement cancelled.')
+  }
+
   const onDelete = () => {
     if (!window.confirm(`Delete requirement ${requirement.req_id_display}? This is a restricted action.`)) return
     runAction(() => deleteRequirement(requirement, currentRecruiterId), 'Requirement deleted.', () => navigate('/recruiter/requirements'))
@@ -366,25 +373,18 @@ export default function RecruiterRequirementDetail() {
                   </button>
                 ) : null}
                 {canEditRequirement && requirement.status === 'open' ? (
-                  <>
-                    <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')} className="workspace-action-button workspace-action-button--secondary">
-                      Close
-                    </button>
-                    <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'cancelled'), 'Requirement cancelled.')} className="workspace-action-button workspace-action-button--secondary">
-                      Cancel requirement
-                    </button>
-                  </>
-                ) : null}
-                {canArchiveRequirement && !requirement.archived_at ? (
-                  <button type="button" disabled={acting} onClick={() => runAction(() => archiveRequirement(requirement, currentRecruiterId), 'Requirement archived.')} className="workspace-action-button workspace-action-button--secondary">
-                    Archive
+                  <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')} className="workspace-action-button workspace-action-button--secondary">
+                    Close
                   </button>
                 ) : null}
-                {canEditRequirement && canDeleteThis ? (
-                  <button type="button" disabled={acting} onClick={onDelete} className="workspace-action-button workspace-action-button--secondary">
-                    Delete
-                  </button>
-                ) : null}
+                <MoreMenu
+                  disabled={acting}
+                  items={[
+                    canEditRequirement && requirement.status === 'open' && { label: 'Cancel requirement', onClick: onCancelRequirement },
+                    canArchiveRequirement && !requirement.archived_at && { label: 'Archive', onClick: () => runAction(() => archiveRequirement(requirement, currentRecruiterId), 'Requirement archived.') },
+                    canEditRequirement && canDeleteThis && { label: 'Delete', danger: true, onClick: onDelete },
+                  ]}
+                />
               </div>
             }
           >
@@ -423,6 +423,12 @@ export default function RecruiterRequirementDetail() {
                     <p className="text-sm font-medium text-fg-muted">Customer</p>
                     <p className="mt-1 text-base font-semibold text-fg">{requirement.customer_name || 'Not provided'}</p>
                   </div>
+                  {requirement.vessel_name ? (
+                    <div>
+                      <p className="text-sm font-medium text-fg-muted">Vessel</p>
+                      <p className="mt-1 text-base font-semibold text-fg">{requirement.vessel_name}</p>
+                    </div>
+                  ) : null}
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Rank</p>
                     <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(rankName)}</p>
@@ -439,7 +445,7 @@ export default function RecruiterRequirementDetail() {
                     <p className="text-sm font-medium text-fg-muted">Target days</p>
                     <p className="mt-1 text-base font-semibold text-fg">{requirement.target_days}</p>
                   </div>
-                  {requirement.closure_reason ? (
+                  {requirement.closure_reason && requirement.status !== 'open' ? (
                     <div>
                       <p className="text-sm font-medium text-fg-muted">Closure reason</p>
                       <p className="mt-1 text-base font-semibold text-fg">{requirement.closure_reason}</p>

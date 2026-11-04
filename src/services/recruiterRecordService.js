@@ -56,9 +56,6 @@ export async function saveRequirement(form, currentRecruiterId) {
     target_days: Number(form.targetDays),
     status: form.status,
     customer_name: form.customerName || null,
-    ...(form.status === 'cancelled'
-      ? { closure_reason: form.notes?.trim() || 'Cancelled by recruiter' }
-      : {}),
   }
 
   if (!payload.vessel_type_id || !payload.rank_id || !payload.positions_required || !payload.target_days) {
@@ -70,7 +67,7 @@ export async function saveRequirement(form, currentRecruiterId) {
     // owner_recruiter_id from "Logged by" would undo an owner transfer.
     const { error } = await supabase.from('requirements').update(payload).eq('id', form.id)
     if (error) throw error
-    if (form.notes?.trim() && form.status !== 'cancelled') {
+    if (form.notes?.trim()) {
       const { error: remarkError } = await supabase.rpc('add_requirement_remark', {
         p_requirement_id: form.id,
         p_body: form.notes.trim(),
@@ -93,19 +90,6 @@ export async function saveRequirement(form, currentRecruiterId) {
     .maybeSingle()
   if (error) throw error
 
-  if (form.status && form.status !== 'open' && data?.id) {
-    const { error: transitionError } = await supabase
-      .from('requirements')
-      .update({
-        status: form.status,
-        ...(form.status === 'cancelled'
-          ? { closure_reason: form.notes?.trim() || 'Cancelled by recruiter' }
-          : {}),
-      })
-      .eq('id', data.id)
-    if (transitionError) throw transitionError
-  }
-
   if (form.notes?.trim() && data?.id) {
     const { error: remarkError } = await supabase.rpc('add_requirement_remark', {
       p_requirement_id: data.id,
@@ -117,8 +101,14 @@ export async function saveRequirement(form, currentRecruiterId) {
   return { id: data?.id, created: true }
 }
 
-export async function setRequirementStatus(requirement, status) {
-  const { error } = await supabase.from('requirements').update({ status }).eq('id', requirement.id)
+// Cancelling needs a reason (the database rejects a cancel without one).
+export async function setRequirementStatus(requirement, status, closureReason = '') {
+  const update = { status }
+  if (status === 'cancelled') {
+    if (!closureReason.trim()) throw new Error('Give a reason for cancelling.')
+    update.closure_reason = closureReason.trim()
+  }
+  const { error } = await supabase.from('requirements').update(update).eq('id', requirement.id)
   if (error) throw error
 }
 

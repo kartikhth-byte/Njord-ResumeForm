@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
 import { SelectField, TextAreaField, TextField } from './RecordFormFields'
 import { emptyRequirementForm, requirementFormFromRow, saveRequirement } from '../../services/recruiterRecordService'
 
@@ -74,24 +73,31 @@ export default function RequirementForm({
           />
           <TextField label="Positions required" type="number" required value={form.positionsRequired} onChange={set('positionsRequired')} placeholder="1" />
           <TextField label="Target days" type="number" required value={form.targetDays} onChange={set('targetDays')} placeholder="30" />
-          <SelectField label="Requirement status" required value={form.status} onChange={set('status')} options={STATUS_OPTIONS} />
+          {form.id ? (
+            <SelectField
+              label="Status"
+              required
+              value={form.status}
+              onChange={set('status')}
+              options={STATUS_OPTIONS.filter((option) => option.value !== 'cancelled' || form.status === 'cancelled')}
+            />
+          ) : null}
           <TextField label="Customer name" value={form.customerName} onChange={set('customerName')} placeholder="Optional" />
         </div>
         {canChooseRecruiter && !form.id ? (
           <SelectField
-            label="Logged by"
+            label="Recruiter"
             value={form.loggedByRecruiterId}
             onChange={set('loggedByRecruiterId')}
             options={recruiters.map((item) => ({ value: item.id, label: item.full_name || item.email || item.id }))}
             placeholder="Choose recruiter"
           />
         ) : null}
-        <TextAreaField label="Remarks / notes" value={form.notes} onChange={set('notes')} placeholder="Optional notes for this requirement" />
+        <TextAreaField label="Add remark" value={form.notes} onChange={set('notes')} />
         {error ? <p className="text-sm text-danger">{error}</p> : null}
         <div className="flex flex-wrap gap-3">
           <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving}>
-            <Plus className="h-4 w-4" />
-            {form.id ? 'Update requirement' : 'Save requirement'}
+            Save
           </button>
           <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
             Cancel
