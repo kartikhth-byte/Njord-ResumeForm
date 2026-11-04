@@ -20,6 +20,15 @@ functions deny `anon` and `authenticated` and retain `service_role` EXECUTE.
 The migration and test are on pushed `main` at `8448976`. No expiry data was
 changed and `0208` remains unapplied.
 
+On 2026-11-04, `2026110211_guard_role_metadata_and_requirement_ids.sql`
+was applied to staging and production after each isolated dry run listed only
+`0211`. Its 14 PGlite checks passed, including an authenticated requirement
+INSERT through the trigger, rejected direct allocator calls, self-only RLS
+permission probes, and trusted nested role lookups. Schema-only readbacks on
+both projects confirmed the guards and grants; subsequent dry runs were up to
+date. `0208` remains unapplied. The migration and test are on pushed `main`
+at `a268ecc` or later.
+
 ## Remaining inventory
 
 The production catalog query below returned 42 `public` SECURITY DEFINER
@@ -27,7 +36,10 @@ functions executable by `anon` or `authenticated` after `0209`, before `0210`.
 This is a historical inventory, not a claim that every function is exploitable.
 Only three were anonymous-executable; all 42 were authenticated-executable.
 `0210` removed direct authenticated access from five entries below, leaving
-37 in this inventory callable by an ordinary signed-in user.
+37 in this inventory callable by an ordinary signed-in user. `0211` removed
+direct client access from four more lookup/probe entries, leaving 33; the
+allocator remains authenticated-executable but now checks the caller and
+trigger context before changing the sequence.
 
 ```sql
 select p.oid::regprocedure::text as fn,
@@ -107,16 +119,20 @@ Authenticated only:
   IDs and invokes an Edge Function using a configured service key. No app or
   Edge Function source calls these three directly, and no live cron job calls
   them. Direct client EXECUTE is now revoked.
-- **Lower-severity data/metadata exposure:** `get_expiring_documents_summary()`
-  returns global counts; `get_user_role(uuid)` and `get_user_permissions(uuid)`
-  accept any user ID without checking the caller. Review their direct grants
-  without breaking internal RPC calls.
-- **Sequence integrity:** `allocate_requirement_identifier(text)` increments
-  a shared counter with no caller check. It is invoked by the ordinary
-  `prepare_requirement_row()` trigger during recruiter requirement creation,
-  so revoking authenticated EXECUTE without changing that call path would
-  break inserts. Add a recruiter permission check or change the trigger
-  execution model, with a regression test.
+- **Closed by `0211`, role metadata:** direct `anon`/`authenticated` EXECUTE
+  is revoked from `get_user_role(uuid)`, `get_user_permissions(uuid)`,
+  `check_permission(uuid,text)`, and legacy `user_has_permission(uuid,text)`.
+  Nested calls from trusted definer functions and service-role calls remain.
+  `has_permission(uuid,text)` remains callable for RLS, but returns false for
+  another user's ID unless the caller is the service role.
+- **Closed by `0211`, sequence integrity:** authenticated calls to
+  `allocate_requirement_identifier(text)` now require both the
+  `create_requirements` permission and trigger context. The normal
+  `prepare_requirement_row()` insert path still works; direct client calls
+  cannot consume identifiers. Service-role writes remain available.
+- **Still to review:** `get_expiring_documents_summary()` returns global
+  counts, and the remaining trigger-only helpers/recruiter RPCs need targeted
+  caller-path review before considering blanket grant changes.
 
 The remaining functions include trigger-only helpers and recruiter RPCs.
 Inspect each live definition and its call path before tightening grants;
