@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
+import { requireApplicationEditor } from '../_shared/require-application-editor.ts'
 
 interface InterviewInvitationRequest {
   applicantEmail: string
@@ -23,6 +24,9 @@ serve(async (req) => {
   }
 
   try {
+    const denied = await requireApplicationEditor(req, corsHeaders)
+    if (denied) return denied
+
     const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
     const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`

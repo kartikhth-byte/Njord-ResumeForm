@@ -64,6 +64,12 @@ serve(async (req) => {
       throw new Error('You do not have permission to schedule interviews')
     }
 
+    const { data: canEditApplication, error: editPermissionError } = await supabaseClient
+      .rpc('has_permission', { user_uuid: user.id, permission_name: 'edit_junction_status' })
+    if (editPermissionError || canEditApplication !== true) {
+      throw new Error('Application workflow permission required')
+    }
+
     // Parse request body
     const eventData = await req.json() as ScheduleEventRequest
 

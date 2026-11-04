@@ -131,7 +131,8 @@ export default function RecruiterApplications() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile, signOut } = useAuth()
-  const { canViewApplications, loading: permLoading, role } = usePermissions()
+  const { canViewApplications, canManageApplications, loading: permLoading, role } = usePermissions()
+  const canEditApplications = canManageApplications()
   const aiSearchStorageKey = user?.id ? `aiSearchResults:${user.id}` : null
   
   const [applications, setApplications] = useState([])
@@ -1053,14 +1054,16 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                 ) : null}
                 <td className="tracker-cell--nowrap">
                   <div className="flex items-center gap-1.5">
-                    <SequentialStatusControl
-                      applicationId={app.id}
-                      currentStatus={app.status}
-                      onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-                      application={app}
-                      autoOpenInterview={autoOpenInterviewForApp === app.id}
-                      onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
-                    />
+                    {canEditApplications ? (
+                      <SequentialStatusControl
+                        applicationId={app.id}
+                        currentStatus={app.status}
+                        onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
+                        application={app}
+                        autoOpenInterview={autoOpenInterviewForApp === app.id}
+                        onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
+                      />
+                    ) : null}
                     <button
                       onClick={() => navigate(`/application/view/${app.public_token}`)}
                       className="inline-flex rounded-lg p-2 text-fg-muted transition-colors hover:bg-accent-soft hover:text-accent-text"
@@ -1068,7 +1071,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    {app.status === 'hired' ? (
+                    {canEditApplications && app.status === 'hired' ? (
                       <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-fg-muted" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
                         Contract ends
                         <input
