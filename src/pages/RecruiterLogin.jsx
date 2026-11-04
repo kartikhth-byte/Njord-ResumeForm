@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'  // ✅ Added useEffect
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
@@ -92,7 +92,7 @@ export default function RecruiterLogin() {
     }
 
     if (userType === 'applicant' && user?.email?.toLowerCase() === email.trim().toLowerCase()) {
-      setError('This is your applicant account. Applicants sign in with a magic link; enter a recruiter email to reset a recruiter password.')
+      setError('That’s an applicant email.')
       return
     }
 
@@ -121,8 +121,8 @@ export default function RecruiterLogin() {
   return (
     <AuthLayout title="Recruiter sign in">
       {userType === 'applicant' && (
-        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          This browser is signed in as an applicant. Recruiter access requires a separate recruiter account.
+        <p className="mb-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">
+          Signed in as an applicant.
         </p>
       )}
       <form onSubmit={handleLogin} className="space-y-4">

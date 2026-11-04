@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Loader2 } from 'lucide-react'
@@ -66,14 +66,6 @@ export default function Login() {
     <AuthLayout
       title={linkRequested ? 'Check your inbox' : 'Sign in'}
       subtitle={linkRequested ? null : 'Use the email our team contacted you on. We’ll send you a sign-in link.'}
-      footer={
-        <>
-          Recruiter?{' '}
-          <Link to="/recruiter/login" className="text-accent-text hover:underline">
-            Sign in here
-          </Link>
-        </>
-      }
     >
       {linkRequested ? (
         <div className="space-y-4">

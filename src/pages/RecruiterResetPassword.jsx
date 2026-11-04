@@ -24,7 +24,7 @@ export default function RecruiterResetPassword() {
     setError(null)
 
     if (!user || userType !== 'recruiter') {
-      setError('A verified recruiter recovery session is required. Please request a fresh password reset email for your recruiter account.')
+      setError('Link expired. Request a new one.')
       return
     }
 
@@ -66,7 +66,7 @@ export default function RecruiterResetPassword() {
       <AuthLayout title={userType === 'applicant' ? 'Applicant account detected' : 'Recovery link invalid'}>
         <p className="text-sm text-fg-secondary">
           {userType === 'applicant'
-            ? 'This browser is signed in as an applicant. Applicants use emailed magic links. To reset a recruiter password, request a link for a separate recruiter account and open it in a private window.'
+            ? 'Signed in as an applicant. Open the reset link in a private window.'
             : 'We could not verify a recruiter account. Request a fresh reset email from recruiter login.'}
         </p>
         <Link to="/recruiter/login" className={`${authButtonClass} mt-6`}>

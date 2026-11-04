@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, CheckCircle, AlertCircle, Loader2, Lock } from 'lucide-react'
+import AuthLayout, { AuthLoading, authButtonClass, authInputClass, authLabelClass } from '../components/auth/AuthLayout'
 
 export default function RecruiterSetup() {
   const navigate = useNavigate()
@@ -105,14 +105,7 @@ export default function RecruiterSetup() {
         throw new Error(data.error)
       }
 
-      // Success!
       setSuccess(true)
-      
-      // Wait 3 seconds then redirect to recruiter login
-      setTimeout(() => {
-        navigate('/recruiter/login')
-      }, 3000)
-
     } catch (error) {
       console.error('Setup error:', error)
       setError(error.message)
@@ -129,196 +122,88 @@ export default function RecruiterSetup() {
   }
 
   if (loading) {
-    return (
-      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="recruiter-panel w-full max-w-lg p-10 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-accent-fill text-on-accent">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-fg">
-            Preparing recruiter setup
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-fg-secondary">
-            Checking setup…
-          </p>
-        </div>
-      </div>
-    )
+    return <AuthLoading />
   }
 
-  if (setupComplete) {
+  if (setupComplete || success) {
     return (
-      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="recruiter-panel w-full max-w-xl p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-success-soft text-success">
-            <Lock className="h-8 w-8" />
-          </div>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg">
-            Setup already complete
-          </h2>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-fg-secondary">
-            Setup is complete. This page is locked.
-          </p>
-          <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
-            <p className="recruiter-note__title">Next step</p>
-          </div>
-          <button
-            onClick={() => navigate('/recruiter/login')}
-            className="workspace-action-button workspace-action-button--primary mt-8"
-          >
-            Go to Recruiter Login
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (success) {
-    return (
-      <div className="recruiter-shell flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="recruiter-panel w-full max-w-xl p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-card bg-success-soft text-success">
-            <CheckCircle className="h-8 w-8" />
-          </div>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-fg">
-            Setup complete
-          </h2>
-          <p className="mt-4 text-sm leading-6 text-fg-secondary">
-            Master Recruiter account created successfully.
-          </p>
-          <div className="recruiter-note recruiter-note--info mx-auto mt-6 max-w-md text-left">
-            <p className="recruiter-note__title">Account ready</p>
-            <p className="recruiter-note__body">
-              <strong>Email:</strong> {formData.email}
-            </p>
-          </div>
-          <p className="mt-6 text-sm text-fg-muted">
-            Redirecting to login page in 3 seconds...
-          </p>
-        </div>
-      </div>
+      <AuthLayout
+        title={success ? 'Admin account created' : 'Setup already complete'}
+        subtitle={success ? formData.email : undefined}
+      >
+        <button type="button" onClick={() => navigate('/recruiter/login')} className={authButtonClass}>
+          Sign in
+        </button>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="recruiter-shell min-h-screen px-4 py-10">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="recruiter-panel p-8 lg:p-10">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-accent-fill text-on-accent">
-            <Shield className="h-8 w-8" />
-          </div>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-fg">
-            Create the master recruiter account
-          </h1>
+    <AuthLayout title="Create admin account">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className={authLabelClass} htmlFor="fullName">Full name</label>
+          <input
+            id="fullName"
+            type="text"
+            name="fullName"
+            required
+            value={formData.fullName}
+            onChange={handleChange}
+            className={authInputClass}
+          />
+        </div>
 
-          <div className="mt-8 space-y-4">
-            <div className="recruiter-note recruiter-note--warning">
-              <p className="recruiter-note__title">Locked after completion</p>
-              <p className="recruiter-note__body">
-                This page locks once the account is created.
-              </p>
-            </div>
-          </div>
-        </section>
+        <div>
+          <label className={authLabelClass} htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            autoComplete="email"
+            value={formData.email}
+            onChange={handleChange}
+            className={authInputClass}
+          />
+        </div>
 
-        <section className="recruiter-panel p-8">
-          <div className="border-b border-line/70 pb-5">
-            <h2 className="text-2xl font-semibold tracking-tight text-fg">Account details</h2>
-          </div>
+        <div>
+          <label className={authLabelClass} htmlFor="password">Password (min 8)</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={formData.password}
+            onChange={handleChange}
+            className={authInputClass}
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <div className="recruiter-form-field">
-              <label className="recruiter-form-label" htmlFor="fullName">Full name</label>
-              <input
-                id="fullName"
-                type="text"
-                name="fullName"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                className="recruiter-form-input"
-                placeholder="John Doe"
-              />
-            </div>
+        <div>
+          <label className={authLabelClass} htmlFor="confirmPassword">Confirm password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            name="confirmPassword"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={authInputClass}
+          />
+        </div>
 
-            <div className="recruiter-form-field">
-              <label className="recruiter-form-label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="recruiter-form-input"
-                placeholder="admin@company.com"
-              />
-            </div>
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
-            <div className="recruiter-form-grid">
-              <div className="recruiter-form-field">
-                <label className="recruiter-form-label" htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  name="password"
-                  required
-                  minLength={8}
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="recruiter-form-input"
-                  placeholder="Minimum 8 characters"
-                />
-              </div>
-
-              <div className="recruiter-form-field">
-                <label className="recruiter-form-label" htmlFor="confirmPassword">Confirm password</label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  name="confirmPassword"
-                  required
-                  minLength={8}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="recruiter-form-input"
-                  placeholder="Re-enter password"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="recruiter-note recruiter-note--danger">
-                <p className="recruiter-note__title">Setup failed</p>
-                <p className="recruiter-note__body">{error}</p>
-              </div>
-            )}
-
-            <div className="recruiter-note recruiter-note--info">
-              <p className="recruiter-note__title">Access level</p>
-              <p className="recruiter-note__body">
-                Full admin access, including managing recruiters.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="workspace-action-button workspace-action-button--primary w-full justify-center"
-            >
-              {submitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating account...
-                </span>
-              ) : (
-                'Create Master Recruiter'
-              )}
-            </button>
-          </form>
-
-        </section>
-      </div>
-    </div>
+        <button type="submit" disabled={submitting} className={authButtonClass}>
+          {submitting ? 'Creating…' : 'Create account'}
+        </button>
+      </form>
+    </AuthLayout>
   )
 }

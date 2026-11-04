@@ -23,36 +23,17 @@ export default function Unauthorized() {
           <AlertCircle className="h-10 w-10" />
         </div>
 
-        <p className="mt-6 text-xs font-semibold text-danger">
-          Permission Required
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-fg">
-          Access Denied
+        <h1 className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-fg">
+          No access
         </h1>
-
-        <p className="mx-auto mt-4 max-w-md text-fg-secondary">
-          You don’t have access to this page.
-        </p>
-
-        {userType && (
-          <p className="mx-auto mt-3 max-w-md text-sm text-fg-muted">
-            You're logged in as a <span className="font-semibold">{userType}</span>.
-            {userType === 'recruiter' && ' Your recruiter role does not permit this page.'}
-            {userType === 'applicant' && ' This page is only for recruiters.'}
-          </p>
-        )}
 
         <button
           onClick={handleGoHome}
           className="mx-auto mt-8 inline-flex items-center gap-2 rounded-control bg-accent-fill px-6 py-3 font-semibold text-on-accent transition hover:bg-accent-fill-hover"
         >
-          <Home className="h-5 w-5" />
-          Go to Dashboard
+          {userType ? <Home className="h-5 w-5" /> : null}
+          {userType ? 'Go to dashboard' : 'Sign in'}
         </button>
-
-        <p className="mt-6 text-sm text-fg-muted">
-          If you believe this is an error, contact support.
-        </p>
       </div>
     </div>
   )
