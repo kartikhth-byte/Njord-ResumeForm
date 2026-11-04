@@ -8,7 +8,7 @@
     <script>
       (function () {
         var p = location.pathname
-        var dark = ['/recruiter', '/dashboard/expiry', '/dashboard/calendar', '/cleanup-drafts'].some(function (x) {
+        var dark = ['/recruiter'].some(function (x) {
           return p === x || p.indexOf(x + '/') === 0
         })
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')

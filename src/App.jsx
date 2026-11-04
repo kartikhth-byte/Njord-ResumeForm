@@ -14,9 +14,6 @@ import FormSection from './pages/FormSection'
 import FormLayout from './components/form/FormLayout'
 import ReviewSubmit from './pages/ReviewSubmit'
 import ViewApplication from './pages/ViewApplication'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import TermsConditions from './pages/TermsConditions'
-import RecruiterTeam from './pages/RecruiterTeam'
 import RecruiterDashboard from './pages/RecruiterDashboardSimple'
 import RecruiterKpiPage from './pages/RecruiterKpiPage'
 import RecruiterLogin from './pages/RecruiterLogin'
@@ -24,7 +21,6 @@ import RecruiterSetup from './pages/RecruiterSetup'
 import RecruiterResetPassword from './pages/RecruiterResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import RecruiterApplications from './pages/RecruiterApplications'
-import CleanupDrafts from './pages/CleanupDrafts'
 import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
@@ -173,8 +169,6 @@ function App() {
             <Route path="/login" element={<Navigate to="/recruiter/login" replace />} />
             <Route path="/applicant/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-conditions" element={<TermsConditions />} />
             <Route path="/recruiter/login" element={<RecruiterLogin />} />
             <Route path="/recruiter/setup" element={<RecruiterSetup />} />
             <Route path="/recruiter/reset-password" element={<RecruiterResetPassword />} />
@@ -182,13 +176,10 @@ function App() {
             <Route path="/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
             
 
-<Route path="/cleanup-drafts" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
-    <CleanupDrafts />
-  </ProtectedRoute>
-} />
+{/* Old Expiry address; the page moved to /recruiter/expiry. */}
+<Route path="/dashboard/expiry" element={<Navigate to="/recruiter/expiry" replace />} />
 
-<Route path="/dashboard/expiry" element={
+<Route path="/recruiter/expiry" element={
   <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
     <ExpiryDashboardPage />
   </ProtectedRoute>
@@ -200,17 +191,7 @@ function App() {
   </ProtectedRoute>
 } />
 
-<Route path="/recruiter/events" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter', 'Coordinator']}>
-    <CalendarDashboardPage />
-  </ProtectedRoute>
-} />
 
-<Route path="/dashboard/calendar" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter', 'Coordinator']}>
-    <CalendarDashboardPage />
-  </ProtectedRoute>
-} />
             
             <Route path="/recruiter/applications" element={
               <RecruiterRoute>
@@ -237,7 +218,7 @@ function App() {
               </RecruiterRoute>
             } />
 
-            <Route path="/recruiter/dashboard/:dashboardTab?" element={
+            <Route path="/recruiter/dashboard" element={
               <RecruiterRoute>
                 <RecruiterDashboard />
               </RecruiterRoute>
@@ -273,21 +254,9 @@ function App() {
               </RecruiterRoute>
             } />
             
-            <Route path="/recruiter/team" element={
-              <RecruiterRoute>
-                <RecruiterTeam />
-              </RecruiterRoute>
-            } />
-
             <Route path="/recruiter/settings" element={
               <RecruiterRoute>
                 <RecruiterSettings />
-              </RecruiterRoute>
-            } />
-
-            <Route path="/recruiter/prospects" element={
-              <RecruiterRoute>
-                <Navigate to="/recruiter/candidates" replace />
               </RecruiterRoute>
             } />
 

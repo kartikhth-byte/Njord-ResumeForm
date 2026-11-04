@@ -1,6 +1,6 @@
 // Route → theme mapping. Keep in sync with the inline script in index.html.
 // See docs/ui-theme-spec.md §2. Recruiter surfaces are dark-only; everything else is light.
-const DARK_PREFIXES = ['/recruiter', '/dashboard/expiry', '/dashboard/calendar', '/cleanup-drafts']
+const DARK_PREFIXES = ['/recruiter']
 // Pages that choose their own theme once the viewer's role is known.
 const SELF_THEMED_PREFIXES = ['/application/view/']
 

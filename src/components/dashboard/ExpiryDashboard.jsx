@@ -80,6 +80,8 @@ export default function ExpiryDashboard() {
   const [warningsResult, setWarningsResult] = useState('')
 
   const sendExpiryWarnings = async () => {
+    // Warnings already go out on a schedule; this is for a deliberate extra send.
+    if (!window.confirm('Send expiry warning emails now?')) return
     if (sendingWarnings) return
     setSendingWarnings(true)
     setWarningsResult('')
@@ -318,7 +320,7 @@ export default function ExpiryDashboard() {
               </thead>
               <tbody className="divide-y divide-line bg-surface">
                 {filteredDocuments.map((document) => {
-                  const config = URGENCY_CONFIG[document.urgency_level]
+                  const config = URGENCY_CONFIG[document.urgency_level] || URGENCY_CONFIG.all
                   const isExpired = document.days_until_expiry < 0
 
                   return (

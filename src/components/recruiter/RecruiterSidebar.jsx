@@ -73,7 +73,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
       label: 'Schedule',
       items: [
         { key: 'calendar', label: 'Calendar', icon: CalendarDays, path: '/recruiter/calendar' },
-        isRecruiterOrMaster && { key: 'expiry', label: 'Expiry', icon: Clock, path: '/dashboard/expiry' },
+        isRecruiterOrMaster && { key: 'expiry', label: 'Expiry', icon: Clock, path: '/recruiter/expiry' },
       ],
     },
   ]
