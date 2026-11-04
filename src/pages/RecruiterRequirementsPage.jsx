@@ -41,8 +41,13 @@ export default function RecruiterRequirementsPage() {
   const { role, loading: permLoading, canExportData } = usePermissions()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
-  const [statusFilter, setStatusFilter] = useState('open')
-  const [recruiterFilter, setRecruiterFilter] = useState('')
+  // Filters can be preset from the URL (links from KPI and Dashboard counts).
+  const initialParams = new URLSearchParams(location.search)
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const value = initialParams.get('status')
+    return STATUS_FILTERS.some((option) => option.value === value) ? value : 'open'
+  })
+  const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')

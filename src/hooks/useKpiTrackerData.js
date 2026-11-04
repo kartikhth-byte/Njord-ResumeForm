@@ -82,7 +82,7 @@ export default function useKpiTrackerData({ enabled = true } = {}) {
           supabase.from('prospect_notes').select('id, prospect_id, body, created_at').order('created_at', { ascending: false }).limit(1000),
           supabase
             .from('scheduled_events')
-            .select('id, event_type, event_title, platform, scheduled_date, scheduled_time, status, application_id')
+            .select('id, event_type, event_title, platform, scheduled_date, scheduled_time, status, application_id, scheduled_by')
             .gte('scheduled_date', new Date().toISOString().slice(0, 10))
             .order('scheduled_date', { ascending: true })
             .limit(30),

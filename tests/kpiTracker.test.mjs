@@ -2,7 +2,7 @@
 // Run: node --test tests/kpiTracker.test.mjs
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildRequirementTrackerRows, buildCandidateFunnelRows, computeDashboardMetrics, periodStart } from '../src/utils/kpiTracker.js'
+import { buildRequirementTrackerRows, buildCandidateFunnelRows, computeDashboardMetrics, periodStart, lastActivityLabel, timingLabel } from '../src/utils/kpiTracker.js'
 const now = new Date(2026, 10, 4, 12)   // Wed 4 Nov 2026
 const d = (days) => new Date(now.getTime() - days * 864e5).toISOString()
 const day = (days) => d(days).slice(0, 10)
@@ -50,3 +50,14 @@ for (const [period, expect] of [['week', { a: [2, 1, 1, 0.5] }], ['month', { a: 
   if (period === 'week') eq('week: A on-time closure (r4 only)', a.onTimeClosureRate, 1)
 }
 eq('week starts Monday 2 Nov', periodStart('week', now).toDateString(), new Date(2026, 10, 2).toDateString())
+
+{
+  const week = computeDashboardMetrics({ requirementRows, candidateRows, recruiters, period: 'week', now })
+  eq('team week: contacted, joined, closed', [week.contactedInPeriodCount, week.joinedInPeriodCount, week.closedInPeriodCount], [2, 2, 1])
+  eq('team week: cohort conversion', week.periodConversionRate, 0.5)
+  const all = computeDashboardMetrics({ requirementRows, candidateRows, recruiters, period: 'all', now })
+  eq('team all: contacted, joined, closed', [all.contactedInPeriodCount, all.joinedInPeriodCount, all.closedInPeriodCount], [5, 2, 2])
+  eq('team all: avg days to join', all.periodAvgDaysToJoin, 9.5)
+}
+eq('activity label: today / stale', [lastActivityLabel(d(0), now).text, lastActivityLabel(d(1), now).text, lastActivityLabel(d(8), now).stale, lastActivityLabel(d(7), now).stale], ['Today', '1 day ago', true, false])
+eq('timing label: near target only when on track', [timingLabel({ riskRank: 1, onTimeStatus: 'On Track' }), timingLabel({ riskRank: 0, onTimeStatus: 'Overdue' }), timingLabel({ riskRank: 2, onTimeStatus: 'On Track' })], ['Near target', 'Overdue', 'On Track'])

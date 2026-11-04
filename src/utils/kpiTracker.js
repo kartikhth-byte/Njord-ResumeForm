@@ -121,6 +121,21 @@ export function dayDiff(from, to) {
   return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY)
 }
 
+const STALE_ACTIVITY_DAYS = 7
+
+// "Today" / "N days ago", flagged stale after a week without activity.
+export function lastActivityLabel(value, now = new Date()) {
+  const days = dayDiff(value, now)
+  if (days == null) return { text: '—', stale: false, days: null }
+  if (days <= 0) return { text: 'Today', stale: false, days: 0 }
+  return { text: `${days} ${days === 1 ? 'day' : 'days'} ago`, stale: days > STALE_ACTIVITY_DAYS, days }
+}
+
+// On-time label for the progress table: "Near target" once 80% of the target is used.
+export function timingLabel(row) {
+  return row.riskRank === 1 && row.onTimeStatus === 'On Track' ? 'Near target' : row.onTimeStatus
+}
+
 export function isSameLocalDay(value, reference = new Date()) {
   const date = toDateOnly(value)
   const ref = toDateOnly(reference)
@@ -459,6 +474,14 @@ export function computeDashboardMetrics({
     ? null
     : joinDurations.reduce((sum, value) => sum + value, 0) / joinDurations.length
 
+  // Period figures (the KPI page's This week / This month / All time switch).
+  const contactedInPeriod = touchedCandidates.filter((row) => isInPeriod(row.contactedAt, start))
+  const joinedInPeriod = joinedCandidates.filter((row) => isInPeriod(row.joinedAt, start))
+  const periodJoinDurations = joinedInPeriod
+    .map((row) => row.daysToJoin)
+    .filter((value) => Number.isFinite(value) && value >= 0)
+  const closedInPeriod = closedRequirements.filter((row) => isInPeriod(row.date_closed, start))
+
   const stageCounts = FUNNEL_STAGES.reduce((acc, stage) => {
     acc[stage] = 0
     return acc
@@ -539,6 +562,15 @@ export function computeDashboardMetrics({
     requirementProgress,
     scorecard,
     activeHandledApplicationsCount: activeHandledApplications.length,
+    periodStart: start,
+    contactedInPeriodCount: contactedInPeriod.length,
+    joinedInPeriodCount: joinedInPeriod.length,
+    // Cohort conversion: of the candidates first contacted in the period, how many have joined.
+    periodConversionRate: contactedInPeriod.length === 0 ? null : contactedInPeriod.filter((row) => row.hasJoined).length / contactedInPeriod.length,
+    periodAvgDaysToJoin: periodJoinDurations.length === 0
+      ? null
+      : periodJoinDurations.reduce((sum, value) => sum + value, 0) / periodJoinDurations.length,
+    closedInPeriodCount: closedInPeriod.length,
     unassignedHandledApplications,
   }
 }

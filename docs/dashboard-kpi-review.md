@@ -1,6 +1,6 @@
 # Dashboard and KPI review
 
-Date: 2026-11-03 · Status: phase 1 of the KPI page built 2026-11-04 (`b32efd3`, not deployed); Dashboard "My work" and case-v1-dependent items pending.
+Date: 2026-11-03 · Status: phase 1 (KPI + Dashboard "My work") built 2026-11-04 on `ui/warm-theme`, not deployed; case-v1-dependent items pending.
 
 ## Question
 
@@ -72,5 +72,12 @@ Partly. KPI covers team totals and today's activity. It does not show how close 
 - Overview's "Pipeline by stage" panel removed: it duplicated "Funnel by stage" on Charts.
 - Tests: `tests/kpiTracker.test.mjs` (12 checks).
 
-**Not yet:** headline stat cards are still all-time/today, not period-driven; counts are not yet links to filtered lists; Dashboard "My work".
+**2026-11-04, phase 1 completed.**
+
+- **Dashboard is now "My work"**, built on the same tracker data as KPI. Recruiters and Coordinators see their own: open requirements (progress table), follow-ups (active candidates they added with no activity for over 7 days, longest-waiting first), interviews and tests in the next 14 days (events they scheduled or for applications they handle). The Master Recruiter sees the whole team by default, with a recruiter filter.
+- **KPI headline cards follow the period switch:** closed requirements, conversion (cohort), avg days to join, contacted and joined. "Contacted today" stays for the daily 15–25 target. Open requirements, open positions, joined vs required and active pipeline stay current.
+- **Every headline count is a link** to the list behind it. Requirements and Candidates now read `status` / `view`, `stage`, `recruiter` and `from` from the URL to preset their filters.
+- Shared `RequirementProgressTable` component for KPI and Dashboard. Requirement remarks now feed "last activity" (the KPI page was passing them under the wrong key).
+- Tests: `tests/kpiTracker.test.mjs` now 18 checks.
+- Not verified against staging data; rendered with synthetic fixtures only.
 **After case v1:** per-requirement interview/test stages, credit by the recruiter who moved the candidate, time in stage per recruiter.

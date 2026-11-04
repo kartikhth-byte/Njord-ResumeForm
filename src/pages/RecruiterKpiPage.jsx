@@ -8,17 +8,17 @@ import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
+import RequirementProgressTable from '../components/recruiter/RequirementProgressTable'
 import {
   buildCandidateFunnelRows,
   buildRequirementTrackerRows,
   computeDashboardMetrics,
-  dayDiff,
   formatDays,
   formatPercent,
+  localDayString,
   FUNNEL_STAGES,
   KPI_PERIODS,
   ON_TIME_BADGE_CLASSES,
-  REQUIREMENT_PIPELINE_STAGES,
 } from '../utils/kpiTracker'
 import { formatDateTime, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
@@ -53,61 +53,16 @@ const KPI_TABS = [
 ]
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const STALE_ACTIVITY_DAYS = 7
-const PIPELINE_SEGMENT_COLORS = {
-  shortlisted: chartColor(2),
-  withCustomer: chartColor(1),
-  accepted: chartColor(5),
-  joined: toneColor('success'),
-}
-
-function formatRate(value) {
-  return value == null ? '—' : formatPercent(value)
-}
-
-function lastActivityLabel(value) {
-  const days = dayDiff(value, new Date())
-  if (days == null) return { text: '—', stale: false }
-  if (days <= 0) return { text: 'Today', stale: false }
-  return { text: `${days} ${days === 1 ? 'day' : 'days'} ago`, stale: days > STALE_ACTIVITY_DAYS }
-}
-
-// One bar per requirement: candidates attached to it, by stage, in funnel order.
-function RequirementPipelineBar({ pipeline, required }) {
-  const total = REQUIREMENT_PIPELINE_STAGES.reduce((sum, stage) => sum + (pipeline[stage.key] || 0), 0)
-  const summary = REQUIREMENT_PIPELINE_STAGES.map((stage) => `${stage.label} ${pipeline[stage.key] || 0}`).join(', ')
-  if (total === 0) {
-    return <span className="text-xs text-fg-muted">No candidates attached</span>
-  }
-  const scale = Math.max(total, Number(required) || 0, 1)
-  return (
-    <div className="flex items-center gap-2" title={summary} aria-label={summary}>
-      <div className="flex h-5 w-40 overflow-hidden rounded-full bg-line">
-        {REQUIREMENT_PIPELINE_STAGES.map((stage) => {
-          const count = pipeline[stage.key] || 0
-          if (count === 0) return null
-          return (
-            <div
-              key={stage.key}
-              className="flex items-center justify-center text-[11px] font-semibold text-white"
-              style={{ width: `${(count / scale) * 100}%`, backgroundColor: PIPELINE_SEGMENT_COLORS[stage.key] }}
-            >
-              {count}
-            </div>
-          )
-        })}
-      </div>
-      <span className="text-xs tabular-nums text-fg-secondary">{total}</span>
-    </div>
-  )
-}
-
 function TargetPill({ ok, children }) {
   return (
     <span className={`tracker-pill ${ok ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'}`}>
       {children}
     </span>
   )
+}
+
+function formatRate(value) {
+  return value == null ? '—' : formatPercent(value)
 }
 
 export default function RecruiterKpiPage() {
@@ -122,7 +77,10 @@ export default function RecruiterKpiPage() {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
 
-  const requirementRows = useMemo(() => buildRequirementTrackerRows(tracker.data), [tracker.data])
+  const requirementRows = useMemo(() => buildRequirementTrackerRows({
+    ...tracker.data,
+    remarks: tracker.data.requirementRemarks,
+  }), [tracker.data])
   const candidateRows = useMemo(() => buildCandidateFunnelRows({
     ...tracker.data,
     notes: tracker.data.prospectNotes,
@@ -151,6 +109,10 @@ export default function RecruiterKpiPage() {
   }), [scopedRequirements, scopedCandidates, tracker.data.applications, tracker.data.recruiters, recruiterFilter, period])
 
   const periodLabel = KPI_PERIODS.find((option) => option.value === period)?.label || 'All time'
+  const periodFrom = metrics.periodStart ? localDayString(metrics.periodStart) : ''
+  const recruiterParam = recruiterFilter ? `&recruiter=${encodeURIComponent(recruiterFilter)}` : ''
+  const requirementsLink = (status) => `/recruiter/requirements?status=${status}${recruiterParam}`
+  const candidatesLink = (view, from = '') => `/recruiter/candidates?view=${view}${from ? `&from=${from}` : ''}${recruiterParam}`
 
   // "Needs action now" — the items a recruiter should clear before anything else.
   const actions = useMemo(() => {
@@ -488,7 +450,7 @@ export default function RecruiterKpiPage() {
   }
 
   const closureOk = metrics.closureRate >= 0.95
-  const conversionOk = metrics.conversionRate >= 0.08
+  const conversionOk = metrics.periodConversionRate != null && metrics.periodConversionRate >= 0.08
 
   return (
     <div className="min-h-screen bg-raised">
@@ -661,10 +623,10 @@ export default function RecruiterKpiPage() {
 
         {/* Requirement delivery */}
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" />
-          <StatCard label="Closed requirements" value={metrics.closedRequirementsCount} icon={CheckCircle2} tone="success" />
-          <StatCard label="Open positions" value={metrics.openPositions} icon={Ship} tone="warning" />
-          <StatCard label="Joined vs required" value={`${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}`} icon={ArrowRight} tone="accent" />
+          <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" to={requirementsLink('open')} />
+          <StatCard label={`Closed, ${periodLabel.toLowerCase()}`} value={metrics.closedInPeriodCount} icon={CheckCircle2} tone="success" to={requirementsLink('closed')} />
+          <StatCard label="Open positions" value={metrics.openPositions} icon={Ship} tone="warning" to={requirementsLink('open')} />
+          <StatCard label="Joined vs required" value={`${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}`} icon={ArrowRight} tone="accent" to={candidatesLink('joined')} />
         </div>
 
         {/* Daily activity + funnel health */}
@@ -684,8 +646,8 @@ export default function RecruiterKpiPage() {
           <div className="stat-card">
             <div className="stat-card__header">
               <div>
-                <p className="stat-card__label">Contact-to-join conversion</p>
-                <p className="stat-card__value">{formatPercent(metrics.conversionRate)}</p>
+                <p className="stat-card__label">{`Conversion, ${periodLabel.toLowerCase()}`}</p>
+                <p className="stat-card__value">{formatRate(metrics.periodConversionRate)}</p>
               </div>
               <div className="stat-card__icon"><TrendingUp className="w-5 h-5" /></div>
             </div>
@@ -696,18 +658,19 @@ export default function RecruiterKpiPage() {
           <div className="stat-card">
             <div className="stat-card__header">
               <div>
-                <p className="stat-card__label">Avg days to join</p>
-                <p className="stat-card__value">{metrics.avgDaysToJoin == null ? '—' : formatDays(metrics.avgDaysToJoin)}</p>
+                <p className="stat-card__label">{`Avg days to join, ${periodLabel.toLowerCase()}`}</p>
+                <p className="stat-card__value">{metrics.periodAvgDaysToJoin == null ? '—' : formatDays(metrics.periodAvgDaysToJoin)}</p>
               </div>
               <div className="stat-card__icon"><Hourglass className="w-5 h-5" /></div>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Candidates contacted today" value={metrics.contactedTodayCount} icon={PhoneCall} tone="accent" />
-          <StatCard label="Candidates joined today" value={metrics.joinedTodayCount} icon={UserPlus} tone="success" />
-          <StatCard label="Active pipeline" value={metrics.activePipelineCount} icon={Users} tone="accent" />
+        <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <StatCard label="Contacted today" value={metrics.contactedTodayCount} icon={PhoneCall} tone="accent" to={candidatesLink('all', localDayString(new Date()))} />
+          <StatCard label={`Contacted, ${periodLabel.toLowerCase()}`} value={metrics.contactedInPeriodCount} icon={PhoneCall} tone="accent" to={candidatesLink('all', periodFrom)} />
+          <StatCard label={`Joined, ${periodLabel.toLowerCase()}`} value={metrics.joinedInPeriodCount} icon={UserPlus} tone="success" to={candidatesLink('joined')} />
+          <StatCard label="Active pipeline" value={metrics.activePipelineCount} icon={Users} tone="accent" to={candidatesLink('active')} />
           <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" />
         </div>
 
@@ -727,84 +690,7 @@ export default function RecruiterKpiPage() {
               View all requirements
             </Link>
           </div>
-          {metrics.requirementProgress.length === 0 ? (
-            <EmptyState
-              icon={ClipboardList}
-              title="No open requirements"
-              description="Every requirement in scope is closed or cancelled."
-            />
-          ) : (
-            <>
-              <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-secondary">
-                {REQUIREMENT_PIPELINE_STAGES.map((stage) => (
-                  <span key={stage.key} className="inline-flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIPELINE_SEGMENT_COLORS[stage.key] }} />
-                    {stage.label}
-                  </span>
-                ))}
-              </div>
-              <div className="tracker-table-wrap">
-                <table className="tracker-table" style={{ minWidth: '960px' }}>
-                  <thead>
-                    <tr>
-                      <th>Req ID</th>
-                      <th>Customer</th>
-                      <th>Vessel / rank</th>
-                      <th>Owner</th>
-                      <th className="tracker-cell--num">Filled</th>
-                      <th>Candidates by stage</th>
-                      <th className="tracker-cell--num">Days open</th>
-                      <th>On-time</th>
-                      <th>Last activity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {metrics.requirementProgress.slice(0, 12).map((row) => {
-                      const activity = lastActivityLabel(row.lastActivityAt)
-                      const timing = row.riskRank === 1 && row.onTimeStatus === 'On Track' ? 'Near target' : row.onTimeStatus
-                      return (
-                        <tr key={row.id}>
-                          <td className="tracker-cell--primary tracker-cell--nowrap">
-                            <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
-                              {row.reqId}
-                            </Link>
-                          </td>
-                          <td>{row.customer_name || '—'}</td>
-                          <td>
-                            <div>{row.vessel_name || row.vesselTypeName}</div>
-                            <div className="mt-0.5 text-xs text-fg-muted">{row.rankName}</div>
-                          </td>
-                          <td className="tracker-cell--nowrap">{row.recruiterName}</td>
-                          <td className="tracker-cell--num tracker-cell--nowrap">
-                            <span className="font-semibold">{row.joinedCount}</span>
-                            <span className="text-fg-muted"> / {Number(row.positions_required) || 0}</span>
-                          </td>
-                          <td><RequirementPipelineBar pipeline={row.pipeline} required={row.positions_required} /></td>
-                          <td className="tracker-cell--num tracker-cell--nowrap">
-                            <span className="font-semibold">{row.daysOpen ?? '—'}</span>
-                            {row.targetDays ? <span className="text-fg-muted"> / {row.targetDays}</span> : null}
-                          </td>
-                          <td className="tracker-cell--nowrap">
-                            <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[timing] || ON_TIME_BADGE_CLASSES['—']}`}>
-                              {timing}
-                            </span>
-                          </td>
-                          <td className={`tracker-cell--nowrap ${activity.stale ? 'font-medium text-warning' : 'text-fg-secondary'}`}>
-                            {activity.text}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {metrics.requirementProgress.length > 12 ? (
-                <p className="mt-3 text-xs text-fg-muted">
-                  Showing 12 of {metrics.requirementProgress.length} open requirements.
-                </p>
-              ) : null}
-            </>
-          )}
+          <RequirementProgressTable rows={metrics.requirementProgress} />
         </section>
 
         {/* Recruiter scorecard */}

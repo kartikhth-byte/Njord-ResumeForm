@@ -44,11 +44,16 @@ export default function RecruiterCandidatesPage() {
   const { role, loading: permLoading, canExportData } = usePermissions()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
-  const [viewFilter, setViewFilter] = useState('active')
-  const [stageFilter, setStageFilter] = useState('')
-  const [recruiterFilter, setRecruiterFilter] = useState('')
+  // Filters can be preset from the URL (links from KPI and Dashboard counts).
+  const initialParams = new URLSearchParams(location.search)
+  const [viewFilter, setViewFilter] = useState(() => {
+    const value = initialParams.get('view')
+    return VIEW_FILTERS.some((option) => option.value === value) ? value : 'active'
+  })
+  const [stageFilter, setStageFilter] = useState(() => initialParams.get('stage') || '')
+  const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
   const [search, setSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
+  const [dateFrom, setDateFrom] = useState(() => (/^\d{4}-\d{2}-\d{2}$/.test(initialParams.get('from') || '') ? initialParams.get('from') : ''))
   const [dateTo, setDateTo] = useState('')
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
