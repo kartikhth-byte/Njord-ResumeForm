@@ -90,6 +90,43 @@ function SelectField({ label, value, onChange, options, placeholder = 'Select an
   )
 }
 
+// Opens inside a candidate row: pick one of the open requirements this
+// candidate is not linked to yet.
+function AttachToRequirementForm({ candidate, options, value, onChange, onSubmit, onCancel }) {
+  return (
+    <form
+      className="mt-4 flex flex-col gap-3 rounded-control border border-line bg-raised p-3 sm:flex-row sm:items-end"
+      onSubmit={onSubmit}
+    >
+      <div className="min-w-0 flex-1">
+        {options.length === 0 ? (
+          <p className="text-sm text-fg-secondary">No open requirements left to attach {candidate.name} to.</p>
+        ) : (
+          <SelectField
+            label={`Attach ${candidate.name} to`}
+            value={value}
+            onChange={onChange}
+            options={options}
+            placeholder="Choose an open requirement"
+            required
+          />
+        )}
+      </div>
+      <div className="flex gap-2">
+        {options.length > 0 ? (
+          <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!value}>
+            <ArrowRight className="h-4 w-4" />
+            Attach
+          </button>
+        ) : null}
+        <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function TextAreaField({ label, value, onChange, placeholder = '', rows = 4 }) {
   return (
     <label className="space-y-2 text-sm">
@@ -465,17 +502,6 @@ export default function RecruiterWorkspace() {
     }
   }, [permLoading, user?.id])
 
-  useEffect(() => {
-    if (!attachForm.requirementId && visibleRequirementRows[0]) {
-      setAttachForm((current) => ({ ...current, requirementId: visibleRequirementRows[0].id }))
-    }
-    if (!attachForm.prospectId && visibleCandidateRows[0]) {
-      setAttachForm((current) => ({ ...current, prospectId: visibleCandidateRows[0].id }))
-    }
-    // Pipeline rows manage their own inline status control; nothing is
-    // auto-selected.
-  }, [attachForm.prospectId, attachForm.requirementId, visibleCandidateRows, visibleRequirementRows])
-
   const reloadWorkspace = async () => {
     setRefreshing(true)
     setSuccess('')
@@ -565,12 +591,17 @@ export default function RecruiterWorkspace() {
     }))
   }, [visibleRequirementRows])
 
-  const candidateOptions = useMemo(() => {
-    return visibleCandidateRows.map((candidate) => ({
-      value: candidate.id,
-      label: `${candidate.name} · ${candidate.email || 'No email'}`,
-    }))
-  }, [visibleCandidateRows])
+  // Requirements a candidate can be attached to: open, not archived, and not
+  // already linked to that candidate.
+  const attachableRequirementOptions = (candidate) => {
+    const linked = new Set((candidate?.attachedJunctions || []).map((junction) => junction.requirement_id))
+    return requirementRows
+      .filter((requirement) => requirement.status === 'open' && !requirement.archived_at && !requirement.deleted_at && !linked.has(requirement.id))
+      .map((requirement) => ({
+        value: requirement.id,
+        label: `${requirement.req_id_display} · ${requirement.customer_name || 'No customer'}`,
+      }))
+  }
 
   const handleRequirementSubmit = async (event) => {
     event.preventDefault()
@@ -900,6 +931,7 @@ export default function RecruiterWorkspace() {
       })
       if (attachError) throw attachError
       setSuccess('Candidate attached to requirement.')
+      setAttachForm({ prospectId: '', requirementId: '' })
       await reloadWorkspace()
     } catch (attachError) {
       handleActionError(attachError, 'Failed to attach the candidate to the requirement')
@@ -1425,8 +1457,11 @@ export default function RecruiterWorkspace() {
                           <button
                             type="button"
                             className="workspace-action-button workspace-action-button--secondary"
-                            onClick={() => setAttachForm({ prospectId: candidate.id, requirementId: attachForm.requirementId || visibleRequirementRows[0]?.id || '' })}
+                            onClick={() => setAttachForm(attachForm.prospectId === candidate.id
+                              ? { prospectId: '', requirementId: '' }
+                              : { prospectId: candidate.id, requirementId: '' })}
                             disabled={!canAttachCandidates}
+                            aria-expanded={attachForm.prospectId === candidate.id}
                           >
                             Attach
                           </button>
@@ -1459,36 +1494,21 @@ export default function RecruiterWorkspace() {
                           </button>
                         </div>
                       </div>
+                      {attachForm.prospectId === candidate.id ? (
+                        <AttachToRequirementForm
+                          candidate={candidate}
+                          options={attachableRequirementOptions(candidate)}
+                          value={attachForm.requirementId}
+                          onChange={(value) => setAttachForm((current) => ({ ...current, requirementId: value }))}
+                          onSubmit={handleAttachment}
+                          onCancel={() => setAttachForm({ prospectId: '', requirementId: '' })}
+                        />
+                      ) : null}
                     </div>
                   )
                 })}
               </div>
 
-              <div className="mt-6 rounded-card border border-line bg-raised p-4">
-                <p className="text-sm font-medium text-fg">Attach existing candidate to a requirement</p>
-                <form className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={handleAttachment}>
-                  <SelectField
-                    label="Candidate"
-                    value={attachForm.prospectId}
-                    onChange={(value) => setAttachForm((current) => ({ ...current, prospectId: value }))}
-                    options={candidateOptions}
-                    placeholder="Choose a candidate"
-                    required
-                  />
-                  <SelectField
-                    label="Requirement"
-                    value={attachForm.requirementId}
-                    onChange={(value) => setAttachForm((current) => ({ ...current, requirementId: value }))}
-                    options={requirementActivityOptions}
-                    placeholder="Choose a requirement"
-                    required
-                  />
-                  <button type="submit" className="workspace-action-button workspace-action-button--primary self-end" disabled={!canAttachCandidates}>
-                    <ArrowRight className="h-4 w-4" />
-                    Attach
-                  </button>
-                </form>
-              </div>
             </Panel>
           </div>
         ) : null}
