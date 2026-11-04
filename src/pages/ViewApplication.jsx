@@ -315,10 +315,6 @@ export default function ViewApplication() {
     .filter(Boolean)
     .join(' ')
     .trim()
-  const certificates = applicationData?.section8?.certificates || []
-  const endorsements = applicationData?.section15?.endorsements || []
-  const seaService = applicationData?.section16?.seaService || []
-  const visas = applicationData?.section5?.visas || []
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
   // The status control and its modals read the candidate's name and email from
@@ -334,25 +330,12 @@ export default function ViewApplication() {
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryRows = [
     { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
-    { label: 'Nationality', value: applicationData?.section2?.nationality },
-    { label: 'Age', value: applicationData?.section2?.age },
-    { label: 'Certificates', value: certificates.length },
-    { label: 'Endorsements', value: endorsements.length },
-    { label: 'Sea service entries', value: seaService.length },
-    { label: 'Visas', value: visas.length },
   ].filter((row) => row.value !== null && row.value !== undefined && row.value !== '')
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
   const requirementCompliance = linkedRequirement
     ? buildRequirementComplianceOverlay(applicationData || {}, linkedRequirement, linkedRequirementNationalities)
     : null
-
-  const formatWorksheetTimestamp = (value) => {
-    if (!value) return 'Unknown'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'Unknown'
-    return date.toLocaleString()
-  }
 
   const handleGenerateWorksheet = async () => {
     if (!selectedWorksheetCustomerId) return
@@ -370,7 +353,7 @@ export default function ViewApplication() {
         customerId: selectedWorksheetCustomerId,
       })
       setWorksheetSuccess(
-        `Worksheet download started successfully for ${fileName}. Check your browser's default Downloads folder.`
+        `Downloaded ${fileName}`
       )
       worksheetModalCloseTimeoutRef.current = setTimeout(() => {
         setWorksheetModalOpen(false)
@@ -436,7 +419,7 @@ export default function ViewApplication() {
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  Generate Worksheet
+                  Worksheet
                 </button>
               )}
               <button onClick={handlePrint} className="workspace-action-button workspace-action-button--secondary">
@@ -457,10 +440,10 @@ export default function ViewApplication() {
 
           <div className="absolute inset-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
             <div className="flex min-h-full items-center justify-center">
-              <div className="relative flex h-[min(88vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-[32px] border border-line/80 bg-surface shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+              <div className="recruiter-modal recruiter-modal--narrow relative flex flex-col">
                 <div className="flex items-start justify-between gap-4 border-b border-line bg-surface px-6 py-5 sm:px-7">
                   <div>
-                    <h2 className="mt-2 text-2xl font-semibold text-fg">Generate &amp; Download</h2>
+                    <h2 className="text-xl font-semibold text-fg">Worksheet</h2>
                   </div>
                   <button
                     type="button"
@@ -474,13 +457,6 @@ export default function ViewApplication() {
 
                 <div className="flex-1 overflow-y-auto overscroll-contain bg-raised/55 px-6 py-6 sm:px-7">
                   <div className="space-y-5">
-                    <div className="rounded-card border border-line bg-surface p-4">
-                    <p className="text-xs font-semibold text-fg-muted">Application Status</p>
-                    <p className="mt-2 text-sm text-fg-secondary">
-                      Current status: <span className="font-semibold text-fg">{formatDisplayValue(application.status)}</span>
-                    </p>
-                    </div>
-
                     <div className="rounded-card border border-line bg-surface p-4">
                       <label className="text-sm font-medium text-fg">Customer</label>
                       <select
@@ -504,39 +480,6 @@ export default function ViewApplication() {
  }`}>
                       {worksheetLoading ? 'Loading customer worksheet settings...' : worksheetReadiness.message}
                     </div>
-
-                    {selectedWorksheetCustomer ? (
-                      <div className="rounded-card border border-line bg-surface p-4">
-                        <p className="text-xs font-semibold text-fg-muted">Template Details</p>
-                        {worksheetReadiness.template ? (
-                          <div className="mt-3 space-y-2 text-sm text-fg-secondary">
-                            <p>
-                              Active template: <span className="font-semibold text-fg">{worksheetReadiness.template.file_name}</span>
-                            </p>
-                            <p>
-                              Uploaded: <span className="font-medium text-fg">{formatWorksheetTimestamp(worksheetReadiness.template.created_at)}</span>
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-sm text-fg-secondary">No active template for this customer.</p>
-                        )}
-                      </div>
-                    ) : null}
-
-                    {worksheetGenerating ? (
-                      <div className="rounded-control border border-accent/40 bg-accent-soft px-4 py-4 text-sm text-accent-text">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="font-medium">Generating worksheet...</span>
-                        </div>
-                        <p className="mt-2 text-xs leading-5 text-accent-text">
-                          The template is being populated now. This can take a few seconds.
-                        </p>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-accent-soft">
-                          <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-accent-fill" />
-                        </div>
-                      </div>
-                    ) : null}
 
                     {worksheetSuccess ? (
                       <div className="rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">
@@ -577,7 +520,7 @@ export default function ViewApplication() {
                     className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {worksheetGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    Generate Worksheet
+                    {worksheetGenerating ? 'Generating…' : 'Generate'}
                   </button>
                 </div>
               </div>
@@ -630,7 +573,7 @@ export default function ViewApplication() {
                     <StatusBadge status={application.status} />
                   </div>
                   <p className="mt-2 text-sm text-fg-secondary">
-                    {formatDisplayValue(applicationData?.section1?.appliedForRank) || 'Rank not specified'} • {formatDisplayValue(applicationData?.section1?.vesselType) || 'Vessel preference not specified'}
+                    {[formatDisplayValue(applicationData?.section1?.appliedForRank), formatDisplayValue(applicationData?.section1?.vesselType)].filter(Boolean).join(' • ')}
                   </p>
                 </div>
               </div>
@@ -644,10 +587,12 @@ export default function ViewApplication() {
                   <Phone className="h-4 w-4 text-fg-muted" />
                   <span>{formatPhone(applicationData?.section2?.phoneCountryCode, applicationData?.section2?.phoneNumber) || 'No phone provided'}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-fg-secondary">
-                  <CalendarDays className="h-4 w-4 text-fg-muted" />
-                  <span>Available from {applicationData?.section1?.availableFrom || 'unknown date'}</span>
-                </div>
+                {applicationData?.section1?.availableFrom ? (
+                  <div className="flex items-center gap-3 text-sm text-fg-secondary">
+                    <CalendarDays className="h-4 w-4 text-fg-muted" />
+                    <span>Available from {applicationData.section1.availableFrom}</span>
+                  </div>
+                ) : null}
               </div>
 
               {isRecruiterView && canEditApplications ? (
@@ -712,20 +657,12 @@ export default function ViewApplication() {
 
             <div className="space-y-6">
           {isRecruiterView && compliance ? (
-            <div className={`grid gap-6 ${requirementCompliance ? 'xl:grid-cols-2' : ''}`}>
-              <ApplicationCompliancePanel
-                compliance={compliance}
-                title="Documents, training, and review flags"
-              />
-              {requirementCompliance ? (
-                <ApplicationCompliancePanel
-                  compliance={requirementCompliance}
-                  eyebrow="Requirement Compliance Overlay"
-                  title={`Application compared against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the live requirement'}`}
-                  description={`This overlay keeps the live candidate evidence visible beside the matching requirement${requirementCompliance.metadata?.requirementSummary?.customerName ? ` for ${requirementCompliance.metadata.requirementSummary.customerName}` : ''} so the recruiter can spot mismatches quickly.`}
-                />
-              ) : null}
-            </div>
+            <ApplicationCompliancePanel
+              compliance={requirementCompliance || compliance}
+              title={requirementCompliance
+                ? `Compliance against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the linked requirement'}`
+                : 'Compliance'}
+            />
           ) : null}
 
           {/* Section 1: Availability & Position */}
@@ -1024,11 +961,11 @@ export default function ViewApplication() {
 
           {/* Section 13: Physical Details */}
           <ViewSection title="Physical Details & Uniform Sizes">
-            <ViewRow label="Height" value={`${applicationData?.section13?.height} ${applicationData?.section13?.heightUnit || ''}`} />
-            <ViewRow label="Weight" value={`${applicationData?.section13?.weight} ${applicationData?.section13?.weightUnit || ''}`} />
+            <ViewRow label="Height" value={applicationData?.section13?.height ? `${applicationData.section13.height} ${applicationData.section13.heightUnit || ''}`.trim() : ''} />
+            <ViewRow label="Weight" value={applicationData?.section13?.weight ? `${applicationData.section13.weight} ${applicationData.section13.weightUnit || ''}`.trim() : ''} />
             {applicationData?.section13?.eyeColor && <ViewRow label="Eye Color" value={applicationData.section13.eyeColor} />}
             {applicationData?.section13?.hairColor && <ViewRow label="Hair Color" value={applicationData.section13.hairColor} />}
-            <ViewRow label="Shoe Size" value={`${applicationData?.section13?.shoeSize} ${applicationData?.section13?.shoeSizeUnit || ''}`} />
+            <ViewRow label="Shoe Size" value={applicationData?.section13?.shoeSize ? `${applicationData.section13.shoeSize} ${applicationData.section13.shoeSizeUnit || ''}`.trim() : ''} />
             <ViewRow label="Boiler Suit Size" value={applicationData?.section13?.boilerSuitSize} />
             <ViewRow label="Uniform Shirt Size" value={applicationData?.section13?.uniformShirtSize} />
             <ViewRow label="Uniform Trouser Size" value={applicationData?.section13?.uniformTrouserSize} />
@@ -1094,7 +1031,6 @@ export default function ViewApplication() {
                     <ViewRow label="Company" value={service.company || service.companyName} />
                     <ViewRow label="Manning" value={service.manning} />
                     <ViewRow label="Trading Area" value={service.tradingArea || service.tradeRoute} />
-                    <ViewRow label="Trade Route" value={service.tradeRoute} />
                     <ViewRow label="Total mm/dd" value={service.totalMmDd} />
                     <ViewRow label="Sign On Date" value={service.signOnDate} />
                     <ViewRow label="Sign Off Date" value={service.signOffDate} />
@@ -1180,7 +1116,7 @@ export default function ViewApplication() {
       </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-fg-muted print:mt-12">
+        <div className="mt-8 hidden text-center text-sm text-fg-muted print:mt-12 print:block">
           {application.reference_number && (
             <p>Reference number: {application.reference_number}</p>
           )}
