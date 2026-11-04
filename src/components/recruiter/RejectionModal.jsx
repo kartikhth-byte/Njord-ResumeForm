@@ -128,17 +128,7 @@ const RejectionModal = ({
       // FIX: Robust name handling
       const applicantName = applicant?.name || applicant?.firstName || 'Applicant';
 
-      // FIX: Call service with merged object pattern
-      await sendRejectionEmail({
-        to: applicant.email,
-        name: applicantName,
-        reason: rejectionCategory,
-        customMessage: notes,
-        position: applicant.position || 'N/A',
-        contactForFutureRoles: contactForFutureRoles
-      });
-
-      // FIX: Call onConfirm (renamed from onReject)
+      // Save the rejection first, so a failed save never emails the candidate.
       await onConfirm({
         applicationId: applicant.id,
         status: 'rejected',
@@ -149,6 +139,20 @@ const RejectionModal = ({
         rejectionNotes: notes,
         rejectedAt: new Date().toISOString(),
       });
+
+      // The notes are internal and are not sent to the candidate.
+      try {
+        await sendRejectionEmail({
+          to: applicant.email,
+          name: applicantName,
+          reason: rejectionCategory,
+          position: applicant.position || 'N/A',
+          contactForFutureRoles: contactForFutureRoles
+        });
+      } catch (emailError) {
+        console.error('Rejection saved; email failed:', emailError);
+        alert('The application was rejected, but the email to the candidate could not be sent.');
+      }
       
       resetForm();
       onClose();
@@ -361,7 +365,7 @@ const RejectionModal = ({
               Rejection Notes {rejectionCategory === 'other' && <span className="text-danger">*</span>}
             </label>
             <p className="text-sm text-fg-secondary mb-3">
-              Provide detailed feedback for internal records
+              Internal only. Not sent to the candidate.
             </p>
             <textarea
               value={notes}

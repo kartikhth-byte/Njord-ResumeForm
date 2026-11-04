@@ -355,7 +355,7 @@ export default function CalendarDashboard() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search by applicant, rank, reference, platform..."
+                placeholder="Search by reference, rank, platform or recruiter"
                 className="w-full rounded-card border border-line bg-surface py-3 pl-11 pr-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/30"
               />
             </div>
@@ -485,7 +485,10 @@ export default function CalendarDashboard() {
                             {event.event_title || `${config.label} - ${event.applications?.reference_number || 'Pending reference'}`}
                           </h3>
                           <p className="mt-1 text-sm text-fg-muted">
-                            {event.profiles?.full_name || 'Applicant'}{event.applications?.reference_number ? ` • ${event.applications.reference_number}` : ''}
+                            {[
+                              event.applications?.reference_number,
+                              event.profiles?.full_name ? `By ${event.profiles.full_name}` : null,
+                            ].filter(Boolean).join(' • ')}
                           </p>
                         </div>
                       </div>

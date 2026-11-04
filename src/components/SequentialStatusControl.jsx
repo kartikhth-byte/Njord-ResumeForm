@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
 import HandledBySelect from './recruiter/HandledBySelect'
-import { ChevronRight, Loader2, MoreVertical, X, SkipForward, Check, XCircle } from 'lucide-react'
+import { ChevronRight, Loader2, MoreVertical, X, Check, XCircle } from 'lucide-react'
 import TestSchedulingModal from './TestSchedulingModal'
 import TestResultModal from './TestResultModal'
 import InterviewSchedulingModal from './InterviewSchedulingModal'
@@ -27,7 +27,6 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [showSchedulingModal, setShowSchedulingModal] = useState(false)
   const [showDocumentsModal, setShowDocumentsModal] = useState(false)
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
-  const [modalType, setModalType] = useState(null) // 'next', 'skip', 'reject', 'withdrawn'
   const [showRejectionModal, setShowRejectionModal] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState(null)
   const buttonRef = useRef(null)
@@ -181,12 +180,7 @@ useEffect(() => {
     return statusFlow[currentIndex + 1]
   }
 
-  const getSkippableStatuses = () => {
-    const normalizedStatus = currentStatus === 'submitted' ? 'submitted' : currentStatus
-    const currentIndex = statusFlow.indexOf(normalizedStatus)
-    if (currentIndex === -1) return []
-    return statusFlow.slice(currentIndex + 2)
-  }
+
 
   const nextStatus = getNextStatus()
   const isTerminal = currentStatus === 'hired' || currentStatus === 'rejected' || currentStatus === 'withdrawn'
@@ -241,20 +235,6 @@ useEffect(() => {
       return
     }
     
-    // Handle "offered" status - call parent handler which will open OfferModal
-    if (nextStatus === 'offered') {
-      setShowMenu(false)
-      onStatusChange(nextStatus)
-      return
-    }
-
-    // Handle "offer_accepted" - direct status update, no modal needed
-    if (nextStatus === 'offer_accepted') {
-      setShowMenu(false)
-      onStatusChange(nextStatus)
-      return
-    }
-
     // Handle "documents_pending" - show documents checklist modal
     if (nextStatus === 'documents_pending') {
       setShowDocumentsModal(true)
@@ -262,23 +242,10 @@ useEffect(() => {
       return
     }
 
-    // Handle "hired" - direct status update, no modal needed
-    if (nextStatus === 'hired') {
-      setShowMenu(false)
-      onStatusChange(nextStatus)
-      return
-    }
-    
-    // Show generic modal for other statuses
-    setModalType('next')
+    // Every other step (including offered, offer accepted and hired) is saved
+    // by this control after a confirm, so it works on both the list and the
+    // application page (whose onStatusChange only reloads).
     setSelectedStatus(nextStatus)
-    setShowModal(true)
-    setShowMenu(false)
-  }
-
-  const handleSkipTo = (status) => {
-    setModalType('skip')
-    setSelectedStatus(status)
     setShowModal(true)
     setShowMenu(false)
   }
@@ -449,26 +416,6 @@ useEffect(() => {
                     left: `${dropdownPosition.left}px`
                   }}
                 >
-                  {/* Skip Options */}
-                  {getSkippableStatuses().length > 0 && (
-                    <>
-                      <div className="px-3 py-2 text-xs font-semibold text-fg-muted">
-                        Skip to
-                      </div>
-                      {getSkippableStatuses().map(status => (
-                        <button
-                          key={status}
-                          onClick={() => handleSkipTo(status)}
-                          className="w-full px-3 py-2 text-left text-sm text-fg-secondary hover:bg-raised flex items-center gap-2"
-                        >
-                          <SkipForward className="w-4 h-4 text-fg-muted" />
-                          {statusLabels[status]}
-                        </button>
-                      ))}
-                      <div className="my-1 border-t border-line" />
-                    </>
-                  )}
-
                   {/* Withdraw Button (for offered, offer_accepted, documents_pending) */}
                   {canWithdraw() && (
                     <button
@@ -505,7 +452,7 @@ useEffect(() => {
           
           <div className="relative z-[9999] w-full max-w-md rounded-card bg-surface p-6">
             <h3 className="text-lg font-semibold text-fg mb-2">
-              {modalType === 'skip' ? 'Skip to ' : 'Advance to '}
+              Advance to{' '}
               {statusLabels[selectedStatus]}
             </h3>
 

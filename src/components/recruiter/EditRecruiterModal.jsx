@@ -67,11 +67,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
         ...(formData.roleId && formData.roleId !== member.role_id && { role_id: formData.roleId })
       }
 
-      console.log('=== UPDATE REQUEST ===')
-      console.log('Member:', member)
-      console.log('Form data:', formData)
-      console.log('Sending body:', updateBody)
-      console.log('=====================')
 
       // Call edge function to update recruiter
       const { data, error: functionError } = await supabase.functions.invoke(
@@ -81,10 +76,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
         }
       )
 
-      console.log('=== RESPONSE ===')
-      console.log('Data:', data)
-      console.log('Error:', functionError)
-      console.log('================')
 
       if (functionError) {
         const errorMessage = data?.error || functionError.message || 'Failed to update recruiter'

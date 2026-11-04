@@ -321,6 +321,16 @@ export default function ViewApplication() {
   const visas = applicationData?.section5?.visas || []
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
+  // The status control and its modals read the candidate's name and email from
+  // the form data, in the same shape the Applications list passes.
+  const section2ForControl = applicationData?.section2 || {}
+  const controlApplication = {
+    ...application,
+    application_data: { data: applicationData || {} },
+    full_name: [section2ForControl.firstName, section2ForControl.middleName, section2ForControl.surname].filter(Boolean).join(' ').trim(),
+    email: section2ForControl.email || '',
+    desired_rank: applicationData?.section1?.appliedForRank || application?.applied_rank || '',
+  }
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryRows = [
     { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
@@ -648,7 +658,7 @@ export default function ViewApplication() {
                       applicationId={application.id}
                       currentStatus={application.status}
                       onStatusChange={refreshApplication}
-                      application={application}
+                      application={controlApplication}
                     />
                   </div>
                 </div>

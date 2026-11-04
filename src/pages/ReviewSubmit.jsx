@@ -7,7 +7,8 @@ import FormSidebar from '../components/form/FormSidebar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
 import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronUp, Eye, X, ArrowLeft } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { generateReferenceNumber } from '../utils/referenceGenerator' // ← ADD THIS LINE
+import { generateReferenceNumber } from '../utils/referenceGenerator'
+import { validateSection } from '../utils/sectionValidation'
 import PageHeader from '../components/ui/PageHeader'
 import { clearActiveDraftId, getActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { FORM_SECTION_NAME_MAP, FORM_SECTION_NUMBERS, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
@@ -143,7 +144,13 @@ export default function ReviewSubmit() {
           if (typeof value === 'boolean') return true
           return value !== '' && value !== null && value !== undefined
         })
-        status[sectionNumber] = hasData ? 'complete' : 'empty'
+        // Mandatory sections are complete only when they pass the same
+        // validation the form sidebar uses; "has any data" is not enough.
+        if (hasData && MANDATORY_SECTION_NUMBERS.includes(sectionNumber)) {
+          status[sectionNumber] = validateSection(sectionNumber, sectionData).isValid ? 'complete' : 'incomplete'
+        } else {
+          status[sectionNumber] = hasData ? 'complete' : 'empty'
+        }
       }
     }
     
@@ -172,7 +179,7 @@ export default function ReviewSubmit() {
     const incomplete = []
 
     MANDATORY_SECTION_NUMBERS.forEach(section => {
-      if (completionStatus[section] !== 'complete') {
+      if (!validateSection(section, applicationData[`section${section}`]).isValid) {
         incomplete.push(section)
       }
     })

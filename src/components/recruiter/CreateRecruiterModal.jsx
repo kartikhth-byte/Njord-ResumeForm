@@ -60,13 +60,6 @@ const handleSubmit = async (e) => {
   setError(null)
 
   try {
-    console.log('Sending request with data:', {
-      action: 'create',
-      full_name: formData.fullName,
-      email: formData.email,
-      role_id: formData.roleId
-    })
-
     // Call edge function to create recruiter
     const { data, error: functionError } = await supabase.functions.invoke(
       'create-recruiter',
@@ -81,10 +74,6 @@ const handleSubmit = async (e) => {
       }
     )
 
-    console.log('=== FULL RESPONSE ===')
-    console.log('Data:', JSON.stringify(data, null, 2))
-    console.log('Error:', JSON.stringify(functionError, null, 2))
-    console.log('====================')
 
     // Check for errors
     if (functionError) {

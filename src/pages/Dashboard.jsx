@@ -200,7 +200,11 @@ export default function Dashboard() {
           .single()
 
         if (!prevDataError && prevAppData) {
-          previousData = prevAppData.data || {}
+          // Declarations, consents and the signature are never reused: the
+          // applicant confirms them again for each application.
+          const { section19: _previousDeclarations, ...reusable } = prevAppData.data || {}
+          void _previousDeclarations
+          previousData = reusable
         }
       }
 
