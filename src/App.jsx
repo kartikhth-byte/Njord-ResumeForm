@@ -191,19 +191,19 @@ function App() {
 } />
 
 <Route path="/recruiter/calendar" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter', 'Coordinator']}>
     <CalendarDashboardPage />
   </ProtectedRoute>
 } />
 
 <Route path="/recruiter/events" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter', 'Coordinator']}>
     <CalendarDashboardPage />
   </ProtectedRoute>
 } />
 
 <Route path="/dashboard/calendar" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
+  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter', 'Coordinator']}>
     <CalendarDashboardPage />
   </ProtectedRoute>
 } />

@@ -74,8 +74,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     {
       label: 'Schedule',
       items: [
-        // Routes are ProtectedRoute(['Recruiter', 'Master Recruiter']); hide them for other roles.
-        isRecruiterOrMaster && { key: 'calendar', label: 'Calendar', icon: CalendarDays, path: '/recruiter/calendar' },
+        { key: 'calendar', label: 'Calendar', icon: CalendarDays, path: '/recruiter/calendar' },
         isRecruiterOrMaster && { key: 'expiry', label: 'Expiry', icon: Clock, path: '/dashboard/expiry' },
       ],
     },

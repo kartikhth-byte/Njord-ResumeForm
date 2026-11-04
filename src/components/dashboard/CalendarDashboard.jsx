@@ -154,7 +154,7 @@ export default function CalendarDashboard() {
   }, [permLoading])
 
   const normalizedRole = role?.toLowerCase().replace(/\s+/g, '_')
-  const hasAccess = normalizedRole === 'recruiter' || normalizedRole === 'master_recruiter'
+  const hasAccess = normalizedRole === 'recruiter' || normalizedRole === 'master_recruiter' || normalizedRole === 'coordinator'
 
   const filteredEvents = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()

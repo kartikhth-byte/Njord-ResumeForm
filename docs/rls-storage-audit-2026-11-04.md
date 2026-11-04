@@ -84,8 +84,22 @@ updated one application row; an applicant updated their own draft. The
 simulated role assignment was rolled back and the original Recruiter role was
 confirmed unchanged. Staging has no real Coordinator or Master account, so
 signed-in browser/API checks for those roles, plus actual photo download and
-offer-letter function behavior, remain open. The safe public-route Playwright
-subset passed 6/6; the default write-capable smoke suite was not run.
+offer-letter function behavior, were open at that point. A later signed-in
+staging browser smoke used the existing recruiter account and temporary
+Coordinator/Master assignments. Recruiter, Coordinator, and Master could
+open synthetic application lists and detail; protected photos rendered for
+all three. Coordinator saw no status or handled-by controls and no worksheet
+action, while Master retained decision and worksheet controls. The
+Coordinator Calendar route initially denied access despite read-only event
+policies; the route, page, dashboard, and sidebar gates were corrected locally.
+The corrected Calendar loaded in staging with no edit actions (there were zero
+events, so event visibility itself is not proven). No status, invitation,
+worksheet, or email action was triggered. The staging SQL editor confirmed
+the account was restored to Recruiter and the last-Master trigger was enabled;
+a fresh Calendar navigation also showed Recruiter in the browser. Use
+dedicated role accounts for further UI checks. The safe
+public-route Playwright subset passed 6/6; the default write-capable smoke
+suite was not run.
 
 ## Additional Follow-Up
 

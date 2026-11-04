@@ -29,6 +29,10 @@ trigger email or status changes during a read-only smoke. A transaction-scoped
 role simulation is useful database evidence but does not replace signed-in
 browser/API checks. Never run the default write-capable smoke suite against
 production; use `tests/smoke/public.spec.js --no-deps` for public routes.
+Do not temporarily promote the only staging recruiter to Master Recruiter:
+the last-Master guard prevents ordinary demotion when staging had no Master
+before the test. Use a dedicated synthetic Master account for future smoke,
+and verify any temporary role change is restored with the guard enabled.
 
 ## Future Candidate Identity And Deduplication Gate
 
