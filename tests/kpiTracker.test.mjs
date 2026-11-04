@@ -2,7 +2,7 @@
 // Run: node --test tests/kpiTracker.test.mjs
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildRequirementTrackerRows, buildCandidateFunnelRows, computeDashboardMetrics, periodStart, lastActivityLabel, timingLabel } from '../src/utils/kpiTracker.js'
+import { buildRequirementTrackerRows, buildCandidateFunnelRows, computeDashboardMetrics, periodStart, lastActivityLabel, timingLabel, workingRecruiters } from '../src/utils/kpiTracker.js'
 const now = new Date(2026, 10, 4, 12)   // Wed 4 Nov 2026
 const d = (days) => new Date(now.getTime() - days * 864e5).toISOString()
 const day = (days) => d(days).slice(0, 10)
@@ -61,3 +61,4 @@ eq('week starts Monday 2 Nov', periodStart('week', now).toDateString(), new Date
 }
 eq('activity label: today / stale', [lastActivityLabel(d(0), now).text, lastActivityLabel(d(1), now).text, lastActivityLabel(d(8), now).stale, lastActivityLabel(d(7), now).stale], ['Today', '1 day ago', true, false])
 eq('timing label: near target only when on track', [timingLabel({ riskRank: 1, onTimeStatus: 'On Track' }), timingLabel({ riskRank: 0, onTimeStatus: 'Overdue' }), timingLabel({ riskRank: 2, onTimeStatus: 'On Track' })], ['Near target', 'Overdue', 'On Track'])
+eq('coordinators left out of working recruiters; unknown roles kept', workingRecruiters([{ id: 1, role_name: 'Recruiter' }, { id: 2, role_name: 'Coordinator' }, { id: 3, role_name: '' }]).map((r) => r.id), [1, 3])

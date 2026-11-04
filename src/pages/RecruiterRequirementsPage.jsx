@@ -13,6 +13,7 @@ import {
   buildRequirementTrackerRows,
   formatDays,
   ON_TIME_BADGE_CLASSES,
+  workingRecruiters,
 } from '../utils/kpiTracker'
 import { getStatusMeta, REQUIREMENT_STATUS_META, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
@@ -248,7 +249,7 @@ export default function RecruiterRequirementsPage() {
                   className="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All recruiters</option>
-                  {tracker.data.recruiters.map((recruiter) => (
+                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
                     <option key={recruiter.id} value={recruiter.id}>
                       {recruiter.full_name || recruiter.email}
                     </option>

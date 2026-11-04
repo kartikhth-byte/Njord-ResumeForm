@@ -79,5 +79,6 @@ Partly. KPI covers team totals and today's activity. It does not show how close 
 - **Every headline count is a link** to the list behind it. Requirements and Candidates now read `status` / `view`, `stage`, `recruiter` and `from` from the URL to preset their filters.
 - Shared `RequirementProgressTable` component for KPI and Dashboard. Requirement remarks now feed "last activity" (the KPI page was passing them under the wrong key).
 - Tests: `tests/kpiTracker.test.mjs` now 18 checks.
+- **Coordinators stay read-only (owner decision 2026-11-04)**, matching `0216`-`0219`: they cannot schedule, change status or send offers. They own no work, so they are left out of the scorecard and owner filters (`workingRecruiters`), and their Dashboard opens on the whole team. Where a viewer cannot read other users' roles (no `view_team`), Coordinators may still appear in owner filters.
 - Not verified against staging data; rendered with synthetic fixtures only.
 **After case v1:** per-requirement interview/test stages, credit by the recruiter who moved the candidate, time in stage per recruiter.

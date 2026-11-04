@@ -143,6 +143,15 @@ export function isSameLocalDay(value, reference = new Date()) {
   return date.getTime() === ref.getTime()
 }
 
+// Coordinators are read-only: they never own requirements or candidates, so
+// they are left out of scorecards and "owner" filters. Roles we cannot read
+// (no view_team permission) stay in the list.
+export const READ_ONLY_RECRUITER_ROLES = ['Coordinator']
+
+export function workingRecruiters(recruiters = []) {
+  return recruiters.filter((recruiter) => !READ_ONLY_RECRUITER_ROLES.includes(recruiter.role_name))
+}
+
 export function lookupName(rows = [], id, fallback = '—') {
   if (!id) return fallback
   const match = rows.find((row) => row.id === id)

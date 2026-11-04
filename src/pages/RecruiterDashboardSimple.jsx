@@ -16,6 +16,7 @@ import {
   lastActivityLabel,
   STAGE_BADGE_CLASSES,
   toDateOnly,
+  workingRecruiters,
 } from '../utils/kpiTracker'
 import { formatDate } from './recruiterDashboardUtils'
 import {
@@ -67,9 +68,10 @@ export default function RecruiterDashboardSimple() {
   const { user, profile, signOut } = useAuth()
   const { role, loading: permLoading } = usePermissions()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
-  const isManager = role === 'Master Recruiter'
-  // Managers see the whole team by default and can narrow to one recruiter;
-  // everyone else always sees their own work.
+  // The Master Recruiter and read-only Coordinators (who own no work) see the
+  // whole team by default and can narrow to one recruiter; Recruiters always
+  // see their own work.
+  const isManager = role === 'Master Recruiter' || role === 'Coordinator'
   const [managerFilter, setManagerFilter] = useState('')
   const scopeId = isManager ? managerFilter : (user?.id || '__none__')
 
@@ -188,7 +190,7 @@ export default function RecruiterDashboardSimple() {
                   className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">Whole team</option>
-                  {tracker.data.recruiters.map((recruiter) => (
+                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
                     <option key={recruiter.id} value={recruiter.id}>
                       {recruiter.full_name || recruiter.email}
                     </option>
