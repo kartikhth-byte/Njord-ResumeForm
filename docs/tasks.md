@@ -170,6 +170,7 @@ Recruiter, highest risk first:
 - [ ] Reject from the status menu, from a failed test and from a failed interview: status saves, reason and notes show in the one-line banner, the candidate email has a neutral reason sentence (no raw code, no internal notes).
 - [ ] Pass an interview: overall rating required; the candidate email no longer contains the recommendation.
 - [ ] Test/interview scheduling and result emails now call the staging project's edge functions (`30a0f8d`); confirm they are deployed there with their secrets, or note them as expected failures.
+- [ ] Requirement closure guard (`9cf390c`): Close on a requirement with open positions asks to confirm; a fully joined open requirement shows on the Dashboard card.
 - [ ] Requirement detail: "More" menu; Cancel asks for a reason and succeeds; Archive; Delete; Close; edit form has no Cancelled option for an open requirement; vessel name shows.
 - [ ] Applications list: stage chips (Active, Review, Test, Interview, Offer, Closed) and counts; Closed loads hired/rejected/withdrawn; compliance badges filter; AI search and Filters panels; `?status=` links from the Dashboard.
 - [ ] Dashboard: needs-action cards for a Recruiter and for the Master (whole team / one recruiter); KPI no longer shows "Needs action"; conversion in the KPI exports names the period.
