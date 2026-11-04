@@ -97,7 +97,7 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
           try {
             const { data: { session } } = await supabase.auth.getSession()
             const refreshResponse = await fetch(
-              'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/refresh-microsoft-token',
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-microsoft-token`,
               {
                 method: 'POST',
                 headers: {
@@ -208,7 +208,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
           try {
             const { data: { session } } = await supabase.auth.getSession()
             const refreshResponse = await fetch(
-              'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/refresh-microsoft-token',
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-microsoft-token`,
               {
                 method: 'POST',
                 headers: {
@@ -378,7 +378,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                                application.application_data?.data?.section4?.email
 
         const emailResponse = await fetch(
-          'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-interview-invitation',
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-interview-invitation`,
           {
             method: 'POST',
             headers: {

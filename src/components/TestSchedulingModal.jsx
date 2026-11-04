@@ -122,7 +122,7 @@ if (reminderError) {
         })
         
         const emailResponse = await fetch(
-          'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-test-invitation',
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-invitation`,
           {
             method: 'POST',
             headers: {

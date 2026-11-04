@@ -155,7 +155,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
 
 
       const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-interview-passed',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-interview-passed`,
         {
           method: 'POST',
           headers: {
@@ -220,7 +220,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
 
 
       const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-rejection-email',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
         {
           method: 'POST',
           headers: {

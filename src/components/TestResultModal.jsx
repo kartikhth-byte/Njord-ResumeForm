@@ -149,7 +149,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
 
       const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-rejection-email',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
         {
           method: 'POST',
           headers: {
@@ -230,7 +230,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
       })
 
       const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-test-retake-approved',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-retake-approved`,
         {
           method: 'POST',
           headers: {
