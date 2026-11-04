@@ -56,6 +56,9 @@ export const CASE_TERMINAL_STATUSES = ['hired', 'withdrawn', 'rejected', 'closed
 export const CASE_EXIT_STATUSES = ['withdrawn', 'rejected', 'closed']
 // Moves that need a written reason (the database rejects them without one).
 export const CASE_REASON_REQUIRED = ['test_waived', ...CASE_EXIT_STATUSES]
+export const CASE_SCHEDULE_STATUSES = ['test_scheduled', 'interview_scheduled']
+export const CASE_RESULT_STATUSES = ['test_passed', 'test_failed', 'test_no_show', 'interview_passed', 'interview_failed', 'interview_no_show']
+export const CASE_RESULT_REASON_REQUIRED = ['test_failed', 'test_no_show', 'interview_failed', 'interview_no_show']
 
 // A backfilled `legacy` case is placed on the new flow once, with a reason.
 // Any non-terminal stage except `sent_to_principal` (which needs the attestation).
@@ -81,15 +84,15 @@ export function caseActionLabel(toStatus) {
   const labels = {
     contacted: 'Mark contacted',
     confirmed: 'Confirm interest',
-    test_scheduled: 'Test scheduled',
+    test_scheduled: 'Schedule test',
     test_waived: 'Waive test',
-    test_passed: 'Test passed',
-    test_failed: 'Test failed',
-    test_no_show: 'Test no-show',
-    interview_scheduled: 'Interview scheduled',
-    interview_passed: 'Interview passed',
-    interview_failed: 'Interview failed',
-    interview_no_show: 'Interview no-show',
+    test_passed: 'Record test passed',
+    test_failed: 'Record test failed',
+    test_no_show: 'Record test no-show',
+    interview_scheduled: 'Schedule interview',
+    interview_passed: 'Record interview passed',
+    interview_failed: 'Record interview failed',
+    interview_no_show: 'Record interview no-show',
     selected: 'Select',
     offered: 'Offer made',
     offer_accepted: 'Offer accepted',
@@ -109,10 +112,15 @@ const CASE_ERROR_MESSAGES = {
   permission_denied: 'Your role cannot change recruitment cases.',
   version_conflict: 'Someone else updated this case. Refresh and try again.',
   case_closed: 'This case is already closed.',
+  assessment_reason_required: 'Add a reason for this result.',
   reason_required: 'Add a reason.',
   waiver_reason_required: 'Add a reason for waiving the test.',
   legacy_triage_requires_reason: 'Add a reason when placing an older record on the new flow.',
   case_not_found: 'This case no longer exists. Refresh the page.',
+  assessment_time_required: 'Enter the assessment date and time.',
+  invalid_assessment_time: 'Enter a valid assessment date and time.',
+  assessment_not_allowed: 'Assessment details are not allowed for this step.',
+  invalid_assessment_details: 'Assessment details are invalid.',
 }
 
 export function caseErrorMessage(error) {

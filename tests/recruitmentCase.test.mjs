@@ -30,6 +30,7 @@ test('sent_to_principal is never a plain button; legacy targets exclude terminal
 
 test('error messages and missing-table detection', () => {
   assert.match(caseErrorMessage({ message: 'version_conflict' }), /Refresh/)
+  assert.match(caseErrorMessage({ message: 'assessment_reason_required' }), /this result/)
   assert.match(caseErrorMessage({ message: 'invalid_transition sourced -> hired' }), /not allowed/)
   assert.ok(isCaseTableMissing({ code: '42P01' }))
   assert.ok(isCaseTableMissing({ code: 'PGRST205', message: "Could not find the table 'public.recruitment_cases' in the schema cache" }))

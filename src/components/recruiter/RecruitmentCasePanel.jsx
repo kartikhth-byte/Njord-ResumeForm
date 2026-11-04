@@ -7,6 +7,9 @@ import {
   CASE_EXIT_STATUSES,
   CASE_LEGACY_TARGETS,
   CASE_REASON_REQUIRED,
+  CASE_RESULT_REASON_REQUIRED,
+  CASE_RESULT_STATUSES,
+  CASE_SCHEDULE_STATUSES,
   caseActionLabel,
   caseErrorMessage,
   caseNextActions,
@@ -33,6 +36,16 @@ function describeEvent(event) {
   return `${caseStatusMeta(event.from_status).label} → ${caseStatusMeta(event.to_status).label}`
 }
 
+function assessmentDetails(event) {
+  const payload = event.payload || {}
+  if (!payload.assessment) return ''
+  const parts = [payload.scheduled_at ? `Scheduled ${formatDateTime(payload.scheduled_at)}` : null,
+    payload.occurred_at ? `Occurred ${formatDateTime(payload.occurred_at)}` : null,
+    payload.location ? `Location: ${payload.location}` : null,
+    payload.note ? `Note: ${payload.note}` : null]
+  return parts.filter(Boolean).join(' · ')
+}
+
 // Recruitment case v1 on the requirement page: one case per candidate, moved
 // step by step through the agreed flow. All rules are enforced by the
 // database functions; this panel only offers the moves they allow.
@@ -45,7 +58,7 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
 
   const [state, setState] = useState({ loading: true, available: false, cases: [], events: [], error: '' })
   const [names, setNames] = useState({})
-  const [form, setForm] = useState(null) // { caseId, mode: 'reason' | 'exit' | 'triage', toStatus, reason }
+  const [form, setForm] = useState(null)
   const [busy, setBusy] = useState('')
   const [actionError, setActionError] = useState({})
   const [openHistory, setOpenHistory] = useState({})
@@ -107,13 +120,17 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
     }
   }
 
-  const move = (row, toStatus, reason = null) => run(
+  const move = (row, toStatus, reason = null, assessment = {}) => run(
     `${row.id}:${toStatus}`,
-    () => transitionRecruitmentCase({ caseId: row.id, toStatus, reason, expectedVersion: row.version }),
+    () => transitionRecruitmentCase({ caseId: row.id, toStatus, reason, assessment, expectedVersion: row.version }),
     row.id,
   )
 
   const onAction = (row, toStatus) => {
+    if (CASE_SCHEDULE_STATUSES.includes(toStatus) || CASE_RESULT_STATUSES.includes(toStatus)) {
+      setForm({ caseId: row.id, mode: 'assessment', toStatus, reason: '', at: '', location: '', note: '' })
+      return
+    }
     if (CASE_REASON_REQUIRED.includes(toStatus)) {
       setForm({ caseId: row.id, mode: 'reason', toStatus, reason: '' })
       return
@@ -125,7 +142,19 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
     if (!form || form.caseId !== row.id) return null
     const isTriage = form.mode === 'triage'
     const isExit = form.mode === 'exit'
-    const ready = form.toStatus && form.reason.trim()
+    const isAssessment = form.mode === 'assessment'
+    const isSchedule = CASE_SCHEDULE_STATUSES.includes(form.toStatus)
+    const requiresReason = !isAssessment || CASE_RESULT_REASON_REQUIRED.includes(form.toStatus)
+    const ready = form.toStatus && (!requiresReason || form.reason.trim())
+      && (!isAssessment || (form.at && !Number.isNaN(new Date(form.at).getTime())))
+    const save = () => {
+      const assessment = isAssessment ? {
+        [isSchedule ? 'scheduled_at' : 'occurred_at']: new Date(form.at).toISOString(),
+        ...(isSchedule && form.location.trim() ? { location: form.location.trim() } : {}),
+        ...(form.note.trim() ? { note: form.note.trim() } : {}),
+      } : {}
+      move(row, form.toStatus, form.reason.trim() || null, assessment)
+    }
     return (
       <div className="mt-4 rounded-control border border-line bg-raised p-4">
         {isTriage || isExit ? (
@@ -145,21 +174,35 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
         ) : (
           <p className="text-sm font-medium text-fg">{caseActionLabel(form.toStatus)}</p>
         )}
-        <label className="mt-3 block text-sm">
-          <span className="mb-1 block text-xs font-medium text-fg-muted">Reason</span>
-          <textarea
-            rows={2}
-            value={form.reason}
-            onChange={(event) => setForm({ ...form, reason: event.target.value })}
-            className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm"
-            placeholder={isTriage ? 'Why this stage (from the earlier record)' : 'Required'}
-          />
-        </label>
+        {isAssessment ? (
+          <>
+            <label className="mt-3 block text-sm">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">{isSchedule ? 'Scheduled for' : 'Occurred at'} *</span>
+              <input type="datetime-local" value={form.at} onChange={(event) => setForm({ ...form, at: event.target.value })} className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm sm:w-64" />
+            </label>
+            {isSchedule ? (
+              <label className="mt-3 block text-sm">
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Location or link (optional)</span>
+                <input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm" />
+              </label>
+            ) : null}
+            <label className="mt-3 block text-sm">
+              <span className="mb-1 block text-xs font-medium text-fg-muted">Note (optional)</span>
+              <textarea rows={2} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm" />
+            </label>
+          </>
+        ) : null}
+        {requiresReason || isAssessment ? (
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block text-xs font-medium text-fg-muted">Reason{requiresReason ? ' *' : ' (optional)'}</span>
+            <textarea rows={2} value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm" placeholder={isTriage ? 'Why this stage (from the earlier record)' : requiresReason ? 'Required' : ''} />
+          </label>
+        ) : null}
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             disabled={!ready || Boolean(busy)}
-            onClick={() => move(row, form.toStatus, form.reason.trim())}
+            onClick={save}
             className="workspace-action-button workspace-action-button--primary disabled:opacity-50"
           >
             Save
@@ -253,6 +296,7 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
               <li key={event.id} className="text-sm">
                 <span className="text-fg">{describeEvent(event)}</span>
                 {event.reason ? <span className="text-fg-secondary"> — {event.reason}</span> : null}
+                {assessmentDetails(event) ? <div className="text-xs text-fg-secondary">{assessmentDetails(event)}</div> : null}
                 <div className="text-xs text-fg-muted">
                   {formatDateTime(event.created_at)} · {names[event.actor_id] || (event.actor_id ? 'Recruiter' : 'System')}
                 </div>

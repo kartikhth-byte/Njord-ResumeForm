@@ -25,6 +25,8 @@ import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../ser
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { HBarChart, TrendChart, ColumnChart, ChartLegend } from '../components/charts/SimpleCharts'
 import { chartColor, toneColor } from '../constants/chartColors'
+import { buildRecruitmentCaseKpi, CASE_STAGES } from '../utils/recruitmentCaseKpi'
+import { caseStatusMeta } from '../utils/recruitmentCase'
 import {
   AlertTriangle,
   ArrowRight,
@@ -110,6 +112,12 @@ export default function RecruiterKpiPage() {
 
   const periodLabel = KPI_PERIODS.find((option) => option.value === period)?.label || 'All time'
   const periodFrom = metrics.periodStart ? localDayString(metrics.periodStart) : ''
+  const caseKpi = useMemo(() => buildRecruitmentCaseKpi({
+    cases: tracker.data.cases,
+    events: tracker.data.caseEvents,
+    requirementIds: scopedRequirements.map((row) => row.id),
+    periodStart: metrics.periodStart,
+  }), [tracker.data.cases, tracker.data.caseEvents, scopedRequirements, metrics.periodStart])
   const recruiterParam = recruiterFilter ? `&recruiter=${encodeURIComponent(recruiterFilter)}` : ''
   const requirementsLink = (status) => `/recruiter/requirements?status=${status}${recruiterParam}`
   const candidatesLink = (view, from = '') => `/recruiter/candidates?view=${view}${from ? `&from=${from}` : ''}${recruiterParam}`
@@ -219,14 +227,14 @@ export default function RecruiterKpiPage() {
       .sort((a, b) => b.value - a.value)
 
     const funnelColors = [chartColor(2), chartColor(1), chartColor(5), chartColor(4), chartColor(6), toneColor('success'), toneColor('danger'), toneColor('neutral')]
-    const funnelItems = FUNNEL_STAGES.map((stage, index) => ({
-      label: stage,
-      value: metrics.stageCounts[stage] || 0,
-      color: funnelColors[index],
-    }))
+    const funnelItems = (tracker.data.casesAvailable ? CASE_STAGES : FUNNEL_STAGES).map((stage, index) => ({
+      label: tracker.data.casesAvailable ? caseStatusMeta(stage).label : stage,
+      value: tracker.data.casesAvailable ? caseKpi.statusCounts[stage] || 0 : metrics.stageCounts[stage] || 0,
+      color: funnelColors[index % funnelColors.length],
+    })).filter((item) => item.value > 0)
 
     return { weekLabels: weeks.map((week) => week.label), contacts, joins, buckets, demandItems, dwellItems, funnelItems }
-  }, [scopedCandidates, scopedRequirements, tracker.data.applications, metrics.stageCounts])
+  }, [scopedCandidates, scopedRequirements, tracker.data.applications, tracker.data.casesAvailable, metrics.stageCounts, caseKpi.statusCounts])
 
   const runReport = async (fn) => {
     if (exporting) return
@@ -264,6 +272,12 @@ export default function RecruiterKpiPage() {
         { label: 'Active pipeline', value: metrics.activePipelineCount },
         { label: 'Avg days to join', value: metrics.avgDaysToJoin == null ? '—' : formatDays(metrics.avgDaysToJoin) },
         { label: 'Needs action items', value: actions.total },
+        ...(tracker.data.casesAvailable ? [
+          { label: 'Active recruitment cases', value: caseKpi.active },
+          { label: 'Closed recruitment cases', value: caseKpi.closed },
+          { label: 'Test pass rate (recorded outcomes)', value: formatRate(caseKpi.testPassRate) },
+          { label: 'Interview pass rate (recorded outcomes)', value: formatRate(caseKpi.interviewPassRate) },
+        ] : []),
       ],
       tables: [
         {
@@ -283,7 +297,7 @@ export default function RecruiterKpiPage() {
           ]),
         },
       ],
-      footerNote: 'Success = joined candidates only. Generated from the Holmes KPI tracker.',
+      footerNote: 'Case assessment figures come from case events. Requirement and contact figures use legacy tracker data.',
     })
   })
 
@@ -342,21 +356,24 @@ export default function RecruiterKpiPage() {
   })
 
   const generateFunnelCsv = () => runReport(async () => {
-    const totalCandidates = FUNNEL_STAGES.reduce((sum, stage) => sum + (metrics.stageCounts[stage] || 0), 0)
-    const rows = FUNNEL_STAGES.map((stage) => ({
-      stage,
-      count: metrics.stageCounts[stage] || 0,
-      share: totalCandidates === 0 ? 0 : Math.round(((metrics.stageCounts[stage] || 0) / totalCandidates) * 100),
+    const caseSource = tracker.data.casesAvailable
+    const stageCounts = caseSource ? caseKpi.statusCounts : metrics.stageCounts
+    const stages = caseSource ? CASE_STAGES : FUNNEL_STAGES
+    const total = stages.reduce((sum, stage) => sum + (stageCounts[stage] || 0), 0)
+    const rows = stages.map((stage) => ({
+      stage: caseSource ? caseStatusMeta(stage).label : stage,
+      count: stageCounts[stage] || 0,
+      share: total === 0 ? 0 : Math.round(((stageCounts[stage] || 0) / total) * 100),
     }))
     await logRecruiterExport({
       reportType: 'funnel_dropoff_report',
       exportFormat: 'csv',
-      rowIds: scopedCandidates.map((row) => row.id),
+      rowIds: caseSource ? tracker.data.cases.filter((row) => scopedRequirements.some((requirement) => requirement.id === row.requirement_id)).map((row) => row.id) : scopedCandidates.map((row) => row.id),
       rowCount: rows.length,
       filters: { recruiterFilter },
     })
     await downloadCsvReport({
-      filename: `funnel-dropoff-${new Date().toISOString().slice(0, 10)}`,
+      filename: `${caseSource ? 'case-stage-distribution' : 'funnel-dropoff'}-${new Date().toISOString().slice(0, 10)}`,
       columns: [
         { label: 'Stage', value: (row) => row.stage },
         { label: 'Candidates', value: (row) => row.count },
@@ -382,6 +399,13 @@ export default function RecruiterKpiPage() {
 
   const runExportSummary = async () => {
     const summaryRows = [
+      ...(tracker.data.casesAvailable ? [
+        { metric: 'Active recruitment cases', value: caseKpi.active, target: '', comment: 'Current case status' },
+        { metric: 'Closed recruitment cases', value: caseKpi.closed, target: '', comment: 'Current case status' },
+        { metric: 'Test pass rate', value: formatRate(caseKpi.testPassRate), target: '', comment: 'Case event outcomes in period; repeated attempts count' },
+        { metric: 'Interview pass rate', value: formatRate(caseKpi.interviewPassRate), target: '', comment: 'Case event outcomes in period; repeated attempts count' },
+        ...CASE_STAGES.map((stage) => ({ metric: `Case stage: ${caseStatusMeta(stage).label}`, value: caseKpi.statusCounts[stage] || 0, target: '', comment: 'One count per case cycle' })),
+      ] : []),
       { metric: 'Open Requirements (#)', value: metrics.openRequirementsCount, target: '', comment: 'Approved positions still open' },
       { metric: 'Closed Requirements (#)', value: metrics.closedRequirementsCount, target: '', comment: 'All positions joined' },
       { metric: 'Open Positions', value: metrics.openPositions, target: '', comment: 'Balance positions to be closed' },
@@ -392,7 +416,7 @@ export default function RecruiterKpiPage() {
       { metric: 'Contact-to-Join Conversion %', value: formatPercent(metrics.conversionRate), target: '8-12%', comment: 'Joined / total candidates touched' },
       { metric: 'Active Pipeline', value: metrics.activePipelineCount, target: '', comment: 'Candidates still active' },
       { metric: 'Avg Days to Join', value: metrics.avgDaysToJoin == null ? '' : Math.round(metrics.avgDaysToJoin * 10) / 10, target: '', comment: 'Speed from contact to join' },
-      ...FUNNEL_STAGES.map((stage) => ({ metric: `Pipeline: ${stage}`, value: metrics.stageCounts[stage] || 0, target: '', comment: 'Pipeline by stage' })),
+      ...FUNNEL_STAGES.map((stage) => ({ metric: `Legacy pipeline: ${stage}`, value: metrics.stageCounts[stage] || 0, target: '', comment: 'Prospect/application tracker stage' })),
     ]
 
     await logRecruiterExport({
@@ -534,6 +558,22 @@ export default function RecruiterKpiPage() {
 
         {kpiTab === 'overview' ? (
         <>
+        {tracker.data.casesAvailable ? (
+          <section className="recruiter-panel mt-6 p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-fg">Recruitment cases</h2>
+            <p className="mt-1 text-sm text-fg-secondary">Current case stages; assessment outcomes recorded {periodLabel.toLowerCase()}. Repeated attempts are counted separately.</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Active cases" value={caseKpi.active} icon={Users} tone="accent" />
+              <StatCard label="Closed cases" value={caseKpi.closed} icon={CheckCircle2} tone="success" />
+              <StatCard label="Test pass rate" value={formatRate(caseKpi.testPassRate)} icon={ClipboardList} tone="accent" />
+              <StatCard label="Interview pass rate" value={formatRate(caseKpi.interviewPassRate)} icon={TrendingUp} tone="success" />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm text-fg-secondary">
+              <span>Tests: {caseKpi.outcomes.test_scheduled} scheduled · {caseKpi.outcomes.test_passed} passed · {caseKpi.outcomes.test_failed} failed · {caseKpi.outcomes.test_no_show} no-show · {caseKpi.outcomes.test_waived} waived</span>
+              <span>Interviews: {caseKpi.outcomes.interview_scheduled} scheduled · {caseKpi.outcomes.interview_passed} passed · {caseKpi.outcomes.interview_failed} failed · {caseKpi.outcomes.interview_no_show} no-show</span>
+            </div>
+          </section>
+        ) : null}
         {/* Needs action now */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex items-start gap-3">
@@ -772,8 +812,8 @@ export default function RecruiterKpiPage() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-fg">Funnel by stage</h2>
-            <p className="mb-4 mt-1 text-sm text-fg-secondary">Where every live candidate currently sits.</p>
+            <h2 className="text-lg font-semibold text-fg">{tracker.data.casesAvailable ? 'Cases by current stage' : 'Funnel by stage'}</h2>
+            <p className="mb-4 mt-1 text-sm text-fg-secondary">{tracker.data.casesAvailable ? 'One count per case cycle, including closed cases.' : 'Legacy candidate stages, until recruitment cases are available.'}</p>
             <HBarChart items={charts.funnelItems} />
           </section>
           <section className="recruiter-panel p-5 sm:p-6">
@@ -831,8 +871,8 @@ export default function RecruiterKpiPage() {
               action: generateProductivityCsv,
             },
             {
-              title: 'Funnel drop-off report (CSV)',
-              description: 'Candidates per funnel stage.',
+              title: tracker.data.casesAvailable ? 'Case stage distribution (CSV)' : 'Funnel drop-off report (CSV)',
+              description: tracker.data.casesAvailable ? 'Recruitment cases per current stage.' : 'Candidates per legacy funnel stage.',
               action: generateFunnelCsv,
             },
           ].map((report) => (

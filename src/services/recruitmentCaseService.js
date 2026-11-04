@@ -41,13 +41,14 @@ export async function openRecruitmentCase({ prospectId, requirementId, source = 
   return data
 }
 
-export async function transitionRecruitmentCase({ caseId, toStatus, reason = null, expectedVersion = null }) {
+export async function transitionRecruitmentCase({ caseId, toStatus, reason = null, expectedVersion = null, assessment = {} }) {
   const { data, error } = await supabase.rpc('recruitment_case_transition', {
     p_case_id: caseId,
     p_to_status: toStatus,
     p_reason: reason,
     p_idempotency_key: newIdempotencyKey('move'),
     p_expected_version: expectedVersion,
+    ...(Object.keys(assessment).length ? { p_assessment: assessment } : {}),
   })
   if (error) throw error
   return data
