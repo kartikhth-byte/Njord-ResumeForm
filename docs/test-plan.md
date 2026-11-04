@@ -15,6 +15,15 @@ Current known passing state in this phase:
 - `npm run build` passes on the 2026-06-08 cleanup snapshot
 - `npm run test:smoke` passes on the 2026-06-08 cleanup snapshot (`77 passed, 2 skipped`)
 
+For Coordinator read-only access, run the `0219` regression test and use
+separate staging logins for Master Recruiter, Recruiter, Coordinator, and
+applicant. Coordinator may read application/event/photo/offer details but
+must not alter them or send workflow invitations. Recruiter editors retain
+their controls and applicants retain only their own draft path. Use synthetic
+data; transaction-scoped role simulation does not replace signed-in UI/API
+checks. Never run the default write-capable smoke suite against production;
+use `tests/smoke/public.spec.js --no-deps` for public routes.
+
 ## Client Form Export Prototype
 
 Current prototype command:
