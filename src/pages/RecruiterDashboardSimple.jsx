@@ -65,7 +65,9 @@ function eventKind(event) {
 export default function RecruiterDashboardSimple() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading } = usePermissions()
+  const { role, loading: permLoading, canViewAnalytics } = usePermissions()
+  // Same rule as the sidebar KPI link and the KPI page itself.
+  const canOpenKpi = role === 'Master Recruiter' || canViewAnalytics()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
   // The Master Recruiter and read-only Coordinators (who own no work) see the
   // whole team by default and can narrow to one recruiter; Recruiters always
@@ -159,13 +161,15 @@ export default function RecruiterDashboardSimple() {
           title="Dashboard"
           actions={(
             <div className="flex flex-wrap gap-3">
-              <Link
-                to="/recruiter/kpi"
-                className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
-              >
-                <ArrowRight className="h-4 w-4" />
-                Open KPI
-              </Link>
+              {canOpenKpi ? (
+                <Link
+                  to="/recruiter/kpi"
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Open KPI
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={tracker.reload}
