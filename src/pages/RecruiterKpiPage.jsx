@@ -12,11 +12,13 @@ import {
   buildCandidateFunnelRows,
   buildRequirementTrackerRows,
   computeDashboardMetrics,
+  dayDiff,
   formatDays,
   formatPercent,
   FUNNEL_STAGES,
+  KPI_PERIODS,
   ON_TIME_BADGE_CLASSES,
-  STAGE_BADGE_CLASSES,
+  REQUIREMENT_PIPELINE_STAGES,
 } from '../utils/kpiTracker'
 import { formatDateTime, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
@@ -51,6 +53,54 @@ const KPI_TABS = [
 ]
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const STALE_ACTIVITY_DAYS = 7
+const PIPELINE_SEGMENT_COLORS = {
+  shortlisted: chartColor(2),
+  withCustomer: chartColor(1),
+  accepted: chartColor(5),
+  joined: toneColor('success'),
+}
+
+function formatRate(value) {
+  return value == null ? '—' : formatPercent(value)
+}
+
+function lastActivityLabel(value) {
+  const days = dayDiff(value, new Date())
+  if (days == null) return { text: '—', stale: false }
+  if (days <= 0) return { text: 'Today', stale: false }
+  return { text: `${days} ${days === 1 ? 'day' : 'days'} ago`, stale: days > STALE_ACTIVITY_DAYS }
+}
+
+// One bar per requirement: candidates attached to it, by stage, in funnel order.
+function RequirementPipelineBar({ pipeline, required }) {
+  const total = REQUIREMENT_PIPELINE_STAGES.reduce((sum, stage) => sum + (pipeline[stage.key] || 0), 0)
+  const summary = REQUIREMENT_PIPELINE_STAGES.map((stage) => `${stage.label} ${pipeline[stage.key] || 0}`).join(', ')
+  if (total === 0) {
+    return <span className="text-xs text-fg-muted">No candidates attached</span>
+  }
+  const scale = Math.max(total, Number(required) || 0, 1)
+  return (
+    <div className="flex items-center gap-2" title={summary} aria-label={summary}>
+      <div className="flex h-5 w-40 overflow-hidden rounded-full bg-line">
+        {REQUIREMENT_PIPELINE_STAGES.map((stage) => {
+          const count = pipeline[stage.key] || 0
+          if (count === 0) return null
+          return (
+            <div
+              key={stage.key}
+              className="flex items-center justify-center text-[11px] font-semibold text-white"
+              style={{ width: `${(count / scale) * 100}%`, backgroundColor: PIPELINE_SEGMENT_COLORS[stage.key] }}
+            >
+              {count}
+            </div>
+          )
+        })}
+      </div>
+      <span className="text-xs tabular-nums text-fg-secondary">{total}</span>
+    </div>
+  )
+}
 
 function TargetPill({ ok, children }) {
   return (
@@ -67,6 +117,7 @@ export default function RecruiterKpiPage() {
   const hasKpiAccess = role === 'Master Recruiter' || canViewAnalytics()
   const tracker = useKpiTrackerData({ enabled: !permLoading && hasKpiAccess })
   const [recruiterFilter, setRecruiterFilter] = useState('')
+  const [period, setPeriod] = useState('month')
   const [kpiTab, setKpiTab] = useState('overview')
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
@@ -96,9 +147,10 @@ export default function RecruiterKpiPage() {
     recruiters: recruiterFilter
       ? tracker.data.recruiters.filter((recruiter) => recruiter.id === recruiterFilter)
       : tracker.data.recruiters,
-  }), [scopedRequirements, scopedCandidates, tracker.data.applications, tracker.data.recruiters, recruiterFilter])
+    period,
+  }), [scopedRequirements, scopedCandidates, tracker.data.applications, tracker.data.recruiters, recruiterFilter, period])
 
-  const maxStageCount = Math.max(1, ...FUNNEL_STAGES.map((stage) => metrics.stageCounts[stage] || 0))
+  const periodLabel = KPI_PERIODS.find((option) => option.value === period)?.label || 'All time'
 
   // "Needs action now" — the items a recruiter should clear before anything else.
   const actions = useMemo(() => {
@@ -486,6 +538,10 @@ export default function RecruiterKpiPage() {
                 ))}
               </select>
             </label>
+            <div>
+              <span className="mb-1 block text-xs font-medium text-fg-muted">Period</span>
+              <SegmentedControl options={KPI_PERIODS} value={period} onChange={setPeriod} size="sm" />
+            </div>
             <div className="rounded-control border border-line bg-surface px-4 py-2.5 text-sm text-fg-secondary">
               <span className="font-medium text-fg">Report date:</span> {formatDateTime(new Date().toISOString())}
             </div>
@@ -655,100 +711,101 @@ export default function RecruiterKpiPage() {
           <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" />
         </div>
 
-        {/* Pipeline by stage + requirement ageing */}
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <section className="recruiter-panel p-5 sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
-                  <Layers3 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-fg">Pipeline by stage</h2>
-                  <p className="mt-1 text-sm text-fg-secondary">Where every live candidate currently sits.</p>
-                </div>
+        {/* Requirements progress */}
+        <section className="recruiter-panel mt-6 p-5 sm:p-6">
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
+                <ClipboardList className="h-5 w-5" />
               </div>
-              <Link to="/recruiter/candidates" className="text-sm font-medium text-accent-text hover:underline">
-                View candidates
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {FUNNEL_STAGES.map((stage) => {
-                const count = metrics.stageCounts[stage] || 0
-                return (
-                  <div key={stage} className="tracker-stage-bar">
-                    <span className={`tracker-pill w-28 justify-center ${STAGE_BADGE_CLASSES[stage]}`}>{stage}</span>
-                    <div className="tracker-stage-bar__track">
-                      <div
-                        className="tracker-stage-bar__fill"
-                        style={{ width: `${Math.round((count / maxStageCount) * 100)}%`, opacity: count === 0 ? 0 : 1 }}
-                      />
-                    </div>
-                    <span className="w-8 text-right text-sm font-semibold tabular-nums text-fg">{count}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-
-          <section className="recruiter-panel p-5 sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
-                  <Hourglass className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-fg">Open requirement ageing</h2>
-                </div>
+              <div>
+                <h2 className="text-lg font-semibold text-fg">Requirements progress</h2>
+                <p className="mt-1 text-sm text-fg-secondary">Open requirements, most at risk first.</p>
               </div>
-              <Link to="/recruiter/requirements" className="text-sm font-medium text-accent-text hover:underline">
-                View requirements
-              </Link>
             </div>
-            {metrics.requirementAgeing.length === 0 ? (
-              <EmptyState
-                icon={ClipboardList}
-                title="No open requirements"
-                description="Every requirement in scope is closed or cancelled."
-              />
-            ) : (
+            <Link to="/recruiter/requirements" className="text-sm font-medium text-accent-text hover:underline">
+              View all requirements
+            </Link>
+          </div>
+          {metrics.requirementProgress.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              title="No open requirements"
+              description="Every requirement in scope is closed or cancelled."
+            />
+          ) : (
+            <>
+              <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-secondary">
+                {REQUIREMENT_PIPELINE_STAGES.map((stage) => (
+                  <span key={stage.key} className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIPELINE_SEGMENT_COLORS[stage.key] }} />
+                    {stage.label}
+                  </span>
+                ))}
+              </div>
               <div className="tracker-table-wrap">
-                <table className="tracker-table" style={{ minWidth: '520px' }}>
+                <table className="tracker-table" style={{ minWidth: '960px' }}>
                   <thead>
                     <tr>
                       <th>Req ID</th>
-                      <th>Vessel</th>
-                      <th>Rank</th>
-                      <th className="tracker-cell--num">Open</th>
+                      <th>Customer</th>
+                      <th>Vessel / rank</th>
+                      <th>Owner</th>
+                      <th className="tracker-cell--num">Filled</th>
+                      <th>Candidates by stage</th>
                       <th className="tracker-cell--num">Days open</th>
                       <th>On-time</th>
+                      <th>Last activity</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {metrics.requirementAgeing.slice(0, 8).map((row) => (
-                      <tr key={row.id}>
-                        <td className="tracker-cell--primary tracker-cell--nowrap">
-                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
-                            {row.reqId}
-                          </Link>
-                        </td>
-                        <td>{row.vessel_name || '—'}</td>
-                        <td className="tracker-cell--nowrap">{row.rankName}</td>
-                        <td className="tracker-cell--num">{row.openPositions}</td>
-                        <td className="tracker-cell--num font-semibold">{row.daysOpen ?? '—'}</td>
-                        <td>
-                          <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[row.onTimeStatus] || ON_TIME_BADGE_CLASSES['—']}`}>
-                            {row.onTimeStatus}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {metrics.requirementProgress.slice(0, 12).map((row) => {
+                      const activity = lastActivityLabel(row.lastActivityAt)
+                      const timing = row.riskRank === 1 && row.onTimeStatus === 'On Track' ? 'Near target' : row.onTimeStatus
+                      return (
+                        <tr key={row.id}>
+                          <td className="tracker-cell--primary tracker-cell--nowrap">
+                            <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
+                              {row.reqId}
+                            </Link>
+                          </td>
+                          <td>{row.customer_name || '—'}</td>
+                          <td>
+                            <div>{row.vessel_name || row.vesselTypeName}</div>
+                            <div className="mt-0.5 text-xs text-fg-muted">{row.rankName}</div>
+                          </td>
+                          <td className="tracker-cell--nowrap">{row.recruiterName}</td>
+                          <td className="tracker-cell--num tracker-cell--nowrap">
+                            <span className="font-semibold">{row.joinedCount}</span>
+                            <span className="text-fg-muted"> / {Number(row.positions_required) || 0}</span>
+                          </td>
+                          <td><RequirementPipelineBar pipeline={row.pipeline} required={row.positions_required} /></td>
+                          <td className="tracker-cell--num tracker-cell--nowrap">
+                            <span className="font-semibold">{row.daysOpen ?? '—'}</span>
+                            {row.targetDays ? <span className="text-fg-muted"> / {row.targetDays}</span> : null}
+                          </td>
+                          <td className="tracker-cell--nowrap">
+                            <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[timing] || ON_TIME_BADGE_CLASSES['—']}`}>
+                              {timing}
+                            </span>
+                          </td>
+                          <td className={`tracker-cell--nowrap ${activity.stale ? 'font-medium text-warning' : 'text-fg-secondary'}`}>
+                            {activity.text}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
-        </div>
+              {metrics.requirementProgress.length > 12 ? (
+                <p className="mt-3 text-xs text-fg-muted">
+                  Showing 12 of {metrics.requirementProgress.length} open requirements.
+                </p>
+              ) : null}
+            </>
+          )}
+        </section>
 
         {/* Recruiter scorecard */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -758,6 +815,7 @@ export default function RecruiterKpiPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-fg">Recruiter scorecard</h2>
+              <p className="mt-1 text-sm text-fg-secondary">{periodLabel}</p>
             </div>
           </div>
           {metrics.scorecard.length === 0 ? (
@@ -768,14 +826,17 @@ export default function RecruiterKpiPage() {
             />
           ) : (
             <div className="tracker-table-wrap">
-              <table className="tracker-table" style={{ minWidth: '640px' }}>
+              <table className="tracker-table" style={{ minWidth: '880px' }}>
                 <thead>
                   <tr>
                     <th>Recruiter</th>
-                    <th className="tracker-cell--num">Contacted today</th>
-                    <th className="tracker-cell--num">Total touched</th>
+                    <th className="tracker-cell--num">Open reqs</th>
+                    <th className="tracker-cell--num">Overdue</th>
+                    <th className="tracker-cell--num">Contacted</th>
                     <th className="tracker-cell--num">Joined</th>
                     <th className="tracker-cell--num">Conversion</th>
+                    <th className="tracker-cell--num">On-time closure</th>
+                    <th className="tracker-cell--num">Avg days to join</th>
                     <th className="tracker-cell--num">Active pipeline</th>
                     <th className="tracker-cell--num">Handling</th>
                   </tr>
@@ -787,10 +848,13 @@ export default function RecruiterKpiPage() {
                         <div>{row.name}</div>
                         {row.roleName ? <div className="mt-0.5 text-xs font-normal text-fg-muted">{row.roleName}</div> : null}
                       </td>
-                      <td className={`tracker-cell--num ${row.contactedToday >= 15 ? 'text-success font-semibold' : ''}`}>{row.contactedToday}</td>
-                      <td className="tracker-cell--num">{row.totalTouched}</td>
-                      <td className="tracker-cell--num font-semibold">{row.joined}</td>
-                      <td className="tracker-cell--num">{formatPercent(row.conversionRate)}</td>
+                      <td className="tracker-cell--num">{row.openRequirements}</td>
+                      <td className={`tracker-cell--num ${row.overdueRequirements > 0 ? 'font-semibold text-danger' : ''}`}>{row.overdueRequirements}</td>
+                      <td className="tracker-cell--num">{row.contactedInPeriod}</td>
+                      <td className="tracker-cell--num font-semibold">{row.joinedInPeriod}</td>
+                      <td className="tracker-cell--num">{formatRate(row.periodConversionRate)}</td>
+                      <td className="tracker-cell--num">{formatRate(row.onTimeClosureRate)}</td>
+                      <td className="tracker-cell--num">{row.avgDaysToJoin == null ? '—' : formatDays(row.avgDaysToJoin)}</td>
                       <td className="tracker-cell--num">{row.activePipeline}</td>
                       <td className="tracker-cell--num">{row.handlingApplications}</td>
                     </tr>
@@ -800,7 +864,9 @@ export default function RecruiterKpiPage() {
             </div>
           )}
           <p className="mt-4 text-xs text-fg-muted">
-            Core rule: success = joined candidates only. Contacted-today target is 15–25 per recruiter; conversion target 8–12%.
+            {periodLabel}: contacted, joined, conversion, on-time closure and days to join use this period; open and overdue requirements are current.
+            Conversion = share of candidates first contacted in the period who have joined. Candidates are credited to the recruiter who added them.
+            Targets: 15–25 contacts per recruiter per day, 8–12% conversion.
             Handling = live applications assigned via the Handled-by selector{metrics.unassignedHandledApplications > 0 ? ` (${metrics.unassignedHandledApplications} active unassigned)` : ''}.
           </p>
         </section>

@@ -43,7 +43,50 @@ export const ON_TIME_BADGE_CLASSES = {
   'On Track': 'bg-accent-soft text-accent-text',
   Delayed: 'bg-danger-soft text-danger',
   Overdue: 'bg-warning-soft text-warning',
+  'Near target': 'bg-warning-soft text-warning',
   '—': 'bg-raised text-fg-secondary',
+}
+
+// Per-requirement pipeline, from prospect_requirements statuses. Interview and
+// test stages live on the application (per candidate, not per requirement), so
+// they are not shown here until recruitment cases carry per-requirement stages.
+export const REQUIREMENT_PIPELINE_STAGES = [
+  { key: 'shortlisted', label: 'Shortlisted', statuses: ['shortlisted'] },
+  { key: 'withCustomer', label: 'With customer', statuses: ['submitted_to_customer', 'customer_reviewing'] },
+  { key: 'accepted', label: 'Accepted', statuses: ['customer_accepted'] },
+  { key: 'joined', label: 'Joined', statuses: ['joined'] },
+]
+
+export const KPI_PERIODS = [
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+  { value: 'all', label: 'All time' },
+]
+
+// Start of the reporting period in local time; null means all time.
+export function periodStart(period, now = new Date()) {
+  if (period === 'week') {
+    const dayOfWeek = now.getDay() || 7
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 1)
+  }
+  if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1)
+  return null
+}
+
+export function isInPeriod(value, start) {
+  if (!value) return false
+  if (!start) return true
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime()) && date >= start
+}
+
+function latestTimestamp(...values) {
+  return values.reduce((latest, value) => {
+    if (!value) return latest
+    const time = new Date(value).getTime()
+    if (Number.isNaN(time)) return latest
+    return latest == null || time > latest ? time : latest
+  }, null)
 }
 
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
@@ -129,6 +172,11 @@ export function buildRequirementTrackerRows({
     return acc
   }, {})
   const latestRemarkByRequirement = latestByEntity(remarks, 'requirement_id')
+  const junctionsByRequirement = junctions.reduce((acc, junction) => {
+    if (!acc[junction.requirement_id]) acc[junction.requirement_id] = []
+    acc[junction.requirement_id].push(junction)
+    return acc
+  }, {})
 
   return requirements.map((requirement) => {
     const joined = joinedByRequirement[requirement.id] || 0
@@ -155,9 +203,28 @@ export function buildRequirementTrackerRows({
       }
     }
 
+    const attached = junctionsByRequirement[requirement.id] || []
+    const pipeline = REQUIREMENT_PIPELINE_STAGES.reduce((acc, stage) => {
+      acc[stage.key] = attached.filter((junction) => stage.statuses.includes(junction.status)).length
+      return acc
+    }, {})
+    const latestRemark = latestRemarkByRequirement[requirement.id] || null
+    const lastActivityMs = latestTimestamp(
+      requirement.updated_at,
+      latestRemark?.created_at,
+      ...attached.map((junction) => junction.updated_at),
+    )
+
+    // Risk order for the progress table: overdue, then near target (>= 80%),
+    // then everything else.
+    let riskRank = 2
+    if (onTimeStatus === 'Overdue') riskRank = 0
+    else if (targetDays && daysOpen != null && daysOpen >= targetDays * 0.8) riskRank = 1
+
     return {
       ...requirement,
       reqId: requirement.req_id_display,
+      ownerId: requirement.owner_recruiter_id || requirement.created_by_recruiter_id || null,
       vesselTypeName: lookupName(vesselTypes, requirement.vessel_type_id),
       rankName: lookupName(ranks, requirement.rank_id),
       recruiterName: recruiterName(recruiters, requirement.owner_recruiter_id || requirement.created_by_recruiter_id),
@@ -168,7 +235,10 @@ export function buildRequirementTrackerRows({
       targetDays,
       onTimeStatus,
       isArchived,
-      latestRemark: latestRemarkByRequirement[requirement.id]?.body || '',
+      latestRemark: latestRemark?.body || '',
+      pipeline,
+      lastActivityAt: lastActivityMs == null ? null : new Date(lastActivityMs).toISOString(),
+      riskRank,
     }
   })
 }
@@ -343,13 +413,21 @@ export function buildCandidateFunnelRows({
 // Dashboard metrics
 // ---------------------------------------------------------------------------
 
+// Share of the target window already used; requirements without a target sort last.
+function targetShare(row) {
+  if (!row.targetDays || row.daysOpen == null) return -1
+  return row.daysOpen / row.targetDays
+}
+
 export function computeDashboardMetrics({
   requirementRows = [],
   candidateRows = [],
   recruiters = [],
   applications = [],
+  period = 'all',
   now = new Date(),
 }) {
+  const start = periodStart(period, now)
   // Submitted, non-terminal applications keyed by their handling recruiter —
   // "who is actively working what" for the scorecard.
   const activeHandledApplications = applications.filter((application) => (
@@ -392,11 +470,33 @@ export function computeDashboardMetrics({
   const requirementAgeing = openRequirements
     .slice()
     .sort((a, b) => (b.daysOpen ?? 0) - (a.daysOpen ?? 0))
+  const requirementProgress = openRequirements
+    .slice()
+    .sort((a, b) => (a.riskRank - b.riskRank)
+      || (targetShare(b) - targetShare(a))
+      || ((b.daysOpen ?? 0) - (a.daysOpen ?? 0)))
 
+  // Candidates are credited to the recruiter who added them
+  // (created_by_recruiter_id) until recruitment-case stage history records who
+  // moved each candidate forward.
   const scorecard = recruiters.map((recruiter) => {
     const owned = liveCandidates.filter((row) => row.created_by_recruiter_id === recruiter.id)
     const ownedTouched = owned.filter((row) => row.contactedAt)
     const ownedJoined = owned.filter((row) => row.hasJoined)
+    const contactedInPeriod = ownedTouched.filter((row) => isInPeriod(row.contactedAt, start))
+    const joinedInPeriod = ownedJoined.filter((row) => isInPeriod(row.joinedAt, start))
+    // Cohort conversion: of the candidates first contacted in the period, how
+    // many have joined (at any time since).
+    const cohortJoined = contactedInPeriod.filter((row) => row.hasJoined)
+    const joinDurations = joinedInPeriod
+      .map((row) => row.daysToJoin)
+      .filter((value) => Number.isFinite(value) && value >= 0)
+
+    const ownedRequirements = liveRequirements.filter((row) => row.ownerId === recruiter.id)
+    const ownedOpen = ownedRequirements.filter((row) => row.status === 'open')
+    const closedInPeriod = ownedRequirements.filter((row) => row.status === 'closed' && isInPeriod(row.date_closed, start))
+    const closedOnTime = closedInPeriod.filter((row) => row.onTimeStatus === 'On Time')
+
     return {
       id: recruiter.id,
       name: recruiter.full_name || recruiter.email || recruiter.id,
@@ -407,6 +507,14 @@ export function computeDashboardMetrics({
       conversionRate: ownedTouched.length === 0 ? 0 : ownedJoined.length / ownedTouched.length,
       activePipeline: owned.filter((row) => row.inActivePipeline).length,
       handlingApplications: activeHandledApplications.filter((application) => application.handling_recruiter_id === recruiter.id).length,
+      openRequirements: ownedOpen.length,
+      overdueRequirements: ownedOpen.filter((row) => row.onTimeStatus === 'Overdue').length,
+      contactedInPeriod: contactedInPeriod.length,
+      joinedInPeriod: joinedInPeriod.length,
+      periodConversionRate: contactedInPeriod.length === 0 ? null : cohortJoined.length / contactedInPeriod.length,
+      closedInPeriod: closedInPeriod.length,
+      onTimeClosureRate: closedInPeriod.length === 0 ? null : closedOnTime.length / closedInPeriod.length,
+      avgDaysToJoin: joinDurations.length === 0 ? null : joinDurations.reduce((sum, value) => sum + value, 0) / joinDurations.length,
     }
   })
 
@@ -428,6 +536,7 @@ export function computeDashboardMetrics({
     avgDaysToJoin,
     stageCounts,
     requirementAgeing,
+    requirementProgress,
     scorecard,
     activeHandledApplicationsCount: activeHandledApplications.length,
     unassignedHandledApplications,
