@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -422,7 +421,6 @@ export default function RecruiterKpiPage() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
@@ -436,7 +434,6 @@ export default function RecruiterKpiPage() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <section className="recruiter-panel p-8">
             <EmptyState
@@ -456,7 +453,6 @@ export default function RecruiterKpiPage() {
   return (
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader

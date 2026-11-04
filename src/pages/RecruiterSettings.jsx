@@ -3,7 +3,6 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import RecruiterTeamSection from '../components/recruiter/RecruiterTeamSection'
 import RecruiterIntegrationsSection from '../components/recruiter/RecruiterIntegrationsSection'
 import RecruiterWorksheetMappingsSection from '../components/recruiter/RecruiterWorksheetMappingsSection'
@@ -87,7 +86,6 @@ export default function RecruiterSettings() {
         role={role}
         signOut={signOut}
       />
-      <RecruiterWorkspaceNav />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">

@@ -4,7 +4,6 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -335,7 +334,6 @@ export default function RecruiterRequirementDetail() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={FileText}
@@ -360,7 +358,6 @@ export default function RecruiterRequirementDetail() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={FileText}
@@ -397,7 +394,6 @@ export default function RecruiterRequirementDetail() {
   return (
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
@@ -649,25 +645,6 @@ export default function RecruiterRequirementDetail() {
                 </div>
               </div>
 
-              <div className="recruiter-panel p-6">
-                <h3 className="mt-2 text-lg font-semibold text-fg">Keep the requirement flowing</h3>
-                <div className="mt-5 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/recruiter/workspace?tab=candidates')}
-                    className="workspace-action-button workspace-action-button--primary w-full justify-center"
-                  >
-                    Open candidates
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/recruiter/applications')}
-                    className="workspace-action-button workspace-action-button--secondary w-full justify-center"
-                  >
-                    Review pipeline
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>

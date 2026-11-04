@@ -4,7 +4,6 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import CalendarDashboard from '../components/dashboard/CalendarDashboard'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 
 export default function CalendarDashboardPage() {
   const { user, profile, signOut } = useAuth()
@@ -45,7 +44,6 @@ export default function CalendarDashboardPage() {
         role={role}
         signOut={signOut}
       />
-      <RecruiterWorkspaceNav />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <CalendarDashboard />
       </div>

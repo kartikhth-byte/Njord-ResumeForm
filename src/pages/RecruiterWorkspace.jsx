@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import StatCard from '../components/ui/StatCard'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import {
   ArrowRight,
@@ -159,17 +157,18 @@ function ToggleField({ label, checked, onChange, description }) {
   )
 }
 
-function Panel({ title, icon: PanelIcon, children, className = '' }) {
+function Panel({ title, icon: PanelIcon, children, className = '', action = null, panelRef = null }) {
   void PanelIcon
   return (
-    <section className={`recruiter-panel p-5 sm:p-6 ${className}`}>
-      <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
-          <PanelIcon className="h-5 w-5" />
+    <section ref={panelRef} className={`recruiter-panel scroll-mt-6 p-5 sm:p-6 ${className}`}>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
+            <PanelIcon className="h-5 w-5" />
+          </div>
+          <h2 className="pt-2 text-lg font-semibold text-fg">{title}</h2>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold text-fg">{title}</h2>
-        </div>
+        {action ? <div className="flex flex-wrap gap-2">{action}</div> : null}
       </div>
       {children}
     </section>
@@ -242,6 +241,15 @@ export default function RecruiterWorkspace() {
     requirementId: '',
     notes: '',
   })
+
+  // Create/edit forms stay closed until asked for, so the lists sit at the top.
+  const [showRequirementForm, setShowRequirementForm] = useState(false)
+  const [showCandidateForm, setShowCandidateForm] = useState(false)
+  const requirementFormRef = useRef(null)
+  const candidateFormRef = useRef(null)
+  const revealForm = (ref) => {
+    requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   const [attachForm, setAttachForm] = useState({
     prospectId: '',
@@ -567,22 +575,15 @@ export default function RecruiterWorkspace() {
     setError(actionError?.message || fallback)
   }
 
-  const requirementStat = useMemo(() => {
-    const open = requirementRows.filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at).length
-    const closed = requirementRows.filter((row) => row.status === 'closed' && !row.deleted_at).length
-    const archived = requirementRows.filter((row) => row.archived_at || row.deleted_at).length
-    const openPositions = requirementRows.reduce((sum, row) => sum + row.openPositions, 0)
-    return { open, closed, archived, openPositions }
-  }, [requirementRows])
-
-  const candidateStat = useMemo(() => {
-    const open = candidateRows.filter((row) => !row.hasArchivedState && row.status !== 'rejected' && !row.hasJoined).length
-    const active = candidateRows.filter((row) => !row.hasArchivedState).length
-    const unattached = candidateRows.filter((row) => !row.hasArchivedState && row.isUnattached).length
-    const pipeline = applications.filter((application) => !['hired', 'rejected', 'withdrawn'].includes(application.status)).length
-    const joined = candidateRows.filter((row) => !row.hasArchivedState && row.hasJoined).length
-    return { open, active, unattached, pipeline, joined }
-  }, [applications, candidateRows])
+  // Counts on the two tabs (the old stat cards duplicated Dashboard).
+  const workspaceTabs = useMemo(() => {
+    const openRequirements = requirementRows.filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at).length
+    const openCandidates = candidateRows.filter((row) => !row.hasArchivedState && row.status !== 'rejected' && !row.hasJoined).length
+    return WORKSPACE_TABS.map((tab) => ({
+      ...tab,
+      count: tab.value === 'requirements' ? openRequirements : openCandidates,
+    }))
+  }, [requirementRows, candidateRows])
 
   const requirementActivityOptions = useMemo(() => {
     return visibleRequirementRows.map((requirement) => ({
@@ -689,6 +690,7 @@ export default function RecruiterWorkspace() {
         }
       }
 
+      setShowRequirementForm(false)
       setRequirementForm((current) => ({
         ...current,
         id: '',
@@ -724,6 +726,13 @@ export default function RecruiterWorkspace() {
       notes: '',
     })
     setActiveTab('requirements')
+    setShowRequirementForm(true)
+    revealForm(requirementFormRef)
+  }
+
+  const closeRequirementForm = () => {
+    setShowRequirementForm(false)
+    setRequirementForm((current) => ({ ...current, id: '', vesselName: '', customerName: '', notes: '' }))
   }
 
   const handleRequirementStatusChange = async (requirement, newStatus) => {
@@ -850,6 +859,7 @@ export default function RecruiterWorkspace() {
         leadSource: '',
         notes: '',
       }))
+      setShowCandidateForm(false)
       setSuccess('Candidate created.')
       await reloadWorkspace()
     } catch (submitError) {
@@ -977,8 +987,7 @@ export default function RecruiterWorkspace() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
-        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
@@ -991,8 +1000,7 @@ export default function RecruiterWorkspace() {
     return (
       <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
           <EmptyState
             icon={ShieldCheck}
             title="Workspace is not available"
@@ -1006,7 +1014,6 @@ export default function RecruiterWorkspace() {
   return (
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
@@ -1021,13 +1028,6 @@ export default function RecruiterWorkspace() {
                 {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 Refresh
               </button>
-              <Link
-                to="/recruiter/kpi"
-                className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
-              >
-                <ArrowRight className="h-4 w-4" />
-                Open KPI
-              </Link>
             </div>
           )}
         />
@@ -1044,22 +1044,17 @@ export default function RecruiterWorkspace() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <StatCard label="Open requirements" value={requirementStat.open} icon={ClipboardList} tone="info" />
-          <StatCard label="Open positions" value={requirementStat.openPositions} icon={CheckCircle2} tone="warning" />
-          <StatCard label="Active candidates" value={candidateStat.active} icon={Users} tone="success" />
-          <StatCard label="In pipeline" value={candidateStat.pipeline} icon={ArrowRight} tone="accent" />
-        </div>
-
         <div className="mt-6">
-          <SegmentedControl options={WORKSPACE_TABS} value={activeTab} onChange={changeWorkspaceTab} />
+          <SegmentedControl options={workspaceTabs} value={activeTab} onChange={changeWorkspaceTab} />
         </div>
 
         {activeTab === 'requirements' ? (
           <div className="mt-6 space-y-6">
+            {showRequirementForm ? (
             <Panel
               title={requirementForm.id ? 'Edit requirement' : 'Add requirement'}
               icon={Plus}
+              panelRef={requirementFormRef}
             >
               <form className="space-y-4" onSubmit={handleRequirementSubmit}>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -1150,34 +1145,37 @@ export default function RecruiterWorkspace() {
                     <Plus className="h-4 w-4" />
                     {requirementForm.id ? 'Update requirement' : 'Save requirement'}
                   </button>
-                  {requirementForm.id ? (
-                    <button
-                      type="button"
-                      className="workspace-action-button workspace-action-button--secondary"
-                      onClick={() => setRequirementForm((current) => ({
-                        ...current,
-                        id: '',
-                        vesselName: '',
-                        customerName: '',
-                        notes: '',
-                      }))}
-                    >
-                      Cancel edit
-                    </button>
-                  ) : null}
                   <button
                     type="button"
                     className="workspace-action-button workspace-action-button--secondary"
-                    onClick={exportRequirementsCsv}
+                    onClick={closeRequirementForm}
                   >
-                    Export CSV
+                    Cancel
                   </button>
                 </div>
               </form>
             </Panel>
+            ) : null}
 
             <Panel
               title="Requirement rows"
+              action={(
+                <>
+                  {canCreateRequirements && !showRequirementForm ? (
+                    <button
+                      type="button"
+                      className="workspace-action-button workspace-action-button--primary"
+                      onClick={() => { closeRequirementForm(); setShowRequirementForm(true); revealForm(requirementFormRef) }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      New requirement
+                    </button>
+                  ) : null}
+                  <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={exportRequirementsCsv}>
+                    Export CSV
+                  </button>
+                </>
+              )}
               icon={ClipboardList}
             >
               <div className="mb-4">
@@ -1202,7 +1200,7 @@ export default function RecruiterWorkspace() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => populateRequirementForm(requirement)}
+                              onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                               className="text-left text-base font-semibold text-fg hover:text-accent-text"
                             >
                               {requirement.req_id_display}
@@ -1233,10 +1231,10 @@ export default function RecruiterWorkspace() {
                           <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => populateRequirementForm(requirement)}>
                             Edit
                           </button>
-                          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementStatusChange(requirement, 'closed')} disabled={!canCreateRequirements}>
+                          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementStatusChange(requirement, 'closed')} disabled={!canCreateRequirements} hidden={requirement.status !== 'open'}>
                             Close
                           </button>
-                          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementStatusChange(requirement, 'cancelled')} disabled={!canCreateRequirements}>
+                          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementStatusChange(requirement, 'cancelled')} disabled={!canCreateRequirements} hidden={requirement.status !== 'open'}>
                             Cancel
                           </button>
                           <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => handleRequirementArchive(requirement)} disabled={!canArchiveRequirements}>
@@ -1264,9 +1262,11 @@ export default function RecruiterWorkspace() {
 
         {activeTab === 'candidates' ? (
           <div className="mt-6 space-y-6">
+            {showCandidateForm ? (
             <Panel
               title="Create candidate"
               icon={UserPlus}
+              panelRef={candidateFormRef}
             >
               <form className="space-y-4" onSubmit={handleCandidateSubmit}>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -1384,16 +1384,32 @@ export default function RecruiterWorkspace() {
                   placeholder="Optional candidate notes"
                 />
 
-                <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canCreateCandidates}>
-                  <Plus className="h-4 w-4" />
-                  Save candidate
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canCreateCandidates}>
+                    <Plus className="h-4 w-4" />
+                    Save candidate
+                  </button>
+                  <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => setShowCandidateForm(false)}>
+                    Cancel
+                  </button>
+                </div>
               </form>
             </Panel>
+            ) : null}
 
             <Panel
               title="Candidate rows"
               icon={Users}
+              action={canCreateCandidates && !showCandidateForm ? (
+                <button
+                  type="button"
+                  className="workspace-action-button workspace-action-button--primary"
+                  onClick={() => { setShowCandidateForm(true); revealForm(candidateFormRef) }}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  New candidate
+                </button>
+              ) : null}
             >
               <div className="mb-4">
                 <SegmentedControl options={CANDIDATE_FILTERS} value={candidateFilter} onChange={setCandidateFilter} size="sm" />
