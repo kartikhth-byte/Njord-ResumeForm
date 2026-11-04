@@ -53,14 +53,16 @@ to the older coarse recruiter-profile policies for applications, scheduled
 events/participants/history/reminders, embeddings, legacy status history, and
 offer-letter storage. `0217` removes any drifted Coordinator grant of
 `edit_junction_status`; Recruiter and Master Recruiter retain that permission.
+`0218` also closes the old owned-draft and photo write paths for a
+recruiter-profile Coordinator while preserving applicant ownership writes.
 The Applications and application-detail pages hide decision controls for
 Coordinators. Four scheduling/invitation functions now check the editor
 permission before service-role writes or emails.
 
-Both migrations were applied to staging and production after exact dry runs;
-schema-only readbacks showed all 24 new restrictive policies and production's
-follow-up dry run was clean. Nine isolated role-policy checks and the RBAC
-re-run check passed. Live signed-in API/UI tests for all three recruiter roles
+All three migrations were applied to staging and production after exact dry
+runs; schema-only readbacks showed 33 new restrictive policies. Nine isolated
+role-policy checks, the RBAC re-run check, and seven photo/draft checks passed.
+Live signed-in API/UI tests for all three recruiter roles
 and an applicant, including photo/offer-letter behavior, remain open because
 the browser/HTTP probe was unavailable. No candidate status or email was
 changed for this test.
