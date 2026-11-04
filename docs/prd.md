@@ -41,7 +41,8 @@ The product now uses the user-facing brand name:
 ### Coordinator
 
 - limited support role
-- can view candidates and support scheduling/status workflows
+- can view applications, statuses, scheduled events, photos, and offer letters
+- cannot change applications or statuses, schedule events, upload or alter photos/offer letters, or send workflow invitations
 - cannot manage recruiter accounts/settings
 
 ## Core Product Areas

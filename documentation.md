@@ -263,3 +263,4 @@ Once the recruiter-facing panel and applications-list triage are validated, deci
 - dashboard summaries
 - recruiter filtering / search
 - automatic checks at submission time
+- Coordinator application-workflow boundary (2026-11-04): Coordinators may inspect applications, status history, schedules, photos, and offer letters but cannot mutate them or send workflow invitations. Migrations `0216`/`0217` are applied on staging and production, with 24-policy schema readback and a clean production dry-run; the application UI hides decision controls, and four scheduling/notification functions were redeployed with editor checks. Isolated role tests, lint, and build passed; live signed-in role/API smoke is still pending.

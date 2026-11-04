@@ -104,3 +104,12 @@ Why:
 - the Codex macOS Node runtime cannot load the signed native Rollup addon reliably in this environment
 - the WASM build keeps `npm run dev` and the smoke server bootable without manual node_modules patching
 - the direct local binary avoids PATH drift and makes the smoke auto-start path deterministic
+## 2026-11 - Coordinator Is Read-Only in the Application Workflow
+
+Decision:
+- Coordinators may read applications, status history, schedules, photos, and offer letters, but cannot change those records or send test/interview/offer workflow mail
+- Recruiter and Master Recruiter retain application workflow writes through `edit_junction_status`; applicant draft ownership rules remain separate
+
+Why:
+- `profiles.user_type = recruiter` includes Coordinators and is not an editor authorization check
+

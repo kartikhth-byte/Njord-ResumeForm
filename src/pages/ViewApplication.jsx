@@ -43,7 +43,8 @@ export default function ViewApplication() {
   const [searchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
   const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
-  const { canExportData } = usePermissions()
+  const { canExportData, canManageApplications } = usePermissions()
+  const canEditApplications = canManageApplications()
   const [loading, setLoading] = useState(true)
   const [application, setApplication] = useState(null)
   const [applicationData, setApplicationData] = useState(null)
@@ -392,7 +393,7 @@ export default function ViewApplication() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {isRecruiterView && (application.status === 'rejected' || application.status === 'withdrawn') && (
+              {isRecruiterView && canEditApplications && (application.status === 'rejected' || application.status === 'withdrawn') && (
                 <ReopenApplicationButton application={application} onReopened={refreshApplication} />
               )}
               {exportAllowed && (
@@ -617,7 +618,7 @@ export default function ViewApplication() {
                 </div>
               </div>
 
-              {isRecruiterView ? (
+              {isRecruiterView && canEditApplications ? (
                 <div className="mt-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Decision Actions</p>
                   <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">

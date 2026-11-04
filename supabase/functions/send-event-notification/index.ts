@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { generateICS } from '../_shared/ics-generator.ts'
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { requireApplicationEditor } from '../_shared/require-application-editor.ts'
 
 interface NotificationRequest {
   eventId: string
@@ -19,6 +20,9 @@ serve(async (req) => {
   }
 
   try {
+    const denied = await requireApplicationEditor(req, corsHeaders, true)
+    if (denied) return denied
+
     const runtimeSettings = await getRuntimeSettings(['APP_URL', 'RESEND_API_KEY', 'EMAIL_FROM'])
     const { eventId, isReminder = false } = await req.json() as NotificationRequest
 
