@@ -110,7 +110,6 @@ if (reminderError) {
         const applicantEmail = application.application_data?.data?.section2?.email || 
                                application.application_data?.data?.section4?.email
         
-        console.log('Sending test invitation to:', applicantEmail)
         
         // Calculate expiry date (7 days from test date)
         const testDateObj = new Date(formData.testDate)
@@ -143,15 +142,12 @@ if (reminderError) {
         if (!emailResponse.ok) {
           console.error('Failed to send email:', await emailResponse.text())
           // Don't throw - test was scheduled successfully even if email failed
-        } else {
-          console.log('Test invitation email sent successfully')
         }
       } catch (emailError) {
         console.error('Error sending email:', emailError)
         // Don't throw - test was scheduled successfully even if email failed
       }
 
-      console.log('Test scheduled successfully:', eventData)
       
       // Success callback
       if (onScheduled) {
@@ -259,13 +255,6 @@ if (reminderError) {
                 />
               </div>
 
-              {/* Info Box */}
-              <div className="recruiter-note recruiter-note--info">
-                <p className="recruiter-note__title">What happens next</p>
-                <p className="recruiter-note__body">
-                  The candidate gets an email with the details.
-                </p>
-              </div>
             </div>
 
           <div className="recruiter-modal__footer">

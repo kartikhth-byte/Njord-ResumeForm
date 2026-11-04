@@ -128,9 +128,6 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
               ))}
             </div>
 
-            <p className="text-xs text-fg-muted mt-2">
-              * Required documents must be submitted before candidate can be hired
-            </p>
           </div>
 
           {/* Notes */}
@@ -147,12 +144,6 @@ export default function DocumentsChecklistModal({ application, onClose, onComple
             />
           </div>
 
-          {/* Warning */}
-          <div className="bg-warning-soft border border-warning-line rounded-lg p-4">
-            <p className="text-sm text-warning">
-              <strong>⚠️ Note:</strong> The candidate is notified to send these documents.
-            </p>
-          </div>
 
           {/* Action Buttons */}
           <div className="recruiter-modal__footer">

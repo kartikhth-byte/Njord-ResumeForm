@@ -38,7 +38,6 @@ export default function MicrosoftOAuthCallback() {
       return
     }
 
-    console.log('✅ Authorization code received, exchanging for tokens...')
 
     try {
       // Call edge function to exchange code for access token
@@ -52,7 +51,6 @@ export default function MicrosoftOAuthCallback() {
         }
       )
 
-      console.log('📧 Edge function response:', { data, error: functionError })
 
       if (functionError) {
         console.error('❌ Edge function error:', functionError)
@@ -65,18 +63,13 @@ export default function MicrosoftOAuthCallback() {
       if (data && data.success) {
 
 
-  console.log('✅ Microsoft Teams connected successfully!')
-  console.log('📍 About to navigate with teams_connected=true')
-  console.log('📍 Current localStorage before navigate:', localStorage.getItem('reopen_interview_modal'))
           setStatus('success')
         setMessage('Successfully connected to Microsoft Teams!')
         setTimeout(() => {
-                console.log('📍 Navigating NOW...')
           navigate('/recruiter/applications?teams_connected=true')
         }, 2000)
       } else {
         console.error('❌ Token exchange failed:', data)
-          console.log('📍 Data received:', JSON.stringify(data))
 
         setStatus('error')
         setMessage(data?.message || 'Failed to connect Microsoft Teams')

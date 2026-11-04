@@ -70,10 +70,8 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
 
 // Check Microsoft Teams connection status with auto-refresh
   const checkTeamsConnection = async () => {
-    console.log('🔍 checkTeamsConnection called', { user: user?.id })
     
     if (!user) {
-      console.log('⚠️ No user, skipping Teams check')
       setCheckingTeamsAuth(false)
       return
     }
@@ -85,7 +83,6 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
         .eq('user_id', user.id)
         .maybeSingle()
 
-      console.log('🔍 Teams token query result:', { data, error })
 
       if (!error && data) {
         const expiresAt = new Date(data.expires_at)
@@ -93,17 +90,9 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
         const bufferTime = new Date(Date.now() + 10 * 60 * 1000) // 10 min buffer
         const isValid = expiresAt > bufferTime
         
-        console.log('🔍 Token validation:', {
-          expiresAt: expiresAt.toISOString(),
-          now: now.toISOString(),
-          bufferTime: bufferTime.toISOString(),
-          isValid,
-          minutesUntilExpiry: Math.floor((expiresAt - now) / 1000 / 60)
-        })
         
         // If token expires within 10 minutes but is still valid, try to refresh it
         if (!isValid && data.refresh_token && expiresAt > now) {
-          console.log('🔄 Token expiring soon, attempting refresh...')
           
           try {
             const { data: { session } } = await supabase.auth.getSession()
@@ -122,10 +111,8 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
             const refreshResult = await refreshResponse.json()
             
             if (refreshResponse.ok && refreshResult.success) {
-              console.log('✅ Token refreshed successfully! New expiration:', refreshResult.expiresAt)
               setIsTeamsConnected(true)
             } else {
-              console.log('❌ Token refresh failed:', refreshResult.error)
               setIsTeamsConnected(false)
             }
           } catch (refreshError) {
@@ -137,7 +124,6 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
           setIsTeamsConnected(isValid)
         }
       } else {
-        console.log('❌ No valid token found or error occurred')
         setIsTeamsConnected(false)
       }
     } catch (err) {
@@ -200,7 +186,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
       const durationMinutes = parseInt(formData.duration)
       const endDateTime = new Date(scheduledDateTime.getTime() + durationMinutes * 60000)
       
-      console.log('📅 Creating Microsoft Teams meeting...')
       
       const { data, error } = await supabase.functions.invoke('create-teams-meeting', {
         body: {
@@ -213,14 +198,12 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
         }
       })
 
-      console.log('📧 Teams API response:', { data, error })
 
       if (error) {
         console.error('❌ Teams API error:', error)
         
         // If auth error, try to refresh token and retry once
         if (error.message?.includes('auth') || error.message?.includes('token') || error.message?.includes('401')) {
-          console.log('🔄 Auth error detected, attempting token refresh...')
           
           try {
             const { data: { session } } = await supabase.auth.getSession()
@@ -237,7 +220,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             )
             
             if (refreshResponse.ok) {
-              console.log('✅ Token refreshed, retrying meeting creation...')
               
               // Retry meeting creation with refreshed token
               const { data: retryData, error: retryError } = await supabase.functions.invoke('create-teams-meeting', {
@@ -252,7 +234,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
               })
               
               if (!retryError && retryData?.success) {
-                console.log('✅ Teams meeting created after token refresh:', retryData.joinUrl)
                 setFormData({ ...formData, interviewUrl: retryData.joinUrl })
                 setMeetCreated(true)
                 setCreatingMeet(false)
@@ -281,7 +262,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
       }
 
       // Success - set the meeting URL
-      console.log('✅ Teams meeting created:', data.joinUrl)
       setFormData({ ...formData, interviewUrl: data.joinUrl })
       setMeetCreated(true)
       setCreatingMeet(false)
@@ -421,8 +401,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
 
         if (!emailResponse.ok) {
           console.error('Failed to send interview invitation email:', await emailResponse.text())
-        } else {
-          console.log('Interview invitation email sent successfully')
         }
       } catch (emailError) {
         console.error('Error sending interview invitation email:', emailError)
@@ -462,7 +440,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
           </div>
           <button
             onClick={() => {
-              console.log('❌ X button clicked, calling onCancel')
               onCancel()
             }}
             disabled={loading}
@@ -712,7 +689,6 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
               <button
                 type="button"
                 onClick={() => {
-                  console.log('❌ Cancel button clicked, calling onCancel')
                   onCancel()
                 }}
                 disabled={loading}

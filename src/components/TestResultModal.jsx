@@ -58,62 +58,49 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('🔵 handleSubmit called', { result, formData })
 
     // Validation
     if (!result) {
-      console.log('❌ Validation failed: no result selected')
       alert('Please select a test result')
       return
     }
 
     if (result === 'failed' && !formData.rejectionReason) {
-      console.log('❌ Validation failed: no rejection reason')
       alert('Please select a rejection reason')
       return
     }
 
     if (result === 'retake') {
       if (!canRetake) {
-        console.log('❌ Validation failed: cannot retake')
         alert('Maximum test attempts reached. Cannot approve retake.')
         return
       }
       if (!formData.newTestDate || !formData.newTestUrl) {
-        console.log('❌ Validation failed: missing retake details')
         alert('Please provide new test date and URL for retake')
         return
       }
     }
 
-    console.log('✅ Validation passed, setting loading...')
     setLoading(true)
 
     try {
-      console.log('🔄 Processing result:', result)
       
       if (result === 'passed') {
-        console.log('→ Calling handlePassed')
         await handlePassed()
       } else if (result === 'failed') {
-        console.log('→ Calling handleFailed')
         await handleFailed()
       } else if (result === 'retake') {
-        console.log('→ Calling handleRetake')
         await handleRetake()
       }
 
-      console.log('✅ Handler completed successfully')
 
       // Success callback
       if (onResultUpdated) {
-        console.log('→ Calling onResultUpdated callback')
         onResultUpdated(result === 'passed' ? 'test_passed' : result === 'failed' ? 'rejected' : 'test_scheduled')
       }
 
       // Close modal after successful update
       if (onCancel) {
-        console.log('→ Calling onCancel to close modal')
         onCancel()
       }
 
@@ -122,7 +109,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
       alert('Failed to update test result: ' + error.message)
     } finally {
       setLoading(false)
-      console.log('🏁 handleSubmit finished')
     }
   }
 
@@ -141,7 +127,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
     // TODO: Send "test passed" email (if edge function exists)
     // Currently no edge function for "test passed" notification
     
-    console.log('Test marked as PASSED')
   }
 
   const handleFailed = async () => {
@@ -162,7 +147,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
       const applicantEmail = application.application_data?.data?.section2?.email || 
                              application.application_data?.data?.section4?.email
 
-      console.log('Sending rejection email to:', applicantEmail)
 
       const emailResponse = await fetch(
         'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-rejection-email',
@@ -184,14 +168,11 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
       if (!emailResponse.ok) {
         console.error('Failed to send rejection email:', await emailResponse.text())
-      } else {
-        console.log('Rejection email sent successfully')
       }
     } catch (emailError) {
       console.error('Error sending rejection email:', emailError)
     }
 
-    console.log('Test marked as FAILED, application REJECTED')
   }
 
   const handleRetake = async () => {
@@ -272,14 +253,11 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
       if (!emailResponse.ok) {
         console.error('Failed to send retake email:', await emailResponse.text())
-      } else {
-        console.log('Retake approval email sent successfully')
       }
     } catch (emailError) {
       console.error('Error sending retake email:', emailError)
     }
 
-    console.log(`Retake approved: Attempt ${nextAttempt} of ${maxAttempts}`)
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -517,25 +495,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               )}
 
               {/* Info Box */}
-              {result && (
-                <div className={`border rounded-lg p-4 ${
- result === 'passed' ? 'bg-success-soft border-success-line' :
- result === 'failed' ? 'bg-danger-soft border-danger-line' :
- 'bg-accent-soft border-accent/40'
- }`}>
-                  <p className={`text-sm ${
- result === 'passed' ? 'text-success' :
- result === 'failed' ? 'text-danger' :
- 'text-accent-text'
- }`}>
-                    <strong>Action:</strong> {
-                      result === 'passed' ? 'Candidate will advance to the interview stage.' :
-                      result === 'failed' ? 'Candidate will receive a rejection email and application will be closed.' :
-                      `Candidate will receive a retake invitation email with new test details. This will be attempt ${currentAttempt + 1} of ${maxAttempts}.`
-                    }
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Actions */}

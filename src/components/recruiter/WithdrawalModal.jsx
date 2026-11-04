@@ -107,32 +107,7 @@ export default function WithdrawalModal({ application, onClose, onConfirm }) {
 
         {/* Content */}
         <div className="recruiter-modal__body space-y-4">
-          {/* Warning */}
-          <div className="bg-warning-soft border border-warning-line rounded-lg p-4">
-            <p className="text-sm text-warning">
-              <strong>⚠️ Important:</strong> Marks the application Withdrawn. You can reopen it later.
-            </p>
-          </div>
 
-          {/* Application Info */}
-          <div className="bg-raised rounded-lg p-3">
-            <div className="text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-fg-secondary">Candidate:</span>
-                <span className="font-medium text-fg">{application.full_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-fg-secondary">Current Status:</span>
-                <span className="font-medium text-fg capitalize">
-                  {application.status.replace('_', ' ')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-fg-secondary">Position:</span>
-                <span className="font-medium text-fg">{application.applied_rank}</span>
-              </div>
-            </div>
-          </div>
 
           {/* Withdrawal Reason */}
           <div>

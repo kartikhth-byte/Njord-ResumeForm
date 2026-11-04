@@ -218,11 +218,8 @@ const RejectionModal = ({
           <div className="recruiter-note recruiter-note--danger mb-6 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
             <div>
-              <p className="recruiter-note__title">
-                This action cannot be undone
-              </p>
               <p className="recruiter-note__body">
-                The candidate is notified by email.
+                The candidate is emailed.
               </p>
             </div>
           </div>
@@ -354,7 +351,6 @@ const RejectionModal = ({
                     Contact for Future Roles
                   </span>
                 </div>
-                <p className="text-sm text-fg-secondary mt-1">Shows up in Find Past Candidates.</p>
               </div>
             </label>
           </div>
@@ -370,13 +366,10 @@ const RejectionModal = ({
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., 'Great technical skills but lacks sufficient experience for Chief Officer role. Consider for 2nd Officer positions in 2 years.'"
+              placeholder="Internal notes"
               rows={4}
               className="w-full px-4 py-3 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
             />
-            <div className="mt-2 text-xs text-fg-muted">
-              {notes.length} characters
-            </div>
           </div>
 
         </div>

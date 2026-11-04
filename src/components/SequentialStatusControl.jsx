@@ -47,12 +47,9 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   // Auto-open interview modal after Teams OAuth
 useEffect(() => {
   if (autoOpenInterview) {
-    console.log('🔵 Auto-open triggered for:', application.id)
-    console.log('🔍 Next status would be:', getNextStatus())
     
     // ONLY open if the next action is to schedule an interview
     if (getNextStatus() === 'interview_scheduled') {
-      console.log('✅ Opening interview scheduling modal')
       setShowSchedulingModal(true)
       
       // Clear the flag
@@ -60,7 +57,6 @@ useEffect(() => {
         onAutoOpenComplete()
       }
     } else {
-      console.log('⏭️ Skipping auto-open - next status is not interview_scheduled')
       // Clear the flag anyway since we're not opening
       if (onAutoOpenComplete) {
         onAutoOpenComplete()
@@ -70,11 +66,6 @@ useEffect(() => {
 }, [autoOpenInterview, application.id, onAutoOpenComplete])
 
   // DEBUG: Log component props
-  console.log('🟣 SequentialStatusControl initialized', {
-    applicationId,
-    currentStatus,
-    applicationObjectStatus: application?.status
-  })
 
   // Calculate and update dropdown position
   useEffect(() => {
@@ -167,13 +158,6 @@ useEffect(() => {
   const getNextStatus = () => {
     const normalizedStatus = currentStatus === 'submitted' ? 'submitted' : currentStatus
     const currentIndex = statusFlow.indexOf(normalizedStatus)
-    console.log('🟣 getNextStatus called', {
-      currentStatus,
-      normalizedStatus,
-      currentIndex,
-      statusFlow,
-      nextStatus: statusFlow[currentIndex + 1]
-    })
     if (currentIndex === -1 || currentIndex === statusFlow.length - 1) {
       return null
     }
@@ -198,10 +182,6 @@ useEffect(() => {
   const handleNextStage = () => {
     if (!nextStatus) return
     
-    console.log('🔵 SequentialStatusControl - handleNextStage called')
-    console.log('  Current Status:', currentStatus)
-    console.log('  Next Status:', nextStatus)
-    console.log('  Application ID:', applicationId)
     
     // Show TestResultModal when updating test result
     if (currentStatus === 'test_scheduled') {

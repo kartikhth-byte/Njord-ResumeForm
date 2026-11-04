@@ -153,7 +153,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
       const applicantEmail = application.application_data?.data?.section2?.email || 
                              application.application_data?.data?.section4?.email
 
-      console.log('Sending interview passed email to:', applicantEmail)
 
       const emailResponse = await fetch(
         'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-interview-passed',
@@ -176,14 +175,11 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
 
       if (!emailResponse.ok) {
         console.error('Failed to send interview passed email:', await emailResponse.text())
-      } else {
-        console.log('Interview passed email sent successfully')
       }
     } catch (emailError) {
       console.error('Error sending interview passed email:', emailError)
     }
     
-    console.log('Interview marked as PASSED')
   }
 
   const handleFailed = async () => {
@@ -222,7 +218,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
       const applicantEmail = application.application_data?.data?.section2?.email || 
                              application.application_data?.data?.section4?.email
 
-      console.log('Sending rejection email to:', applicantEmail)
 
       const emailResponse = await fetch(
         'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-rejection-email',
@@ -245,14 +240,11 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
 
       if (!emailResponse.ok) {
         console.error('Failed to send rejection email:', await emailResponse.text())
-      } else {
-        console.log('Rejection email sent successfully')
       }
     } catch (emailError) {
       console.error('Error sending rejection email:', emailError)
     }
 
-    console.log('Interview marked as FAILED, application REJECTED')
   }
 
   const StarRating = ({ label, value, onChange, required = false }) => (
@@ -503,21 +495,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
               )}
 
               {/* Info Box */}
-              {result && (
-                <div className={`border rounded-lg p-4 ${
- result === 'passed' ? 'bg-success-soft border-success-line' : 'bg-danger-soft border-danger-line'
- }`}>
-                  <p className={`text-sm ${
- result === 'passed' ? 'text-success' : 'text-danger'
- }`}>
-                    <strong>Action:</strong> {
-                      result === 'passed' 
-                        ? 'Application status will be updated to "Interview Passed". You can then proceed to make an offer.' 
-                        : 'Candidate will receive a rejection email with feedback. Application will be closed.'
-                    }
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Actions */}

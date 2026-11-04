@@ -79,7 +79,6 @@ export default function FormLayout({ children }) {
         return
       }
 
-      console.log('✅ Found existing in-progress application:', app.id)
 
       setActiveDraftId(app.id)
 
@@ -93,7 +92,6 @@ export default function FormLayout({ children }) {
       if (dataError && dataError.code !== 'PGRST116') throw dataError
 
       if (!appData) {
-        console.log('📝 Creating application_data row...')
         const { error: insertError } = await supabase
           .from('application_data')
           .insert({
@@ -104,12 +102,10 @@ export default function FormLayout({ children }) {
           })
 
         if (insertError) throw insertError
-        console.log('✅ Application_data created')
       }
 
       // Set applicationId - hook will load data automatically
       setApplicationId(app.id)
-      console.log('✅ Application initialized, hook will load data')
     } catch (error) {
       console.error('Error initializing application:', error)
     } finally {
@@ -119,7 +115,6 @@ export default function FormLayout({ children }) {
 
   // ✅ FIX: Pass updates object directly, not a function
   const handleDataUpdate = (updates) => {
-    console.log('🔵 handleDataUpdate called with:', updates)
     
     // ✅ CORRECT: Pass updates object directly
     // Hook's updateData expects an object, not a function
