@@ -1,6 +1,6 @@
 # Needle inside Holmes: integration and operator design
 
-Date: 2026-11-05 · Status: proposal for owner decisions. Nothing built.
+Date: 2026-11-05 · Status: design with owner decisions of 2026-11-05 (§8). Nothing built.
 Builds on `docs/needle-integration.md` (product boundary, data rules, upgrade policy) and `docs/platform-review-findings.md` (decisions 1, 2, 7). This note adds the screen-level design, the sign-in bridge and the operator console.
 
 Sources:
@@ -12,12 +12,14 @@ Sources:
 
 ## 1. Summary
 
-- **Show Needle's own search UI inside the Holmes shell**, in an embedded mode with no Needle sidebar, login or branding. The two apps already share the same dark theme tokens (`#171614` background, `#d97757` accent), so the result looks like one product. Holmes adds the entry points and the actions that write to Holmes records.
+- **All hosted Needle features in Holmes, by showing Needle's own UI inside the Holmes shell**, in an embedded mode with no Needle sidebar, login or branding. Embedding is what keeps every feature, current and future; a rebuild would drop some. The two apps already share the same dark theme tokens (`#171614` background, `#d97757` accent), so the result looks like one product. Holmes adds the entry points and the actions that write to Holmes records.
 - **One login.** Holmes signs the user in to Needle with a short-lived token minted by a Holmes edge function. Needle never shows its own login inside Holmes.
-- **Two places for AI in Holmes:** an **AI search** page in the sidebar, and **Find candidates** on a requirement, which opens AI search already filtered for that requirement.
-- **Results flow into Holmes through one action, "Add to requirement".** Holmes, not Needle, creates or links the candidate and records where they came from.
+- **Two places for AI in Holmes:**
+  - an **AI search** page in the sidebar (the full Needle workspace);
+  - **Match resumes** on a requirement: Holmes asks Needle to run the match and lists the ranked resumes on the requirement page; the recruiter picks several and the recruitment flow starts for each.
+- **Results flow into Holmes through one action, "Add to Holmes".** It adds the person to the Holmes candidate pool, optionally attached to a requirement. Holmes, not Needle, creates or links the candidate and records where they came from. Resume-sourced candidates may start as **leads** with missing fields.
 - **Operator becomes a Holmes role with its own console.** The console gets Holmes's platform settings (email, Microsoft, keys) and Needle's admin pages (runtime settings, facts review, evals, corpus status). Organizations keep Team and Worksheet templates.
-- **Leave out:** Needle's Downloads (Seajobs), User Settings (Seajobs and Drive credentials), Verified dashboard and login. The operator keeps using them in Needle directly.
+- **Leave out (owner decision 2026-11-05):** Needle's Downloads (Seajobs) and the Verified dashboard (Add to Holmes replaces it). User Settings (Seajobs and Drive credentials) and login stay in Needle for the operator. Needle's desktop pieces (desktop app, local agent, local folder scanning, old single-file UI) are not needed in Needle either.
 - **Retire Holmes's own AI search.** It searches the `applications` table, which the agreed boundary says is the wrong corpus. That covers the Applications "AI search" panel, the application embeddings and the two Gemini proxy functions.
 
 ## 2. What Needle has today (hosted build)
@@ -52,17 +54,17 @@ The server side relevant to Holmes:
 
 | Needle screen | In Holmes | How |
 |---|---|---|
-| Search workspace with project tree | **Bring in.** New sidebar item **AI search** (Recruit group) | Embedded Needle UI (§4) |
+| Search workspace with project tree | **Bring in.** New sidebar item **AI search** (Recruit group); also reached from **Refine in AI search** on a requirement | Embedded Needle UI (§4) |
 | Repository | **Bring in** as a second tab on AI search: "Searches \| Resume pool" | Embedded |
 | Candidate detail (resume, evidence, PDF) | **Bring in**, opened from search, pool, or a Holmes candidate that came from Needle | Embedded |
-| Verify and Verified dashboard | **Replace** with **Add to requirement**. Holmes requirements and candidates are the shortlist | Needle sends the selection to Holmes (§4.3) |
+| Verify and Verified dashboard | **Replace** with **Add to Holmes** (owner decision). Holmes candidates and requirements are the shortlist | Needle sends the selection to Holmes (§4.3) |
 | Corpus status badge | **Bring in** in the AI search header, and in Operator → Health | Embedded |
 | Admin → Settings (runtime controls) | **Operator console** → AI | Embedded Needle admin page |
 | Admin → Facts review | **Operator console** → AI | Embedded |
 | Admin → Evals | **Operator console** → AI | Embedded |
 | Admin → Pipeline Inspector | **Operator console** → AI, once routed | Embedded |
 | Admin → Users | **Replace.** Holmes is the source of user accounts; Needle accounts are created automatically on first sign-in. Needle's page becomes read-only support | Operator console → Organizations & users |
-| Downloads (Seajobs) | **Leave out** of Holmes (agreed boundary). The operator runs them in Needle directly | Link from Operator → AI |
+| Downloads (Seajobs) | **Leave out** of Holmes (owner decision 2026-11-05) | — |
 | User Settings (Seajobs, Drive, Microsoft for intake) | **Leave out.** Operator in Needle directly | Link from Operator → AI |
 | Login | **Replace** with Holmes sign-in (§4.2) | — |
 
@@ -85,7 +87,7 @@ Three ways to put the search UI in Holmes:
   - **Hard-coded colours.** Remove any remaining Tailwind palette colours in Needle chips and badges (on `main` they were in about 11 files).
 - **Space.** AI search uses three columns (projects, chat, results). On that page the Holmes sidebar collapses to its icon rail, which already exists (`data-rail`).
 - **Addresses.** The Holmes URL mirrors Needle's location: `/recruiter/ai/:projectId/:chatId` ↔ `#/search/:projectId/:chatId`. The frame and Holmes keep them in step with `postMessage`, so Back, refresh and shared links work.
-- **Words.** Holmes says "candidate" and "requirement". Embed mode shows a project linked to a requirement as "REQ-2611-004 · Chief Officer". Needle's "resume" stays "resume" (it is the document), and Verify becomes "Add to requirement".
+- **Words.** Holmes says "candidate" and "requirement". Embed mode shows a project linked to a requirement as "REQ-2611-004 · Chief Officer". Needle's "resume" stays "resume" (it is the document), and Verify becomes "Add to Holmes".
 - **Loading and errors.** Needle's own states show inside the frame. If Needle is down, Holmes shows a one-line "AI search is unavailable" with Retry, instead of a broken frame.
 
 ### 4.2 Sign-in: one login, token not cookie
@@ -106,22 +108,37 @@ Security notes:
 - **CORS.** Narrow Needle's CORS to the Holmes origins.
 - **Frame embedding.** Needle must allow being framed only by Holmes, via `Content-Security-Policy: frame-ancestors`.
 
-### 4.3 From a Needle result to a Holmes candidate
+### 4.3 From a Needle result to a Holmes candidate: Add to Holmes
 
-- **The action.** In embed mode, cards, table rows and candidate detail show **Add to requirement** instead of Verify. Clicking it sends `{resume_id, stage_id, key facts}` to Holmes by `postMessage`.
-- **The dialog.** Holmes opens its own dialog, "Add <name> to REQ-…":
+- **The action.** In embed mode, cards, table rows and candidate detail show **Add to Holmes** instead of Verify. A selection of several is allowed. Needle sends `{resume_id, stage_id, key facts}` per person to Holmes by `postMessage`.
+- **The dialog.** Holmes opens its own dialog:
+  - **Where to.** Into the candidate pool only (they appear under Candidates → Unattached), or into the pool and attached to a requirement in one step.
   - **Duplicate check.** Holmes looks for an existing candidate by email and phone and offers "link to existing" or "create new". It never merges silently (finding F2).
-  - **Prefill.** The fields come from Needle's facts. The recruiter supplies what a Holmes candidate requires but the resume lacks (today: date of birth, nationality, experience, phone, email).
-  - **Save.** Saving creates or links the prospect and attaches it to the requirement. Once case v1 is live in production, it starts the case instead (`recruitment_case_open`).
-- **Where it came from.** Holmes stores `needle_resume_id`, `source = 'needle_search'`, the stage id and the engine version on the candidate. The Holmes candidate page then shows **View resume**, which opens Needle's candidate detail.
+  - **Prefill.** Fields come from Needle's facts.
+- **Leads (needs a schema change).** A Holmes candidate today must have date of birth, nationality, rank, vessel type, months in rank, a valid phone, an email and (unless first time at sea) a previous employer; the database enforces these (`2026060302_prospect_schema.sql`). Resumes often lack some. So resume-sourced candidates start as **leads**:
+  - missing fields are allowed only when `source = 'needle'` and the candidate is not yet contacted;
+  - the recruiter completes them at first contact, and Holmes asks for them before moving the candidate past "contacted";
+  - this matches the rule in `docs/needle-integration.md` that resume leads must not invent DOB or contact details.
+- **Save.** Saving creates or links the candidate and, if chosen, attaches them to the requirement. Once case v1 is live in production, attaching starts the case (`recruitment_case_open`).
+- **Where it came from.** Holmes stores `needle_resume_id`, `source = 'needle'`, the stage id and the engine version on the candidate. The Holmes candidate page shows **View resume**, which opens Needle's candidate detail.
 - **What Needle never does.** It never writes to Holmes tables. Every Holmes write uses the recruiter's Holmes session and permissions, so Coordinators cannot add.
 
-### 4.4 Find candidates on a requirement
+### 4.4 Match resumes on a requirement
 
-- **The button.** The requirement page gets **Find candidates**. It opens AI search on a Needle project linked to that requirement, creating the project if needed, with chips prefilled from the requirement: rank, vessel type and, where Needle supports them, nationality and joining window.
-- **Needed on the Needle side.** An "open or create project by external key" call (`holmes:requirement:<id>`) that accepts initial filters. Plus a mapping from Holmes `rank_id` and `vessel_type_id` to Needle's canonical ranks and ship types.
-  - Unmapped fields show as "not applied". They never become hard filters (`docs/needle-integration.md`).
-- **Requirement changes.** A rerun after the requirement changes is a new stage, which Needle already supports.
+The flow the owner asked for: fill a requirement, click a button, get a set of matching resumes, start the recruitment flow.
+
+1. On the requirement page, the recruiter clicks **Match resumes**.
+2. Holmes calls Needle server-side (edge function, with the recruiter's short-lived token from §4.2). The call asks Needle to find or create the search for this requirement (external key `holmes:requirement:<id>`) and run it with filters mapped from the requirement: rank, vessel type and, where Needle supports them, nationality and joining window.
+   - Unmapped fields show as "not applied". They never become hard filters (`docs/needle-integration.md`).
+   - This reuses Needle's existing search engine (`POST /runs/<id>/stages`). The new Needle pieces are the token check and the external key.
+3. The requirement page shows a **Matches** list: name, rank, score, the ✓/✗/? per filter and the AI-fit reason, with **View resume**.
+4. The recruiter ticks several and clicks **Add to requirement**. Each goes through the Add to Holmes dialog (§4.3) in one pass: duplicate check per person, leads allowed. They join the requirement's candidate list and the recruitment flow (cases) starts for each.
+5. **Refine in AI search** opens the full embedded workspace on the same search, so every Needle refinement (chips, follow-up prompts, assess fit, table view) is available.
+6. After the requirement changes, **Match resumes** again runs a new stage. Earlier results stay as they were.
+
+**One requirement, many candidates** already works. A requirement has a positions count and any number of attached candidates (`prospect_requirements`, unique per candidate and requirement). With case v1, each candidate on a requirement has their own case, one active at a time (`recruitment_cases_one_active_uidx`). A candidate can be on several requirements.
+
+**Can Holmes read Needle's data directly?** No, and it should not. Needle's data is in its own Supabase project, and reading it from Holmes would mean sharing Needle's service key and coupling the two schemas. Holmes gets Needle data only through Needle's API, with the recruiter's token: search results, resume facts for prefill, and the resume itself.
 
 ### 4.5 Organizations and data rights
 
@@ -160,11 +177,11 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 
 | # | Change | Why |
 |---|---|---|
-| N1 | Embed mode (build flag or `?embed=holmes`): no sidebar, login, user menu or branding; fills its frame; `postMessage` for route sync, token handoff and "Add to requirement" | §4.1, §4.3 |
+| N1 | Embed mode (build flag or `?embed=holmes`): no sidebar, login, user menu or branding; fills its frame; `postMessage` for route sync, token handoff and "Add to Holmes" | §4.1, §4.3 |
 | N2 | Bearer token sign-in for embed (verify Holmes token, create or link the user, map role); blob-fetch the PDF view | §4.2 |
 | N3 | `frame-ancestors` and CORS limited to Holmes origins; set `NJORDHR_FLASK_SECRET` in Railway (otherwise sessions reset on every deploy) | §4.2 |
-| N4 | Open or create a project by external key with initial filters; rank and ship-type mapping for Holmes ids | §4.4 |
-| N5 | Replace Verify with "Add to requirement" in embed mode | §4.3 |
+| N4 | Find or create a search by external key (`holmes:requirement:<id>`) with initial filters, callable server-side with the token; rank and ship-type mapping for Holmes ids | §4.4 |
+| N5 | Replace Verify with "Add to Holmes" in embed mode (single and multi-select); retire the Verified dashboard from the hosted build when Holmes is live | §4.3 |
 | N6 | Embedded admin pages for the operator console (Settings, Facts review, Evals, corpus status) | §5 |
 | N7 | Security fixes found in this review (§7) | before wider use |
 | N8 | Before a second organization: organization scoping and `workspace.db` in Supabase | §4.5 |
@@ -176,8 +193,9 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 | H1 | Operator role, `/operator` console shell; move Integrations into it; Settings keeps Team and Worksheet templates | nothing (can start now) |
 | H2 | `needle-token` edge function | N2 |
 | H3 | AI search page (frame, route sync, unavailable state, sidebar rail on this page), behind a feature flag | N1–N3 |
-| H4 | Find candidates on the requirement page | N4 |
-| H5 | Add-to-requirement dialog: duplicate check, prefill, provenance columns on the candidate, View resume | N5; case v1 for the case path |
+| H4 | Match resumes on the requirement page: edge function calling Needle, Matches list, multi-select add, Refine in AI search | N2, N4 |
+| H5 | Add to Holmes dialog: pool or requirement, duplicate check, prefill, provenance columns, View resume | N5; case v1 for the case path |
+| H8 | Leads: allow missing candidate fields for `source = 'needle'` until contacted; require them before moving past contacted (migration, staging first) | owner decision 7 |
 | H6 | Operator → AI section (embedded Needle admin pages) | N6 |
 | H7 | Retire Holmes's application-embedding AI search: Applications "AI search" panel, `AISearch`, `EmbeddingGenerator`, `embeddingService`, `gemini-*-proxy` functions, `application_embeddings` (drop the table only after export and sign-off) | H3 live |
 
@@ -200,19 +218,27 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 
 ## 8. Owner decisions
 
-1. **UI approach:** embed Needle's own UI in the Holmes shell (recommended), or rebuild it in Holmes.
+Decided 2026-11-05:
+- **All hosted Needle features belong in Holmes**, except Seajobs downloads and the Verified dashboard.
+- **Seajobs downloads stay out of Holmes.**
+- **Verified is replaced** by Add to Holmes into the Holmes candidate pool, with an optional requirement.
+- **Desktop pieces are not needed in Needle either:** the desktop app, local agent, local folder scanning and the old single-file UI.
+- **Requirement matching is wanted:** a button on a requirement that matches it to the resume pool and starts the recruitment flow for the chosen candidates (§4.4).
+
+Open:
+1. **UI approach:** embed Needle's own UI (recommended; it keeps all features), or rebuild it in Holmes.
 2. **Corpus for Njordships:** may Njordships recruiters search the existing Needle pool? It depends on whose Seajobs account gathered it (finding F4). If not, AI search starts with resumes Njordships provides or uploads.
 3. **Operator role:** a separate platform role with audited support access (recommended), with KT also holding a recruiter role. Or keep "Master Recruiter = operator" until a second organization signs.
-4. **Coordinators:** recommended: Coordinators see AI search results attached to candidates but cannot run searches, because searches cost money. Alternatively they could run read-only searches.
-5. **Seajobs downloads:** confirm they stay in Needle, run by the operator, and out of Holmes.
-6. **Retire Holmes's application search** once Needle search is live (recommended), or keep both for a period.
+4. **Coordinators:** recommended: they see AI results attached to candidates but cannot run searches, because searches cost money.
+5. **Retire Holmes's application search** once Needle search is live (recommended), or keep both for a period.
+6. **Leads:** allow resume-sourced candidates with missing fields until first contact (recommended). Otherwise every add from Needle asks the recruiter to fill DOB, nationality, months in rank, phone and email first, which blocks multi-select.
 
 ## 9. Order
 
-1. Owner decisions 1–3.
+1. Open owner decisions 1–3 and 6.
 2. **H1, the operator console with Integrations moved.** Holmes only and small; it can start now.
 3. **N1–N4 in Needle, then H2–H4 behind a flag.** Pilot with the operator first, then one recruiter.
-4. **N5 + H5, Add to requirement.** The case path follows case v1 in production.
+4. **N5 + H5 + H8, Add to Holmes with leads.** The case path follows case v1 in production.
 5. **N6 + H6, operator AI pages; then H7, retire the old search.**
 6. **Before a second organization:** N8 and Holmes multi-organization RLS.
 

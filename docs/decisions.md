@@ -1,5 +1,19 @@
 # Decisions Log
 
+## 2026-11-05 - All Hosted Needle Features In Holmes; Add To Holmes; Match Resumes
+
+Decision:
+- Holmes offers all of Needle's hosted features except Seajobs downloads (still excluded) and the Verified dashboard
+- Needle's desktop pieces (desktop app, local agent, local folder scanning, old single-file UI) are not needed in Needle either
+- Verify is replaced by **Add to Holmes**: a resume found by search becomes a Holmes candidate in the candidate pool, optionally attached to a requirement, with a duplicate check and a link back to the resume
+- a requirement gets **Match resumes**: Holmes asks Needle to match the requirement to the resume pool, shows the ranked matches, and the recruiter adds the chosen ones so the recruitment flow starts for each
+- Holmes reads Needle data only through Needle's API with the recruiter's token, never Needle's database
+
+Why:
+- the owner wants every Needle capability available to recruiters inside Holmes, with one shortlist (Holmes candidates and requirements) rather than two
+
+Open (recommendations in `docs/needle-in-holmes-design.md` §8): embedding Needle's own UI versus a rebuild, corpus rights for the existing pool, the operator role, Coordinator access, retiring Holmes's application search, and resume-sourced leads with missing fields.
+
 ## 2026-11-02 - Contain Public Data API Exposure
 
 Decision:
