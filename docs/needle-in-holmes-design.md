@@ -156,12 +156,15 @@ The flow the owner asked for: fill a requirement, click a button, get a set of m
 **Decided 2026-11-05:** each customer searches only its own resume pool, the way a user searches in Needle today. The operator sees all pools.
 
 - **Needle work before launch, not before a second customer.** Every resume, its facts, markdown and search index entries carry an organization. Searches, the repository, candidate detail and the facts caches filter by the organization in the token. Projects, chats and runs are scoped the same way, and `workspace.db` moves to Supabase (it is on one Railway volume today and cannot be rebuilt from Supabase).
-- **How a resume gets into a customer's pool:**
-  - **Holmes upload:** when a recruiter creates a candidate (§4.6);
-  - **customer intake folder:** a Drive folder per customer, using Needle's existing Drive intake;
-  - **later, the candidate portal.**
-  - Seajobs downloads stay outside Holmes. Whether the operator may still run them into a customer's pool is the customer's data-rights question, not Holmes's.
-- **The existing Needle pool.** It has to be assigned to an owner before scoping goes live. If it was gathered for Njordships, it becomes Njordships' pool. Otherwise it stays operator-only and Njordships starts with the resumes it provides (open decision).
+- **Each customer has its own Drive folder, and that folder is the only way into its pool** (decided 2026-11-05). Every channel puts the file in the folder; Needle's Drive intake reads the folder into that customer's pool:
+  - **Holmes upload:** a file uploaded in Holmes (§4.6) is written into the customer's folder;
+  - **email:** the customer connects its resume mailbox; attachments are saved into its folder;
+  - **bulk:** a new customer moves its existing resumes into its folder once, at onboarding;
+  - **later, the candidate portal**, the same way.
+  - Seajobs downloads stay outside Holmes.
+- **When this applies.** Needle's email and Drive intake already exist in the hosted build. Today they feed one folder (`NJORDHR_RESUME_FOLDER_ID`), which is Njordships'. A folder and a mailbox per customer come with multi-tenancy (N8); until then there is one folder.
+- **Onboarding a customer** (operator, in Operator → Organizations): create the organization, create or link its Drive folder, connect its mailbox, then the customer bulk-moves its resumes into the folder. Holmes shows intake progress from Needle's corpus status.
+- **The existing Needle pool becomes Njordships' pool** (decided 2026-11-05). Its folder becomes Njordships' folder.
 
 ### 4.6 Every Holmes candidate has a resume
 
@@ -170,11 +173,11 @@ The flow the owner asked for: fill a requirement, click a button, get a set of m
 | Way in | How the resume gets there |
 |---|---|
 | Add to Holmes from AI search or Match resumes | already in the customer's pool; Holmes stores the resume id |
-| New candidate in Holmes (today's form) | the form gets a required resume upload. Holmes sends the file to Needle's intake for that customer, then stores the returned resume id. The fields the upload extracts prefill the form |
+| New candidate in Holmes (today's form) | the form gets a required resume upload. Holmes sends the file to Needle, which writes it into the customer's Drive folder and returns an intake reference at once; the Drive intake then adds it to the pool as usual. Holmes stores the reference, which becomes the resume id once processed. The extracted fields fill in afterwards |
 | Existing Holmes candidates (before this change) | marked "Resume missing" and listed on the Dashboard until a resume is uploaded. The database rule is added as not-yet-validated and validated once the backlog is cleared |
 | Long-form applicants | they are already Holmes candidates with a resume, because the long form is invited after a passed interview |
 
-- **Needle needs an upload endpoint** (N9). Hosted intake today is only the Drive folder worker; there is no upload API. Extraction is asynchronous, so the candidate is saved with the resume id at once and the extracted facts arrive later.
+- **Needle needs an upload endpoint** (N9) that writes the file into the customer's folder. Hosted Needle has no upload API today, but it can already write to Drive (`drive_sa.upload_file_with_token`). Going through the folder keeps one intake path for every channel. Intake is asynchronous, so the candidate is saved with the intake reference at once, and the resume id and facts arrive later.
 - **Enforcement** is a database rule on the candidate (a resume reference is required), not only a form check.
 ## 5. Operator: a Holmes role and console
 
@@ -193,7 +196,7 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 | Health | Needle `/healthz` and corpus status; email delivery (Resend); last scheduled expiry-warning run; edge function errors | new; Needle corpus badge |
 | Platform settings | Microsoft app (client id, tenant, redirect, secret), Resend key, sender address, notification addresses, Resend webhook secret, Gemini key, app URL. Shown as set / not set with rotate; values never shown | **moved from** Holmes Settings → Integrations (`RecruiterIntegrationsSection.jsx`, `manage-runtime-settings`) |
 | AI | Needle runtime controls, Facts review, Evals (embedded Needle admin pages, signed in as `admin`); links to Needle Downloads and User Settings | Needle Admin |
-| Organizations & users | The organization (one today); its Master Recruiters; disable or reset an account; see a user's Needle activity | new; replaces Needle Admin → Users |
+| Organizations & users | Organizations (one today), each with its Drive folder, resume mailbox and intake progress; its Master Recruiters; disable or reset an account; see a user's Needle activity | new; replaces Needle Admin → Users |
 | Audit | Settings changes, support access, Needle admin changes (Needle already audits its runtime controls) | new |
 
 **What organizations keep** (Settings, Master Recruiter):
@@ -214,8 +217,8 @@ Holmes today has Master Recruiter, Recruiter and Coordinator, all inside the one
 | N5 | Replace Verify with "Add to Holmes" in embed mode (single and multi-select); retire the Verified dashboard from the hosted build when Holmes is live | §4.3 |
 | N6 | Embedded admin pages for the operator console (Settings, Facts review, Evals, corpus status) | §5 |
 | N7 | Security fixes found in this review (§7) | before wider use |
-| N8 | **Before launch:** organization scoping of resumes, facts, index, repository, searches and workspace; `workspace.db` in Supabase; per-customer Drive intake | §4.5 |
-| N9 | Resume upload intake for a customer's pool, callable by Holmes with the token; returns a resume id and extracts asynchronously | §4.6 |
+| N8 | **Before launch:** organization scoping of resumes, facts, index, repository, searches and workspace; `workspace.db` in Supabase; a Drive folder and resume mailbox per organization for the existing intake; the existing pool assigned to Njordships | §4.5 |
+| N9 | Resume upload, callable by Holmes with the token: writes the file into the customer's Drive folder and returns an intake reference that resolves to a resume id | §4.6 |
 
 ### Holmes
 
@@ -263,15 +266,15 @@ Decided 2026-11-05:
 - **Retire Holmes's application search** once Needle is embedded.
 - **Every Holmes candidate has a resume** in the resume database (§4.6).
 - **Missing details are completed by the recruiter on the first call** (§4.3), with the entry minimum and the "past contacted" rule.
+- **The existing Needle pool becomes Njordships' pool** (§4.5).
+- **Each customer has its own Drive folder.** Holmes uploads land there; Needle's email and Drive pipelines feed the pool from it. A new customer bulk-moves its resumes into the folder and connects its resume mailbox. Per-customer folders arrive with multi-tenancy; until then there is Njordships' one folder (§4.5).
 
-Open:
-1. **The existing Needle pool:** Njordships' pool, or operator-only (§4.5)?
-2. **Customer intake:** is a Drive folder per customer the right channel besides Holmes upload, or something else (email, bulk upload)?
+Nothing is open.
 
 ## 9. Order
 
 1. **H1, the operator role and console with Integrations moved.** Holmes only; it can start now.
-2. **Needle foundation:** N1–N3 (embed mode, token sign-in, framing and CORS), N7 (security fixes) and N8–N9 (per-customer pools and upload intake). Decide open item 1 before N8 goes live.
+2. **Needle foundation:** N1–N3 (embed mode, token sign-in, framing and CORS), N7 (security fixes) and N8–N9 (multi-tenancy with a folder and mailbox per customer; upload into the folder).
 3. **H2–H3, AI search embedded** behind a flag. Pilot with the operator, then one recruiter. Then H7, retire the old search.
 4. **N4 + H4, Match resumes; N5 + H5, Add to Holmes; H8–H9, candidate fields and required resume.** The case path follows case v1 in production.
 5. **N6 + H6, operator AI pages.**

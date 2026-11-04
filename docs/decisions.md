@@ -22,7 +22,7 @@ Also decided 2026-11-05:
 
 - the existing Needle resume pool becomes Njordships' pool
 - each customer has its own Drive folder, the single way into its pool: uploads from Holmes are written there, the customer's resume mailbox saves attachments there, and a new customer bulk-moves its existing resumes there at onboarding; Needle's Drive intake reads each folder into that customer's pool
-- consequence for Needle: the hosted worker must read one folder per organization (today it reads one folder), and email intake must move from the desktop agent into the hosted worker
+- per-customer folders and mailboxes arrive with Needle multi-tenancy; until then Needle's existing hosted email and Drive intake feed Njordships' one folder
 
 ## 2026-11-02 - Contain Public Data API Exposure
 
