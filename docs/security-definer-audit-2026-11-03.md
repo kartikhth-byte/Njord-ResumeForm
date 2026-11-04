@@ -29,6 +29,15 @@ both projects confirmed the guards and grants; subsequent dry runs were up to
 date. `0208` remains unapplied. The migration and test are on pushed `main`
 at `a268ecc` or later.
 
+On 2026-11-04, `2026110212_close_remaining_unscoped_definer_reads.sql`
+and `2026110213_guard_note_visibility_in_read_rpcs.sql` were applied to
+staging and production. The production dry run listed exactly these two
+migrations, and the subsequent dry run reported up to date. Their 11 and 9
+PGlite checks passed. Production schema-only readback confirms the three
+unscoped helpers are service-role-only, the role predicates check the caller,
+and prospect detail requires `view_prospect_notes` before returning notes.
+The two commits are `e938577` and `1d1fc96`. `0208` remains unapplied.
+
 ## Remaining inventory
 
 The production catalog query below returned 42 `public` SECURITY DEFINER
@@ -40,6 +49,10 @@ Only three were anonymous-executable; all 42 were authenticated-executable.
 direct client access from four more lookup/probe entries, leaving 33; the
 allocator remains authenticated-executable but now checks the caller and
 trigger context before changing the sequence.
+`0212` removed direct client access from three more entries, leaving 30
+callable functions from this historical inventory. `0213` kept the read RPCs
+callable but tightened their returned data. These 30 have now been reviewed
+by caller path; this is not a whole-project RLS or storage audit.
 
 ```sql
 select p.oid::regprocedure::text as fn,
@@ -130,12 +143,44 @@ Authenticated only:
   `create_requirements` permission and trigger context. The normal
   `prepare_requirement_row()` insert path still works; direct client calls
   cannot consume identifiers. Service-role writes remain available.
-- **Still to review:** `get_expiring_documents_summary()` returns global
-  counts, and the remaining trigger-only helpers/recruiter RPCs need targeted
-  caller-path review before considering blanket grant changes.
+- **Closed by `0212`, unscoped reads:** `get_expiring_documents_summary()`
+  returned global expiry counts, `get_team_stats()` returned global team
+  counts, and `compute_should_prompt_close(uuid)` accepted an arbitrary
+  requirement ID. No frontend or Edge Function calls these directly; the
+  close-prompt helper remains available to permission-checked definer RPCs.
+  Direct client EXECUTE is revoked for every overload; service-role calls
+  remain. `current_recruiter_role_name(uuid)`,
+  `is_master_recruiter_profile(uuid)`, and `is_recruiter(uuid)` remain callable
+  because invoker triggers or RLS use them, but cannot inspect another user
+  unless the caller is the service role.
+- **Closed by `0213`, note visibility:** `get_prospect_detail(uuid)` returned
+  internal prospect notes to Coordinators with `view_prospects` but without
+  `view_prospect_notes`. It now checks the separate note permission. Prospect
+  and requirement activity RPCs now hide master-only note/remark events from
+  non-Masters and strip historical note/remark `body` payloads for non-Masters.
+  Current audit writes already redact those bodies; the extra filter covers
+  historical rows and the event metadata. The synthetic role tests passed;
+  live UI role-based smoke was not performed in this rollout.
 
-The remaining functions include trigger-only helpers and recruiter RPCs.
-Inspect each live definition and its call path before tightening grants;
-being SECURITY DEFINER plus executable is not by itself evidence of a leak.
-Do not apply `0208` merely to patch the warning RPC: it has separate data and
+## Reviewed callable paths
+
+- Recruiter write RPCs (`add_*`, `edit_*`, `attach_*`, `bulk_withdraw_junctions`,
+  `create_prospect_with_requirement`, `transfer_requirement_owner`,
+  `transition_*`, and `update_prospect_email_and_clear_bounce`) derive the
+  actor from `auth.uid()` and require the relevant permission before writes.
+- Recruiter detail/activity/export RPCs require their view permission or
+  owner scope. `get_cross_entity_audit` requires `view_audit_log`.
+  `get_application_for_review(text,text)` intentionally accepts anonymous
+  requests but requires a valid expiring review token and its public token.
+- Trigger-returning definer functions cannot be invoked as ordinary RPCs;
+  direct EXECUTE grants alone do not run them. Their trigger call paths were
+  reviewed; revoking their grants would be hygiene, not the leak fix.
+- `is_recruiter_profile(uuid)` remains an authenticated boolean identity
+  probe because existing RLS and CHECK constraints call it for owner,
+  assignee, and author IDs other than the caller. Replace that contract when
+  multi-tenant membership and authorization are redesigned; do not apply a
+  self-only guard without changing those constraints.
+
+Being SECURITY DEFINER plus executable is not by itself evidence of a leak.
+Do not apply `0208` merely as a security patch: it has separate data and
 notification behavior that needs its own staging review.
