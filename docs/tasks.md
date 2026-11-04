@@ -161,6 +161,29 @@ The items below predate this roadmap. Some may already be deployed or superseded
   - shared derivation lives in `src/utils/kpiTracker.js` with data loading in `src/hooks/useKpiTrackerData.js`
   - still needs manual validation against live recruiter data on Vercel
 
+## Pending: Staging Smoke For The UI Audit Changes (recorded 2026-11-04)
+
+The UI audit batches (2a, 2b, 3 and the section 2 trims, commits `ac6bd8e`..`258c1e5` on `ui/warm-theme`) passed lint, build and unit tests and were only partly checked in a local harness. None of it has been smoked on staging or pushed. Run this on staging before pushing or deploying. Details per commit: `docs/ui-audit-2026-11-04.md`, "Progress".
+
+Recruiter, highest risk first:
+- [ ] Reject from the status menu, from a failed test and from a failed interview: status saves, reason and notes show in the one-line banner, the candidate email has a neutral reason sentence (no raw code, no internal notes).
+- [ ] Pass an interview: overall rating required; the candidate email no longer contains the recommendation.
+- [ ] Test/interview scheduling and result emails now call the staging project's edge functions (`30a0f8d`); confirm they are deployed there with their secrets, or note them as expected failures.
+- [ ] Requirement detail: "More" menu; Cancel asks for a reason and succeeds; Archive; Delete; Close; edit form has no Cancelled option for an open requirement; vessel name shows.
+- [ ] Applications list: stage chips (Active, Review, Test, Interview, Offer, Closed) and counts; Closed loads hired/rejected/withdrawn; compliance badges filter; AI search and Filters panels; `?status=` links from the Dashboard.
+- [ ] Dashboard: needs-action cards for a Recruiter and for the Master (whole team / one recruiter); KPI no longer shows "Needs action"; conversion in the KPI exports names the period.
+- [ ] Application detail: one compliance panel (with and without a linked requirement), worksheet modal generates a file, no "undefined" in physical details.
+- [ ] Settings: tabs, Team list, Send reset email for another member, Add/Edit member (8-character password).
+- [ ] Requirements and Candidates lists: Filled and Days open columns, stage dropdown, Joined column, "Added by" only for Master.
+- [ ] Expiry at `/recruiter/expiry` (old `/dashboard/expiry` redirects); Send expiry warnings asks to confirm.
+- [ ] Coordinator: still read-only everywhere above.
+
+Applicant:
+- [ ] Draft: dashboard → Continue opens the first incomplete section → Previous/Next through the form → Review lists incomplete sections as links → Submit.
+- [ ] New application from a submitted one: prefilled, without declarations, signature or availability date.
+- [ ] Long form: Sections 10, 13 and 19 without the removed fields; old submitted applications still show their stored values.
+- [ ] Sign-in pages, `/unauthorized`, `/recruiter/setup` (locked state).
+
 ## Immediate Next Slice
 
 Start with milestone 1 in the ordered backlog, then the single-organization recruitment case v1 in milestone 2. Carry a seeded `organization_id`; do not wait for full multi-organization access work to correct the case flow. Existing worksheet and manual QA items above can be verified separately, but they do not replace that redesign.
