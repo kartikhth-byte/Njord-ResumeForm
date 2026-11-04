@@ -1,6 +1,6 @@
 // Recruitment case v1 — migration tests against an in-memory Postgres (PGlite).
 // Stubs auth.uid(), has_permission() and the referenced tables; does not touch any real database.
-// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node recruitment_case_v1.test.mjs <path-to>/supabase/migrations/2026110207_recruitment_case_v1.sql
+// Run from a scratch dir:  npm i @electric-sql/pglite@0.2 && node recruitment_case_v1.test.mjs <path-to>/supabase/migrations/2026110221_recruitment_case_v1.sql
 import { PGlite } from '@electric-sql/pglite'
 import fs from 'node:fs'
 const MIG = process.argv[2]

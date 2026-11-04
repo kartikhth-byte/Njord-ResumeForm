@@ -4,7 +4,7 @@ import test from 'node:test'
 import fs from 'node:fs'
 import { CASE_ALLOWED_NEXT, CASE_STATUS_META, CASE_LEGACY_TARGETS, caseNextActions, caseErrorMessage, isCaseTableMissing } from '../src/utils/recruitmentCase.js'
 
-const sql = fs.readFileSync(new URL('../supabase/migrations/2026110207_recruitment_case_v1.sql', import.meta.url), 'utf8')
+const sql = fs.readFileSync(new URL('../supabase/migrations/2026110221_recruitment_case_v1.sql', import.meta.url), 'utf8')
 
 test('allowed-next map matches recruitment_case_allowed_next()', () => {
   const body = sql.slice(sql.indexOf('function public.recruitment_case_allowed_next'), sql.indexOf('function public.recruitment_case_post_interview'))

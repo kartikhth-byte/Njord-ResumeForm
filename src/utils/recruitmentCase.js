@@ -1,5 +1,5 @@
 // Recruitment case v1 — client mirror of the transition rules in
-// supabase/migrations/2026110207_recruitment_case_v1.sql. The database is the
+// supabase/migrations/2026110221_recruitment_case_v1.sql. The database is the
 // authority (recruitment_case_transition enforces every rule); this mirror only
 // decides which buttons to show. tests/recruitmentCase.test.mjs checks that the
 // two stay in sync.

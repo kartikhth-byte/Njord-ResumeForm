@@ -2,7 +2,11 @@
 -- Spec: docs/recruitment-flow.md, docs/platform-review-findings.md §3–4.
 -- Additive only: no existing table or status is changed. Writes go through the
 -- RPCs below (security definer); tables are read-only to clients.
--- Applied to Holmes staging on 2026-11-03; not applied to production.
+-- Applied to Holmes staging on 2026-11-03 as 2026110207; renumbered to 2026110221
+-- on 2026-11-04 so it sorts after the applied 0209-0220 (staging history repaired,
+-- SQL not rerun). Not applied to production.
+-- The backfill idempotency key stays 'backfill:2026110207' on purpose: staging's
+-- backfilled events carry it, so a rerun anywhere still skips existing rows.
 
 -- ---------------------------------------------------------------------------
 -- Organizations (one seeded organization; multi-organization RLS comes later)
