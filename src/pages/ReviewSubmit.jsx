@@ -449,18 +449,6 @@ const handleConfirmSubmit = async () => {
                 {renderField('COVID Vaccinated', sectionData.vaccinations.covidVaccinated)}
                 {renderField('COVID Doses', sectionData.vaccinations.covidDoses)}
                 {renderField('COVID Last Dose Date', sectionData.vaccinations.covidLastDoseDate)}
-                {renderField('Hepatitis A', sectionData.vaccinations.hepatitisA)}
-                {renderField('Hepatitis A Date', sectionData.vaccinations.hepatitisADate)}
-                {renderField('Hepatitis B', sectionData.vaccinations.hepatitisB)}
-                {renderField('Hepatitis B Date', sectionData.vaccinations.hepatitisBDate)}
-                {renderField('Typhoid', sectionData.vaccinations.typhoid)}
-                {renderField('Typhoid Date', sectionData.vaccinations.typhoidDate)}
-                {renderField('Tetanus', sectionData.vaccinations.tetanus)}
-                {renderField('Tetanus Date', sectionData.vaccinations.tetanusDate)}
-                {renderField('Measles', sectionData.vaccinations.measles)}
-                {renderField('Measles Date', sectionData.vaccinations.measlesDate)}
-                {renderField('Polio', sectionData.vaccinations.polio)}
-                {renderField('Polio Date', sectionData.vaccinations.polioDate)}
                 {renderField('Other Vaccinations', sectionData.vaccinations.otherVaccinations)}
               </div>
             )}

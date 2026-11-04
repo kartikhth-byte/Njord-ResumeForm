@@ -2,26 +2,6 @@ import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
 
-const HAIR_COLOR_OPTIONS = [
-  { value: 'black', label: 'Black' },
-  { value: 'brown', label: 'Brown' },
-  { value: 'blonde', label: 'Blonde' },
-  { value: 'red', label: 'Red' },
-  { value: 'gray', label: 'Gray/White' },
-  { value: 'bald', label: 'Bald' },
-  { value: 'other', label: 'Other' },
-]
-
-const EYE_COLOR_OPTIONS = [
-  { value: 'brown', label: 'Brown' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'green', label: 'Green' },
-  { value: 'hazel', label: 'Hazel' },
-  { value: 'gray', label: 'Gray' },
-  { value: 'black', label: 'Black' },
-  { value: 'other', label: 'Other' },
-]
-
 const HEIGHT_UNIT_OPTIONS = [
   { value: 'cm', label: 'cm' },
   { value: 'm', label: 'm' },
@@ -58,8 +38,6 @@ export default function Section13({ data = {}, onUpdate }) {
     heightUnit: data.heightUnit || 'cm',
     weight: data.weight || '',
     weightUnit: data.weightUnit || 'kg',
-    hairColor: data.hairColor || '',
-    eyeColor: data.eyeColor || '',
     shoeSize: data.shoeSize || '',
 shoeSizeUnit: data.shoeSizeUnit || '',
     boilerSuitSize: data.boilerSuitSize || '',
@@ -78,8 +56,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
         heightUnit: data.heightUnit || 'cm',
         weight: data.weight || '',
         weightUnit: data.weightUnit || 'kg',
-        hairColor: data.hairColor || '',
-        eyeColor: data.eyeColor || '',
         shoeSize: data.shoeSize || '',
 shoeSizeUnit: data.shoeSizeUnit || '',
         boilerSuitSize: data.boilerSuitSize || '',
@@ -96,10 +72,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
         return !value ? 'Height is required' : ''
       case 'weight':
         return !value ? 'Weight is required' : ''
-      case 'hairColor':
-        return !value ? 'Hair color is required' : ''
-      case 'eyeColor':
-        return !value ? 'Eye color is required' : ''
       case 'shoeSize':
         return !value ? 'Shoe size is required' : ''
       case 'boilerSuitSize':
@@ -225,30 +197,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                 <p className="mt-1 text-sm text-danger">{errors.weight}</p>
               )}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormSelect
-              label="Hair Color"
-              name="hairColor"
-              required
-              value={formData.hairColor}
-              onChange={handleChange}
-              onBlur={() => handleBlur('hairColor')}
-              options={HAIR_COLOR_OPTIONS}
-              error={touched.hairColor ? errors.hairColor : ''}
-            />
-
-            <FormSelect
-              label="Eye Color"
-              name="eyeColor"
-              required
-              value={formData.eyeColor}
-              onChange={handleChange}
-              onBlur={() => handleBlur('eyeColor')}
-              options={EYE_COLOR_OPTIONS}
-              error={touched.eyeColor ? errors.eyeColor : ''}
-            />
           </div>
         </div>
 

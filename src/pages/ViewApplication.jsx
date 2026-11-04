@@ -1026,8 +1026,8 @@ export default function ViewApplication() {
           <ViewSection title="Physical Details & Uniform Sizes">
             <ViewRow label="Height" value={`${applicationData?.section13?.height} ${applicationData?.section13?.heightUnit || ''}`} />
             <ViewRow label="Weight" value={`${applicationData?.section13?.weight} ${applicationData?.section13?.weightUnit || ''}`} />
-            <ViewRow label="Eye Color" value={applicationData?.section13?.eyeColor} />
-            <ViewRow label="Hair Color" value={applicationData?.section13?.hairColor} />
+            {applicationData?.section13?.eyeColor && <ViewRow label="Eye Color" value={applicationData.section13.eyeColor} />}
+            {applicationData?.section13?.hairColor && <ViewRow label="Hair Color" value={applicationData.section13.hairColor} />}
             <ViewRow label="Shoe Size" value={`${applicationData?.section13?.shoeSize} ${applicationData?.section13?.shoeSizeUnit || ''}`} />
             <ViewRow label="Boiler Suit Size" value={applicationData?.section13?.boilerSuitSize} />
             <ViewRow label="Uniform Shirt Size" value={applicationData?.section13?.uniformShirtSize} />

@@ -30,18 +30,6 @@ export default function Section10({ data = {}, onUpdate }) {
       covidVaccinated: data.vaccinations?.covidVaccinated || false,
       covidDoses: data.vaccinations?.covidDoses || '',
       covidLastDoseDate: data.vaccinations?.covidLastDoseDate || '',
-      hepatitisA: data.vaccinations?.hepatitisA || false,
-      hepatitisADate: data.vaccinations?.hepatitisADate || '',
-      hepatitisB: data.vaccinations?.hepatitisB || false,
-      hepatitisBDate: data.vaccinations?.hepatitisBDate || '',
-      typhoid: data.vaccinations?.typhoid || false,
-      typhoidDate: data.vaccinations?.typhoidDate || '',
-      tetanus: data.vaccinations?.tetanus || false,
-      tetanusDate: data.vaccinations?.tetanusDate || '',
-      measles: data.vaccinations?.measles || false,
-      measlesDate: data.vaccinations?.measlesDate || '',
-      polio: data.vaccinations?.polio || false,
-      polioDate: data.vaccinations?.polioDate || '',
       otherVaccinations: data.vaccinations?.otherVaccinations || '',
     }
   })
@@ -61,18 +49,6 @@ export default function Section10({ data = {}, onUpdate }) {
           covidVaccinated: data.vaccinations?.covidVaccinated || false,
           covidDoses: data.vaccinations?.covidDoses || '',
           covidLastDoseDate: data.vaccinations?.covidLastDoseDate || '',
-          hepatitisA: data.vaccinations?.hepatitisA || false,
-          hepatitisADate: data.vaccinations?.hepatitisADate || '',
-          hepatitisB: data.vaccinations?.hepatitisB || false,
-          hepatitisBDate: data.vaccinations?.hepatitisBDate || '',
-          typhoid: data.vaccinations?.typhoid || false,
-          typhoidDate: data.vaccinations?.typhoidDate || '',
-          tetanus: data.vaccinations?.tetanus || false,
-          tetanusDate: data.vaccinations?.tetanusDate || '',
-          measles: data.vaccinations?.measles || false,
-          measlesDate: data.vaccinations?.measlesDate || '',
-          polio: data.vaccinations?.polio || false,
-          polioDate: data.vaccinations?.polioDate || '',
           otherVaccinations: data.vaccinations?.otherVaccinations || '',
         }
       })
@@ -319,184 +295,16 @@ export default function Section10({ data = {}, onUpdate }) {
           )}
         </div>
 
-        {/* Hepatitis A */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="hepatitisA"
-              checked={formData.vaccinations.hepatitisA}
-              onChange={(e) => handleVaccinationChange('hepatitisA', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="hepatitisA" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Hepatitis A
-            </label>
-          </div>
-
-          {formData.vaccinations.hepatitisA && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="hepatitisADate"
-                value={formData.vaccinations.hepatitisADate}
-                onChange={(e) => handleVaccinationChange('hepatitisADate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Hepatitis B */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="hepatitisB"
-              checked={formData.vaccinations.hepatitisB}
-              onChange={(e) => handleVaccinationChange('hepatitisB', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="hepatitisB" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Hepatitis B
-            </label>
-          </div>
-
-          {formData.vaccinations.hepatitisB && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="hepatitisBDate"
-                value={formData.vaccinations.hepatitisBDate}
-                onChange={(e) => handleVaccinationChange('hepatitisBDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Typhoid */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="typhoid"
-              checked={formData.vaccinations.typhoid}
-              onChange={(e) => handleVaccinationChange('typhoid', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="typhoid" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Typhoid
-            </label>
-          </div>
-
-          {formData.vaccinations.typhoid && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="typhoidDate"
-                value={formData.vaccinations.typhoidDate}
-                onChange={(e) => handleVaccinationChange('typhoidDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Tetanus */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="tetanus"
-              checked={formData.vaccinations.tetanus}
-              onChange={(e) => handleVaccinationChange('tetanus', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="tetanus" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Tetanus
-            </label>
-          </div>
-
-          {formData.vaccinations.tetanus && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="tetanusDate"
-                value={formData.vaccinations.tetanusDate}
-                onChange={(e) => handleVaccinationChange('tetanusDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Measles */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="measles"
-              checked={formData.vaccinations.measles}
-              onChange={(e) => handleVaccinationChange('measles', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="measles" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Measles
-            </label>
-          </div>
-
-          {formData.vaccinations.measles && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="measlesDate"
-                value={formData.vaccinations.measlesDate}
-                onChange={(e) => handleVaccinationChange('measlesDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Polio */}
-        <div className="space-y-3">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="polio"
-              checked={formData.vaccinations.polio}
-              onChange={(e) => handleVaccinationChange('polio', e.target.checked)}
-              className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
-            />
-            <label htmlFor="polio" className="ml-3 block text-sm font-medium text-fg-secondary">
-              Polio
-            </label>
-          </div>
-
-          {formData.vaccinations.polio && (
-            <div className="ml-7">
-              <FormDatePicker
-                label="Date of Vaccination"
-                name="polioDate"
-                value={formData.vaccinations.polioDate}
-                onChange={(e) => handleVaccinationChange('polioDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          )}
-        </div>
-
         {/* Other Vaccinations */}
         <div className="space-y-3">
           <FormInput
-            label="Other Vaccinations (if any)"
+            label="Other vaccinations"
             name="otherVaccinations"
             type="textarea"
             rows={3}
             value={formData.vaccinations.otherVaccinations}
             onChange={(e) => handleVaccinationChange('otherVaccinations', e.target.value)}
-            placeholder="List any other vaccinations you have received"
+            placeholder="e.g. Hepatitis B 2024, Typhoid 2023"
           />
         </div>
       </div>

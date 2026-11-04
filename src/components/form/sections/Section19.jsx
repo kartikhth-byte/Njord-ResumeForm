@@ -13,7 +13,6 @@ export default function Section19({ data = {}, onUpdate }) {
     noticePeriod: data.noticePeriod || '',
     preferredJoinDate: data.preferredJoinDate || '',
     contractDuration: data.contractDuration || '',
-    salaryExpectation: data.salaryExpectation || '',
     accuracyDeclaration: data.accuracyDeclaration || false,
     backgroundCheckConsent: data.backgroundCheckConsent || false,
     dataProcessingConsent: data.dataProcessingConsent || false,
@@ -37,7 +36,6 @@ export default function Section19({ data = {}, onUpdate }) {
         noticePeriod: data.noticePeriod || '',
         preferredJoinDate: data.preferredJoinDate || '',
         contractDuration: data.contractDuration || '',
-        salaryExpectation: data.salaryExpectation || '',
         accuracyDeclaration: data.accuracyDeclaration || false,
         backgroundCheckConsent: data.backgroundCheckConsent || false,
         dataProcessingConsent: data.dataProcessingConsent || false,
@@ -212,14 +210,6 @@ export default function Section19({ data = {}, onUpdate }) {
             value={formData.contractDuration}
             onChange={handleChange}
             placeholder="e.g., 4-6 months, 6-9 months"
-          />
-
-          <FormInput
-            label="Salary Expectation"
-            name="salaryExpectation"
-            value={formData.salaryExpectation}
-            onChange={handleChange}
-            placeholder="e.g., USD 5,000/month"
           />
         </div>
       </div>
