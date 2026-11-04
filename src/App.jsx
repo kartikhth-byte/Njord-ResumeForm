@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
 import { usePermissions } from './hooks/usePermissions'
@@ -29,7 +29,6 @@ import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 import RecruiterSettings from './pages/RecruiterSettings'
-import RecruiterWorkspace from './pages/RecruiterWorkspace'
 import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
@@ -142,6 +141,11 @@ function RootRedirect() {
   return null
 }
 
+function WorkspaceRedirect() {
+  const [searchParams] = useSearchParams()
+  return <Navigate to={searchParams.get('tab') === 'candidates' ? '/recruiter/candidates' : '/recruiter/requirements'} replace />
+}
+
 function RecruiterProspectDetailRedirect() {
   const { prospectId } = useParams()
   return <Navigate to={`/recruiter/workspace/prospects/${prospectId}`} replace />
@@ -214,9 +218,10 @@ function App() {
               </RecruiterRoute>
             } />
 
+            {/* The Workspace page was merged into Requirements and Candidates. */}
             <Route path="/recruiter/workspace" element={
               <RecruiterRoute>
-                <RecruiterWorkspace />
+                <WorkspaceRedirect />
               </RecruiterRoute>
             } />
 
@@ -282,7 +287,7 @@ function App() {
 
             <Route path="/recruiter/prospects" element={
               <RecruiterRoute>
-                <Navigate to="/recruiter/workspace" replace />
+                <Navigate to="/recruiter/candidates" replace />
               </RecruiterRoute>
             } />
 

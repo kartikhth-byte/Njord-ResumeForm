@@ -7,6 +7,13 @@ import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
+import { SelectField } from '../components/recruiter/RecordFormFields'
+import {
+  archiveCandidate,
+  attachCandidateToRequirement,
+  canDeleteRecord,
+  deleteCandidate,
+} from '../services/recruiterRecordService'
 import StatCard from '../components/ui/StatCard'
 import {
   ArrowLeft,
@@ -43,7 +50,7 @@ export default function RecruiterProspectDetail() {
   const location = useLocation()
   const { prospectId } = useParams()
   // Return to wherever this page was opened from (workspace, tracker, detail…).
-  const backTo = location.state?.from || '/recruiter/workspace?tab=candidates'
+  const backTo = location.state?.from || '/recruiter/candidates'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
   const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
@@ -67,6 +74,12 @@ export default function RecruiterProspectDetail() {
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteStatus, setInviteStatus] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [attachOptions, setAttachOptions] = useState(null) // null = picker closed
+  const [attachValue, setAttachValue] = useState('')
+  const [notice, setNotice] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [acting, setActing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -184,7 +197,7 @@ export default function RecruiterProspectDetail() {
     return () => {
       cancelled = true
     }
-  }, [user, permLoading, prospectId, canViewApplicationTokens])
+  }, [user, permLoading, prospectId, canViewApplicationTokens, reloadToken])
 
   const linkedRequirementMap = useMemo(() => buildLookupMap(linkedRequirements), [linkedRequirements])
 
@@ -296,6 +309,50 @@ export default function RecruiterProspectDetail() {
   const vesselName = getLookupName(lookupMaps.vessel_types, prospect.vessel_type_id, 'Unknown vessel')
 
   const statusMeta = getStatusMeta(PROSPECT_STATUS_META, prospect.status)
+  const canAttach = permissions.includes('edit_junction_status') && !prospect.archived_at && !prospect.deleted_at
+  const canManageCandidate = permissions.includes('archive_prospects') || permissions.includes('delete_prospects') || permissions.includes('edit_prospects')
+  const canDeleteThis = canManageCandidate && !prospect.deleted_at && canDeleteRecord({ role, createdAt: prospect.created_at })
+  const currentRecruiterId = profile?.id || user?.id || ''
+
+  const runAction = async (fn, message, after) => {
+    setActing(true)
+    setActionError('')
+    setNotice('')
+    try {
+      await fn()
+      setNotice(message)
+      if (after) after()
+      else setReloadToken((token) => token + 1)
+    } catch (actionErr) {
+      setActionError(actionErr?.message || 'The candidate could not be updated.')
+    } finally {
+      setActing(false)
+    }
+  }
+
+  // Open requirements this candidate is not linked to yet.
+  const openAttachPicker = async () => {
+    setActionError('')
+    const linked = new Set(junctions.map((junction) => junction.requirement_id))
+    const { data, error: loadError } = await supabase
+      .from('requirements')
+      .select('id, req_id_display, customer_name, status, archived_at, deleted_at')
+      .eq('status', 'open')
+      .order('date_opened', { ascending: false })
+    if (loadError) {
+      setActionError(loadError.message)
+      return
+    }
+    setAttachValue('')
+    setAttachOptions((data || [])
+      .filter((row) => !row.archived_at && !row.deleted_at && !linked.has(row.id))
+      .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` })))
+  }
+
+  const onDelete = () => {
+    if (!window.confirm(`Delete candidate ${prospect.name}? This is a restricted action.`)) return
+    runAction(() => deleteCandidate(prospect, currentRecruiterId), 'Candidate deleted.', () => navigate('/recruiter/candidates'))
+  }
   const canEditProspect = permissions.includes('edit_prospects')
   const canSendInvite = permissions.includes('send_prospect_invites')
 
@@ -480,13 +537,21 @@ export default function RecruiterProspectDetail() {
                   <ArrowLeft className="h-4 w-4" />
                   Back to prospects
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
-                  className="workspace-action-button workspace-action-button--primary"
-                >
-                  Open enrollment workspace
-                </button>
+                {canAttach && attachOptions === null ? (
+                  <button type="button" disabled={acting} onClick={openAttachPicker} className="workspace-action-button workspace-action-button--primary">
+                    Attach to requirement
+                  </button>
+                ) : null}
+                {canManageCandidate && !prospect.archived_at && !prospect.deleted_at ? (
+                  <button type="button" disabled={acting} onClick={() => runAction(() => archiveCandidate(prospect), 'Candidate archived.')} className="workspace-action-button workspace-action-button--secondary">
+                    Archive
+                  </button>
+                ) : null}
+                {canDeleteThis ? (
+                  <button type="button" disabled={acting} onClick={onDelete} className="workspace-action-button workspace-action-button--secondary">
+                    Delete
+                  </button>
+                ) : null}
               </div>
             }
           >
@@ -498,6 +563,46 @@ export default function RecruiterProspectDetail() {
               {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
           </PageHeader>
+
+          {notice ? <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
+          {actionError ? <div className="mt-4 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
+          {attachOptions !== null ? (
+            <form
+              className="recruiter-panel mt-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
+              onSubmit={(event) => {
+                event.preventDefault()
+                runAction(() => attachCandidateToRequirement(prospect.id, attachValue), 'Candidate attached to requirement.', () => {
+                  setAttachOptions(null)
+                  setReloadToken((token) => token + 1)
+                })
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                {attachOptions.length === 0 ? (
+                  <p className="text-sm text-fg-secondary">No open requirements left to attach {prospect.name} to.</p>
+                ) : (
+                  <SelectField
+                    label={`Attach ${prospect.name} to`}
+                    value={attachValue}
+                    onChange={setAttachValue}
+                    options={attachOptions}
+                    placeholder="Choose an open requirement"
+                    required
+                  />
+                )}
+              </div>
+              <div className="flex gap-2">
+                {attachOptions.length > 0 ? (
+                  <button type="submit" disabled={!attachValue || acting} className="workspace-action-button workspace-action-button--primary">
+                    Attach
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setAttachOptions(null)} className="workspace-action-button workspace-action-button--secondary">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : null}
 
           <div className="workspace-kpi-grid">
             <StatCard label="Notes" value={notes.length} icon={FileText} tone="accent" />
@@ -558,10 +663,11 @@ export default function RecruiterProspectDetail() {
                         action={
                           <button
                             type="button"
-                            onClick={() => navigate('/recruiter/workspace?tab=candidates')}
+                            onClick={openAttachPicker}
+                            disabled={!canAttach}
                             className="workspace-action-button workspace-action-button--primary"
                           >
-                            Open enrollment workspace
+                            Attach to requirement
                           </button>
                         }
                       />

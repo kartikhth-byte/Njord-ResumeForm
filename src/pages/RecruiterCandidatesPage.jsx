@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import CandidateForm from '../components/recruiter/CandidateForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -32,6 +33,7 @@ import {
 
 const VIEW_FILTERS = [
   { value: 'active', label: 'Active pipeline' },
+  { value: 'unattached', label: 'Unattached' },
   { value: 'joined', label: 'Joined' },
   { value: 'closed', label: 'Rejected / Withdrawn' },
   { value: 'archived', label: 'Archived' },
@@ -41,7 +43,11 @@ const VIEW_FILTERS = [
 export default function RecruiterCandidatesPage() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading, canExportData } = usePermissions()
+  const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
+  const canCreateCandidates = hasPermission('create_prospects')
+  const canAttachCandidates = hasPermission('edit_junction_status')
+  const [showForm, setShowForm] = useState(false)
+  const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
   // Filters can be preset from the URL (links from KPI and Dashboard counts).
@@ -67,6 +73,7 @@ export default function RecruiterCandidatesPage() {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
       if (viewFilter === 'active' && !row.inActivePipeline) return false
+      if (viewFilter === 'unattached' && !(row.requirementCount === 0 && !row.isArchived)) return false
       if (viewFilter === 'joined' && !(row.hasJoined && !row.isArchived)) return false
       if (viewFilter === 'closed' && !(['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived)) return false
       if (viewFilter === 'archived' && !row.isArchived) return false
@@ -87,6 +94,7 @@ export default function RecruiterCandidatesPage() {
 
   const viewCounts = useMemo(() => ({
     active: rows.filter((row) => row.inActivePipeline).length,
+    unattached: rows.filter((row) => row.requirementCount === 0 && !row.isArchived).length,
     joined: rows.filter((row) => row.hasJoined && !row.isArchived).length,
     closed: rows.filter((row) => ['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived).length,
     archived: rows.filter((row) => row.isArchived).length,
@@ -184,16 +192,41 @@ export default function RecruiterCandidatesPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              <Link
-                to="/recruiter/workspace?tab=candidates"
-                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
-              >
-                <Plus className="h-4 w-4" />
-                Add candidate
-              </Link>
+              {canCreateCandidates && !showForm ? (
+                <button
+                  type="button"
+                  onClick={() => { setNotice(''); setShowForm(true) }}
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                >
+                  <Plus className="h-4 w-4" />
+                  New candidate
+                </button>
+              ) : null}
             </div>
           )}
         />
+
+        {notice ? (
+          <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
+        ) : null}
+
+        {showForm ? (
+          <div className="mt-6">
+            <CandidateForm
+              ranks={tracker.data.ranks}
+              vesselTypes={tracker.data.vesselTypes}
+              recruiters={workingRecruiters(tracker.data.recruiters)}
+              requirementOptions={tracker.data.requirements
+                .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
+                .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` }))}
+              currentRecruiterId={profile?.id || user?.id || ''}
+              canAttach={canAttachCandidates}
+              canSave={canCreateCandidates}
+              onCancel={() => setShowForm(false)}
+              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+            />
+          </div>
+        ) : null}
 
         {exportError ? (
           <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">

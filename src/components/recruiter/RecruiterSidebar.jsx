@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
-  Briefcase,
   CalendarDays,
   ChevronsUpDown,
   ClipboardList,
@@ -58,10 +57,9 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     {
       label: 'Recruit',
       items: [
-        { key: 'workspace', label: 'Workspace', icon: Briefcase, path: '/recruiter/workspace', match: ['/recruiter/workspace', '/recruiter/prospects'] },
+        { key: 'requirements', label: 'Requirements', icon: ClipboardList, path: '/recruiter/requirements', match: ['/recruiter/requirements', '/recruiter/workspace/requirements'] },
+        { key: 'candidates', label: 'Candidates', icon: Users, path: '/recruiter/candidates', match: ['/recruiter/candidates', '/recruiter/workspace/prospects', '/recruiter/prospects'] },
         { key: 'applications', label: 'Applications', icon: Inbox, path: '/recruiter/applications', match: ['/recruiter/applications', '/application/view'] },
-        { key: 'candidates', label: 'Candidates', icon: Users, path: '/recruiter/candidates' },
-        { key: 'requirements', label: 'Requirements', icon: ClipboardList, path: '/recruiter/requirements' },
       ],
     },
     {

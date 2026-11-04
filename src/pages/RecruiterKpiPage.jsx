@@ -595,7 +595,7 @@ export default function RecruiterKpiPage() {
               </Link>
             ) : null}
             {actions.unclaimedInvites.length > 0 ? (
-              <Link to="/recruiter/workspace?tab=candidates" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
+              <Link to="/recruiter/candidates?view=active" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
                 <div className="font-semibold text-fg">{actions.unclaimedInvites.length} invite{actions.unclaimedInvites.length === 1 ? '' : 's'} not claimed</div>
               </Link>
             ) : null}

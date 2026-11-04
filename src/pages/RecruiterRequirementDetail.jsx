@@ -8,6 +8,13 @@ import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
 import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
+import RequirementForm from '../components/recruiter/RequirementForm'
+import {
+  archiveRequirement,
+  canDeleteRecord,
+  deleteRequirement,
+  setRequirementStatus,
+} from '../services/recruiterRecordService'
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,7 +51,7 @@ export default function RecruiterRequirementDetail() {
   const location = useLocation()
   const { requirementId } = useParams()
   // Return to wherever this page was opened from (tracker, KPI, workspace…).
-  const backTo = location.state?.from || '/recruiter/workspace?tab=requirements'
+  const backTo = location.state?.from || '/recruiter/requirements'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
   const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
@@ -58,6 +65,11 @@ export default function RecruiterRequirementDetail() {
   const [linkedProspects, setLinkedProspects] = useState([])
   const [nationalityRows, setNationalityRows] = useState([])
   const [authorMap, setAuthorMap] = useState({})
+  const [editing, setEditing] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [notice, setNotice] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [acting, setActing] = useState(false)
   const [lookupMaps, setLookupMaps] = useState({
     countries: {},
     ranks: {},
@@ -83,7 +95,7 @@ export default function RecruiterRequirementDetail() {
         ] = await Promise.all([
           supabase
             .from('requirements')
-            .select('id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id')
+            .select('id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
             .eq('id', requirementId)
             .maybeSingle(),
           supabase
@@ -173,7 +185,7 @@ export default function RecruiterRequirementDetail() {
     return () => {
       cancelled = true
     }
-  }, [user, permLoading, requirementId])
+  }, [user, permLoading, requirementId, reloadToken])
 
   const linkedProspectMap = useMemo(() => buildLookupMap(linkedProspects), [linkedProspects])
 
@@ -378,6 +390,32 @@ export default function RecruiterRequirementDetail() {
   }
 
   const statusMeta = getStatusMeta(REQUIREMENT_STATUS_META, requirement.status)
+  const canEditRequirement = permissions.includes('create_requirements') || permissions.includes('edit_requirements')
+  const canArchiveRequirement = permissions.includes('edit_requirements') || permissions.includes('archive_prospects')
+  const canDeleteThis = canDeleteRecord({ role, createdAt: requirement.created_at })
+  const currentRecruiterId = profile?.id || user?.id || ''
+
+  const runAction = async (fn, message, after) => {
+    setActing(true)
+    setActionError('')
+    setNotice('')
+    try {
+      await fn()
+      setNotice(message)
+      if (after) after()
+      else setReloadToken((token) => token + 1)
+    } catch (actionErr) {
+      setActionError(actionErr?.message || 'The requirement could not be updated.')
+    } finally {
+      setActing(false)
+    }
+  }
+
+  const onDelete = () => {
+    if (!window.confirm(`Delete requirement ${requirement.req_id_display}? This is a restricted action.`)) return
+    runAction(() => deleteRequirement(requirement, currentRecruiterId), 'Requirement deleted.', () => navigate('/recruiter/requirements'))
+  }
+
   const rankName = getLookupName(lookupMaps.ranks, requirement.rank_id, 'Unknown rank')
   const vesselTypeName = getLookupName(lookupMaps.vessel_types, requirement.vessel_type_id, 'Unknown vessel')
 
@@ -427,13 +465,31 @@ export default function RecruiterRequirementDetail() {
                   <ArrowLeft className="h-4 w-4" />
                   Back to requirements
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
-                  className="workspace-action-button workspace-action-button--primary"
-                >
-                  Open enrollment workspace
-                </button>
+                {canEditRequirement && !editing ? (
+                  <button type="button" disabled={acting} onClick={() => setEditing(true)} className="workspace-action-button workspace-action-button--primary">
+                    Edit
+                  </button>
+                ) : null}
+                {canEditRequirement && requirement.status === 'open' ? (
+                  <>
+                    <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')} className="workspace-action-button workspace-action-button--secondary">
+                      Close
+                    </button>
+                    <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'cancelled'), 'Requirement cancelled.')} className="workspace-action-button workspace-action-button--secondary">
+                      Cancel requirement
+                    </button>
+                  </>
+                ) : null}
+                {canArchiveRequirement && !requirement.archived_at ? (
+                  <button type="button" disabled={acting} onClick={() => runAction(() => archiveRequirement(requirement, currentRecruiterId), 'Requirement archived.')} className="workspace-action-button workspace-action-button--secondary">
+                    Archive
+                  </button>
+                ) : null}
+                {canEditRequirement && canDeleteThis ? (
+                  <button type="button" disabled={acting} onClick={onDelete} className="workspace-action-button workspace-action-button--secondary">
+                    Delete
+                  </button>
+                ) : null}
               </div>
             }
           >
@@ -446,6 +502,22 @@ export default function RecruiterRequirementDetail() {
               </span>
             </div>
           </PageHeader>
+
+          {notice ? <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
+          {actionError ? <div className="mt-4 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
+          {editing ? (
+            <div className="mt-4">
+              <RequirementForm
+                requirement={requirement}
+                ranks={Object.values(lookupMaps.ranks)}
+                vesselTypes={Object.values(lookupMaps.vessel_types)}
+                currentRecruiterId={currentRecruiterId}
+                canSave={canEditRequirement}
+                onCancel={() => setEditing(false)}
+                onSaved={(message) => { setEditing(false); setNotice(message); setReloadToken((token) => token + 1) }}
+              />
+            </div>
+          ) : null}
 
           <div className="workspace-kpi-grid">
             <StatCard label="Linked prospects" value={junctions.length} icon={Users} tone="accent" />
@@ -523,10 +595,10 @@ export default function RecruiterRequirementDetail() {
                         action={
                           <button
                             type="button"
-                            onClick={() => navigate('/recruiter/workspace?tab=candidates')}
+                            onClick={() => navigate('/recruiter/candidates')}
                             className="workspace-action-button workspace-action-button--primary"
                           >
-                            Open enrollment workspace
+                            Open candidates
                           </button>
                         }
                       />

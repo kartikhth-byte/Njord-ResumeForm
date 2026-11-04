@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import RequirementForm from '../components/recruiter/RequirementForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -38,7 +39,11 @@ const STATUS_FILTERS = [
 export default function RecruiterRequirementsPage() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading, canExportData } = usePermissions()
+  const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
+  const canCreateRequirements = hasPermission('create_requirements') || hasPermission('edit_requirements')
+  const canChooseRecruiter = role === 'Master Recruiter' || hasPermission('manage_runtime_settings') || hasPermission('manage_settings')
+  const [showForm, setShowForm] = useState(false)
+  const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
   // Filters can be preset from the URL (links from KPI and Dashboard counts).
@@ -178,16 +183,38 @@ export default function RecruiterRequirementsPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              <Link
-                to="/recruiter/workspace"
-                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
-              >
-                <Plus className="h-4 w-4" />
-                Add requirement
-              </Link>
+              {canCreateRequirements && !showForm ? (
+                <button
+                  type="button"
+                  onClick={() => { setNotice(''); setShowForm(true) }}
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                >
+                  <Plus className="h-4 w-4" />
+                  New requirement
+                </button>
+              ) : null}
             </div>
           )}
         />
+
+        {notice ? (
+          <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
+        ) : null}
+
+        {showForm ? (
+          <div className="mt-6">
+            <RequirementForm
+              ranks={tracker.data.ranks}
+              vesselTypes={tracker.data.vesselTypes}
+              recruiters={workingRecruiters(tracker.data.recruiters)}
+              currentRecruiterId={profile?.id || user?.id || ''}
+              canChooseRecruiter={canChooseRecruiter}
+              canSave={canCreateRequirements}
+              onCancel={() => setShowForm(false)}
+              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+            />
+          </div>
+        ) : null}
 
         {exportError ? (
           <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
