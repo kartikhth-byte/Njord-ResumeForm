@@ -171,6 +171,9 @@ export async function createCandidate(form, currentRecruiterId, { canAttach = fa
   if (!form.name.trim() || !form.dob || !form.dateContacted || !form.rankId || !form.vesselTypeId || !form.nationalityId || !form.expInRankMonths || !form.telephone || !form.email) {
     throw new Error('Please complete the required candidate fields.')
   }
+  if (!form.isFirstTimeAtSea && !form.previousEmployer?.trim()) {
+    throw new Error("Previous employer is required unless this is the candidate's first time at sea.")
+  }
   const { data, error } = await supabase
     .from('prospects')
     .insert({
@@ -180,7 +183,7 @@ export async function createCandidate(form, currentRecruiterId, { canAttach = fa
       rank_applied_for_id: form.rankId,
       vessel_type_id: form.vesselTypeId,
       exp_in_rank_months: Number(form.expInRankMonths),
-      previous_employer: form.previousEmployer || null,
+      previous_employer: form.previousEmployer?.trim() || null,
       is_first_time_at_sea: form.isFirstTimeAtSea,
       telephone: form.telephone,
       email: form.email,

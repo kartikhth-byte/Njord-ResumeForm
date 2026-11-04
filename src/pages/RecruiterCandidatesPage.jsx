@@ -353,7 +353,13 @@ export default function RecruiterCandidatesPage() {
                   {filteredRows.map((row) => (
                     <tr key={row.id}>
                       <td className="tracker-cell--primary">
-                        <div>{row.name}</div>
+                        <Link
+                          to={`/recruiter/workspace/prospects/${row.id}`}
+                          state={{ from: `${location.pathname}${location.search}` }}
+                          className="text-accent-text hover:underline"
+                        >
+                          {row.name}
+                        </Link>
                         <div className="mt-0.5 text-xs font-normal text-fg-muted">{row.email}</div>
                       </td>
                       <td className="tracker-cell--nowrap">{formatDate(row.contactedAt)}</td>

@@ -64,7 +64,13 @@ export default function CandidateForm({
           <TextField label="Experience in rank (months)" required type="number" value={form.expInRankMonths} onChange={set('expInRankMonths')} placeholder="0" />
           <TextField label="Telephone" required value={form.telephone} onChange={set('telephone')} placeholder="+919999999999" />
           <TextField label="Email" type="email" required value={form.email} onChange={set('email')} placeholder="candidate@example.com" />
-          <TextField label="Previous employer" value={form.previousEmployer} onChange={set('previousEmployer')} placeholder="Optional" />
+          <TextField
+            label="Previous employer"
+            required={!form.isFirstTimeAtSea}
+            value={form.previousEmployer}
+            onChange={set('previousEmployer')}
+            placeholder={form.isFirstTimeAtSea ? 'Optional' : 'Required unless first time at sea'}
+          />
           <TextField label="Lead source" value={form.leadSource} onChange={set('leadSource')} placeholder="Referral, walk-in, search..." />
         </div>
         {canAttach ? (
