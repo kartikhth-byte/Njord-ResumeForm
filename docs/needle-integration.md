@@ -1,6 +1,6 @@
 # Needle Integration Into Holmes
 
-Status: product boundary agreed; implementation pending. Source: `https://github.com/kartikhth-byte/Needle` (main inspected at `fb22a53`).
+Status: product boundary agreed; implementation pending. Source: `https://github.com/kartikhth-byte/Needle` (main inspected at `fb22a53`; the deployed hosted beta `railway-m1` at `6a483c2` was reviewed 2026-11-05). Screen-level design, sign-in bridge and operator console: `docs/needle-in-holmes-design.md`.
 
 The authoritative target recruitment handoff and current Holmes gaps are in `docs/recruitment-flow.md`. This document covers the Needle/search side of that handoff.
 
