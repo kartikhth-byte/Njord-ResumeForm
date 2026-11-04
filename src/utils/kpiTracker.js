@@ -599,7 +599,7 @@ const CLOSED_FOR_ACTION = ['hired', 'rejected', 'withdrawn']
 // To-do items for the Dashboard. scopeId narrows to one recruiter
 // (applications they handle, candidates they added); unassigned
 // applications are a shared queue and are always listed.
-export function buildNeedsAction({ applications = [], prospects = [], scopeId = '', now = new Date() } = {}) {
+export function buildNeedsAction({ applications = [], prospects = [], requirementRows = [], scopeId = '', now = new Date() } = {}) {
   const nowMs = now.getTime()
   const mine = (application) => !scopeId || application.handling_recruiter_id === scopeId
   const live = applications.filter((application) => application.submitted_at && !CLOSED_FOR_ACTION.includes(application.status))
@@ -625,11 +625,22 @@ export function buildNeedsAction({ applications = [], prospects = [], scopeId = 
     && mine(application)
   ))
 
+  // Every position joined but still open: close it so closure % and
+  // on-time status are right. (Auto-close comes with case v1.)
+  const readyToClose = requirementRows.filter((row) => (
+    row.status === 'open'
+    && !row.isArchived
+    && Number(row.positions_required) > 0
+    && (row.joinedCount || 0) >= Number(row.positions_required)
+    && (!scopeId || row.ownerId === scopeId)
+  ))
+
   return {
     staleReview,
     unassigned,
     unclaimedInvites,
     contractsEnding,
-    total: staleReview.length + unassigned.length + unclaimedInvites.length + contractsEnding.length,
+    readyToClose,
+    total: staleReview.length + unassigned.length + unclaimedInvites.length + contractsEnding.length + readyToClose.length,
   }
 }

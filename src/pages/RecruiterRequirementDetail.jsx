@@ -325,6 +325,14 @@ export default function RecruiterRequirementDetail() {
     }
   }
 
+  // Success is joined candidates only: warn before closing with positions open.
+  const joinedCount = junctions.filter((junction) => junction.status === 'joined').length
+  const stillOpen = Math.max((Number(requirement.positions_required) || 0) - joinedCount, 0)
+  const onClose = () => {
+    if (stillOpen > 0 && !window.confirm(`${stillOpen} of ${requirement.positions_required} position${requirement.positions_required === 1 ? '' : 's'} still open. Close anyway?`)) return
+    runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')
+  }
+
   const onCancelRequirement = () => {
     const reason = window.prompt(`Why is ${requirement.req_id_display} being cancelled?`)
     if (reason === null) return
@@ -373,7 +381,7 @@ export default function RecruiterRequirementDetail() {
                   </button>
                 ) : null}
                 {canEditRequirement && requirement.status === 'open' ? (
-                  <button type="button" disabled={acting} onClick={() => runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')} className="workspace-action-button workspace-action-button--secondary">
+                  <button type="button" disabled={acting} onClick={onClose} className="workspace-action-button workspace-action-button--secondary">
                     Close
                   </button>
                 ) : null}

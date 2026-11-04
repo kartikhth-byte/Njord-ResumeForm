@@ -39,3 +39,15 @@ test('one recruiter: own or unowned stale reviews, own invites and contracts, sh
   assert.deepEqual(ids(result.unclaimedInvites), ['p1'])
   assert.deepEqual(ids(result.contractsEnding), ['a6'])
 })
+
+test('requirements fully joined but still open, scoped by owner', () => {
+  const requirementRows = [
+    { id: 'q1', status: 'open', positions_required: 2, joinedCount: 2, ownerId: 'r1' },
+    { id: 'q2', status: 'open', positions_required: 2, joinedCount: 1, ownerId: 'r1' },
+    { id: 'q3', status: 'closed', positions_required: 1, joinedCount: 1, ownerId: 'r1' },
+    { id: 'q4', status: 'open', positions_required: 1, joinedCount: 1, ownerId: 'r2' },
+    { id: 'q5', status: 'open', positions_required: 1, joinedCount: 1, ownerId: 'r1', isArchived: true },
+  ]
+  assert.deepEqual(ids(buildNeedsAction({ requirementRows, now }).readyToClose), ['q1', 'q4'])
+  assert.deepEqual(ids(buildNeedsAction({ requirementRows, scopeId: 'r1', now }).readyToClose), ['q1'])
+})

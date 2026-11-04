@@ -133,10 +133,18 @@ export default function RecruiterDashboardSimple() {
   const actions = useMemo(() => buildNeedsAction({
     applications: tracker.data.applications,
     prospects: tracker.data.prospects,
+    requirementRows,
     scopeId,
-  }), [tracker.data.applications, tracker.data.prospects, scopeId])
+  }), [tracker.data.applications, tracker.data.prospects, requirementRows, scopeId])
 
   const actionItems = [
+    {
+      key: 'close',
+      count: actions.readyToClose.length,
+      text: (n) => `${n} requirement${n === 1 ? '' : 's'} fully joined but still open`,
+      to: actions.readyToClose.length === 1 ? `/recruiter/workspace/requirements/${actions.readyToClose[0].id}` : '/recruiter/requirements?status=open',
+      tone: 'border-success-line bg-success-soft text-success',
+    },
     { key: 'stale', count: actions.staleReview.length, text: (n) => `${n} application${n === 1 ? '' : 's'} waiting over 7 days for review`, to: '/recruiter/applications?status=review', tone: 'border-warning-line bg-warning-soft text-warning' },
     { key: 'unassigned', count: actions.unassigned.length, text: (n) => `${n} live application${n === 1 ? '' : 's'} with no recruiter`, to: '/recruiter/applications', tone: 'border-line bg-surface text-fg' },
     { key: 'invites', count: actions.unclaimedInvites.length, text: (n) => `${n} invite${n === 1 ? '' : 's'} not opened after 3 days`, to: '/recruiter/candidates?view=active', tone: 'border-line bg-surface text-fg' },
