@@ -7,7 +7,6 @@ import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
-import RequirementProgressTable from '../components/recruiter/RequirementProgressTable'
 import {
   buildCandidateFunnelRows,
   buildRequirementTrackerRows,
@@ -20,7 +19,7 @@ import {
   ON_TIME_BADGE_CLASSES,
   workingRecruiters,
 } from '../utils/kpiTracker'
-import { formatDateTime, formatDate } from './recruiterDashboardUtils'
+import { formatDateTime } from './recruiterDashboardUtils'
 import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { HBarChart, TrendChart, ColumnChart, ChartLegend } from '../components/charts/SimpleCharts'
@@ -209,23 +208,6 @@ export default function RecruiterKpiPage() {
       .slice(0, 8)
       .map(([label, value]) => ({ label, value, color: chartColor(1) }))
 
-    const dwellMap = {}
-    tracker.data.applications
-      .filter((application) => application.submitted_at && !['hired', 'rejected', 'withdrawn'].includes(application.status))
-      .forEach((application) => {
-        const days = Math.max(0, Math.round((Date.now() - new Date(application.updated_at).getTime()) / DAY_MS))
-        if (!dwellMap[application.status]) dwellMap[application.status] = []
-        dwellMap[application.status].push(days)
-      })
-    const dwellItems = Object.entries(dwellMap)
-      .map(([status, values]) => ({
-        label: status.replaceAll('_', ' '),
-        value: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length),
-        hint: `${values.length} app${values.length === 1 ? '' : 's'}`,
-        color: chartColor(5),
-      }))
-      .sort((a, b) => b.value - a.value)
-
     const funnelColors = [chartColor(2), chartColor(1), chartColor(5), chartColor(4), chartColor(6), toneColor('success'), toneColor('danger'), toneColor('neutral')]
     const funnelItems = (tracker.data.casesAvailable ? CASE_STAGES : FUNNEL_STAGES).map((stage, index) => ({
       label: tracker.data.casesAvailable ? caseStatusMeta(stage).label : stage,
@@ -233,8 +215,8 @@ export default function RecruiterKpiPage() {
       color: funnelColors[index % funnelColors.length],
     })).filter((item) => item.value > 0)
 
-    return { weekLabels: weeks.map((week) => week.label), contacts, joins, buckets, demandItems, dwellItems, funnelItems }
-  }, [scopedCandidates, scopedRequirements, tracker.data.applications, tracker.data.casesAvailable, metrics.stageCounts, caseKpi.statusCounts])
+    return { weekLabels: weeks.map((week) => week.label), contacts, joins, buckets, demandItems, funnelItems }
+  }, [scopedCandidates, scopedRequirements, tracker.data.casesAvailable, metrics.stageCounts, caseKpi.statusCounts])
 
   const runReport = async (fn) => {
     if (exporting) return
@@ -298,36 +280,6 @@ export default function RecruiterKpiPage() {
         },
       ],
       footerNote: 'Case assessment figures come from case events. Requirement and contact figures use legacy tracker data.',
-    })
-  })
-
-  const generateClosureCsv = () => runReport(async () => {
-    await logRecruiterExport({
-      reportType: 'requirement_closure_report',
-      exportFormat: 'csv',
-      rowIds: scopedRequirements.map((row) => row.id),
-      rowCount: scopedRequirements.length,
-      filters: { recruiterFilter },
-    })
-    await downloadCsvReport({
-      filename: `requirement-closure-${new Date().toISOString().slice(0, 10)}`,
-      columns: [
-        { label: 'Req ID', value: (row) => row.reqId },
-        { label: 'Customer', value: (row) => row.customer_name || '' },
-        { label: 'Vessel', value: (row) => row.vessel_name || '' },
-        { label: 'Rank', value: (row) => row.rankName },
-        { label: 'Opened', value: (row) => row.date_opened || '' },
-        { label: 'Closed', value: (row) => row.date_closed || '' },
-        { label: 'Status', value: (row) => row.status },
-        { label: 'Positions', value: (row) => row.positions_required },
-        { label: 'Joined', value: (row) => row.joinedCount },
-        { label: 'Days open', value: (row) => row.daysOpen ?? '' },
-        { label: 'Days to close', value: (row) => row.daysToClose ?? '' },
-        { label: 'Target days', value: (row) => row.targetDays ?? '' },
-        { label: 'On-time', value: (row) => row.onTimeStatus },
-        { label: 'Recruiter', value: (row) => row.recruiterName },
-      ],
-      rows: scopedRequirements,
     })
   })
 
@@ -483,17 +435,6 @@ export default function RecruiterKpiPage() {
           title="KPI"
           actions={(
             <div className="flex flex-wrap gap-3">
-              {canExportData() ? (
-                <button
-                  type="button"
-                  onClick={exportSummary}
-                  disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
-                >
-                  <Download className="h-4 w-4" />
-                  {exporting ? 'Exporting…' : 'Export summary'}
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={tracker.reload}
@@ -525,9 +466,6 @@ export default function RecruiterKpiPage() {
               <span className="mb-1 block text-xs font-medium text-fg-muted">Period</span>
               <SegmentedControl options={KPI_PERIODS} value={period} onChange={setPeriod} size="sm" />
             </div>
-            <div className="rounded-control border border-line bg-surface px-4 py-2.5 text-sm text-fg-secondary">
-              <span className="font-medium text-fg">Report date:</span> {formatDateTime(new Date().toISOString())}
-            </div>
           </div>
         </PageHeader>
 
@@ -553,7 +491,7 @@ export default function RecruiterKpiPage() {
         ) : (
         <>
         <div className="mt-6 max-w-full overflow-x-auto">
-          <SegmentedControl options={KPI_TABS} value={kpiTab} onChange={setKpiTab} />
+          <SegmentedControl options={canExportData() ? KPI_TABS : KPI_TABS.filter((tab) => tab.value !== 'reports')} value={kpiTab} onChange={setKpiTab} />
         </div>
 
         {kpiTab === 'overview' ? (
@@ -660,7 +598,6 @@ export default function RecruiterKpiPage() {
 
         {/* Requirement delivery */}
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" to={requirementsLink('open')} />
           <StatCard label={`Closed, ${periodLabel.toLowerCase()}`} value={metrics.closedInPeriodCount} icon={CheckCircle2} tone="success" to={requirementsLink('closed')} />
           <StatCard label="Open positions" value={metrics.openPositions} icon={Ship} tone="warning" to={requirementsLink('open')} />
           <StatCard label="Joined vs required" value={`${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}`} icon={ArrowRight} tone="accent" to={candidatesLink('joined')} />
@@ -703,32 +640,12 @@ export default function RecruiterKpiPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Contacted today" value={metrics.contactedTodayCount} icon={PhoneCall} tone="accent" to={candidatesLink('all', localDayString(new Date()))} />
           <StatCard label={`Contacted, ${periodLabel.toLowerCase()}`} value={metrics.contactedInPeriodCount} icon={PhoneCall} tone="accent" to={candidatesLink('all', periodFrom)} />
           <StatCard label={`Joined, ${periodLabel.toLowerCase()}`} value={metrics.joinedInPeriodCount} icon={UserPlus} tone="success" to={candidatesLink('joined')} />
-          <StatCard label="Active pipeline" value={metrics.activePipelineCount} icon={Users} tone="accent" to={candidatesLink('active')} />
           <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" />
         </div>
-
-        {/* Requirements progress */}
-        <section className="recruiter-panel mt-6 p-5 sm:p-6">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
-                <ClipboardList className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-fg">Requirements progress</h2>
-                <p className="mt-1 text-sm text-fg-secondary">Open requirements, most at risk first.</p>
-              </div>
-            </div>
-            <Link to="/recruiter/requirements" className="text-sm font-medium text-accent-text hover:underline">
-              View all requirements
-            </Link>
-          </div>
-          <RequirementProgressTable rows={metrics.requirementProgress} />
-        </section>
 
         {/* Recruiter scorecard */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -786,12 +703,7 @@ export default function RecruiterKpiPage() {
               </table>
             </div>
           )}
-          <p className="mt-4 text-xs text-fg-muted">
-            {periodLabel}: contacted, joined, conversion, on-time closure and days to join use this period; open and overdue requirements are current.
-            Conversion = share of candidates first contacted in the period who have joined. Candidates are credited to the recruiter who added them.
-            Targets: 15–25 contacts per recruiter per day, 8–12% conversion.
-            Handling = live applications assigned via the Handled-by selector{metrics.unassignedHandledApplications > 0 ? ` (${metrics.unassignedHandledApplications} active unassigned)` : ''}.
-          </p>
+          <p className="mt-4 text-xs text-fg-muted">Targets: 15–25 contacts per recruiter per day, 8–12% conversion.</p>
         </section>
         </>
         ) : null}
@@ -833,37 +745,29 @@ export default function RecruiterKpiPage() {
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <section className="recruiter-panel p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-fg">Open positions by rank</h2>
-            <p className="mb-4 mt-1 text-sm text-fg-secondary">Demand map — where sourcing effort is needed.</p>
+            <div className="mb-4" />
             {charts.demandItems.length === 0 ? (
-              <EmptyState icon={Ship} title="No open positions" description="Open requirements will populate the demand map." />
+              <EmptyState icon={Ship} title="No open positions" />
             ) : (
               <HBarChart items={charts.demandItems} />
-            )}
-          </section>
-          <section className="recruiter-panel p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-fg">Time sitting in current stage</h2>
-            {charts.dwellItems.length === 0 ? (
-              <EmptyState icon={Hourglass} title="No live applications" description="Submitted applications will populate this chart." />
-            ) : (
-              <HBarChart items={charts.dwellItems} unit="d" />
             )}
           </section>
         </div>
         </>
         ) : null}
 
-        {kpiTab === 'reports' ? (
+        {kpiTab === 'reports' && canExportData() ? (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {[
             {
-              title: 'Weekly management report (PDF)',
+              title: 'Management report (PDF)',
               description: 'KPIs, requirement ageing, recruiter scorecard.',
               action: generateWeeklyPdf,
             },
             {
-              title: 'Requirement closure report (CSV)',
-              description: 'Days to close and on-time status per requirement.',
-              action: generateClosureCsv,
+              title: 'KPI summary (CSV)',
+              description: 'Every headline figure on this page.',
+              action: exportSummary,
             },
             {
               title: 'Recruiter productivity report (CSV)',
@@ -879,24 +783,17 @@ export default function RecruiterKpiPage() {
             <section key={report.title} className="recruiter-panel flex flex-col p-5 sm:p-6">
               <h2 className="text-base font-semibold text-fg">{report.title}</h2>
               <p className="mt-1 flex-1 text-sm text-fg-secondary">{report.description}</p>
-              {canExportData() ? (
-                <button
-                  type="button"
-                  onClick={report.action}
-                  disabled={exporting}
-                  className="mt-4 inline-flex w-fit items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
-                >
-                  <Download className="h-4 w-4" />
-                  {exporting ? 'Generating…' : 'Generate'}
-                </button>
-              ) : (
-                <p className="mt-4 text-xs text-fg-muted">Export permission required.</p>
-              )}
+              <button
+                type="button"
+                onClick={report.action}
+                disabled={exporting}
+                className="mt-4 inline-flex w-fit items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                {exporting ? 'Generating…' : 'Download'}
+              </button>
             </section>
           ))}
-          <p className="text-xs text-fg-muted md:col-span-2">
-            All reports respect the recruiter filter above and are logged in the export audit trail. Generated {formatDate(new Date().toISOString())}.
-          </p>
         </div>
         ) : null}
         </>

@@ -14,18 +14,14 @@ import {
   canDeleteRecord,
   deleteCandidate,
 } from '../services/recruiterRecordService'
-import StatCard from '../components/ui/StatCard'
 import {
   ArrowLeft,
-  ArrowRight,
-  Clock,
   FileText,
   Layers3,
-  ListChecks,
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
+import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
   formatDateTime,
@@ -53,7 +49,6 @@ export default function RecruiterProspectDetail() {
   const backTo = location.state?.from || '/recruiter/candidates'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
-  const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
   const canExportPdf = permissions.includes('export_data') || permissions.includes('export_pdf')
   const canViewApplicationTokens = permissions.includes('view_applications')
 
@@ -201,49 +196,6 @@ export default function RecruiterProspectDetail() {
 
   const linkedRequirementMap = useMemo(() => buildLookupMap(linkedRequirements), [linkedRequirements])
 
-  const activityItems = useMemo(() => {
-    if (!prospect) return []
-
-    const items = [
-      {
-        id: `prospect-${prospect.id}`,
-        label: 'Prospect created',
-        detail: `${prospect.name} entered the live prospect pool.`,
-        when: prospect.created_at,
-        tone: 'bg-accent-soft text-accent-text',
-      },
-      ...notes.map((note) => ({
-        id: `note-${note.id}`,
-        label: note.is_transition_note ? 'Transition note' : 'Prospect note',
-        detail: note.body,
-        when: note.edited_at || note.created_at,
-        tone: note.visibility === 'master_only' ? 'bg-warning-soft text-warning' : 'bg-raised text-fg',
-      })),
-      ...junctions.map((junction) => {
-        const requirement = linkedRequirementMap[junction.requirement_id]
-        return {
-          id: `junction-${junction.id}`,
-          label: `Junction ${junction.status}`,
-          detail: requirement
-            ? `${requirement.req_id_display} · ${formatDisplayValue(requirement.customer_name || 'Customer not set')}`
-            : junction.requirement_id,
-          when: junction.updated_at,
-          tone: 'bg-accent-soft text-accent-text',
-        }
-      }),
-      ...applications.map((application) => ({
-        id: `application-${application.id}`,
-        label: 'Application linked',
-        detail: application.reference_number,
-        when: application.updated_at || application.created_at,
-        tone: 'bg-success-soft text-success',
-      })),
-    ]
-
-    return items
-      .filter((item) => item.when)
-      .sort((a, b) => new Date(b.when) - new Date(a.when))
-  }, [applications, junctions, linkedRequirementMap, notes, prospect])
 
   if (!permissions.includes('view_prospects')) {
     return <Navigate to="/unauthorized" replace />
@@ -264,7 +216,7 @@ export default function RecruiterProspectDetail() {
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={Users}
-            title="Prospect detail could not load"
+            title="Could not load candidate"
             description={error}
             action={
               <button
@@ -288,14 +240,14 @@ export default function RecruiterProspectDetail() {
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={Users}
-            title="Prospect not found"
+            title="Candidate not found"
             action={
               <button
                 type="button"
                 onClick={() => navigate(backTo)}
                 className="workspace-action-button workspace-action-button--primary"
               >
-                Back to prospects
+                Back
               </button>
             }
           />
@@ -408,51 +360,6 @@ export default function RecruiterProspectDetail() {
     }
   }
 
-  const exportProspectCsv = async () => {
-    const rows = [
-      {
-        id: prospect.id,
-        name: prospect.name,
-        status: prospect.status,
-        email: prospect.email,
-        telephone: prospect.telephone,
-        lead_source: prospect.lead_source || 'Not provided',
-        nationality: nationalityName,
-        rank: rankName,
-        vessel_type: vesselName,
-      },
-    ]
-
-    try {
-      await logRecruiterExport({
-        reportType: 'prospect_snapshot',
-        exportFormat: 'csv',
-        rowIds: [prospect.id],
-        rowCount: 1,
-        prospectId: prospect.id,
-        filters: { prospect_id: prospect.id },
-        sort: { field: 'created_at', direction: 'desc' },
-      })
-      await downloadCsvReport({
-        filename: `prospect-${prospect.name}`,
-        columns: [
-          { label: 'Name', value: (row) => row.name },
-          { label: 'Status', value: (row) => row.status },
-          { label: 'Email', value: (row) => row.email },
-          { label: 'Phone', value: (row) => row.telephone },
-          { label: 'Lead source', value: (row) => row.lead_source },
-          { label: 'Nationality', value: (row) => row.nationality },
-          { label: 'Rank', value: (row) => row.rank },
-          { label: 'Vessel type', value: (row) => row.vessel_type },
-        ],
-        rows,
-      })
-    } catch (exportError) {
-      console.error('Failed to log prospect CSV export:', exportError)
-      window.alert('Unable to export prospect CSV right now.')
-    }
-  }
-
   const exportProspectPdf = async () => {
     const summaryRows = [
       { label: 'Status', value: prospect.status },
@@ -483,7 +390,7 @@ export default function RecruiterProspectDetail() {
       })
       await downloadPdfReport({
         filename: `prospect-${prospect.name}`,
-        title: 'Prospect Snapshot',
+        title: 'Candidate snapshot',
         subtitle: prospect.name,
         summaryItems: summaryRows,
         tables: [
@@ -493,7 +400,6 @@ export default function RecruiterProspectDetail() {
             rows: linkedRequirementsTable,
           },
         ],
-        footerNote: 'Generated from the live recruiter prospect detail page.',
       })
     } catch (exportError) {
       console.error('Failed to log prospect PDF export:', exportError)
@@ -511,15 +417,6 @@ export default function RecruiterProspectDetail() {
             title={prospect.name}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {canExportCsv ? (
-                  <button
-                    type="button"
-                    onClick={exportProspectCsv}
-                    className="workspace-action-button workspace-action-button--secondary"
-                  >
-                    Export CSV
-                  </button>
-                ) : null}
                 {canExportPdf ? (
                   <button
                     type="button"
@@ -535,7 +432,7 @@ export default function RecruiterProspectDetail() {
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to prospects
+                  Back
                 </button>
                 {canAttach && attachOptions === null ? (
                   <button type="button" disabled={acting} onClick={openAttachPicker} className="workspace-action-button workspace-action-button--primary">
@@ -604,12 +501,6 @@ export default function RecruiterProspectDetail() {
             </form>
           ) : null}
 
-          <div className="workspace-kpi-grid">
-            <StatCard label="Notes" value={notes.length} icon={FileText} tone="accent" />
-            <StatCard label="Linked requirements" value={junctions.length} icon={Layers3} tone="accent" />
-            <StatCard label="Applications" value={applications.length} icon={Users} tone="success" />
-            <StatCard label="Last activity" value={formatRelativeTime(prospect.last_activity_at)} icon={Clock} tone="info" />
-          </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
             <div className="space-y-6">
@@ -652,23 +543,24 @@ export default function RecruiterProspectDetail() {
 
               <div className="recruiter-panel overflow-hidden">
                 <div className="border-b border-line px-6 py-4">
-                  <h2 className="mt-1 text-lg font-semibold text-fg">Requirement matches and junction history</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Requirements</h2>
                 </div>
                 <div className="divide-y">
                   {junctions.length === 0 ? (
                     <div className="p-8">
                       <EmptyState
                         icon={Layers3}
-                        title="No linked requirements yet"
+                        title="No linked requirements"
                         action={
-                          <button
-                            type="button"
-                            onClick={openAttachPicker}
-                            disabled={!canAttach}
-                            className="workspace-action-button workspace-action-button--primary"
-                          >
-                            Attach to requirement
-                          </button>
+                          canAttach ? (
+                            <button
+                              type="button"
+                              onClick={openAttachPicker}
+                              className="workspace-action-button workspace-action-button--primary"
+                            >
+                              Attach to requirement
+                            </button>
+                          ) : null
                         }
                       />
                     </div>
@@ -683,36 +575,36 @@ export default function RecruiterProspectDetail() {
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-3">
                                 <h3 className="text-lg font-semibold text-fg">
-                                  {requirement ? requirement.req_id_display : junction.requirement_id}
+                                  {requirement ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
+                                      className="text-left hover:text-accent-text hover:underline"
+                                    >
+                                      {requirement.req_id_display}
+                                    </button>
+                                  ) : junction.requirement_id}
                                 </h3>
                                 <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />
                               </div>
                               <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">
                                 <div>
-                                  <span className="font-medium text-fg-secondary">Requirement:</span>{' '}
+                                  <span className="font-medium text-fg-secondary">Customer:</span>{' '}
                                   {requirement ? formatDisplayValue(requirement.customer_name || 'Customer not set') : 'Not loaded'}
                                 </div>
                                 <div>
                                   <span className="font-medium text-fg-secondary">Updated:</span> {formatRelativeTime(junction.updated_at)}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-fg-secondary">Last transition by:</span> {authorName}
+                                  <span className="font-medium text-fg-secondary">By:</span> {authorName}
                                 </div>
-                                <div>
-                                  <span className="font-medium text-fg-secondary">Joined:</span> {formatDateTime(junction.joined_at)}
-                                </div>
+                                {junction.joined_at ? (
+                                  <div>
+                                    <span className="font-medium text-fg-secondary">Joined:</span> {formatDateTime(junction.joined_at)}
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
-                            {requirement ? (
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
-                                className="workspace-action-button workspace-action-button--secondary"
-                              >
-                                Open requirement
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            ) : null}
                           </div>
                         </div>
                       )
@@ -723,7 +615,7 @@ export default function RecruiterProspectDetail() {
 
               <div className="recruiter-panel overflow-hidden">
                 <div className="border-b border-line px-6 py-4">
-                  <h2 className="mt-1 text-lg font-semibold text-fg">Internal and transition notes</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Notes</h2>
                 </div>
                 <div className="divide-y">
                   {notes.length === 0 ? (
@@ -731,7 +623,6 @@ export default function RecruiterProspectDetail() {
                       <EmptyState
                         icon={FileText}
                         title="No notes yet"
-                        description="This prospect does not have any internal notes recorded yet."
                       />
                     </div>
                   ) : (
@@ -746,9 +637,7 @@ export default function RecruiterProspectDetail() {
                             ) : null}
                             {note.visibility === 'master_only' ? (
                               <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">Master only</span>
-                            ) : (
-                              <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Internal</span>
-                            )}
+                            ) : null}
                           </div>
                           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-fg-secondary">{note.body}</p>
                           <p className="mt-3 text-xs text-fg-muted">
@@ -761,8 +650,9 @@ export default function RecruiterProspectDetail() {
                 </div>
               </div>
 
+              {canSendInvite ? (
               <div className="recruiter-panel p-6">
-                <h2 className="mt-2 text-lg font-semibold text-fg">Send a new invite or correct the email before resending</h2>
+                <h2 className="mt-2 text-lg font-semibold text-fg">Invite</h2>
 
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
@@ -798,7 +688,7 @@ export default function RecruiterProspectDetail() {
                   </button>
                   {prospect.bounce_flag ? (
                     <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">
-                      Bounce flag is set
+                      Email bounced
                     </span>
                   ) : null}
                 </div>
@@ -807,6 +697,7 @@ export default function RecruiterProspectDetail() {
                   <p className="mt-3 text-sm text-fg-secondary">{inviteStatus}</p>
                 ) : null}
               </div>
+              ) : null}
             </div>
 
             <div className="space-y-6">
@@ -817,7 +708,6 @@ export default function RecruiterProspectDetail() {
                     <EmptyState
                       icon={Users}
                       title="No linked applications"
-                      description="This prospect does not have any applications linked yet."
                     />
                   ) : (
                     applications.map((application) =>
@@ -845,7 +735,6 @@ export default function RecruiterProspectDetail() {
                             <div>
                               <p className="text-sm font-semibold text-fg">{application.reference_number}</p>
                               <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
-                              <p className="mt-2 text-xs text-fg-muted">Application access required to open the live record.</p>
                             </div>
                             <StatusBadge status={application.status} />
                           </div>
@@ -856,27 +745,6 @@ export default function RecruiterProspectDetail() {
                 </div>
               </div>
 
-              <div className="recruiter-panel p-6">
-                <p className="text-sm font-medium text-fg">Activity feed</p>
-                <div className="mt-4 space-y-3">
-                  {activityItems.length === 0 ? (
-                    <EmptyState
-                      icon={Clock}
-                      title="No activity yet"
-                    />
-                  ) : (
-                    activityItems.slice(0, 10).map((item) => (
-                      <div key={item.id} className="rounded-control border border-line bg-raised px-4 py-4">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.tone}`}>{item.label}</span>
-                          <span className="text-xs text-fg-muted">{formatRelativeTime(item.when)}</span>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-fg-secondary">{item.detail}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </div>

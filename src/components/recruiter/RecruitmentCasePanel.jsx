@@ -54,7 +54,9 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
   const location = useLocation()
   const canMove = permissions.includes('edit_junction_status')
   const canExit = canMove || permissions.includes('withdraw_junctions')
-  const canOpen = canMove || permissions.includes('create_prospects')
+  // Opening a case is a workflow change: same gate as moving one, so the
+  // "read only" label holds for Coordinators.
+  const canOpen = canMove
 
   const [state, setState] = useState({ loading: true, available: false, cases: [], events: [], error: '' })
   const [names, setNames] = useState({})
@@ -328,7 +330,7 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
       <div className="divide-y divide-line">
         {activeCases.length === 0 && !showClosed ? (
           <div className="p-6">
-            <EmptyState icon={GitBranch} title="No active cases" description="Start a case for a candidate linked to this requirement." />
+            <EmptyState icon={GitBranch} title="No active cases" />
           </div>
         ) : null}
         {activeCases.map(renderCase)}
@@ -336,7 +338,7 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
       </div>
       {canOpen && prospectsWithoutCase.length > 0 ? (
         <div className="border-t border-line px-6 py-4">
-          <p className="mb-2 text-xs font-medium text-fg-muted">Linked candidates without an active case</p>
+          <p className="mb-2 text-xs font-medium text-fg-muted">Start case</p>
           <div className="flex flex-wrap gap-2">
             {prospectsWithoutCase.map((prospect) => (
               <button

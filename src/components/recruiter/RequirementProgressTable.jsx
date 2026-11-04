@@ -53,11 +53,11 @@ export default function RequirementProgressTable({
   limit = 12,
   showOwner = true,
   emptyTitle = 'No open requirements',
-  emptyDescription = 'Every requirement in scope is closed or cancelled.',
+  emptyDescription = '',
 }) {
   const location = useLocation()
   if (rows.length === 0) {
-    return <EmptyState icon={ClipboardList} title={emptyTitle} description={emptyDescription} />
+    return <EmptyState icon={ClipboardList} title={emptyTitle} description={emptyDescription || undefined} />
   }
   const visible = rows.slice(0, limit)
   return (

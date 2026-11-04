@@ -6,13 +6,10 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import CandidateForm from '../components/recruiter/CandidateForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import StatCard from '../components/ui/StatCard'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
   buildCandidateFunnelRows,
-  formatDays,
-  formatPercent,
   FUNNEL_STAGES,
   localDayString,
   STAGE_BADGE_CLASSES,
@@ -21,13 +18,10 @@ import {
 import { formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
-  CheckCircle2,
   Download,
   Loader2,
   Plus,
   RefreshCcw,
-  TrendingUp,
-  UserPlus,
   Users,
 } from 'lucide-react'
 
@@ -101,14 +95,6 @@ export default function RecruiterCandidatesPage() {
     all: rows.length,
   }), [rows])
 
-  const liveRows = rows.filter((row) => !row.isArchived)
-  const joinedRows = liveRows.filter((row) => row.hasJoined)
-  const conversion = liveRows.length === 0 ? 0 : joinedRows.length / liveRows.length
-  const joinDurations = joinedRows.map((row) => row.daysToJoin).filter((value) => Number.isFinite(value) && value >= 0)
-  const avgDaysToJoin = joinDurations.length === 0
-    ? null
-    : joinDurations.reduce((sum, value) => sum + value, 0) / joinDurations.length
-
   const exportCsv = async () => {
     if (exporting) return
     setExporting(true)
@@ -178,7 +164,7 @@ export default function RecruiterCandidatesPage() {
                   type="button"
                   onClick={exportCsv}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export CSV'}
@@ -196,7 +182,7 @@ export default function RecruiterCandidatesPage() {
                 <button
                   type="button"
                   onClick={() => { setNotice(''); setShowForm(true) }}
-                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   New candidate
@@ -249,13 +235,6 @@ export default function RecruiterCandidatesPage() {
           </div>
         ) : (
         <>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Active pipeline" value={viewCounts.active} icon={Users} tone="accent" />
-          <StatCard label="Joined" value={viewCounts.joined} icon={CheckCircle2} tone="success" />
-          <StatCard label="Contact-to-join conversion" value={formatPercent(conversion)} icon={TrendingUp} tone="accent" />
-          <StatCard label="Avg days to join" value={avgDaysToJoin == null ? '—' : formatDays(avgDaysToJoin)} icon={UserPlus} tone="warning" />
-        </div>
-
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-full overflow-x-auto">
@@ -373,7 +352,7 @@ export default function RecruiterCandidatesPage() {
                             {row.requirementLabel}
                           </Link>
                         ) : (
-                          <span className="tracker-cell--muted">Unassigned</span>
+                          <span className="tracker-cell--muted">Unattached</span>
                         )}
                       </td>
                       <td className="tracker-cell--nowrap">{row.rankName}</td>
@@ -410,7 +389,7 @@ export default function RecruiterCandidatesPage() {
           )}
 
           <p className="mt-4 text-xs text-fg-muted">
-            {filteredRows.length} candidate{filteredRows.length === 1 ? '' : 's'} shown of {rows.length} tracked.
+            {filteredRows.length} shown
           </p>
         </section>
         </>

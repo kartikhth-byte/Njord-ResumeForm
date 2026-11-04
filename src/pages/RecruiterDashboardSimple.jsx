@@ -20,7 +20,6 @@ import {
 import { formatDate } from './recruiterDashboardUtils'
 import {
   AlertTriangle,
-  ArrowRight,
   CalendarDays,
   ClipboardList,
   Loader2,
@@ -65,9 +64,7 @@ function eventKind(event) {
 export default function RecruiterDashboardSimple() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading, canViewAnalytics } = usePermissions()
-  // Same rule as the sidebar KPI link and the KPI page itself.
-  const canOpenKpi = role === 'Master Recruiter' || canViewAnalytics()
+  const { role, loading: permLoading } = usePermissions()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
   // The Master Recruiter and read-only Coordinators (who own no work) see the
   // whole team by default and can narrow to one recruiter; Recruiters always
@@ -132,13 +129,6 @@ export default function RecruiterDashboardSimple() {
       .sort((a, b) => `${a.scheduled_date} ${a.scheduled_time || ''}`.localeCompare(`${b.scheduled_date} ${b.scheduled_time || ''}`))
   }, [tracker.data.scheduledEvents, tracker.data.applications, scopeId])
 
-  const scopeName = isManager && managerFilter
-    ? (tracker.data.recruiters.find((recruiter) => recruiter.id === managerFilter)?.full_name || 'Recruiter')
-    : null
-  const subtitle = isManager
-    ? (scopeName ? `${scopeName}'s work` : 'Whole team')
-    : 'Your requirements, follow-ups and schedule'
-
   const recruiterParam = scopeId ? `&recruiter=${encodeURIComponent(scopeId)}` : ''
 
   if (permLoading || tracker.loading) {
@@ -161,15 +151,6 @@ export default function RecruiterDashboardSimple() {
           title="Dashboard"
           actions={(
             <div className="flex flex-wrap gap-3">
-              {canOpenKpi ? (
-                <Link
-                  to="/recruiter/kpi"
-                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Open KPI
-                </Link>
-              ) : null}
               <button
                 type="button"
                 onClick={tracker.reload}
@@ -199,7 +180,6 @@ export default function RecruiterDashboardSimple() {
                 </select>
               </label>
             ) : null}
-            <p className="pb-2 text-sm text-fg-secondary">{subtitle}</p>
           </div>
         </PageHeader>
 
@@ -209,19 +189,16 @@ export default function RecruiterDashboardSimple() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <StatCard label="Open requirements" value={metrics.openRequirementsCount} icon={ClipboardList} tone="accent" to={`/recruiter/requirements?status=open${recruiterParam}`} />
           <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} to={`/recruiter/requirements?status=open${recruiterParam}`} />
           <StatCard label="Open positions" value={metrics.openPositions} icon={Users} tone="warning" to={`/recruiter/requirements?status=open${recruiterParam}`} />
-          <StatCard label="Follow-ups due" value={followUps.length} icon={UserRoundSearch} tone={followUps.length > 0 ? 'warning' : 'default'} to={`/recruiter/candidates?view=active${recruiterParam}`} />
-          <StatCard label={`Interviews and tests, ${SCHEDULE_DAYS} days`} value={upcoming.length} icon={CalendarDays} tone="accent" to="/recruiter/calendar" />
         </div>
 
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <SectionHeader
             icon={ClipboardList}
             title={isManager && !managerFilter ? 'Requirements' : 'My requirements'}
-            subtitle="Most at risk first."
             link={{ to: '/recruiter/requirements', label: 'All requirements' }}
           />
           <RequirementProgressTable
@@ -229,7 +206,6 @@ export default function RecruiterDashboardSimple() {
             limit={8}
             showOwner={isManager && !managerFilter}
             emptyTitle="No open requirements"
-            emptyDescription={isManager && !managerFilter ? 'Every requirement is closed or cancelled.' : 'No open requirements are assigned here.'}
           />
         </section>
 
@@ -238,11 +214,11 @@ export default function RecruiterDashboardSimple() {
             <SectionHeader
               icon={UserRoundSearch}
               title="Follow-ups"
-              subtitle={`Candidates in the pipeline with no activity for over ${FOLLOW_UP_DAYS} days.`}
+              subtitle={`No activity > ${FOLLOW_UP_DAYS} days`}
               link={{ to: '/recruiter/candidates', label: 'All candidates' }}
             />
             {followUps.length === 0 ? (
-              <EmptyState icon={UserRoundSearch} title="Nothing to chase" description="Every active candidate has had recent activity." />
+              <EmptyState icon={UserRoundSearch} title="Nothing to chase" />
             ) : (
               <ul className="divide-y divide-line">
                 {followUps.slice(0, 8).map(({ row, activity }) => (
@@ -280,7 +256,7 @@ export default function RecruiterDashboardSimple() {
               link={{ to: '/recruiter/calendar', label: 'Calendar' }}
             />
             {upcoming.length === 0 ? (
-              <EmptyState icon={CalendarDays} title="Nothing scheduled" description={`No interviews or tests in the next ${SCHEDULE_DAYS} days.`} />
+              <EmptyState icon={CalendarDays} title="Nothing scheduled" />
             ) : (
               <ul className="divide-y divide-line">
                 {upcoming.slice(0, 8).map((event) => (

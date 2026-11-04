@@ -11,21 +11,19 @@ import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
   buildRequirementTrackerRows,
-  formatDays,
   ON_TIME_BADGE_CLASSES,
   workingRecruiters,
 } from '../utils/kpiTracker'
 import { getStatusMeta, REQUIREMENT_STATUS_META, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
-  CheckCircle2,
+  AlertTriangle,
   ClipboardList,
   Download,
   Loader2,
   Plus,
   RefreshCcw,
   Ship,
-  Users,
 } from 'lucide-react'
 
 const STATUS_FILTERS = [
@@ -95,7 +93,6 @@ export default function RecruiterRequirementsPage() {
   const openRows = rows.filter((row) => row.status === 'open' && !row.isArchived)
   const totalOpenPositions = openRows.reduce((sum, row) => sum + row.openPositions, 0)
   const overdueCount = openRows.filter((row) => row.onTimeStatus === 'Overdue').length
-  const joinedTotal = filteredRows.reduce((sum, row) => sum + row.joinedCount, 0)
 
   const exportCsv = async () => {
     if (exporting) return
@@ -169,7 +166,7 @@ export default function RecruiterRequirementsPage() {
                   type="button"
                   onClick={exportCsv}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export CSV'}
@@ -187,7 +184,7 @@ export default function RecruiterRequirementsPage() {
                 <button
                   type="button"
                   onClick={() => { setNotice(''); setShowForm(true) }}
-                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   New requirement
@@ -237,11 +234,9 @@ export default function RecruiterRequirementsPage() {
           </div>
         ) : (
         <>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Open requirements" value={statusCounts.open} icon={ClipboardList} tone="accent" />
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
           <StatCard label="Open positions" value={totalOpenPositions} icon={Ship} tone="warning" />
-          <StatCard label="Candidates joined" value={joinedTotal} icon={Users} tone="success" />
-          <StatCard label="Overdue requirements" value={overdueCount} icon={CheckCircle2} tone={overdueCount > 0 ? 'warning' : 'success'} />
+          <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} />
         </div>
 
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -374,14 +369,7 @@ export default function RecruiterRequirementsPage() {
           )}
 
           <p className="mt-4 text-xs text-fg-muted">
-            {filteredRows.length} requirement{filteredRows.length === 1 ? '' : 's'} shown · days to close for closed rows: {filteredRows.filter((row) => row.daysToClose != null).length > 0
-              ? formatDays(
-                  filteredRows
-                    .filter((row) => row.daysToClose != null)
-                    .reduce((sum, row) => sum + row.daysToClose, 0) /
-                    filteredRows.filter((row) => row.daysToClose != null).length
-                ) + ' average'
-              : 'no closed rows in view'}
+            {filteredRows.length} shown
           </p>
         </section>
         </>
