@@ -19,6 +19,17 @@ Current known passing state in this phase:
 
 For `2026110200`, run `supabase/tests/harden_public_table_access.test.sql` against an isolated PostgreSQL test database, then verify live catalog metadata: all 13 affected tables have RLS enabled; internal tables have no `anon` or `authenticated` grants; `profiles` has no anonymous access and only self/applicant-write or recruiter-read policies; reference catalogs permit anonymous read but no write. Confirm "Automatically expose new tables" is off after a settings-page reload. Smoke-test recruiter login/profile reads, applicant magic-link profile creation, reference catalog reads, and the service-role magic-link request function. Do not use real applicant data for write tests. These checks are separate from, and do not apply, the pending recruitment-case migration.
 
+For Coordinator read-only access, run the `0219` regression test, then use
+separate staging logins for Master Recruiter, Recruiter, Coordinator, and
+applicant. Confirm that Coordinator can read application/event/photo/offer
+details but cannot alter statuses, drafts, schedules, photos, or offer letters
+or send invitations; both recruiter editor roles retain those controls and the
+applicant retains only their own draft path. Use synthetic data and do not
+trigger email or status changes during a read-only smoke. A transaction-scoped
+role simulation is useful database evidence but does not replace signed-in
+browser/API checks. Never run the default write-capable smoke suite against
+production; use `tests/smoke/public.spec.js --no-deps` for public routes.
+
 ## Future Candidate Identity And Deduplication Gate
 
 Before the candidate portal and Needle-backed recruiter directory go live, test exact resume re-upload, revised resume version, one person arriving from two sources, ambiguous identity held for review, candidate account claim, and repeated apply/add actions for one requirement. Confirm provenance remains visible and cross-company private records cannot be inferred through duplicate checks. See `docs/needle-integration.md`.

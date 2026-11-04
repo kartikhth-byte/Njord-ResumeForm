@@ -67,6 +67,26 @@ and an applicant, including photo/offer-letter behavior, remain open because
 the browser/HTTP probe was unavailable. No candidate status or email was
 changed for this test.
 
+Follow-up staging smoke on 2026-11-04 found a separate regression from `0211`:
+eight older `scheduled_events` and `user_roles` policies still called the
+now-revoked `check_permission` helper directly. A Coordinator event read failed
+with `permission denied for function check_permission`. Migration `0219`
+switches those policies to the self-scoped `has_permission` wrapper without
+regranting the old helper. Seven PGlite checks passed. The exact SQL was
+applied through the SQL editor and recorded in migration history on both
+staging and production. Production readback found zero direct policy calls,
+and `anon`/`authenticated` still cannot execute `check_permission`.
+
+Rollback-only staging probes after `0219` passed: Coordinator could read four
+applications, four photo objects, and one offer-letter object but updated zero
+application/photo/offer rows; Recruiter and simulated Master Recruiter each
+updated one application row; an applicant updated their own draft. The
+simulated role assignment was rolled back and the original Recruiter role was
+confirmed unchanged. Staging has no real Coordinator or Master account, so
+signed-in browser/API checks for those roles, plus actual photo download and
+offer-letter function behavior, remain open. The safe public-route Playwright
+subset passed 6/6; the default write-capable smoke suite was not run.
+
 ## Additional Follow-Up
 
 - `application_photos` has a legacy SELECT policy named "Anyone can view
