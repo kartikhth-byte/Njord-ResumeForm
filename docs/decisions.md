@@ -20,7 +20,9 @@ Also decided 2026-11-05:
 - retire Holmes's application-embedding search once Needle is embedded
 - every Holmes candidate has a resume in the resume database; candidates enter with name, a phone or an email, and the resume; the recruiter completes phone, email, date of birth and nationality on the first call, before the candidate moves past contacted; email actions need an email
 
-Open (`docs/needle-in-holmes-design.md` §8): who owns the existing Needle pool; the customer intake channel besides Holmes upload.
+- the existing Needle resume pool becomes Njordships' pool
+- each customer has its own Drive folder, the single way into its pool: uploads from Holmes are written there, the customer's resume mailbox saves attachments there, and a new customer bulk-moves its existing resumes there at onboarding; Needle's Drive intake reads each folder into that customer's pool
+- consequence for Needle: the hosted worker must read one folder per organization (today it reads one folder), and email intake must move from the desktop agent into the hosted worker
 
 ## 2026-11-02 - Contain Public Data API Exposure
 
