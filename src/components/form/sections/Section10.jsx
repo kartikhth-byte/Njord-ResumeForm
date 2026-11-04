@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
-import { Plus, Trash2, AlertCircle } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 
 const MEDICAL_TYPE_OPTIONS = [
   { value: 'PEME', label: 'PEME (Pre-Employment Medical Examination)' },
@@ -257,16 +257,6 @@ export default function Section10({ data = {}, onUpdate }) {
                   This certificate has lifetime validity (no expiry date)
                 </label>
               </div>
-
-              {/* NEW: Information Alert */}
-              {formData.vaccinations.yellowFever.lifetimeValidity && (
-                <div className="flex items-start gap-2 p-3 bg-accent-soft border border-accent/40 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-accent-text flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-accent-text">
-                    Certificates with lifetime validity will not trigger expiry warnings.
-                  </p>
-                </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormDatePicker

@@ -122,6 +122,11 @@ export default function Section14({ data = {}, onUpdate }) {
         <h2 className="applicant-section-title">STCW courses and competencies</h2>
       </div>
 
+      <p className="applicant-field__help">
+        Required for everyone (STCW VI/1 Basic Training): Personal Survival Techniques, Fire Prevention and Fire Fighting,
+        Elementary First Aid, Personal Safety and Social Responsibilities, Security Awareness Training.
+      </p>
+
       {/* Courses List */}
       <div className="space-y-6">
         {courses.length === 0 ? (
@@ -176,31 +181,8 @@ export default function Section14({ data = {}, onUpdate }) {
                     onChange={(e) => handleCourseChange(index, 'courseName', e.target.value)}
                     onBlur={() => handleBlur(index, 'courseName')}
                     options={SECTION14_COURSE_OPTIONS}
-                    helpText="Select the course that matches the certificate you are entering"
                     error={touched[`course-${index}-courseName`] ? errors[`course-${index}-courseName`] : ''}
                   />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormInput
-                      label="IMO Model Course"
-                      name={`course-${index}-imoModelCourse`}
-                      value={course.imoModelCourse || ''}
-                      readOnly
-                      aria-readonly="true"
-                      placeholder="Auto-filled from selected course"
-                      helpText={course.imoModelCourse ? 'Auto-filled from selected course' : 'No mapped IMO model course for this selection'}
-                    />
-
-                    <FormInput
-                      label="Reference- Regulation"
-                      name={`course-${index}-referenceRegulation`}
-                      value={course.referenceRegulation || ''}
-                      readOnly
-                      aria-readonly="true"
-                      placeholder="Auto-filled from selected course"
-                      helpText={course.referenceRegulation ? 'Auto-filled from selected course' : 'No mapped reference regulation for this selection'}
-                    />
-                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormInput
@@ -233,7 +215,6 @@ export default function Section14({ data = {}, onUpdate }) {
                       onChange={(e) => handleCourseChange(index, 'dateOfExpiry', e.target.value)}
                       onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={course.dateOfIssue || new Date().toISOString().split('T')[0]}
-                      helpText="Must be after date of issue"
                       error={touched[`course-${index}-dateOfExpiry`] ? errors[`course-${index}-dateOfExpiry`] : ''}
                     />
                   </div>
@@ -251,35 +232,6 @@ export default function Section14({ data = {}, onUpdate }) {
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Boxes */}
-      <div className="space-y-4">
-        {/* Mandatory Courses Info */}
-        <div className="applicant-section-card applicant-section-card--muted">
-          <div className="flex gap-3">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-warning mb-1">
-                Mandatory STCW Courses
-              </h3>
-              <p className="text-sm text-warning mb-2">
-                All seafarers must have the following STCW VI/1 Basic Training certificates:
-              </p>
-              <ul className="text-sm text-warning list-disc list-inside space-y-1">
-                <li>Personal Survival Techniques</li>
-                <li>Fire Prevention and Fire Fighting</li>
-                <li>Elementary First Aid</li>
-                <li>Personal Safety and Social Responsibilities</li>
-                <li>Security Awareness Training</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

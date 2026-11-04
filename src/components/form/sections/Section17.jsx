@@ -149,7 +149,7 @@ export default function Section17({ data = {}, onUpdate }) {
                 className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
               />
               <label htmlFor="ecdis" className="ml-3 block text-sm font-medium text-fg-secondary">
-                ECDIS (Electronic Chart Display and Information System)
+                ECDIS
               </label>
             </div>
             {formData.ecdis && (
@@ -160,7 +160,6 @@ export default function Section17({ data = {}, onUpdate }) {
                   value={formData.ecdisTypes}
                   onChange={handleChange}
                   placeholder="e.g., Furuno, JRC, Transas, Wartsila"
-                  helpText="List the ECDIS systems you have experience with"
                 />
               </div>
             )}
@@ -201,7 +200,7 @@ export default function Section17({ data = {}, onUpdate }) {
                   className="mt-1 h-4 w-4 text-accent-text focus:ring-accent border-line-input rounded"
                 />
                 <label htmlFor="arpa" className="ml-3 block text-sm font-medium text-fg-secondary">
-                  ARPA (Automatic Radar Plotting Aids)
+                  ARPA
                 </label>
               </div>
 
@@ -376,7 +375,6 @@ export default function Section17({ data = {}, onUpdate }) {
               value={formData.mainEngineExperience}
               onChange={handleChange}
               placeholder="e.g., MAN B&W, Wartsila, Sulzer"
-              helpText="List main engine types and makes you have experience with"
             />
 
             <FormInput
@@ -385,7 +383,6 @@ export default function Section17({ data = {}, onUpdate }) {
               value={formData.auxiliaryEngineExperience}
               onChange={handleChange}
               placeholder="e.g., Caterpillar, Daihatsu, Yanmar"
-              helpText="List auxiliary engine types you have worked on"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -502,7 +499,6 @@ export default function Section17({ data = {}, onUpdate }) {
                   value={formData.electricalVoltage}
                   onChange={handleChange}
                   placeholder="e.g., 440V, 6.6kV, 11kV"
-                  helpText="Voltage levels you have worked with"
                 />
               </div>
             )}

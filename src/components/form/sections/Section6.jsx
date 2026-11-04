@@ -161,7 +161,6 @@ export default function Section6({ data = {}, onUpdate }) {
                       onChange={(e) => handleEducationChange(index, 'from', e.target.value)}
                       onBlur={() => handleBlur(index, 'from')}
                       max={new Date().toISOString().split('T')[0]}
-                      helpText="Start date"
                       error={touched[`education-${index}-from`] ? errors[`education-${index}-from`] : ''}
                     />
 
@@ -174,7 +173,6 @@ export default function Section6({ data = {}, onUpdate }) {
                       onBlur={() => handleBlur(index, 'to')}
                       min={edu.from}
                       max={new Date().toISOString().split('T')[0]}
-                      helpText="End date"
                       error={touched[`education-${index}-to`] ? errors[`education-${index}-to`] : ''}
                     />
                   </div>
@@ -187,7 +185,6 @@ export default function Section6({ data = {}, onUpdate }) {
                     onChange={(e) => handleEducationChange(index, 'qualification', e.target.value)}
                     onBlur={() => handleBlur(index, 'qualification')}
                     placeholder="e.g., Bachelor of Science in Marine Engineering, Diploma in Nautical Science"
-                    helpText="Degree, diploma, or certificate obtained"
                     error={touched[`education-${index}-qualification`] ? errors[`education-${index}-qualification`] : ''}
                   />
                 </div>

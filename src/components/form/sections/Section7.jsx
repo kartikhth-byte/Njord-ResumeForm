@@ -142,7 +142,7 @@ export default function Section7({ data = {}, onUpdate }) {
                     placeholder="Full name"
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormDatePicker
                       label="Date of Birth"
                       name={`dependent-${index}-dateOfBirth`}
@@ -150,15 +150,6 @@ export default function Section7({ data = {}, onUpdate }) {
                       value={dependent.dateOfBirth}
                       onChange={(e) => handleDependentChange(index, 'dateOfBirth', e.target.value)}
                       max={new Date().toISOString().split('T')[0]}
-                    />
-
-                    <FormInput
-                      label="Age"
-                      name={`dependent-${index}-age`}
-                      value={dependent.age}
-                      disabled
-                      placeholder="Auto-calculated"
-                      helpText="Auto-calculated"
                     />
 
                     <FormSelect

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { Camera, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth/AuthContext'
 
@@ -18,11 +18,9 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
 
   // Update preview when currentPhotoPath prop changes (e.g., after loading from database)
   useEffect(() => {
-    console.log('🖼️ PhotoUpload: currentPhotoPath changed to:', currentPhotoPath)
     if (currentPhotoPath) {
       getPhotoUrl(currentPhotoPath).then(setPreviewUrl)
     } else {
-      console.log('🖼️ PhotoUpload: No photo path, clearing preview')
       setPreviewUrl(null)
     }
   }, [currentPhotoPath])
@@ -31,7 +29,6 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    console.log('📸 PhotoUpload: File selected:', file.name, file.type, file.size)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -51,7 +48,6 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
       // Create preview
       const reader = new FileReader()
       reader.onload = (e) => {
-        console.log('📸 PhotoUpload: Preview created')
         setPreviewUrl(e.target.result)
       }
       reader.readAsDataURL(file)
@@ -61,7 +57,6 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${user.id}/${fileName}`
 
-      console.log('📸 PhotoUpload: Uploading to:', filePath)
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -73,7 +68,6 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
 
       if (uploadError) throw uploadError
 
-      console.log('✅ PhotoUpload: Upload successful, path:', filePath)
 
       // Callback with the file path
       onPhotoUploaded(filePath)
@@ -168,31 +162,7 @@ export default function PhotoUpload({ currentPhotoPath, onPhotoUploaded }) {
           />
         </div>
 
-        {/* Instructions */}
-        <div className="flex-1">
-          <div className="text-sm text-fg-secondary space-y-1">
-            <p className="font-medium text-fg-secondary">Photo Requirements:</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
-              <li>Recent passport-size photo</li>
-              <li>Clear face, looking at camera</li>
-              <li>Plain background (white or light colored)</li>
-              <li>File format: JPG or PNG</li>
-              <li>Maximum size: 5MB</li>
-            </ul>
-          </div>
-          
-          {!previewUrl && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-soft rounded-lg transition-colors disabled:opacity-50"
-            >
-              <Upload className="w-4 h-4" />
-              {uploading ? 'Uploading...' : 'Choose Photo'}
-            </button>
-          )}
-        </div>
+        <p className="flex-1 text-xs text-fg-muted">Passport-style, plain background. JPG or PNG, up to 5 MB.</p>
       </div>
     </div>
   )

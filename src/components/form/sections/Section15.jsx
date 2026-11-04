@@ -183,7 +183,6 @@ export default function Section15({ data = {}, onUpdate }) {
               />
             </svg>
             <p className="text-fg-secondary mb-2">No flag state endorsements added yet</p>
-            <p className="text-sm text-fg-muted mb-4">Add endorsements if you have any</p>
             <button
               onClick={handleAddEndorsement}
               className="applicant-action applicant-action--primary"
@@ -221,7 +220,6 @@ export default function Section15({ data = {}, onUpdate }) {
                       onChange={(e) => handleEndorsementChange(index, 'flagState', e.target.value)}
                       onBlur={() => handleBlur(index, 'flagState')}
                       options={FLAG_STATE_OPTIONS}
-                      helpText="Country that issued the endorsement"
                       error={touched[`endorsement-${index}-flagState`] ? errors[`endorsement-${index}-flagState`] : ''}
                     />
 
@@ -234,7 +232,7 @@ export default function Section15({ data = {}, onUpdate }) {
                       onBlur={() => handleBlur(index, 'endorsementType')}
                       options={getEndorsementTypeOptions(endorsement.flagState)}
                       disabled={!endorsement.flagState}
-                      helpText={endorsement.flagState ? 'Choose an endorsement type allowed for the selected flag state' : 'Select a flag state first'}
+                      helpText={endorsement.flagState ? undefined : 'Select a flag state first'}
                       error={touched[`endorsement-${index}-endorsementType`] ? errors[`endorsement-${index}-endorsementType`] : ''}
                     />
                   </div>
@@ -247,7 +245,6 @@ export default function Section15({ data = {}, onUpdate }) {
                     onChange={(e) => handleEndorsementChange(index, 'rankEndorsed', e.target.value)}
                     onBlur={() => handleBlur(index, 'rankEndorsed')}
                     placeholder="e.g., Master, Chief Officer, Chief Engineer"
-                    helpText="The rank/position this endorsement is valid for"
                     error={touched[`endorsement-${index}-rankEndorsed`] ? errors[`endorsement-${index}-rankEndorsed`] : ''}
                   />
 
@@ -293,7 +290,6 @@ export default function Section15({ data = {}, onUpdate }) {
                       onChange={(e) => handleEndorsementChange(index, 'dateOfExpiry', e.target.value)}
                       onBlur={() => handleBlur(index, 'dateOfExpiry')}
                       min={endorsement.dateOfIssue || new Date().toISOString().split('T')[0]}
-                      helpText="Must be after date of issue"
                       error={touched[`endorsement-${index}-dateOfExpiry`] ? errors[`endorsement-${index}-dateOfExpiry`] : ''}
                     />
                   </div>

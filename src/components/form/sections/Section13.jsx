@@ -188,7 +188,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
               {touched.height && errors.height && (
                 <p className="mt-1 text-sm text-danger">{errors.height}</p>
               )}
-              <p className="mt-1 text-sm text-fg-muted">Your height</p>
             </div>
 
             {/* Weight with Unit */}
@@ -225,7 +224,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
               {touched.weight && errors.weight && (
                 <p className="mt-1 text-sm text-danger">{errors.weight}</p>
               )}
-              <p className="mt-1 text-sm text-fg-muted">Your weight</p>
             </div>
           </div>
 
@@ -281,7 +279,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
     {touched.shoeSize && errors.shoeSize && (
       <p className="mt-1 text-sm text-danger">{errors.shoeSize}</p>
     )}
-    <p className="mt-1 text-sm text-fg-muted">Enter your shoe size number</p>
   </div>
 
   <FormSelect
@@ -292,7 +289,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
     onChange={handleChange}
     options={SHOE_SIZE_UNIT_OPTIONS}
     placeholder="Select system"
-    helpText="Choose measurement system"
   />
 </div>
 
@@ -304,7 +300,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
             onChange={handleChange}
             onBlur={() => handleBlur('boilerSuitSize')}
             options={SIZE_OPTIONS.boilerSuit}
-            helpText="Standard clothing size for coveralls"
             error={touched.boilerSuitSize ? errors.boilerSuitSize : ''}
           />
 
@@ -317,7 +312,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
               onChange={handleChange}
               onBlur={() => handleBlur('uniformShirtSize')}
               placeholder="e.g., 42 or L"
-              helpText="Collar size (cm/inches) or letter size"
+              helpText="cm, inches or letter size"
               error={touched.uniformShirtSize ? errors.uniformShirtSize : ''}
             />
 
@@ -329,7 +324,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
               onChange={handleChange}
               onBlur={() => handleBlur('uniformTrouserSize')}
               placeholder="e.g., 34 or L"
-              helpText="Waist size (cm/inches) or letter size"
+              helpText="cm, inches or letter size"
               error={touched.uniformTrouserSize ? errors.uniformTrouserSize : ''}
             />
           </div>

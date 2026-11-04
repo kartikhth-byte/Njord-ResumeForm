@@ -190,7 +190,6 @@ export default function Section8({ data = {}, onUpdate }) {
                       onChange={(e) => handleCertificateChange(index, 'grade', e.target.value)}
                       onBlur={() => handleBlur(index, 'grade')}
                       placeholder="e.g., Master Unlimited, Chief Officer"
-                      helpText="Certificate grade/rank"
                       error={touched[`cert-${index}-grade`] ? errors[`cert-${index}-grade`] : ''}
                     />
 
@@ -263,7 +262,6 @@ export default function Section8({ data = {}, onUpdate }) {
                         onChange={(e) => handleCertificateChange(index, 'dateRevalidated', e.target.value)}
                         onBlur={() => handleBlur(index, 'dateRevalidated')}
                         max={new Date().toISOString().split('T')[0]}
-                        helpText="Leave blank if not revalidated"
                         error={touched[`cert-${index}-dateRevalidated`] ? errors[`cert-${index}-dateRevalidated`] : ''}
                       />
 
@@ -274,7 +272,6 @@ export default function Section8({ data = {}, onUpdate }) {
                         onChange={(e) => handleCertificateChange(index, 'dateRevalidationExpiry', e.target.value)}
                         onBlur={() => handleBlur(index, 'dateRevalidationExpiry')}
                         min={cert.dateRevalidated || new Date().toISOString().split('T')[0]}
-                        helpText="Leave blank if not revalidated"
                         error={touched[`cert-${index}-dateRevalidationExpiry`] ? errors[`cert-${index}-dateRevalidationExpiry`] : ''}
                       />
                     </div>

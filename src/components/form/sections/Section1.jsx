@@ -141,7 +141,6 @@ export default function Section1({ data = {}, onUpdate }) {
           options={RANK_OPTIONS}
           placeholder="Select the position you are applying for"
           error={touched.appliedForRank ? errors.appliedForRank : ''}
-          helpText="The rank/position you wish to apply for"
         />
 
         {/* Type of Vessel */}
@@ -155,7 +154,6 @@ export default function Section1({ data = {}, onUpdate }) {
           options={VESSEL_TYPE_OPTIONS}
           placeholder="Select preferred vessel type"
           error={touched.vesselType ? errors.vesselType : ''}
-          helpText="Your preferred type of vessel to work on"
         />
 
         {/* Availability Dates */}
@@ -173,7 +171,6 @@ export default function Section1({ data = {}, onUpdate }) {
             onBlur={handleBlur}
             error={touched.availableFrom ? errors.availableFrom : ''}
             min={new Date().toISOString().split('T')[0]}
-            helpText="When can you join?"
           />
 
           <FormDatePicker
@@ -184,7 +181,6 @@ export default function Section1({ data = {}, onUpdate }) {
             onBlur={handleBlur}
             error={touched.availableTill ? errors.availableTill : ''}
             min={formData.availableFrom || new Date().toISOString().split('T')[0]}
-            helpText="Optional - End of availability"
           />
           </div>
         </div>
@@ -202,7 +198,7 @@ export default function Section1({ data = {}, onUpdate }) {
             />
             <div>
               <label htmlFor="mediaAdvertisement" className="applicant-toggle-card__title">
-                Are you responding to a media advertisement?
+                Found us through an ad
               </label>
             </div>
           </div>
@@ -210,7 +206,7 @@ export default function Section1({ data = {}, onUpdate }) {
           {formData.mediaAdvertisement && (
             <div className="w-full">
               <FormInput
-                label="If yes, please state which one"
+                label="Which ad"
                 name="mediaAdvertisementDetails"
                 required
                 value={formData.mediaAdvertisementDetails}
@@ -218,7 +214,6 @@ export default function Section1({ data = {}, onUpdate }) {
                 onBlur={handleBlur}
                 error={touched.mediaAdvertisementDetails ? errors.mediaAdvertisementDetails : ''}
                 placeholder="e.g., LinkedIn job posting, Maritime Executive ad"
-                helpText="Specify the advertisement source"
               />
             </div>
           )}
@@ -237,7 +232,7 @@ export default function Section1({ data = {}, onUpdate }) {
             />
             <div>
               <label htmlFor="professionalRecommendation" className="applicant-toggle-card__title">
-                Are you applying upon personal or professional recommendation?
+                Referred by someone
               </label>
             </div>
           </div>
@@ -245,7 +240,7 @@ export default function Section1({ data = {}, onUpdate }) {
           {formData.professionalRecommendation && (
             <div className="w-full">
               <FormInput
-                label="If yes, please state who"
+                label="Referred by"
                 name="recommendedBy"
                 required
                 value={formData.recommendedBy}
@@ -253,7 +248,6 @@ export default function Section1({ data = {}, onUpdate }) {
                 onBlur={handleBlur}
                 error={touched.recommendedBy ? errors.recommendedBy : ''}
                 placeholder="e.g., Captain John Smith, Chief Engineer Jane Doe"
-                helpText="Name and position of the person who recommended you"
               />
             </div>
           )}

@@ -344,7 +344,6 @@ const autoCapitalize = (value) => {
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="Nickname or preferred name (optional)"
-          helpText="What you prefer to be called"
         />
 
         {/* Birth Details */}
@@ -399,15 +398,6 @@ const autoCapitalize = (value) => {
             onBlur={handleBlur}
             max={new Date().toISOString().split('T')[0]}
             error={touched.dateOfBirth ? errors.dateOfBirth : ''}
-          />
-
-          <FormInput
-            label="Age"
-            name="age"
-            value={formData.age}
-            disabled
-            placeholder="Auto-calculated"
-            helpText="Automatically calculated from date of birth"
           />
         </div>
       </div>
@@ -538,23 +528,21 @@ const autoCapitalize = (value) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
-            label="Domestic Airport"
+            label="Nearest domestic airport"
             name="domesticAirport"
             value={formData.domesticAirport}
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="e.g., JFK, LAX"
-            helpText="Nearest domestic airport"
           />
 
           <FormInput
-            label="International Airport"
+            label="Nearest international airport"
             name="internationalAirport"
             value={formData.internationalAirport}
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="e.g., JFK, LAX"
-            helpText="Nearest international airport"
           />
         </div>
 

@@ -167,7 +167,6 @@ export default function Section9({ data = {}, onUpdate }) {
                     onChange={(e) => handleGMDSSChange(index, 'issuingAuthority', e.target.value)}
                     onBlur={() => handleBlur(index, 'issuingAuthority')}
                     placeholder="e.g., FCC, Ofcom, WPC India"
-                    helpText="Telecommunications authority that issued the certificate"
                     error={touched[`gmdss-${index}-issuingAuthority`] ? errors[`gmdss-${index}-issuingAuthority`] : ''}
                   />
 

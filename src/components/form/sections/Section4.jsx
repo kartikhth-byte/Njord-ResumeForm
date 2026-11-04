@@ -106,7 +106,6 @@ const autoCapitalize = (value) => {
           onBlur={handleBlur}
           error={touched.cdcNumber ? errors.cdcNumber : ''}
           placeholder="e.g., CDC123456 or SB789012"
-          helpText="Your CDC or Seaman's Book identification number"
         />
 
 <FormInput
@@ -121,7 +120,6 @@ const autoCapitalize = (value) => {
   onBlur={handleBlur}
   error={touched.placeOfIssue ? errors.placeOfIssue : ''}
   placeholder="e.g., Mumbai, India"
-  helpText="City and country where CDC/Seaman's Book was issued"
 />
 
 <FormInput
@@ -136,7 +134,6 @@ const autoCapitalize = (value) => {
   onBlur={handleBlur}
   error={touched.issuingAuthority ? errors.issuingAuthority : ''}
   placeholder="e.g., DG Shipping India, UK MCA, USCG"
-  helpText="Government maritime authority that issued the document"
 />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +146,6 @@ const autoCapitalize = (value) => {
             onBlur={handleBlur}
             error={touched.dateOfIssue ? errors.dateOfIssue : ''}
             max={new Date().toISOString().split('T')[0]}
-            helpText="When the CDC was issued"
           />
 
           <FormDatePicker
@@ -161,7 +157,6 @@ const autoCapitalize = (value) => {
             onBlur={handleBlur}
             error={touched.dateOfExpiry ? errors.dateOfExpiry : ''}
             min={formData.dateOfIssue || new Date().toISOString().split('T')[0]}
-            helpText="When the CDC expires"
           />
         </div>
       </div>

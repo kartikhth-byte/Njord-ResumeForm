@@ -302,6 +302,7 @@ export default function Section18({ data = {}, onUpdate }) {
 
       {/* References List */}
       <div className="space-y-6">
+        <p className="applicant-field__help">Add at least 2 references.</p>
         {references.length === 0 ? (
           <div className="applicant-empty-state">
             <svg
@@ -410,7 +411,6 @@ export default function Section18({ data = {}, onUpdate }) {
                     onChange={(e) => handleReferenceChange(index, 'relationship', e.target.value)}
                     onBlur={() => handleBlur(index, 'relationship')}
                     options={RELATIONSHIP_OPTIONS}
-                    helpText="How do you know this person?"
                     error={touched[`reference-${index}-relationship`] ? errors[`reference-${index}-relationship`] : ''}
                   />
 
@@ -452,7 +452,6 @@ export default function Section18({ data = {}, onUpdate }) {
                     onChange={(e) => handleReferenceChange(index, 'yearsKnown', e.target.value)}
                     onBlur={() => handleBlur(index, 'yearsKnown')}
                     placeholder="e.g., 5"
-                    helpText="How many years have you known this person?"
                     error={touched[`reference-${index}-yearsKnown`] ? errors[`reference-${index}-yearsKnown`] : ''}
                   />
 
@@ -486,51 +485,6 @@ export default function Section18({ data = {}, onUpdate }) {
             </button>
           </>
         )}
-      </div>
-
-      {/* Info Boxes */}
-      <div className="space-y-4">
-        {/* Best Practices */}
-        <div className="applicant-section-card applicant-section-card--muted">
-          <div className="flex gap-3">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-warning mb-1">
-                Best Practices for References
-              </h3>
-              <ul className="text-sm text-warning space-y-1 list-disc list-inside">
-                <li>Add at least 2 references.</li>
-                <li>Choose people who supervised your work directly</li>
-                <li>Recent references are more valuable (from last 5 years)</li>
-                <li>Always ask permission before listing someone as a reference</li>
-                <li>Ensure contact details are current and accurate</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Privacy Notice */}
-        <div className="bg-success-soft border border-success-line rounded-lg p-4">
-          <div className="flex gap-3">
-            <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-success mb-1">
-                Privacy & Confidentiality
-              </h3>
-              <p className="text-sm text-success">
-                References are confidential and contacted only with your consent.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -47,9 +47,9 @@ const TRADE_ROUTE_OPTIONS = [
 ]
 
 const REASON_FOR_LEAVING_OPTIONS = [
-  { value: 'MR', label: 'MR' },
-  { value: 'VS', label: 'VS' },
-  { value: 'EOC', label: 'EOC' },
+  { value: 'MR', label: 'Medical' },
+  { value: 'VS', label: 'Vessel sold' },
+  { value: 'EOC', label: 'End of contract' },
 ]
 
 const emptySeaService = {
@@ -365,7 +365,7 @@ export default function Section16({ data = {}, onUpdate }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormInput
-                        label="GRT (Gross Registered Tonnage)"
+                        label="GRT"
                         name={`service-${index}-grt`}
                         required
                         type="number"
@@ -373,7 +373,6 @@ export default function Section16({ data = {}, onUpdate }) {
                         onChange={(e) => handleServiceChange(index, 'grt', e.target.value)}
                         onBlur={() => handleBlur(index, 'grt')}
                         placeholder="e.g., 45000"
-                        helpText="Vessel size in GRT"
                         error={touched[`service-${index}-grt`] ? errors[`service-${index}-grt`] : ''}
                       />
 
@@ -384,7 +383,6 @@ export default function Section16({ data = {}, onUpdate }) {
                         value={service.dwt}
                         onChange={(e) => handleServiceChange(index, 'dwt', e.target.value)}
                         placeholder="e.g., 75000"
-                        helpText="Optional"
                       />
                     </div>
 
@@ -433,7 +431,6 @@ export default function Section16({ data = {}, onUpdate }) {
                         onChange={(e) => handleServiceChange(index, 'engineFamily', e.target.value)}
                         onBlur={() => handleBlur(index, 'engineFamily')}
                         options={ENGINE_FAMILY_OPTIONS}
-                        helpText="Normalized engine family for engineer experience reporting"
                         error={touched[`service-${index}-engineFamily`] ? errors[`service-${index}-engineFamily`] : ''}
                       />
                     </div>
@@ -457,7 +454,6 @@ export default function Section16({ data = {}, onUpdate }) {
                         value={service.engineKw}
                         onChange={(e) => handleServiceChange(index, 'engineKw', e.target.value)}
                         placeholder="e.g., 15000"
-                        helpText="Main engine power"
                       />
                     </div>
                   </div>
@@ -535,7 +531,6 @@ export default function Section16({ data = {}, onUpdate }) {
                         onBlur={() => handleBlur(index, 'signOffDate')}
                         min={service.signOnDate}
                         max={new Date().toISOString().split('T')[0]}
-                        helpText="Must be after sign on date"
                         error={touched[`service-${index}-signOffDate`] ? errors[`service-${index}-signOffDate`] : ''}
                       />
                     </div>
@@ -572,7 +567,7 @@ export default function Section16({ data = {}, onUpdate }) {
                       onChange={(e) => handleServiceChange(index, 'totalMmDd', e.target.value)}
                       onBlur={() => handleBlur(index, 'totalMmDd')}
                       placeholder="e.g., 08/15"
-                      helpText="Enter total contract period in months/days"
+                      helpText="Months/days, e.g. 06/15"
                       error={touched[`service-${index}-totalMmDd`] ? errors[`service-${index}-totalMmDd`] : ''}
                     />
 
@@ -584,7 +579,6 @@ export default function Section16({ data = {}, onUpdate }) {
                       onChange={(e) => handleServiceChange(index, 'reasonForLeaving', e.target.value)}
                       onBlur={() => handleBlur(index, 'reasonForLeaving')}
                       options={REASON_FOR_LEAVING_OPTIONS}
-                      helpText="MR = Medical Reason, VS = Vessel Sold, EOC = End of Contract"
                       error={touched[`service-${index}-reasonForLeaving`] ? errors[`service-${index}-reasonForLeaving`] : ''}
                     />
                   </div>
