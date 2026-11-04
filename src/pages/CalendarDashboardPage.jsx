@@ -1,6 +1,5 @@
 // src/pages/CalendarDashboardPage.jsx
-import { useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import CalendarDashboard from '../components/dashboard/CalendarDashboard'
@@ -9,16 +8,7 @@ import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav
 
 export default function CalendarDashboardPage() {
   const { user, profile, signOut } = useAuth()
-  const navigate = useNavigate()
   const { role, loading } = usePermissions(user)
-
-  useEffect(() => {
-    // Only allow recruiters to access this page
-    if (!user && !loading) {
-      navigate('/recruiter/login')
-      return
-    }
-  }, [user, loading, navigate])
 
   if (loading) {
     return (
@@ -31,8 +21,7 @@ export default function CalendarDashboardPage() {
     )
   }
 
-  // ✅ FIXED: Use correct role names matching database
-  if (role !== 'Recruiter' && role !== 'Master Recruiter') {
+  if (role !== 'Recruiter' && role !== 'Master Recruiter' && role !== 'Coordinator') {
     return (
       <div className="recruiter-shell flex min-h-screen items-center justify-center px-4">
         <div className="recruiter-panel max-w-lg p-8 text-center">

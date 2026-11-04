@@ -56,7 +56,7 @@
   - workspace requirement edits no longer overwrite `owner_recruiter_id` (previously undid ownership transfers) and typed remarks are persisted on edit
   - workspace candidate rows now use the most recently updated application per prospect
   - `test_failed` counts as an active funnel stage (retakes supported), not a terminal rejection
-  - Expiry/Calendar nav entries are hidden for `Coordinator`, matching their route guards
+  - Expiry remains hidden for `Coordinator`; Calendar is available read-only to all three recruiter roles
 - live browser validation pass (2026-07-10, local dev against production Supabase):
   - remote DB was missing `2026060310`/`2026060311` (applied), the reference-data seeds (`2026071001_reseed_reference_data.sql` re-applies RBAC grants + countries/ranks/vessel_types), and had RLS wrongly enabled on the lookup catalogs (`2026071002_restore_lookup_visibility.sql` disables it) — all pushed and verified
   - the stray `20260317_remote_baseline.sql` no-op was retired to `supabase/20260317_remote_baseline.sql.disabled` after its remote history entry was repaired; migration pushes work normally now
@@ -263,4 +263,4 @@ Once the recruiter-facing panel and applications-list triage are validated, deci
 - dashboard summaries
 - recruiter filtering / search
 - automatic checks at submission time
-- Coordinator application-workflow boundary (2026-11-04): `0216`-`0219` are applied on staging and production. `0219` replaces eight legacy RLS calls to the revoked `check_permission` helper; production catalog readback confirms zero direct calls while `anon` and `authenticated` still cannot execute it. The application UI hides decision controls, and four scheduling/notification functions enforce editor checks. Seven regression checks, rollback-only staging role simulations, and 6/6 safe public-route tests passed; real signed-in role/API smoke remains open.
+- Coordinator application-workflow boundary (2026-11-04): `0216`-`0219` are applied on staging and production. `0219` replaces eight legacy RLS calls to the revoked `check_permission` helper; production catalog readback confirms zero direct calls while `anon` and `authenticated` still cannot execute it. The application UI hides decision controls, and four scheduling/notification functions enforce editor checks. Signed-in staging Recruiter, temporary Coordinator, and temporary Master UI reads passed for applications and protected photos; Coordinator decision controls were absent. The Calendar gates now allow Coordinator read-only access. Applicant, direct API write-denial, and offer-letter checks remain open.

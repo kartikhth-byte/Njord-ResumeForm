@@ -61,7 +61,7 @@ export default function RecruiterWorkspaceNav() {
       label: 'Calendar',
       icon: Calendar,
       path: '/recruiter/calendar',
-      visible: role === 'Recruiter' || role === 'Master Recruiter'
+      visible: role === 'Recruiter' || role === 'Master Recruiter' || role === 'Coordinator'
     },
     {
       key: 'search',

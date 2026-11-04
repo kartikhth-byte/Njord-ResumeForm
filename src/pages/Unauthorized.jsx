@@ -37,7 +37,7 @@ export default function Unauthorized() {
         {userType && (
           <p className="mx-auto mt-3 max-w-md text-sm text-slate-500">
             You're logged in as a <span className="font-semibold">{userType}</span>.
-            {userType === 'recruiter' && ' This page is only for applicants.'}
+            {userType === 'recruiter' && ' Your recruiter role does not permit this page.'}
             {userType === 'applicant' && ' This page is only for recruiters.'}
           </p>
         )}

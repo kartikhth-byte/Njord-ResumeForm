@@ -32,7 +32,7 @@
 - Manually verify recruiter bootstrap flow strictly through the UI after a controlled reset
 - Manually verify recruiter reset-email flow end-to-end from received email to new password
 - Verify recruiter recovery from an applicant-signed-in browser after the recovery-page routing fix; use a real recruiter mailbox, not an applicant email
-- Coordinator read-only application workflow: `0216`-`0218` enforce the role boundary and are applied on staging and production. Staging role smoke found eight legacy event/team-role policies still calling `check_permission` after `0211` revoked client access; focused `0219` repairs them on both projects. Production readback shows zero direct calls and keeps the helper private. Seven regression checks, rollback-only staging Coordinator/Recruiter/Master/applicant application and storage probes, 6/6 safe public-route tests, lint, and build passed. Real signed-in role/UI smoke (staging has no Coordinator/Master account), photo/offer-letter downloads, and invitation denial remain pending. Do not run the default production-writing smoke harness for this check.
+- Coordinator read-only application workflow: `0216`-`0219` are on staging and production. Regression checks and rollback-only role probes passed. Signed-in staging Recruiter, temporary Coordinator, and temporary Master UI reads passed for applications and protected photos; Coordinator decision controls were absent. The Calendar gates now allow Coordinator read-only access. The staging account was restored to Recruiter with its last-Master safeguard enabled. Applicant and direct API write-denial tests, offer-letter behavior, and invitation denial remain pending. Do not run the default production-writing smoke harness for this check.
 - Validate the recruiter export/reporting flows against the live backend
 - Verify the prospect invite / bounce recovery flow against a real recruiter account
 
@@ -93,7 +93,7 @@
   - requirement and junction transition controls
   - recruiter nav entry and workspace route
 - Recruiter shell redesign is implemented locally:
-  - main nav now surfaces Dashboard, Workspace, Requirements, Candidates, KPI, Expiry, Calendar, Search, and Settings (KPI/Settings permission-gated; Expiry/Calendar hidden for Coordinator to match route guards)
+  - main nav now surfaces Dashboard, Workspace, Requirements, Candidates, KPI, Expiry, Calendar, Search, and Settings (KPI/Settings permission-gated; Expiry hidden for Coordinator; Calendar read-only for Coordinator)
   - dashboard is a compact executive snapshot
   - Workspace now splits requirements, candidates, and candidate pipeline
   - Candidate Pipeline now uses application statuses (`under_review` through `withdrawn`) and hides the version field from the recruiter UI
