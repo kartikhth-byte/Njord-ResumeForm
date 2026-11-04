@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import { AlertCircle, Calendar, CheckCircle, Clock, FileText, Mail, RefreshCw, Search } from 'lucide-react'
-import { useAuth } from '../auth/AuthContext'
-import { usePermissions } from '../../hooks/usePermissions'
+import { AlertCircle, CheckCircle, FileText, Mail, RefreshCw, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../ui/PageHeader'
 
@@ -11,7 +8,7 @@ const URGENCY_CONFIG = {
     badgeColor: 'bg-raised text-fg-secondary',
     label: 'All',
     dot: 'bg-fg-muted',
-    description: 'Next 90 days'
+    description: 'Expired or due in 90 days'
   },
   expired: {
     badgeColor: 'bg-danger-soft text-danger',
@@ -26,9 +23,9 @@ const URGENCY_CONFIG = {
     description: 'Within 30 days'
   },
   urgent: {
-    badgeColor: 'bg-warning-soft text-warning',
+    badgeColor: 'bg-progress-soft text-progress',
     label: 'Urgent',
-    dot: 'bg-warning',
+    dot: 'bg-progress',
     description: '30–60 days'
   },
   moderate: {
@@ -67,15 +64,11 @@ function getDocumentTypeLabel(type) {
 }
 
 export default function ExpiryDashboard() {
-  const { user } = useAuth()
-  const { role, loading: permLoading } = usePermissions(user)
-
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [documents, setDocuments] = useState([])
   const [selectedUrgency, setSelectedUrgency] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [lastSyncedAt, setLastSyncedAt] = useState(null)
   const [sendingWarnings, setSendingWarnings] = useState(false)
   const [warningsResult, setWarningsResult] = useState('')
 
@@ -88,7 +81,8 @@ export default function ExpiryDashboard() {
     try {
       const { data, error: fnError } = await supabase.functions.invoke('process-expiry-warnings', { body: {} })
       if (fnError) throw fnError
-      setWarningsResult(data?.message || 'Expiry warning emails processed.')
+      const sent = data?.results?.warnings_sent ?? data?.warnings_sent
+      setWarningsResult(typeof sent === 'number' ? `Sent ${sent} warning email${sent === 1 ? '' : 's'}.` : (data?.message || 'Done.'))
     } catch (invokeError) {
       console.error('Failed to process expiry warnings:', invokeError)
       setWarningsResult(invokeError?.message || 'Failed to process expiry warnings.')
@@ -110,7 +104,6 @@ export default function ExpiryDashboard() {
       if (docsError) throw docsError
 
       setDocuments(data || [])
-      setLastSyncedAt(new Date())
     } catch (err) {
       console.error('Error fetching expiring documents:', err)
       setError(err.message)
@@ -120,10 +113,8 @@ export default function ExpiryDashboard() {
   }
 
   useEffect(() => {
-    if (!permLoading) {
-      fetchExpiringDocuments()
-    }
-  }, [permLoading])
+    fetchExpiringDocuments()
+  }, [])
 
   const summary = useMemo(
     () =>
@@ -164,28 +155,10 @@ export default function ExpiryDashboard() {
     })
   }, [documents, searchTerm, selectedUrgency])
 
-  if (permLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-fg-secondary" />
-          <p className="text-fg-secondary">Loading expiry workspace...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (role !== 'Recruiter' && role !== 'Master Recruiter') {
-    return <Navigate to="/recruiter/dashboard" replace />
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <RefreshCw className="mx-auto mb-3 h-8 w-8 animate-spin text-fg-secondary" />
-          <p className="text-fg-secondary">Loading expiring documents...</p>
-        </div>
+        <RefreshCw className="h-8 w-8 animate-spin text-fg-secondary" aria-label="Loading" />
       </div>
     )
   }
@@ -196,13 +169,13 @@ export default function ExpiryDashboard() {
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-danger" />
           <div>
-            <h3 className="mb-1 font-semibold text-danger">Error Loading Expiry Data</h3>
+            <h3 className="mb-1 font-semibold text-danger">Couldn’t load expiring documents</h3>
             <p className="text-sm text-danger">{error}</p>
             <button
               onClick={fetchExpiringDocuments}
               className="mt-4 rounded-control bg-accent-fill px-4 py-2 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
             >
-              Refresh data
+              Retry
             </button>
           </div>
         </div>
@@ -216,11 +189,6 @@ export default function ExpiryDashboard() {
         title="Document expiry"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <p className="text-sm text-fg-muted">
-              {lastSyncedAt
-                ? `Last synced ${lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Sync pending'}
-            </p>
             <button onClick={fetchExpiringDocuments} className="workspace-action-button">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -271,11 +239,7 @@ export default function ExpiryDashboard() {
 
       <div className="recruiter-panel overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-line p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-fg">
-              {filteredDocuments.length} {filteredDocuments.length === 1 ? 'document' : 'documents'}
-            </h2>
-          </div>
+          <p className="text-sm text-fg-secondary">{filteredDocuments.length} shown</p>
 
           <div className="relative w-full lg:w-[24rem]">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
@@ -312,7 +276,6 @@ export default function ExpiryDashboard() {
                   <th className="px-5 py-4">Applicant</th>
                   <th className="px-5 py-4">Reference</th>
                   <th className="px-5 py-4">Document</th>
-                  <th className="px-5 py-4">Type</th>
                   <th className="px-5 py-4">Expiry</th>
                   <th className="px-5 py-4">Days</th>
                   <th className="px-5 py-4">Severity</th>
@@ -328,29 +291,16 @@ export default function ExpiryDashboard() {
                       <td className="px-5 py-4">
                         <div className="font-medium text-fg">{document.applicant_name}</div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-fg-secondary">{document.reference_number || 'N/A'}</td>
+                      <td className="px-5 py-4 text-sm text-fg-secondary">{document.reference_number || '—'}</td>
                       <td className="px-5 py-4">
                         <div className="font-medium text-fg">{document.document_name}</div>
+                        {getDocumentTypeLabel(document.document_type) !== document.document_name ? (
+                          <div className="text-xs text-fg-muted">{getDocumentTypeLabel(document.document_type)}</div>
+                        ) : null}
                       </td>
-                      <td className="px-5 py-4 text-sm text-fg-secondary">
-                        <div className="inline-flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-fg-muted" />
-                          {getDocumentTypeLabel(document.document_type)}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-fg-secondary">
-                        <div className="inline-flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-fg-muted" />
-                          {formatDate(document.expiry_date)}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm">
-                        <div className={`inline-flex items-center gap-2 font-medium ${isExpired ? 'text-danger' : 'text-fg-secondary'}`}>
-                          <Clock className="h-4 w-4 text-fg-muted" />
-                          {isExpired
-                            ? `${Math.abs(document.days_until_expiry)} days overdue`
-                            : `${document.days_until_expiry} days remaining`}
-                        </div>
+                      <td className="px-5 py-4 text-sm text-fg-secondary">{formatDate(document.expiry_date)}</td>
+                      <td className={`px-5 py-4 text-sm font-medium ${isExpired ? 'text-danger' : 'text-fg-secondary'}`}>
+                        {isExpired ? `${Math.abs(document.days_until_expiry)} overdue` : document.days_until_expiry}
                       </td>
                       <td className="px-5 py-4">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${config.badgeColor}`}>

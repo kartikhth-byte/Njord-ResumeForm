@@ -9,16 +9,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('') // 'passed', 'failed'
   const [formData, setFormData] = useState({
-    // Ratings (1-5 scale)
-    technicalSkills: '',
-    communication: '',
-    professionalism: '',
-    leadership: '',
-    problemSolving: '',
-    
-    // Overall assessment
     overallRating: '',
-    recommendation: '',
     notes: '',
     
     // Rejection specific
@@ -61,8 +52,8 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
       return
     }
 
-    if (result === 'passed' && !formData.recommendation) {
-      alert('Please provide an overall recommendation')
+    if (result === 'passed' && !formData.overallRating) {
+      alert('Give an overall rating')
       return
     }
 
@@ -115,14 +106,8 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
     const interviewFeedback = {
       result: 'passed',
       ratings: {
-        technical_skills: formData.technicalSkills ? parseInt(formData.technicalSkills) : null,
-        communication: formData.communication ? parseInt(formData.communication) : null,
-        professionalism: formData.professionalism ? parseInt(formData.professionalism) : null,
-        leadership: formData.leadership ? parseInt(formData.leadership) : null,
-        problem_solving: formData.problemSolving ? parseInt(formData.problemSolving) : null,
         overall_rating: formData.overallRating ? parseInt(formData.overallRating) : null
       },
-      recommendation: formData.recommendation,
       notes: formData.notes,
       recorded_at: new Date().toISOString()
     }
@@ -159,7 +144,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
             applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
             referenceNumber: application.reference_number,
             position: application.applied_rank || 'the position',
-            recommendation: formData.recommendation,
             nextSteps: null
           })
         }
@@ -178,11 +162,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
     const interviewFeedback = {
       result: 'failed',
       ratings: {
-        technical_skills: formData.technicalSkills ? parseInt(formData.technicalSkills) : null,
-        communication: formData.communication ? parseInt(formData.communication) : null,
-        professionalism: formData.professionalism ? parseInt(formData.professionalism) : null,
-        leadership: formData.leadership ? parseInt(formData.leadership) : null,
-        problem_solving: formData.problemSolving ? parseInt(formData.problemSolving) : null,
         overall_rating: formData.overallRating ? parseInt(formData.overallRating) : null
       },
       notes: formData.notes,
@@ -334,86 +313,24 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
                 </div>
               </div>
 
-              {/* Interview Ratings - Only shown if result is selected */}
-              {result && (
-                <>
-                  <div className="border-t pt-6">
-                    <h4 className="text-md font-semibold text-fg mb-4">
-                      Interview Assessment Ratings
-                    </h4>
-                    <div className="space-y-4">
-                      <StarRating
-                        label="Technical Skills & Knowledge"
-                        value={formData.technicalSkills}
-                        onChange={(rating) => setFormData({ ...formData, technicalSkills: rating.toString() })}
-                      />
-                      
-                      <StarRating
-                        label="Communication Skills"
-                        value={formData.communication}
-                        onChange={(rating) => setFormData({ ...formData, communication: rating.toString() })}
-                      />
-                      
-                      <StarRating
-                        label="Professionalism & Attitude"
-                        value={formData.professionalism}
-                        onChange={(rating) => setFormData({ ...formData, professionalism: rating.toString() })}
-                      />
-                      
-                      <StarRating
-                        label="Leadership & Teamwork"
-                        value={formData.leadership}
-                        onChange={(rating) => setFormData({ ...formData, leadership: rating.toString() })}
-                      />
-                      
-                      <StarRating
-                        label="Problem Solving Ability"
-                        value={formData.problemSolving}
-                        onChange={(rating) => setFormData({ ...formData, problemSolving: rating.toString() })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Overall Rating */}
-                  <div className="border-t pt-6">
-                    <StarRating
-                      label="Overall Rating"
-                      value={formData.overallRating}
-                      onChange={(rating) => setFormData({ ...formData, overallRating: rating.toString() })}
-                      required={result === 'passed'}
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Conditional: Passed - Recommendation */}
-              {result === 'passed' && (
-                <div className="bg-success-soft border border-success-line rounded-lg p-4">
-                  <label className="block text-sm font-medium text-success mb-2">
-                    Overall Recommendation *
-                  </label>
-                  <select
-                    required
-                    value={formData.recommendation}
-                    onChange={(e) => setFormData({ ...formData, recommendation: e.target.value })}
-                    className="w-full px-3 py-2 border border-success-line rounded-lg focus:ring-2 focus:ring-success/40 focus:border-transparent mb-3"
-                  >
-                    <option value="">Select recommendation...</option>
-                    <option value="Strongly Recommend">Strongly Recommend - Excellent candidate</option>
-                    <option value="Recommend">Recommend - Good candidate</option>
-                    <option value="Recommend with Reservations">Recommend with Reservations - Acceptable but has concerns</option>
-                  </select>
-
-                  <label className="block text-sm font-medium text-success mb-2">
-                    Additional Notes
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Strengths, areas for development, specific observations..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-success-line rounded-lg focus:ring-2 focus:ring-success/40 focus:border-transparent resize-none"
+              {(result === 'passed' || result === 'failed') && (
+                <div className="space-y-4 border-t pt-6">
+                  <StarRating
+                    label="Overall rating"
+                    value={formData.overallRating}
+                    onChange={(rating) => setFormData({ ...formData, overallRating: rating.toString() })}
+                    required={result === 'passed'}
                   />
+                  <div>
+                    <label className="block text-sm font-medium text-fg-secondary mb-2">Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+                    />
+                    <p className="text-xs text-fg-muted mt-1">Internal only. Not sent to the candidate.</p>
+                  </div>
                 </div>
               )}
 
