@@ -8,6 +8,7 @@ import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
+import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
 import {
   ArrowLeft,
   ArrowRight,
@@ -505,6 +506,12 @@ export default function RecruiterRequirementDetail() {
                   </div>
                 </div>
               </div>
+
+              <RecruitmentCasePanel
+                requirementId={requirement.id}
+                linkedProspects={linkedProspects}
+                permissions={permissions}
+              />
 
               <div className="recruiter-panel overflow-hidden">
                 <div className="border-b border-line px-6 py-4">
