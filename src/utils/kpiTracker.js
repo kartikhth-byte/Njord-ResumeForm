@@ -468,12 +468,11 @@ export function computeDashboardMetrics({
 
   const liveCandidates = candidateRows.filter((row) => !row.isArchived)
   // "Touched" = candidates with a real first contact; merely-created rows do
-  // not count toward the daily input metric or the conversion denominator.
+  // not count toward the daily input metric or the period conversion cohort.
   const touchedCandidates = liveCandidates.filter((row) => row.contactedAt)
   const contactedToday = touchedCandidates.filter((row) => isSameLocalDay(row.contactedAt, now))
   const joinedCandidates = liveCandidates.filter((row) => row.hasJoined)
   const joinedToday = joinedCandidates.filter((row) => isSameLocalDay(row.joinedAt, now))
-  const conversionRate = touchedCandidates.length === 0 ? 0 : joinedCandidates.length / touchedCandidates.length
   const activePipeline = liveCandidates.filter((row) => row.inActivePipeline)
 
   const joinDurations = joinedCandidates
@@ -536,7 +535,6 @@ export function computeDashboardMetrics({
       contactedToday: ownedTouched.filter((row) => isSameLocalDay(row.contactedAt, now)).length,
       totalTouched: ownedTouched.length,
       joined: ownedJoined.length,
-      conversionRate: ownedTouched.length === 0 ? 0 : ownedJoined.length / ownedTouched.length,
       activePipeline: owned.filter((row) => row.inActivePipeline).length,
       handlingApplications: activeHandledApplications.filter((application) => application.handling_recruiter_id === recruiter.id).length,
       openRequirements: ownedOpen.length,
@@ -563,7 +561,6 @@ export function computeDashboardMetrics({
     joinedTodayCount: joinedToday.length,
     totalCandidates: liveCandidates.length,
     joinedCandidatesCount: joinedCandidates.length,
-    conversionRate,
     activePipelineCount: activePipeline.length,
     avgDaysToJoin,
     stageCounts,
@@ -594,4 +591,45 @@ export function formatDays(value) {
 export function formatPercent(value) {
   if (!Number.isFinite(value)) return '0%'
   return `${Math.round(value * 100)}%`
+}
+
+const NEEDS_ACTION_DAY_MS = 24 * 60 * 60 * 1000
+const CLOSED_FOR_ACTION = ['hired', 'rejected', 'withdrawn']
+
+// To-do items for the Dashboard. scopeId narrows to one recruiter
+// (applications they handle, candidates they added); unassigned
+// applications are a shared queue and are always listed.
+export function buildNeedsAction({ applications = [], prospects = [], scopeId = '', now = new Date() } = {}) {
+  const nowMs = now.getTime()
+  const mine = (application) => !scopeId || application.handling_recruiter_id === scopeId
+  const live = applications.filter((application) => application.submitted_at && !CLOSED_FOR_ACTION.includes(application.status))
+
+  const staleReview = live.filter((application) => (
+    ['submitted', 'new'].includes(application.status)
+    && nowMs - new Date(application.submitted_at).getTime() > 7 * NEEDS_ACTION_DAY_MS
+    && (mine(application) || !application.handling_recruiter_id)
+  ))
+  const unassigned = live.filter((application) => !application.handling_recruiter_id)
+  const unclaimedInvites = prospects.filter((prospect) => (
+    prospect.invited_at
+    && !prospect.claimed_at
+    && !prospect.archived_at
+    && !prospect.deleted_at
+    && nowMs - new Date(prospect.invited_at).getTime() > 3 * NEEDS_ACTION_DAY_MS
+    && (!scopeId || prospect.created_by_recruiter_id === scopeId)
+  ))
+  const contractsEnding = applications.filter((application) => (
+    application.status === 'hired'
+    && application.contract_end_date
+    && new Date(application.contract_end_date).getTime() - nowMs < 45 * NEEDS_ACTION_DAY_MS
+    && mine(application)
+  ))
+
+  return {
+    staleReview,
+    unassigned,
+    unclaimedInvites,
+    contractsEnding,
+    total: staleReview.length + unassigned.length + unclaimedInvites.length + contractsEnding.length,
+  }
 }

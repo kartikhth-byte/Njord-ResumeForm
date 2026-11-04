@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
@@ -27,10 +26,8 @@ import { chartColor, toneColor } from '../constants/chartColors'
 import { buildRecruitmentCaseKpi, CASE_STAGES } from '../utils/recruitmentCaseKpi'
 import { caseStatusMeta } from '../utils/recruitmentCase'
 import {
-  AlertTriangle,
   ArrowRight,
   BarChart3,
-  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Download,
@@ -67,7 +64,6 @@ function formatRate(value) {
 }
 
 export default function RecruiterKpiPage() {
-  const location = useLocation()
   const { user, profile, signOut } = useAuth()
   const { role, loading: permLoading, canExportData, canViewAnalytics } = usePermissions()
   const hasKpiAccess = role === 'Master Recruiter' || canViewAnalytics()
@@ -120,44 +116,6 @@ export default function RecruiterKpiPage() {
   const recruiterParam = recruiterFilter ? `&recruiter=${encodeURIComponent(recruiterFilter)}` : ''
   const requirementsLink = (status) => `/recruiter/requirements?status=${status}${recruiterParam}`
   const candidatesLink = (view, from = '') => `/recruiter/candidates?view=${view}${from ? `&from=${from}` : ''}${recruiterParam}`
-
-  // "Needs action now" — the items a recruiter should clear before anything else.
-  const actions = useMemo(() => {
-    const nowMs = Date.now()
-    const todayStr = new Date().toISOString().slice(0, 10)
-    const openReqs = scopedRequirements.filter((row) => row.status === 'open' && !row.isArchived)
-    const overdue = openReqs.filter((row) => row.onTimeStatus === 'Overdue')
-      .sort((a, b) => (b.daysOpen ?? 0) - (a.daysOpen ?? 0))
-    const nearTarget = openReqs.filter((row) => row.onTimeStatus !== 'Overdue' && row.targetDays && row.daysOpen != null && row.daysOpen >= row.targetDays * 0.8)
-      .sort((a, b) => (b.daysOpen ?? 0) - (a.daysOpen ?? 0))
-    const staleReview = tracker.data.applications.filter((application) => (
-      application.submitted_at
-      && ['submitted', 'new'].includes(application.status)
-      && nowMs - new Date(application.submitted_at).getTime() > 7 * DAY_MS
-    ))
-    const unassigned = tracker.data.applications.filter((application) => (
-      application.submitted_at
-      && !['hired', 'rejected', 'withdrawn'].includes(application.status)
-      && !application.handling_recruiter_id
-    ))
-    const unclaimedInvites = tracker.data.prospects.filter((prospect) => (
-      prospect.invited_at
-      && !prospect.claimed_at
-      && !prospect.archived_at
-      && !prospect.deleted_at
-      && nowMs - new Date(prospect.invited_at).getTime() > 3 * DAY_MS
-    ))
-    const eventsToday = tracker.data.scheduledEvents.filter((event) => (
-      event.scheduled_date === todayStr && event.status !== 'cancelled'
-    ))
-    const contractsEnding = tracker.data.applications.filter((application) => (
-      application.status === 'hired'
-      && application.contract_end_date
-      && new Date(application.contract_end_date).getTime() - nowMs < 45 * DAY_MS
-    ))
-    const total = overdue.length + nearTarget.length + staleReview.length + unassigned.length + unclaimedInvites.length + contractsEnding.length
-    return { overdue, nearTarget, staleReview, unassigned, unclaimedInvites, eventsToday, contractsEnding, total }
-  }, [scopedRequirements, tracker.data.applications, tracker.data.prospects, tracker.data.scheduledEvents])
 
   // Average client response time: junction submitted -> customer decision.
   const clientResponseDays = useMemo(() => {
@@ -250,10 +208,9 @@ export default function RecruiterKpiPage() {
         { label: 'Open positions', value: metrics.openPositions },
         { label: 'Joined vs required', value: `${metrics.joinedAgainstRequirements} / ${metrics.positionsRequired}` },
         { label: 'Requirement closure % (target ≥95%)', value: formatPercent(metrics.closureRate) },
-        { label: 'Contact-to-join conversion (target 8–12%)', value: formatPercent(metrics.conversionRate) },
+        { label: `Conversion, ${periodLabel.toLowerCase()} (target 8–12%)`, value: formatRate(metrics.periodConversionRate) },
         { label: 'Active pipeline', value: metrics.activePipelineCount },
         { label: 'Avg days to join', value: metrics.avgDaysToJoin == null ? '—' : formatDays(metrics.avgDaysToJoin) },
-        { label: 'Needs action items', value: actions.total },
         ...(tracker.data.casesAvailable ? [
           { label: 'Active recruitment cases', value: caseKpi.active },
           { label: 'Closed recruitment cases', value: caseKpi.closed },
@@ -272,10 +229,10 @@ export default function RecruiterKpiPage() {
         },
         {
           title: 'Recruiter scorecard',
-          headers: ['Recruiter', 'Contacted today', 'Touched', 'Joined', 'Conversion', 'Pipeline', 'Handling'],
+          headers: ['Recruiter', 'Contacted today', 'Touched', 'Joined', `Conversion, ${periodLabel.toLowerCase()}`, 'Pipeline', 'Handling'],
           rows: metrics.scorecard.map((row) => [
             row.name, String(row.contactedToday), String(row.totalTouched), String(row.joined),
-            formatPercent(row.conversionRate), String(row.activePipeline), String(row.handlingApplications),
+            formatRate(row.periodConversionRate), String(row.activePipeline), String(row.handlingApplications),
           ]),
         },
       ],
@@ -299,7 +256,7 @@ export default function RecruiterKpiPage() {
         { label: 'Contacted today', value: (row) => row.contactedToday },
         { label: 'Total touched', value: (row) => row.totalTouched },
         { label: 'Joined', value: (row) => row.joined },
-        { label: 'Conversion %', value: (row) => Math.round(row.conversionRate * 100) },
+        { label: `Conversion % (${periodLabel.toLowerCase()})`, value: (row) => (row.periodConversionRate == null ? '' : Math.round(row.periodConversionRate * 100)) },
         { label: 'Active pipeline', value: (row) => row.activePipeline },
         { label: 'Handling applications', value: (row) => row.handlingApplications },
       ],
@@ -365,7 +322,7 @@ export default function RecruiterKpiPage() {
       { metric: 'Requirement Closure %', value: formatPercent(metrics.closureRate), target: '>=95%', comment: 'Closed requirements / total requirements' },
       { metric: 'Candidates Contacted Today', value: metrics.contactedTodayCount, target: '15-25 / recruiter', comment: 'Daily input metric' },
       { metric: 'Candidates Joined Today', value: metrics.joinedTodayCount, target: '', comment: 'Daily result metric' },
-      { metric: 'Contact-to-Join Conversion %', value: formatPercent(metrics.conversionRate), target: '8-12%', comment: 'Joined / total candidates touched' },
+      { metric: `Conversion % (${periodLabel.toLowerCase()})`, value: formatRate(metrics.periodConversionRate), target: '8-12%', comment: 'Of candidates first contacted in the period, the share that joined' },
       { metric: 'Active Pipeline', value: metrics.activePipelineCount, target: '', comment: 'Candidates still active' },
       { metric: 'Avg Days to Join', value: metrics.avgDaysToJoin == null ? '' : Math.round(metrics.avgDaysToJoin * 10) / 10, target: '', comment: 'Speed from contact to join' },
       ...FUNNEL_STAGES.map((stage) => ({ metric: `Legacy pipeline: ${stage}`, value: metrics.stageCounts[stage] || 0, target: '', comment: 'Prospect/application tracker stage' })),
@@ -512,90 +469,6 @@ export default function RecruiterKpiPage() {
             </div>
           </section>
         ) : null}
-        {/* Needs action now */}
-        <section className="recruiter-panel mt-6 p-5 sm:p-6">
-          <div className="mb-4 flex items-start gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-card ${actions.total > 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-fg">Needs action now</h2>
-              <p className="mt-1 text-sm text-fg-secondary">
-                {actions.total > 0
-                  ? `${actions.total} item${actions.total === 1 ? '' : 's'} waiting on a recruiter.`
-                  : 'All clear — nothing is waiting on you right now.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {actions.overdue.slice(0, 3).map((row) => (
-              <Link
-                key={row.id}
-                to={`/recruiter/workspace/requirements/${row.id}`}
-                state={{ from: `${location.pathname}${location.search}` }}
-                className="rounded-card border border-danger-line bg-danger-soft p-4 transition hover:border-danger-line"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-danger">{row.reqId}</span>
-                  <span className="tracker-pill bg-danger-soft text-danger">Overdue</span>
-                </div>
-                <p className="mt-1 text-sm text-danger">
-                  {row.vessel_name || 'Vessel TBC'} · {row.rankName} · {row.daysOpen} days open (target {row.targetDays})
-                </p>
-              </Link>
-            ))}
-            {actions.nearTarget.slice(0, 3).map((row) => (
-              <Link
-                key={row.id}
-                to={`/recruiter/workspace/requirements/${row.id}`}
-                state={{ from: `${location.pathname}${location.search}` }}
-                className="rounded-card border border-warning-line bg-warning-soft p-4 transition hover:border-warning-line"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-warning">{row.reqId}</span>
-                  <span className="tracker-pill bg-warning-soft text-warning">Near target</span>
-                </div>
-                <p className="mt-1 text-sm text-warning">
-                  {row.vessel_name || 'Vessel TBC'} · {row.rankName} · {row.daysOpen} of {row.targetDays} target days used
-                </p>
-              </Link>
-            ))}
-            {actions.staleReview.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-card border border-warning-line bg-warning-soft p-4 transition hover:border-warning-line">
-                <div className="font-semibold text-warning">{actions.staleReview.length} application{actions.staleReview.length === 1 ? '' : 's'} awaiting review</div>
-                <p className="mt-1 text-sm text-warning">Submitted more than 7 days ago and still not in review.</p>
-              </Link>
-            ) : null}
-            {actions.unassigned.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
-                <div className="font-semibold text-fg">{actions.unassigned.length} live application{actions.unassigned.length === 1 ? '' : 's'} unassigned</div>
-              </Link>
-            ) : null}
-            {actions.unclaimedInvites.length > 0 ? (
-              <Link to="/recruiter/candidates?view=active" className="rounded-card border border-line bg-surface p-4 transition hover:border-line-input">
-                <div className="font-semibold text-fg">{actions.unclaimedInvites.length} invite{actions.unclaimedInvites.length === 1 ? '' : 's'} not claimed</div>
-              </Link>
-            ) : null}
-            {actions.contractsEnding.length > 0 ? (
-              <Link to="/recruiter/applications" className="rounded-card border border-progress-line bg-progress-soft p-4 transition hover:border-progress-line">
-                <div className="font-semibold text-progress">{actions.contractsEnding.length} contract{actions.contractsEnding.length === 1 ? '' : 's'} ending within 45 days</div>
-              </Link>
-            ) : null}
-            {actions.eventsToday.length > 0 ? (
-              <Link to="/recruiter/calendar" className="rounded-card border border-accent/40 bg-accent-soft p-4 transition hover:border-accent">
-                <div className="flex items-center gap-2 font-semibold text-accent-text">
-                  <CalendarDays className="h-4 w-4" />
-                  {actions.eventsToday.length} event{actions.eventsToday.length === 1 ? '' : 's'} today
-                </div>
-                <p className="mt-1 text-sm text-accent-text">
-                  {actions.eventsToday.slice(0, 2).map((event) => event.event_title || event.event_type).join(' · ')}
-                </p>
-              </Link>
-            ) : null}
-          </div>
-        </section>
-
         {/* Requirement delivery */}
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label={`Closed, ${periodLabel.toLowerCase()}`} value={metrics.closedInPeriodCount} icon={CheckCircle2} tone="success" to={requirementsLink('closed')} />

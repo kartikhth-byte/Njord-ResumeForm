@@ -10,6 +10,7 @@ import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
 import {
   buildCandidateFunnelRows,
+  buildNeedsAction,
   buildRequirementTrackerRows,
   computeDashboardMetrics,
   lastActivityLabel,
@@ -129,6 +130,19 @@ export default function RecruiterDashboardSimple() {
       .sort((a, b) => `${a.scheduled_date} ${a.scheduled_time || ''}`.localeCompare(`${b.scheduled_date} ${b.scheduled_time || ''}`))
   }, [tracker.data.scheduledEvents, tracker.data.applications, scopeId])
 
+  const actions = useMemo(() => buildNeedsAction({
+    applications: tracker.data.applications,
+    prospects: tracker.data.prospects,
+    scopeId,
+  }), [tracker.data.applications, tracker.data.prospects, scopeId])
+
+  const actionItems = [
+    { key: 'stale', count: actions.staleReview.length, text: (n) => `${n} application${n === 1 ? '' : 's'} waiting over 7 days for review`, to: '/recruiter/applications?status=review', tone: 'border-warning-line bg-warning-soft text-warning' },
+    { key: 'unassigned', count: actions.unassigned.length, text: (n) => `${n} live application${n === 1 ? '' : 's'} with no recruiter`, to: '/recruiter/applications', tone: 'border-line bg-surface text-fg' },
+    { key: 'invites', count: actions.unclaimedInvites.length, text: (n) => `${n} invite${n === 1 ? '' : 's'} not opened after 3 days`, to: '/recruiter/candidates?view=active', tone: 'border-line bg-surface text-fg' },
+    { key: 'contracts', count: actions.contractsEnding.length, text: (n) => `${n} contract${n === 1 ? '' : 's'} ending within 45 days`, to: '/recruiter/applications?status=hired', tone: 'border-progress-line bg-progress-soft text-progress' },
+  ].filter((item) => item.count > 0)
+
   const recruiterParam = scopeId ? `&recruiter=${encodeURIComponent(scopeId)}` : ''
 
   if (permLoading || tracker.loading) {
@@ -194,6 +208,16 @@ export default function RecruiterDashboardSimple() {
           <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} to={`/recruiter/requirements?status=open${recruiterParam}`} />
           <StatCard label="Open positions" value={metrics.openPositions} icon={Users} tone="warning" to={`/recruiter/requirements?status=open${recruiterParam}`} />
         </div>
+
+        {actionItems.length > 0 ? (
+          <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Needs action">
+            {actionItems.map((item) => (
+              <Link key={item.key} to={item.to} className={`rounded-card border p-4 text-sm font-semibold transition hover:opacity-90 ${item.tone}`}>
+                {item.text(item.count)}
+              </Link>
+            ))}
+          </section>
+        ) : null}
 
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <SectionHeader
