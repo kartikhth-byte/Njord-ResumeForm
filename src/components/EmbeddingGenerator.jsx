@@ -105,10 +105,6 @@ export default function EmbeddingGenerator({ onGenerated, onFailed }) {
 
       {!result && !error && !isGenerating && (
         <div className="space-y-3">
-          <div className="rounded-control border border-accent/40 bg-accent-soft px-4 py-3 text-sm text-accent-text">
-            <p className="font-medium">When to run this</p>
-          </div>
-          
           {cooldownRemaining > 0 && (
             <div className="flex items-center gap-2 p-3 bg-warning-soft border border-warning-line rounded-lg">
               <Clock className="w-4 h-4 text-warning" />
