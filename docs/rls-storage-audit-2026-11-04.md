@@ -45,25 +45,25 @@ foreign-event denial. Staging and production dry runs listed only `0215`;
 schema readbacks confirmed the replacement policies. Live UI smoke was not
 available because browser control failed before reaching the staging editor.
 
-## Open Role Boundary
+## Coordinator Role Boundary
 
-The older `docs/prd.md` says a Coordinator can view candidates and support
-scheduling/status workflows. The newer prospect-enrollment role matrix makes
-Coordinator read-only for prospects and requirements, with no note access.
-Production policies use coarse `profiles.user_type = 'recruiter'` or
-`is_recruiter(auth.uid())` in several older application paths:
+The owner chose read-only Coordinator access for applications, statuses,
+scheduling, photos, and offer letters. `0216` adds restrictive write policies
+to the older coarse recruiter-profile policies for applications, scheduled
+events/participants/history/reminders, embeddings, legacy status history, and
+offer-letter storage. `0217` removes any drifted Coordinator grant of
+`edit_junction_status`; Recruiter and Master Recruiter retain that permission.
+The Applications and application-detail pages hide decision controls for
+Coordinators. Four scheduling/invitation functions now check the editor
+permission before service-role writes or emails.
 
-- `applications` SELECT, UPDATE, and draft DELETE; `application_data` SELECT
-- `application_status_history` and legacy history SELECT/INSERT
-- `scheduled_events` and `event_participants` management
-- applicant photo/expiry/notification reads and offer-letter storage access
-
-Because Coordinators are recruiter-profile users, these policies can grant
-more than the page-level role guards imply. Do not replace them with a guessed
-permission until the owner resolves whether Coordinator is read-only for the
-older application workflow or may schedule/change status. Then test all three
-recruiter roles plus an applicant at the API level, including photo and offer
-storage paths. This remains an authorization finding, not a signed-off area.
+Both migrations were applied to staging and production after exact dry runs;
+schema-only readbacks showed all 24 new restrictive policies and production's
+follow-up dry run was clean. Nine isolated role-policy checks and the RBAC
+re-run check passed. Live signed-in API/UI tests for all three recruiter roles
+and an applicant, including photo/offer-letter behavior, remain open because
+the browser/HTTP probe was unavailable. No candidate status or email was
+changed for this test.
 
 ## Additional Follow-Up
 
