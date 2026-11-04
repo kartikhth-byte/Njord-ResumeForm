@@ -23,6 +23,9 @@ Also decided 2026-11-05:
 - the existing Needle resume pool becomes Njordships' pool
 - each customer has its own Drive folder, the single way into its pool: uploads from Holmes are written there, the customer's resume mailbox saves attachments there, and a new customer bulk-moves its existing resumes there at onboarding; Needle's Drive intake reads each folder into that customer's pool
 - per-customer folders and mailboxes arrive with Needle multi-tenancy; until then Needle's existing hosted email and Drive intake feed Njordships' one folder
+- Needle is never customer-facing: it is served under Holmes's own address (Vercel forwards `/ai/*` to Needle) and Holmes stays on Vercel; Needle's direct login is for the operator only
+- the development organization "Default organization" is renamed Njordships; there are no real Needle users, so existing Needle projects and chats are test data
+- after an independent review: multi-tenancy splits into an organization tag before launch (N8a) and per-customer folders, mailboxes and the workspace move when a second customer signs (N8b); Match resumes opens Needle's own results; Operator is a platform flag rather than a role row; details in `docs/needle-in-holmes-design.md` §10
 
 ## 2026-11-02 - Contain Public Data API Exposure
 
