@@ -16,7 +16,6 @@ async function invokeEmailFunction(functionName, payload) {
       return { success: false, error: error.message };
     }
 
-    console.log(`✅ Email sent via ${functionName}:`, data);
     return { success: true, data: data };
   } catch (error) {
     console.error(`Error invoking ${functionName}:`, error);

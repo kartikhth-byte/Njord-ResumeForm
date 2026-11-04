@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { CheckCircle, XCircle, Star, Loader2, X, AlertTriangle } from 'lucide-react'
+import { REJECTION_CATEGORIES } from '../constants/rejection'
+import { rejectApplication } from '../services/rejectionService'
 
 export default function InterviewResultModal({ application, onResultUpdated, onCancel }) {
   const [loading, setLoading] = useState(false)
@@ -20,19 +22,9 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
     notes: '',
     
     // Rejection specific
-    rejectionReason: '',
+    rejectionReason: 'failed_interview',
     rejectionFeedback: ''
   })
-
-  const rejectionReasons = [
-    'Insufficient technical knowledge for the role',
-    'Communication skills below required standard',
-    'Lack of relevant experience',
-    'Cultural fit concerns',
-    'Better qualified candidates selected',
-    'Failed to demonstrate required competencies',
-    'Other (see feedback)'
-  ]
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -183,7 +175,6 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
   }
 
   const handleFailed = async () => {
-    // Prepare interview feedback data
     const interviewFeedback = {
       result: 'failed',
       ratings: {
@@ -194,57 +185,27 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
         problem_solving: formData.problemSolving ? parseInt(formData.problemSolving) : null,
         overall_rating: formData.overallRating ? parseInt(formData.overallRating) : null
       },
-      rejection_reason: formData.rejectionReason,
-      rejection_feedback: formData.rejectionFeedback,
       notes: formData.notes,
       recorded_at: new Date().toISOString()
     }
 
-    // Update application to REJECTED
-    const { error: updateError } = await supabase
-      .from('applications')
-      .update({
-        status: 'rejected',
-        interview_feedback: interviewFeedback,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', application.id)
-
-    if (updateError) throw updateError
-
-    // Send rejection email via edge function
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-
-      const emailResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            position: application.applied_rank || 'the position',
-            reason: formData.rejectionReason,
-            additionalFeedback: formData.rejectionFeedback
-          })
-        }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send rejection email:', await emailResponse.text())
-      }
-    } catch (emailError) {
-      console.error('Error sending rejection email:', emailError)
+    const { emailSent } = await rejectApplication({
+      applicationId: application.id,
+      candidate: {
+        email: application.application_data?.data?.section2?.email || application.email || '',
+        name: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+        referenceNumber: application.reference_number,
+        position: application.applied_rank || 'the position',
+      },
+      category: formData.rejectionReason,
+      notes: formData.notes,
+      candidateMessage: formData.rejectionFeedback,
+      currentHandlerId: application.handling_recruiter_id || null,
+      extraUpdates: { interview_feedback: interviewFeedback },
+    })
+    if (!emailSent) {
+      alert('The application was rejected, but the email to the candidate could not be sent.')
     }
-
   }
 
   const StarRating = ({ label, value, onChange, required = false }) => (
@@ -461,7 +422,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
                 <div className="bg-danger-soft border border-danger-line rounded-lg p-4 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-danger mb-2">
-                      Rejection Reason *
+                      Reason *
                     </label>
                     <select
                       required
@@ -469,27 +430,22 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
                       onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
                       className="w-full px-3 py-2 border border-danger-line rounded-lg focus:ring-2 focus:ring-danger/40 focus:border-transparent"
                     >
-                      <option value="">Select a reason...</option>
-                      {rejectionReasons.map(reason => (
-                        <option key={reason} value={reason}>{reason}</option>
+                      {REJECTION_CATEGORIES.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-danger mb-2">
-                      Detailed Feedback (Optional)
+                      Message to the candidate (optional)
                     </label>
                     <textarea
                       value={formData.rejectionFeedback}
                       onChange={(e) => setFormData({ ...formData, rejectionFeedback: e.target.value })}
-                      placeholder="Provide specific feedback about areas where the candidate fell short..."
                       rows={3}
                       className="w-full px-3 py-2 border border-danger-line rounded-lg focus:ring-2 focus:ring-danger/40 focus:border-transparent resize-none"
                     />
-                    <p className="text-xs text-danger mt-1">
-                      This feedback will be included in the rejection email
-                    </p>
                   </div>
                 </div>
               )}

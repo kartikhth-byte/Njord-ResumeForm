@@ -9,8 +9,8 @@ import TestSchedulingModal from './TestSchedulingModal'
 import TestResultModal from './TestResultModal'
 import InterviewSchedulingModal from './InterviewSchedulingModal'
 import InterviewResultModal from './InterviewResultModal'
-import DocumentsChecklistModal from './recruiter/DocumentsChecklistModal'
 import WithdrawalModal from './recruiter/WithdrawalModal'
+import { applicationStatusLabel } from '../constants/applicationStatus'
 import RejectionModal from './recruiter/RejectionModal'
 
 export default function SequentialStatusControl({ applicationId, currentStatus, onStatusChange, application, autoOpenInterview = false, onAutoOpenComplete, showHandledBy = true, emphasis = false }) {
@@ -25,7 +25,6 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [showMenu, setShowMenu] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showSchedulingModal, setShowSchedulingModal] = useState(false)
-  const [showDocumentsModal, setShowDocumentsModal] = useState(false)
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
   const [showRejectionModal, setShowRejectionModal] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState(null)
@@ -33,7 +32,7 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
 
   useEffect(() => {
-    const modalOpen = showModal || showSchedulingModal || showDocumentsModal || showWithdrawalModal
+    const modalOpen = showModal || showSchedulingModal || showWithdrawalModal
     if (!modalOpen) return undefined
 
     const originalOverflow = document.body.style.overflow
@@ -42,7 +41,7 @@ export default function SequentialStatusControl({ applicationId, currentStatus, 
     return () => {
       document.body.style.overflow = originalOverflow
     }
-  }, [showModal, showSchedulingModal, showDocumentsModal, showWithdrawalModal])
+  }, [showModal, showSchedulingModal, showWithdrawalModal])
 
   // Auto-open interview modal after Teams OAuth
 useEffect(() => {
@@ -102,22 +101,6 @@ useEffect(() => {
     'hired'
   ]
 
-  const statusLabels = {
-    submitted: 'Submitted',
-    new: 'New',
-    under_review: 'Under Review',
-    test_scheduled: 'Test Scheduled',
-    test_passed: 'Test Passed',
-    interview_scheduled: 'Interview Scheduled',
-    interview_passed: 'Interview Passed',
-    offered: 'Offered',
-    offer_accepted: 'Offer Accepted',
-    documents_pending: 'Documents Pending',
-    hired: 'Hired',
-    rejected: 'Rejected',
-    withdrawn: 'Withdrawn'
-  }
-
   // Action-oriented labels for buttons (keyed by NEXT status)
   const actionLabels = {
     under_review: 'Start Review',
@@ -152,7 +135,7 @@ useEffect(() => {
       return 'Mark as Hired'
     }
     
-    return actionLabels[nextStatus] || statusLabels[nextStatus]
+    return actionLabels[nextStatus] || applicationStatusLabel(nextStatus)
   }
 
   const getNextStatus = () => {
@@ -215,13 +198,6 @@ useEffect(() => {
       return
     }
     
-    // Handle "documents_pending" - show documents checklist modal
-    if (nextStatus === 'documents_pending') {
-      setShowDocumentsModal(true)
-      setShowMenu(false)
-      return
-    }
-
     // Every other step (including offered, offer accepted and hired) is saved
     // by this control after a confirm, so it works on both the list and the
     // application page (whose onStatusChange only reloads).
@@ -236,58 +212,9 @@ useEffect(() => {
     setShowMenu(false)
   }
 
-  const handleStructuredRejection = async (rejection) => {
-    const actorId = profile?.id || user?.id || null
-    const updateData = {
-      status: 'rejected',
-      rejection_category: rejection.rejectionCategory || null,
-      rejection_tags: [...(rejection.predefinedTags || []), ...(rejection.customTags || [])],
-      rejection_notes: rejection.rejectionNotes || null,
-      contact_for_future_roles: Boolean(rejection.contactForFutureRoles),
-      updated_at: new Date().toISOString(),
-    }
-    if (!handledBy && actorId) {
-      updateData.handling_recruiter_id = actorId
-    }
-    const { error } = await supabase
-      .from('applications')
-      .update(updateData)
-      .eq('id', applicationId)
-    if (error) throw error
-    if (updateData.handling_recruiter_id) setHandledBy(updateData.handling_recruiter_id)
-    onStatusChange('rejected')
-  }
-
   const handleWithdraw = () => {
     setShowWithdrawalModal(true)
     setShowMenu(false)
-  }
-
-  const handleDeclineOffer = async () => {
-    // Direct decline from offered status
-    if (window.confirm('Mark this offer as declined? The application will be moved to Withdrawn status.')) {
-      try {
-        setLoading(true)
-        
-        const { error } = await supabase
-          .from('applications')
-          .update({ 
-            status: 'withdrawn',
-            withdrawal_reason: 'Offer declined by candidate',
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', applicationId)
-
-        if (error) throw error
-        
-        onStatusChange('withdrawn')
-      } catch (error) {
-        console.error('Error declining offer:', error)
-        alert('Failed to update status')
-      } finally {
-        setLoading(false)
-      }
-    }
   }
 
   const handleConfirm = async () => {
@@ -344,19 +271,6 @@ useEffect(() => {
               <ChevronRight className="w-4 h-4" />
             )}
             <span className="font-medium whitespace-nowrap">{getButtonLabel()}</span>
-          </button>
-        )}
-
-        {/* Decline Offer Button (only for "offered" status) */}
-        {currentStatus === 'offered' && (
-          <button
-            onClick={handleDeclineOffer}
-            disabled={loading}
-            className="workspace-action-button border border-danger-line bg-danger-soft text-sm text-danger transition-colors hover:border-danger disabled:opacity-50"
-            title="Decline Offer"
-          >
-            <XCircle className="w-4 h-4" />
-            <span className="font-medium">Decline</span>
           </button>
         )}
 
@@ -433,7 +347,7 @@ useEffect(() => {
           <div className="relative z-[9999] w-full max-w-md rounded-card bg-surface p-6">
             <h3 className="text-lg font-semibold text-fg mb-2">
               Advance to{' '}
-              {statusLabels[selectedStatus]}
+              {applicationStatusLabel(selectedStatus)}
             </h3>
 
             <div className="flex gap-3">
@@ -498,7 +412,7 @@ useEffect(() => {
         ) : nextStatus === 'interview_scheduled' ? (
           <InterviewSchedulingModal
             application={application}
-  onCancel={() => setShowSchedulingModal(false)}        // ✅ CORRECT
+  onCancel={() => setShowSchedulingModal(false)}
             onScheduled={() => {
               setShowSchedulingModal(false)
               onStatusChange(nextStatus)
@@ -507,30 +421,23 @@ useEffect(() => {
         ) : null
       )}
 
-      {/* Documents Checklist Modal */}
-      {showDocumentsModal && (
-        <DocumentsChecklistModal
-          application={application}
-          onClose={() => setShowDocumentsModal(false)}
-          onComplete={() => {
-            setShowDocumentsModal(false)
-            onStatusChange('documents_pending')
-          }}
-        />
-      )}
-
-      {/* Withdrawal Modal */}
       {showRejectionModal && (
         <RejectionModal
           isOpen={showRejectionModal}
           onClose={() => setShowRejectionModal(false)}
-          applicant={{
-            id: applicationId,
+          applicationId={applicationId}
+          candidate={{
             name: application?.candidateName || application?.full_name || '',
             email: application?.candidateEmail || application?.email || '',
-            position: application?.desiredRank || application?.desired_rank || '',
+            position: application?.desiredRank || application?.desired_rank || application?.applied_rank || '',
+            referenceNumber: application?.reference_number || '',
           }}
-          onConfirm={handleStructuredRejection}
+          actorId={profile?.id || user?.id || null}
+          currentHandlerId={handledBy}
+          onRejected={({ handlerId }) => {
+            if (handlerId) setHandledBy(handlerId)
+            onStatusChange('rejected')
+          }}
         />
       )}
 

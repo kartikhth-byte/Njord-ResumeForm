@@ -12,7 +12,6 @@ import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
 import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
-import OfferModal from '../components/recruiter/OfferModal'
 import ConfidenceBadge from '../components/ConfidenceBadge'
 import PageHeader from '../components/ui/PageHeader'
 import SegmentedControl from '../components/ui/SegmentedControl'
@@ -182,8 +181,6 @@ useEffect(() => {
   const [includeHired, setIncludeHired] = useState(false) // Include hired candidates
   const [includeActive, setIncludeActive] = useState(true) // Include active candidates (default: true)
   
-const [isOfferModalOpen, setIsOfferModalOpen] = useState(false)
-const [offerApplication, setOfferApplication] = useState(null)
   const [embeddingReadiness, setEmbeddingReadiness] = useState(null)
   const [embeddingReadinessLoading, setEmbeddingReadinessLoading] = useState(false)
 

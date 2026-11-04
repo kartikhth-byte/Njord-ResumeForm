@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { RotateCcw, AlertTriangle } from 'lucide-react'
+import { rejectionSummary } from '../../constants/rejection'
 import { supabase } from '../../lib/supabase'
 
 export default function ReopenApplicationButton({ application, onReopened }) {
@@ -26,12 +27,9 @@ export default function ReopenApplicationButton({ application, onReopened }) {
         historicalData = {
           previous_rejection: {
             rejected_at: application.updated_at,
-            rejection_reason: application.interview_feedback?.rejection_reason || 
-                             application.test_feedback?.rejection_reason ||
-                             'Previously rejected',
-            rejection_stage: application.interview_feedback ? 'interview' : 'test',
-            rejection_feedback: application.interview_feedback?.rejection_feedback ||
-                               application.test_feedback?.rejection_feedback,
+            rejection_category: application.rejection_category || null,
+            rejection_reason: rejectionSummary(application).reason || 'Previously rejected',
+            rejection_notes: rejectionSummary(application).notes || null,
             interview_ratings: application.interview_feedback?.ratings,
             test_scores: application.test_feedback?.scores
           }
@@ -93,9 +91,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
 
   const getReasonText = () => {
     if (isRejected) {
-      return application.interview_feedback?.rejection_reason || 
-             application.test_feedback?.rejection_reason ||
-             'Rejected'
+      return rejectionSummary(application).reason || 'Rejected'
     }
     if (isWithdrawn) {
       return application.withdrawal_data?.reason || 'Withdrawn'

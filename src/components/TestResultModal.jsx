@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
 import { CheckCircle, XCircle, RotateCcw, Calendar, Clock, Link as LinkIcon, Loader2, X, AlertTriangle } from 'lucide-react'
+import { REJECTION_CATEGORIES } from '../constants/rejection'
+import { rejectApplication } from '../services/rejectionService'
 
 export default function TestResultModal({ application, onResultUpdated, onCancel }) {
   const { user } = useAuth()
@@ -11,7 +13,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   const [formData, setFormData] = useState({
     testScore: '',
     notes: '',
-    rejectionReason: '',
+    rejectionReason: 'failed_assessment',
     newTestDate: '',
     newTestTime: '10:00',
     newTestUrl: '',
@@ -21,15 +23,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   const currentAttempt = application.test_attempt_number || 1
   const maxAttempts = application.test_max_attempts || 2
   const canRetake = currentAttempt < maxAttempts
-
-  const rejectionReasons = [
-    'Insufficient technical knowledge',
-    'Failed safety procedures assessment',
-    'Did not meet minimum score requirement',
-    'Poor communication skills demonstrated',
-    'Incomplete test submission',
-    'Other (see notes)'
-  ]
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -130,49 +123,22 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   }
 
   const handleFailed = async () => {
-    // Update application to REJECTED
-    const { error: updateError } = await supabase
-      .from('applications')
-      .update({
-        status: 'rejected',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', application.id)
-
-    if (updateError) throw updateError
-
-    // Send rejection email via edge function
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-
-      const emailResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            position: application.applied_rank || 'the position',
-            reason: formData.rejectionReason
-          })
-        }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send rejection email:', await emailResponse.text())
-      }
-    } catch (emailError) {
-      console.error('Error sending rejection email:', emailError)
+    const { emailSent } = await rejectApplication({
+      applicationId: application.id,
+      candidate: {
+        email: application.application_data?.data?.section2?.email || application.email || '',
+        name: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+        referenceNumber: application.reference_number,
+        position: application.applied_rank || 'the position',
+      },
+      category: formData.rejectionReason,
+      notes: formData.notes,
+      actorId: user?.id || null,
+      currentHandlerId: application.handling_recruiter_id || null,
+    })
+    if (!emailSent) {
+      alert('The application was rejected, but the email to the candidate could not be sent.')
     }
-
   }
 
   const handleRetake = async () => {
@@ -402,11 +368,11 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                 />
               </div>
 
-              {/* Conditional: Failed - Rejection Reason */}
+              {/* Conditional: Failed - Reason */}
               {result === 'failed' && (
                 <div className="recruiter-note recruiter-note--danger">
                   <label className="block text-sm font-medium text-danger mb-2">
-                    Rejection Reason *
+                    Reason *
                   </label>
                   <select
                     required
@@ -414,9 +380,8 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
                     className="w-full px-3 py-2 border border-danger-line rounded-lg focus:ring-2 focus:ring-danger/40 focus:border-transparent"
                   >
-                    <option value="">Select a reason...</option>
-                    {rejectionReasons.map(reason => (
-                      <option key={reason} value={reason}>{reason}</option>
+                    {REJECTION_CATEGORIES.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
                 </div>
