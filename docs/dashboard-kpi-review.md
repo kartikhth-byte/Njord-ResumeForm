@@ -1,6 +1,6 @@
 # Dashboard and KPI review
 
-Date: 2026-11-03 · Status: recorded, build deferred until recruitment-case v1 (stage history) is live.
+Date: 2026-11-03 · Status: phase 1 of the KPI page built 2026-11-04 (`b32efd3`, not deployed); Dashboard "My work" and case-v1-dependent items pending.
 
 ## Question
 
@@ -61,3 +61,16 @@ Partly. KPI covers team totals and today's activity. It does not show how close 
 
 - Two pipelines feed KPI: workspace prospects / `prospect_requirements` and form `applications`, merged by stage mapping in `src/utils/kpiTracker.js`. Recruitment-case v1 replaces this with one case per candidate per requirement.
 - Numbers were not verified against real volumes: staging holds only synthetic rows.
+
+## Build log
+
+**2026-11-04, phase 1 (`b32efd3`, `ui/warm-theme`, not pushed).** Built without waiting for recruitment-case v1, using only data that exists today:
+
+- KPI "Open requirement ageing" replaced by **Requirements progress**: customer, vessel / rank, owner, filled vs required, candidates by stage, days open vs target, on-time (with "Near target" at >= 80% of target), last activity (warning after 7 days). Sorted overdue, near target, then share of target used.
+- Stage bar uses `prospect_requirements` statuses only (Shortlisted, With customer, Accepted, Joined). Interview and test stages are per application, not per requirement, so they wait for case v1.
+- Period switch (This week / This month / All time; default This month) drives the scorecard: open and overdue requirements owned (current), contacted, joined, cohort conversion, on-time closure, avg days to join.
+- Overview's "Pipeline by stage" panel removed: it duplicated "Funnel by stage" on Charts.
+- Tests: `tests/kpiTracker.test.mjs` (12 checks).
+
+**Not yet:** headline stat cards are still all-time/today, not period-driven; counts are not yet links to filtered lists; Dashboard "My work".
+**After case v1:** per-requirement interview/test stages, credit by the recruiter who moved the candidate, time in stage per recruiter.
