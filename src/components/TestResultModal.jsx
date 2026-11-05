@@ -145,7 +145,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
     const nextAttempt = currentAttempt + 1
 
     // Update application - increment attempt, keep as TEST_SCHEDULED
-    const { error: updateError } = await supabase
+    const { data: updatedApplication, error: updateError } = await supabase
       .from('applications')
       .update({
         status: 'test_scheduled',
@@ -153,8 +153,11 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
         updated_at: new Date().toISOString()
       })
       .eq('id', application.id)
+      .select('id')
+      .single()
 
     if (updateError) throw updateError
+    if (!updatedApplication) throw new Error('The retake was not saved')
 
     // Create new scheduled event
     const scheduledDateTime = new Date(`${formData.newTestDate}T${formData.newTestTime}:00`)
@@ -179,49 +182,43 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
     if (eventError) throw eventError
 
-    // Send retake approval email via edge function
+    const applicantEmail = application.application_data?.data?.section2?.email || application.email
+    if (!applicantEmail) {
+      alert('The retake was scheduled, but the candidate has no email address for notification.')
+      return
+    }
+
+    // The retake is already saved; report mail failures without undoing it.
+    const testDateObj = new Date(formData.newTestDate)
+    const expiryDateObj = new Date(testDateObj)
+    expiryDateObj.setDate(expiryDateObj.getDate() + 7)
+    const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-      // Calculate expiry date (7 days from test date)
-      const testDateObj = new Date(formData.newTestDate)
-      const expiryDateObj = new Date(testDateObj)
-      expiryDateObj.setDate(expiryDateObj.getDate() + 7)
-      const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-
-      const emailResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-retake-approved`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            testLink: formData.newTestUrl,
-            testDate: formData.newTestDate,
-            attemptNumber: nextAttempt,
-            maxAttempts: maxAttempts,
-            expiryDate: expiryDate,
-            message: formData.retakeMessage
-          })
+      const { data, error } = await supabase.functions.invoke('send-test-retake-approved', {
+        body: {
+          applicantEmail,
+          applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+          referenceNumber: application.reference_number,
+          testLink: formData.newTestUrl,
+          testDate: formData.newTestDate,
+          attemptNumber: nextAttempt,
+          maxAttempts,
+          expiryDate,
+          message: formData.retakeMessage
         }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send retake email:', await emailResponse.text())
+      })
+      if (error || data?.success !== true) {
+        console.error('Failed to send retake email:', error || data?.error)
+        alert('The retake was scheduled, but the email to the candidate could not be sent.')
       }
     } catch (emailError) {
       console.error('Error sending retake email:', emailError)
+      alert('The retake was scheduled, but the email to the candidate could not be sent.')
     }
 
   }

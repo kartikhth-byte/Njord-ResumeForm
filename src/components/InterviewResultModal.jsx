@@ -113,7 +113,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
     }
 
     // Update application to INTERVIEW_PASSED
-    const { error: updateError } = await supabase
+    const { data: updatedApplication, error: updateError } = await supabase
       .from('applications')
       .update({
         status: 'interview_passed',
@@ -121,39 +121,35 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
         updated_at: new Date().toISOString()
       })
       .eq('id', application.id)
+      .select('id')
+      .single()
 
     if (updateError) throw updateError
+    if (!updatedApplication) throw new Error('The interview result was not saved')
 
-    // Send interview passed email
+    // The status is already saved; a mail failure must not reverse the result.
+    const applicantEmail = application.application_data?.data?.section2?.email || application.email
+    if (!applicantEmail) {
+      alert('The interview result was saved, but the candidate has no email address for notification.')
+      return
+    }
+
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-
-      const emailResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-interview-passed`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            position: application.applied_rank || 'the position',
-            nextSteps: null
-          })
-        }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send interview passed email:', await emailResponse.text())
+      const { data, error } = await supabase.functions.invoke('send-interview-passed', {
+        body: {
+          applicantEmail,
+          applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+          referenceNumber: application.reference_number,
+          position: application.applied_rank || 'the position',
+        },
+      })
+      if (error || data?.success !== true) {
+        console.error('Failed to send interview passed email:', error || data?.error)
+        alert('The interview result was saved, but the email to the candidate could not be sent.')
       }
     } catch (emailError) {
       console.error('Error sending interview passed email:', emailError)
+      alert('The interview result was saved, but the email to the candidate could not be sent.')
     }
     
   }
@@ -197,6 +193,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
           <button
             key={rating}
             type="button"
+            aria-label={`Rate ${rating} out of 5`}
             onClick={() => onChange(rating)}
             className={`p-1 transition-all ${
  value >= rating
@@ -217,8 +214,12 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
   )
 
   return createPortal(
-    <div className="recruiter-modal-backdrop overflow-y-auto">
-      <div className="fixed inset-0" onClick={() => !loading && onCancel()} />
+    <div
+      className="recruiter-modal-backdrop overflow-y-auto"
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !loading) onCancel()
+      }}
+    >
       <div className="recruiter-modal my-8 max-w-3xl">
           {/* Header */}
           <div className="recruiter-modal__header">
@@ -382,7 +383,7 @@ export default function InterviewResultModal({ application, onResultUpdated, onC
               </button>
               <button
                 type="submit"
-                disabled={loading || !result}
+                disabled={loading || !result || (result === 'passed' && !formData.overallRating)}
                 className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-fg-muted"
               >
                 {loading ? (

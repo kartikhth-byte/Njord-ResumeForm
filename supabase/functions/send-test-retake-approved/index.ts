@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
+import { requireApplicationEditor } from '../_shared/require-application-editor.ts'
 
 interface TestRetakeRequest {
   applicantEmail: string
@@ -22,7 +23,10 @@ serve(async (req) => {
   }
 
   try {
-    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const denied = await requireApplicationEditor(req, corsHeaders)
+    if (denied) return denied
+
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM', 'APPLICANT_NOTIFICATION_EMAIL'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
     const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
 
@@ -112,7 +116,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: emailFrom,
-        to: [applicantEmail],
+        to: [runtimeSettings.APPLICANT_NOTIFICATION_EMAIL?.trim() || applicantEmail],
         subject: `Assessment Retake Approved - ${referenceNumber}`,
         html: html,
       }),

@@ -27,7 +27,7 @@ serve(async (req) => {
     const denied = await requireApplicationEditor(req, corsHeaders)
     if (denied) return denied
 
-    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM', 'APPLICANT_NOTIFICATION_EMAIL'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
     const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
 
@@ -121,7 +121,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: emailFrom,
-        to: [applicantEmail],
+        to: [runtimeSettings.APPLICANT_NOTIFICATION_EMAIL?.trim() || applicantEmail],
         subject: `Interview Invitation - ${referenceNumber}`,
         html: html,
       }),

@@ -35,11 +35,14 @@ export async function rejectApplication({
     update.handling_recruiter_id = actorId
   }
 
-  const { error } = await supabase
+  const { data: updatedApplication, error } = await supabase
     .from('applications')
     .update(update)
     .eq('id', applicationId)
+    .select('id')
+    .single()
   if (error) throw error
+  if (!updatedApplication) throw new Error('The rejection was not saved')
 
   let emailSent = false
   if (candidate.email) {
