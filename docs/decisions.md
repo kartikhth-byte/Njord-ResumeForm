@@ -45,6 +45,7 @@ Implementation: `2026110200_harden_public_table_access.sql` is live in project `
 Decision:
 - integrate Needle's recruitment intelligence into a Holmes AI tab and requirement-level resume matching, excluding Seajobs download/local-agent workflows
 - use one canonical resume pool across existing Needle resumes, direct intake, candidate-portal intake, and later organization-website intake
+- applicant identity is claimed only after a valid, one-use magic link names the exact prospect and organization; never select the newest prospect by email. Where an email belongs to more than one approved prospect, ordinary email-only sign-in does not choose one, and the recruiter sends a prospect-specific invitation. Claiming does not automatically start the long application; a new draft must explicitly name a prospect claimed by that applicant. Full tenant access isolation remains a separate milestone.
 - do not treat a resume record as an already-verified candidate-owned profile; the future candidate login lets a person maintain that profile and resume
 - distinguish a lightweight job interest from the existing long Holmes form, which may be invited after a passed interview and must be submitted before an Excel worksheet is sent to the principal
 - candidate portal owns the candidate-maintained profile and job discovery; Needle powers candidate job search and recruiter candidate/requirement search; Holmes owns recruiter workflow automation after a match or job application

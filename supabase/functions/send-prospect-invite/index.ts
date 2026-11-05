@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
+import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
 
 interface ProspectInviteRequest {
   prospectId: string
@@ -29,6 +30,7 @@ serve(async (req) => {
   let prospectId: string | null = null
   let actorRole: string | null = null
   let inviteReservationAcquired = false
+  let claimRequestId: string | null = null
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
@@ -146,7 +148,45 @@ serve(async (req) => {
 
     const prospectEmail = reservation.email
     const recipientEmail = overrideInbox || prospectEmail
-    const portalUrl = `${appUrl}/applicant/login`
+    const { data: invitedProspect, error: invitedProspectError } = await supabaseClient
+      .from('prospects')
+      .select('id, organization_id, email_normalized, status, archived_at, deleted_at, bounce_flag')
+      .eq('id', prospectId)
+      .single()
+    if (invitedProspectError || !invitedProspect || invitedProspect.status !== 'approved'
+      || invitedProspect.archived_at || invitedProspect.deleted_at || invitedProspect.bounce_flag
+      || invitedProspect.email_normalized !== prospectEmail.trim().toLowerCase()) {
+      throw new Error('Prospect is not eligible for applicant access')
+    }
+
+    const redirectTo = `${appUrl}/auth/callback?login_intent=applicant`
+    const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: prospectEmail,
+      options: { redirectTo },
+    })
+    if (linkError) throw linkError
+    const tokenHash = linkData?.properties?.hashed_token
+    if (!tokenHash) throw new Error('Applicant sign-in link could not be generated')
+
+    const { data: claimRequest, error: claimRequestError } = await supabaseClient
+      .from('applicant_magic_link_requests')
+      .insert({
+        prospect_id: invitedProspect.id,
+        organization_id: invitedProspect.organization_id,
+        email: prospectEmail,
+        email_normalized: invitedProspect.email_normalized,
+        claim_token_hash: await claimTokenFingerprint(tokenHash),
+        request_status: 'sent',
+        sent_to_email: recipientEmail,
+        sent_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    if (claimRequestError) throw claimRequestError
+    claimRequestId = claimRequest.id
+
+    const portalUrl = `${redirectTo}&token_hash=${encodeURIComponent(tokenHash)}&type=email`
     const portalHost = new URL(portalUrl).host
     const invitedBy = actorProfile?.full_name || actorProfile?.email || actorRole || 'Recruiter'
     const safeName = escapeHtml(reservation.prospect_name || 'there')
@@ -190,13 +230,13 @@ serve(async (req) => {
                 <p style="margin: 0; color: #1d4ed8; font-size: 14px;">Open the portal, sign in with your account, and continue your profile from the applicant dashboard.</p>
               </div>
               <div style="text-align: center; margin: 28px 0;">
-                <a href="${portalUrl}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                <a href="${escapeHtml(portalUrl)}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600;">
                   Open Applicant Portal
                 </a>
               </div>
               <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; word-break: break-all;">
                 If the button does not open, copy this URL into your browser:<br>
-                <a href="${portalUrl}" style="color: #2563eb; text-decoration: none;">${portalUrl}</a>
+                <a href="${escapeHtml(portalUrl)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(portalUrl)}</a>
               </p>
             </td>
           </tr>
@@ -287,6 +327,13 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('send-prospect-invite error:', error)
+    if (claimRequestId) {
+      await supabaseClient.from('applicant_magic_link_requests').update({
+        request_status: 'invalidated',
+        invalidated_at: new Date().toISOString(),
+        invalidation_reason: 'invite_send_failed',
+      }).eq('id', claimRequestId)
+    }
     if (inviteReservationAcquired && prospectId && user?.id) {
       try {
         await supabaseClient.rpc('release_prospect_invite_reservation', {

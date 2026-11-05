@@ -8,6 +8,7 @@ export default function AuthCallback() {
   const navigate = useNavigate()
   const { user, userType, loading, authorizationLoading } = useAuth()
   const [authResolutionTimedOut, setAuthResolutionTimedOut] = useState(false)
+  const [claimError, setClaimError] = useState(false)
   const [verifying, setVerifying] = useState(
     () => new URLSearchParams(window.location.search).has('token_hash')
   )
@@ -20,14 +21,41 @@ export default function AuthCallback() {
     if (!tokenHash || verifyStartedRef.current) return
     verifyStartedRef.current = true
 
-    supabase.auth
-      .verifyOtp({ token_hash: tokenHash, type: params.get('type') || 'email' })
-      .then(({ error }) => {
-        if (error) console.error('Sign-in link could not be verified:', error.message)
+    const redeem = async () => {
+      window.sessionStorage.setItem('njord-login-intent', 'applicant')
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: params.get('type') || 'email',
+      })
+      if (error) throw error
+
+      const bytes = new TextEncoder().encode(tokenHash)
+      const digest = await crypto.subtle.digest('SHA-256', bytes)
+      const claimTokenHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+      const { data: claim, error: claimFailure } = await supabase.rpc('claim_applicant_magic_link', {
+        p_claim_token_hash: claimTokenHash,
+      })
+      if (claimFailure || !claim?.prospect_id) throw claimFailure || new Error('Invite claim was not accepted')
+      try {
+        window.sessionStorage.setItem('njord-applicant-prospect-id', claim.prospect_id)
+      } catch {
+        // The database claim succeeded; blocked session storage must not undo it.
+      }
+    }
+
+    redeem()
+      .catch(async (error) => {
+        console.error('Applicant link redemption failed:', error?.message)
+        try {
+          await supabase.auth.signOut({ scope: 'local' })
+        } finally {
+          setClaimError(true)
+        }
       })
       .finally(() => {
         params.delete('token_hash')
         params.delete('type')
+        params.delete('login_intent')
         const query = params.toString()
         window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`)
         setVerifying(false)
@@ -64,7 +92,7 @@ export default function AuthCallback() {
   }, [loading, user, verifying])
 
   useEffect(() => {
-    if (verifying || loading || (user && authorizationLoading && !userType)) return
+    if (claimError || verifying || loading || (user && authorizationLoading && !userType)) return
 
     if (!user) {
       if (!authResolutionTimedOut) return
@@ -83,7 +111,18 @@ export default function AuthCallback() {
     }
 
     navigate('/applicant/login', { replace: true })
-  }, [user, userType, loading, authorizationLoading, navigate, authResolutionTimedOut, verifying])
+  }, [user, userType, loading, authorizationLoading, navigate, authResolutionTimedOut, verifying, claimError])
+
+  if (claimError) {
+    return (
+      <div className="public-shell flex min-h-screen items-center justify-center px-4">
+        <div className="public-card max-w-md text-center">
+          <h1 className="text-2xl font-semibold text-fg">Link unavailable</h1>
+          <p className="mt-3 text-fg-secondary">This sign-in link could not be used. Ask your recruiter for a new invitation.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="public-shell flex min-h-screen items-center justify-center px-4">

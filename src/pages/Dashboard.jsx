@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [applicationData, setApplicationData] = useState(null)
   const [copiedRef, setCopiedRef] = useState(null)
   const [isCreatingApplication, setIsCreatingApplication] = useState(false)
+  const [claims, setClaims] = useState([])
+  const [selectedProspectId, setSelectedProspectId] = useState('')
 
   useEffect(() => {
     if (user) {
@@ -38,6 +40,23 @@ export default function Dashboard() {
   const fetchApplications = async () => {
     try {
       setLoading(true)
+
+      const { data: applicantClaims, error: claimsError } = await supabase.rpc('get_applicant_claims')
+      if (claimsError) throw claimsError
+      const availableClaims = Array.isArray(applicantClaims) ? applicantClaims : []
+      setClaims(availableClaims)
+      let lastClaimedId = null
+      try {
+        lastClaimedId = window.sessionStorage.getItem('njord-applicant-prospect-id')
+      } catch {
+        // A private browser may block storage; the first eligible claim still works.
+      }
+      setSelectedProspectId((current) => {
+        const preferred = availableClaims.find((claim) => claim.prospect_id === lastClaimedId)
+          || availableClaims.find((claim) => claim.prospect_id === current)
+          || availableClaims[0]
+        return preferred?.prospect_id || ''
+      })
 
       const { data, error } = await supabase
         .from('applications')
@@ -138,26 +157,16 @@ export default function Dashboard() {
         }
       }
 
-      const { data: newApp, error: appError } = await supabase
-        .from('applications')
-        .insert([{
-          user_id: user.id,
-          status: 'new',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single()
+      if (!selectedProspectId) throw new Error('A recruiter invitation is required to start an application.')
+
+      const { data: newAppId, error: appError } = await supabase.rpc('start_claimed_application', {
+        p_prospect_id: selectedProspectId,
+        p_initial_data: previousData,
+      })
 
       if (appError) throw appError
 
-      const { error: dataError } = await supabase
-        .from('application_data')
-        .insert([{ application_id: newApp.id, data: previousData }])
-
-      if (dataError) throw dataError
-
-      setActiveDraftId(newApp.id)
+      setActiveDraftId(newAppId)
       markActiveDraftExplicit(true)
       navigate('/application/form/section/1')
     } catch (error) {
@@ -241,7 +250,7 @@ export default function Dashboard() {
           <PageHeader
             title="Your application"
             actions={
-              !draftApplication && !hasActivePipelineApplication ? (
+              !draftApplication && !hasActivePipelineApplication && claims.length > 0 ? (
                 <button
                   onClick={createApplicationDraft}
                   disabled={isCreatingApplication}
@@ -252,6 +261,24 @@ export default function Dashboard() {
               ) : null
             }
           />
+
+          {!draftApplication && !hasActivePipelineApplication && claims.length === 0 ? (
+            <p className="text-sm text-fg-secondary">A recruiter invitation is required before you can start an application.</p>
+          ) : null}
+          {!draftApplication && !hasActivePipelineApplication && claims.length > 1 ? (
+            <label className="block text-sm text-fg-secondary">
+              Recruiting organization
+              <select
+                className="mt-2 block rounded-lg border border-line bg-surface px-3 py-2 text-fg"
+                value={selectedProspectId}
+                onChange={(event) => setSelectedProspectId(event.target.value)}
+              >
+                {claims.map((claim) => (
+                  <option key={claim.prospect_id} value={claim.prospect_id}>{claim.organization_name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           {draftApplication && (
             <div className="applicant-panel p-6">
