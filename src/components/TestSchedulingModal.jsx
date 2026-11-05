@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { supabaseApiKey } from '../lib/supabaseKey'
 import { useAuth } from './auth/AuthContext'
 import { Calendar, Clock, Link as LinkIcon, Loader2, PencilLine, X } from 'lucide-react'
 
@@ -127,6 +128,7 @@ if (reminderError) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              apikey: supabaseApiKey,
               'Authorization': `Bearer ${session?.access_token || ''}`
             },
             body: JSON.stringify({

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createAdminFetch, getAdminApiKey, isModernSecretKey } from './api-keys.ts'
 
 const SETTING_ENV_FALLBACKS: Record<string, string[]> = {
   APP_URL: ['APP_URL', 'VITE_APP_URL'],
@@ -16,10 +17,12 @@ const SETTING_ENV_FALLBACKS: Record<string, string[]> = {
 }
 
 export function createAdminSupabaseClient() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
+  const key = getAdminApiKey()
+  const options = isModernSecretKey(key)
+    ? { global: { fetch: createAdminFetch(key) } }
+    : undefined
+
+  return createClient(Deno.env.get('SUPABASE_URL') ?? '', key, options)
 }
 
 function getEnvFallback(settingKey: string) {

@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from './runtime-settings.ts'
+import { getAdminApiKey, isModernSecretKey } from './api-keys.ts'
 
 export async function requireApplicationEditor(
   req: Request,
@@ -6,8 +7,13 @@ export async function requireApplicationEditor(
   allowServiceRole = false,
 ): Promise<Response | null> {
   const token = (req.headers.get('authorization') || '').replace(/^Bearer /i, '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (allowServiceRole && serviceRoleKey && token === serviceRoleKey) return null
+  const serviceRoleKey = getAdminApiKey()
+  if (allowServiceRole && serviceRoleKey) {
+    const suppliedKey = isModernSecretKey(serviceRoleKey)
+      ? req.headers.get('apikey')
+      : token
+    if (suppliedKey === serviceRoleKey) return null
+  }
 
   const admin = createAdminSupabaseClient()
   const { data: { user }, error: authError } = token

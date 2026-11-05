@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
+import { getPublicApiKey } from '../_shared/api-keys.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
 import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
@@ -197,7 +198,7 @@ serve(async (req) => {
 
     const recruiterClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      getPublicApiKey(),
       { global: { headers: { Authorization: authHeader } } },
     )
     const { error: formInviteError } = await recruiterClient.rpc('recruitment_case_record_form_invite', {

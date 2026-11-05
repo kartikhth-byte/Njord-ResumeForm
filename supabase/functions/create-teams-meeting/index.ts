@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 
@@ -18,10 +18,7 @@ serve(async (req) => {
     ])
 
     // Get user's access token
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    const supabase = createAdminSupabaseClient()
 
     const { data: tokenData, error } = await supabase
       .from('microsoft_oauth_tokens')

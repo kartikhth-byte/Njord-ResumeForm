@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { loadPlaywrightEnv } from '../loadPlaywrightEnv.js'
+import { createAdminClient, getAdminApiKey, getPublicApiKey } from '../supabaseApiKeys.js'
 
 const DEFAULT_DRAFT_EMAIL = 'playwright-draft-applicant@example.invalid'
 const DEFAULT_DRAFT_PASSWORD = 'Playwright-Draft-Applicant-123456!'
@@ -131,8 +132,8 @@ export async function prepareDraftApplicantState({ resetApplication = false } = 
     }
   }
 
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseAnonKey = getPublicApiKey()
+  const serviceRoleKey = getAdminApiKey()
 
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
     return {
@@ -144,12 +145,7 @@ export async function prepareDraftApplicantState({ resetApplication = false } = 
 
   const email = process.env.PLAYWRIGHT_DRAFT_APPLICANT_EMAIL || DEFAULT_DRAFT_EMAIL
   const password = process.env.PLAYWRIGHT_DRAFT_APPLICANT_PASSWORD || DEFAULT_DRAFT_PASSWORD
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
+  const adminClient = createAdminClient(supabaseUrl)
   const authClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,

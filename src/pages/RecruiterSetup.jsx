@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthLoading, authButtonClass, authInputClass, authLabelClass } from '../components/auth/AuthLayout'
+import { supabaseApiKey } from '../lib/supabaseKey'
 
 export default function RecruiterSetup() {
   const navigate = useNavigate()
@@ -33,8 +34,7 @@ export default function RecruiterSetup() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            apikey: supabaseApiKey,
           },
           body: JSON.stringify({ action: 'status' }),
         }
@@ -76,8 +76,7 @@ export default function RecruiterSetup() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            apikey: supabaseApiKey,
           },
           body: JSON.stringify({
             action: 'bootstrap',

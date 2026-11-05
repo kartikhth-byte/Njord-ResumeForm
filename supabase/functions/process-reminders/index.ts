@@ -2,8 +2,9 @@
 // Daily cron job to process and send event reminders
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { getAdminApiKey, isModernSecretKey } from '../_shared/api-keys.ts'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 
 serve(async (req) => {
   const corsHeaders = await getCorsHeaders(req, { allowMethods: 'POST, OPTIONS' })
@@ -12,13 +13,18 @@ serve(async (req) => {
   }
 
   try {
-    // Verify this is a cron request (optional - add auth if needed)
-    const authHeader = req.headers.get('authorization')
-    
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const adminKey = getAdminApiKey()
+    const allowed = adminKey && (isModernSecretKey(adminKey)
+      ? req.headers.get('apikey') === adminKey
+      : req.headers.get('authorization') === `Bearer ${adminKey}`)
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseClient = createAdminSupabaseClient()
 
     console.log('Starting reminder processing...')
 
@@ -77,7 +83,8 @@ serve(async (req) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+              apikey: adminKey,
+              ...(isModernSecretKey(adminKey) ? {} : { Authorization: `Bearer ${adminKey}` }),
             },
             body: JSON.stringify({
               eventId: reminder.event_id,

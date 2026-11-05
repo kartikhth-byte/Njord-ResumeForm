@@ -2,7 +2,7 @@
 // Sends DUAL email notifications (applicant + recruiter) with calendar invites
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 import { generateICS } from '../_shared/ics-generator.ts'
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
@@ -31,10 +31,7 @@ serve(async (req) => {
       throw new Error('eventId is required')
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseClient = createAdminSupabaseClient()
 
     // =========================================================================
     // STEP 1: Get event details (NO JOINS - avoid RLS issues)

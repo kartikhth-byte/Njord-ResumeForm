@@ -12,7 +12,7 @@ entrypoint = "./functions/send-application-emails/index.ts"
 
 [functions.create-recruiter]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/create-recruiter/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
@@ -23,7 +23,7 @@ entrypoint = "./functions/create-recruiter/index.ts"
 
 [functions.send-prospect-invite]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/send-prospect-invite/deno.json"
 entrypoint = "./functions/send-prospect-invite/index.ts"
 
@@ -43,3 +43,33 @@ entrypoint = "./functions/log-recruiter-export/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/request-applicant-magic-link/index.ts"
+
+[functions.generate-customer-worksheet]
+verify_jwt = false
+
+[functions.send-offer-letter]
+verify_jwt = false
+
+[functions.manage-runtime-settings]
+verify_jwt = false
+
+[functions.schedule-event]
+verify_jwt = false
+
+[functions.send-event-notification]
+verify_jwt = false
+
+[functions.send-test-invitation]
+verify_jwt = false
+
+[functions.send-interview-invitation]
+verify_jwt = false
+
+[functions.send-rejection-email]
+verify_jwt = false
+
+[functions.send-interview-passed]
+verify_jwt = false
+
+[functions.send-test-retake-approved]
+verify_jwt = false

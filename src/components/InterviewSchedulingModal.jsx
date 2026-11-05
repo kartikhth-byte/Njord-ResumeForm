@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { supabaseApiKey } from '../lib/supabaseKey'
 import { useAuth } from './auth/AuthContext'
 import { Calendar, Clock, Link as LinkIcon, Video, Phone, MapPin, Loader2, X, CheckCircle } from 'lucide-react'
 import { getClientRuntimeSettings } from '../services/runtimeSettingsService'
@@ -102,6 +103,7 @@ export default function InterviewSchedulingModal({ application, onScheduled, onC
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  apikey: supabaseApiKey,
                   'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({ userId: user.id })
@@ -213,6 +215,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  apikey: supabaseApiKey,
                   'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({ userId: user.id })
@@ -385,6 +388,7 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              apikey: supabaseApiKey,
               'Authorization': `Bearer ${session?.access_token || ''}`
             },
             body: JSON.stringify({

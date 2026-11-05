@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { isValidPublicApiKey } from '../_shared/api-keys.ts'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 
 const ALLOWED_RECRUITER_ROLES = new Set(['Master Recruiter', 'Recruiter', 'Coordinator'])
 
@@ -11,12 +12,15 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
 
+  if (!isValidPublicApiKey(req.headers.get('apikey'))) {
+    return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
-    // Create Supabase client with service role
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseClient = createAdminSupabaseClient()
 
     // Parse request body
     const { action, full_name, email, password, role_id, user_id } = await req.json()
@@ -71,6 +75,16 @@ serve(async (req) => {
         throw new Error('Unable to verify master recruiter coverage')
       }
 
+      return count ?? 0
+    }
+
+    const countRecruiterProfiles = async () => {
+      const { count, error } = await supabaseClient
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_type', 'recruiter')
+
+      if (error) throw new Error('Unable to verify initial setup state')
       return count ?? 0
     }
 
@@ -134,10 +148,11 @@ serve(async (req) => {
 
     if (action === 'status') {
       const existingMasterRecruiters = await countMasterRecruiters()
+      const existingRecruiters = await countRecruiterProfiles()
 
       return new Response(
         JSON.stringify({
-          setup_complete: existingMasterRecruiters > 0,
+          setup_complete: existingMasterRecruiters > 0 || existingRecruiters > 0,
           master_recruiter_count: existingMasterRecruiters,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -153,8 +168,9 @@ serve(async (req) => {
       }
 
       const existingMasterRecruiters = await countMasterRecruiters()
+      const existingRecruiters = await countRecruiterProfiles()
 
-      if (existingMasterRecruiters > 0) {
+      if (existingMasterRecruiters > 0 || existingRecruiters > 0) {
         return new Response(
           JSON.stringify({ error: 'Initial setup is already complete.' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

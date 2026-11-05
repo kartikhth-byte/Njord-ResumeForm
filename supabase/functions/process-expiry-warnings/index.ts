@@ -3,8 +3,9 @@
 // Run daily via cron job
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { getAdminApiKey, isModernSecretKey } from '../_shared/api-keys.ts'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 
 serve(async (req) => {
   const corsHeaders = await getCorsHeaders(req, { allowMethods: 'POST, OPTIONS' })
@@ -13,15 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      serviceRoleKey
-    )
+    const serviceRoleKey = getAdminApiKey()
+    const supabaseClient = createAdminSupabaseClient()
 
     // Sends email to applicants: only the scheduler (service role) or a signed-in recruiter may run it.
     const token = (req.headers.get('Authorization') || '').replace('Bearer ', '')
-    let allowed = Boolean(serviceRoleKey) && token === serviceRoleKey
+    let allowed = Boolean(serviceRoleKey) && (isModernSecretKey(serviceRoleKey)
+      ? req.headers.get('apikey') === serviceRoleKey
+      : token === serviceRoleKey)
     if (!allowed && token) {
       const { data: { user } } = await supabaseClient.auth.getUser(token)
       if (user) {
