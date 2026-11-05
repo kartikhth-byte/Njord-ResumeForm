@@ -140,6 +140,7 @@
 - admin-generated applicant links contain an implicit session fragment; the browser client remains on PKCE and the token-hash callback exchanges a one-time token with `verifyOtp` (verified on Holmes staging, including a first-time approved applicant with self-service sign-ups disabled)
 - recruiter: email/password
 - recruiter password recovery requires a verified recruiter session; an existing applicant session gets an explanatory message instead of being redirected to `/unauthorized`
+- Supabase Admin recruiter invites and some recovery emails return an implicit session fragment even though the browser client uses PKCE. The recruiter reset page imports either session with `setSession`, clears the fragment, and waits for authorization before showing the password form. Auth state callbacks defer database authorization queries until after the Supabase auth event returns to avoid a lock deadlock; the staging Coordinator invite reached the password form on 2026-11-05.
 - the bare root URL and `/login` now route to the recruiter sign-in; applicants always arrive via emailed links
 
 ## Important Commands

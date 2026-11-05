@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthLoading, authButtonClass, authInputClass, authLabelClass } from '../components/auth/AuthLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
+
+const emailLinkTypes = new Set(['invite', 'recovery'])
 
 export default function RecruiterResetPassword() {
   const navigate = useNavigate()
@@ -13,11 +15,36 @@ export default function RecruiterResetPassword() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
+  const [emailLinkPending, setEmailLinkPending] = useState(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1))
+    return emailLinkTypes.has(fragment.get('type')) && Boolean(fragment.get('access_token') && fragment.get('refresh_token'))
+  })
+  const emailLinkStartedRef = useRef(false)
 
   useEffect(() => {
-    if (loading || (user && authorizationLoading && !userType)) return
+    if (!emailLinkPending || emailLinkStartedRef.current) return
+    emailLinkStartedRef.current = true
+
+    const fragment = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = fragment.get('access_token')
+    const refreshToken = fragment.get('refresh_token')
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
+
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ error: sessionError }) => {
+        if (sessionError) throw sessionError
+      })
+      .catch((sessionError) => {
+        console.error('Recruiter email-link session error:', sessionError)
+        setError('Could not open this link. Request a new email from recruiter sign in.')
+      })
+      .finally(() => setEmailLinkPending(false))
+  }, [emailLinkPending])
+
+  useEffect(() => {
+    if (emailLinkPending || loading || (user && authorizationLoading && !userType)) return
     setReady(true)
-  }, [loading, authorizationLoading, user, userType])
+  }, [emailLinkPending, loading, authorizationLoading, user, userType])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -95,7 +122,7 @@ export default function RecruiterResetPassword() {
     >
       {!user ? (
         <p role="alert" className="text-sm text-danger">
-          This link has expired or was already used. Request a new one from sign in.
+          {error || 'This link has expired or was already used. Request a new one from sign in.'}
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

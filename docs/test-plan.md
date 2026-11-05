@@ -163,6 +163,7 @@ For the interview result and rejection email smoke, run the current frontend aga
 - verify Add/Edit member reject passwords shorter than 8 characters before any account or profile changes (including direct `create-recruiter` calls); an empty Edit password leaves the existing password unchanged
 - verify role restrictions
 - verify reset-password flows
+- for a new staging Coordinator invite or recovery email, open the newest link in a private browser, confirm the recruiter password form appears (not an expired-link message) and its URL no longer contains session tokens; set the password yourself, sign in, check read-only controls, then disable the synthetic account
 - open submitted application from recruiter flows and confirm recruiter review controls still appear
 - open a recruiter review email link and confirm the secure token grants access without exposing recruiter-only controls to applicants
 

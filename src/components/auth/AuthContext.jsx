@@ -348,14 +348,21 @@ export const AuthProvider = ({ children }) => {
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (mounted) {
         setSession(newSession)
         setUser(newSession?.user ?? null)
         setLoading(false)
       }
 
-      await hydrateAuthState(newSession, { skipInitialLoading: true })
+      // Auth callbacks must return before a new Supabase query can acquire the auth lock.
+      window.setTimeout(() => {
+        if (mounted) {
+          hydrateAuthState(newSession, { skipInitialLoading: true }).catch((error) => {
+            console.error('Auth state refresh error:', error)
+          })
+        }
+      }, 0)
     })
 
     return () => {

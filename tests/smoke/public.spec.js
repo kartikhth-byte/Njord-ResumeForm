@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 
 test.describe('public routes', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
@@ -88,6 +89,75 @@ test.describe('public routes', () => {
     await expect(page).toHaveURL(/\/recruiter\/reset-password$/)
     await expect(page.getByText('Applicant account detected')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Update password' })).toHaveCount(0)
+  })
+
+  for (const linkType of ['invite', 'recovery']) {
+    test(`recruiter ${linkType} establishes a session before showing the password form`, async ({ page }) => {
+      const userId = '00000000-0000-4000-8000-000000000002'
+      const email = 'coordinator@example.com'
+      const accessToken = [
+        'eyJhbGciOiJIUzI1NiJ9',
+        Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'),
+        'c2lnbmF0dXJl',
+      ].join('.')
+
+      await page.route('**/auth/v1/user', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: userId, email, role: 'authenticated', aud: 'authenticated' }),
+      }))
+
+      await page.route('**/rest/v1/**', route => {
+        const path = new URL(route.request().url()).pathname
+        const body = path.endsWith('/profiles')
+          ? { id: userId, email, user_type: 'recruiter' }
+          : path.endsWith('/user_roles')
+            ? [{ role_id: 'coordinator-role', roles: { name: 'Coordinator' } }]
+            : []
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+      })
+
+      await page.goto(`/recruiter/reset-password#access_token=${accessToken}&refresh_token=synthetic-refresh-token&type=${linkType}`)
+
+      await expect(page.getByLabel('New password')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Update password' })).toBeVisible()
+      await expect(page.getByText('This link has expired or was already used.')).toHaveCount(0)
+      await expect(page).toHaveURL(/\/recruiter\/reset-password$/)
+    })
+  }
+
+  test('applicant token-hash callback still reaches the dashboard', async ({ page }) => {
+    const userId = '00000000-0000-4000-8000-000000000003'
+    const email = 'applicant@example.com'
+    const accessToken = [
+      'eyJhbGciOiJIUzI1NiJ9',
+      Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'),
+      'c2lnbmF0dXJl',
+    ].join('.')
+
+    await page.route('**/auth/v1/verify', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: accessToken,
+        refresh_token: 'synthetic-refresh-token',
+        token_type: 'bearer',
+        expires_in: 3600,
+        user: { id: userId, email, role: 'authenticated', aud: 'authenticated' },
+      }),
+    }))
+
+    await page.route('**/rest/v1/**', route => {
+      const path = new URL(route.request().url()).pathname
+      const body = path.endsWith('/profiles')
+        ? { id: userId, email, user_type: 'applicant' }
+        : []
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+    })
+
+    await page.goto('/auth/callback?token_hash=synthetic-token-hash&type=email')
+
+    await expect(page).toHaveURL(/\/dashboard$/)
   })
 
   for (const retiredPath of ['/privacy-policy', '/terms-conditions']) {
