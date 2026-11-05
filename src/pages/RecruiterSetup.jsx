@@ -6,6 +6,7 @@ export default function RecruiterSetup() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [setupComplete, setSetupComplete] = useState(false)
+  const [statusError, setStatusError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
@@ -24,6 +25,8 @@ export default function RecruiterSetup() {
   const checkSetupStatus = async () => {
     try {
       setLoading(true)
+      setStatusError(false)
+      setError(null)
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-recruiter`,
         {
@@ -46,7 +49,7 @@ export default function RecruiterSetup() {
       setSetupComplete(Boolean(data?.setup_complete))
     } catch (error) {
       console.error('Error checking setup status:', error)
-      setError('Failed to check setup status. Please try again.')
+      setStatusError(true)
     } finally {
       setLoading(false)
     }
@@ -133,6 +136,17 @@ export default function RecruiterSetup() {
       >
         <button type="button" onClick={() => navigate('/recruiter/login')} className={authButtonClass}>
           Sign in
+        </button>
+      </AuthLayout>
+    )
+  }
+
+  if (statusError) {
+    return (
+      <AuthLayout title="Unable to check setup">
+        <p role="alert" className="text-sm text-danger">The setup service is unavailable. Please try again later.</p>
+        <button type="button" onClick={checkSetupStatus} className={authButtonClass}>
+          Retry
         </button>
       </AuthLayout>
     )

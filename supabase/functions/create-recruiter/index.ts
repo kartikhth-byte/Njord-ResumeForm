@@ -145,6 +145,13 @@ serve(async (req) => {
     }
 
     if (action === 'bootstrap') {
+      if (typeof password !== 'string' || password.length < 8) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 8 characters' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
       const existingMasterRecruiters = await countMasterRecruiters()
 
       if (existingMasterRecruiters > 0) {
@@ -230,6 +237,13 @@ serve(async (req) => {
     if (action === 'create') {
       console.log('Creating user with email:', email)
 
+      if (typeof password !== 'string' || password.length < 8) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 8 characters' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
       let validatedRole
 
       try {
@@ -278,6 +292,13 @@ serve(async (req) => {
         console.error('Missing user_id!')
         return new Response(
           JSON.stringify({ error: 'user_id is required for update' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      if (password !== undefined && password !== null && password !== '' && (typeof password !== 'string' || password.length < 8)) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 8 characters' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }

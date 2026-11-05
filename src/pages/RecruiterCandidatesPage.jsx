@@ -206,7 +206,7 @@ export default function RecruiterCandidatesPage() {
               ranks={tracker.data.ranks}
               vesselTypes={tracker.data.vesselTypes}
               recruiters={workingRecruiters(tracker.data.recruiters)}
-              canChooseRecruiter={role === 'Master Recruiter' || hasPermission('manage_runtime_settings') || hasPermission('manage_settings')}
+              canChooseRecruiter={role === 'Master Recruiter'}
               requirementOptions={tracker.data.requirements
                 .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
                 .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` }))}

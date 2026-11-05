@@ -344,7 +344,9 @@ const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
           timezone: 'UTC',
           location_type: formData.interviewType === 'in-person' ? 'in-person' : 'online',
           location_details: locationDetails,
-          platform: formData.platform === 'google' ? 'Google Meet' : 'Microsoft Teams', // NEW: Include platform
+          platform: formData.interviewType === 'video'
+            ? (formData.platform === 'google' ? 'Google Meet' : 'Microsoft Teams')
+            : null,
           status: 'scheduled'
         })
         .select()

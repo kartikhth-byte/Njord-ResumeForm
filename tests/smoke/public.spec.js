@@ -21,6 +21,32 @@ test.describe('public routes', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  test('recruiter setup stays closed when status cannot be checked', async ({ page }) => {
+    await page.route('**/functions/v1/create-recruiter', route => route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'NOT_FOUND' }),
+    }))
+
+    await page.goto('/recruiter/setup')
+    await expect(page.getByRole('heading', { name: 'Unable to check setup' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create account' })).toHaveCount(0)
+  })
+
+  test('recruiter setup shows the locked state when a master already exists', async ({ page }) => {
+    await page.route('**/functions/v1/create-recruiter', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ setup_complete: true, master_recruiter_count: 1 }),
+    }))
+
+    await page.goto('/recruiter/setup')
+    await expect(page.getByRole('heading', { name: 'Setup already complete' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create account' })).toHaveCount(0)
+  })
+
   test('applicant session stays on recruiter recovery pages with account guidance', async ({ page }) => {
     const userId = '00000000-0000-4000-8000-000000000001'
     const email = 'applicant@example.com'
@@ -53,10 +79,10 @@ test.describe('public routes', () => {
 
     await page.goto('/recruiter/login')
     await expect(page.getByRole('heading', { name: 'Recruiter sign in' })).toBeVisible()
-    await expect(page.getByText(/This browser is signed in as an applicant/)).toBeVisible()
+    await expect(page.getByText('Signed in as an applicant.')).toBeVisible()
     await page.getByLabel('Email').fill(email)
     await page.getByRole('button', { name: 'Forgot?' }).click()
-    await expect(page.getByText(/This is your applicant account/)).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveText('That’s an applicant email.')
 
     await page.goto('/recruiter/reset-password')
     await expect(page).toHaveURL(/\/recruiter\/reset-password$/)
@@ -64,19 +90,14 @@ test.describe('public routes', () => {
     await expect(page.getByRole('button', { name: 'Update password' })).toHaveCount(0)
   })
 
-  test('privacy policy page renders legal content', async ({ page }) => {
-    await page.goto('/privacy-policy')
+  for (const retiredPath of ['/privacy-policy', '/terms-conditions']) {
+    test(`${retiredPath} redirects to recruiter sign in`, async ({ page }) => {
+      await page.goto(retiredPath)
 
-    await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Information We Collect' })).toBeVisible()
-  })
-
-  test('terms page renders legal content', async ({ page }) => {
-    await page.goto('/terms-conditions')
-
-    await expect(page.getByRole('heading', { name: 'Terms and Conditions' })).toBeVisible()
-    await expect(page.getByText('Acceptance of Terms')).toBeVisible()
-  })
+      await expect(page).toHaveURL(/\/recruiter\/login$/)
+      await expect(page.getByRole('heading', { name: 'Recruiter sign in' })).toBeVisible()
+    })
+  }
 
   test('auth callback without session returns to applicant login', async ({ page }) => {
     await page.goto('/auth/callback')

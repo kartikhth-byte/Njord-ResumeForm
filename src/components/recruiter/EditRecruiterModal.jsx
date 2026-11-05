@@ -156,12 +156,14 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
               </div>
 
               <div className="recruiter-form-field recruiter-form-field--full">
-                <label className="recruiter-form-label">New Password</label>
+                <label className="recruiter-form-label">New Password (optional, min 8)</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    minLength={8}
+                    autoComplete="new-password"
                     className="recruiter-form-input font-mono text-sm"
                     placeholder="Leave empty to keep current password"
                   />

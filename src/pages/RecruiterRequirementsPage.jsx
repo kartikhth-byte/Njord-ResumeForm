@@ -39,7 +39,7 @@ export default function RecruiterRequirementsPage() {
   const { user, profile, signOut } = useAuth()
   const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
   const canCreateRequirements = hasPermission('create_requirements') || hasPermission('edit_requirements')
-  const canChooseRecruiter = role === 'Master Recruiter' || hasPermission('manage_runtime_settings') || hasPermission('manage_settings')
+  const canChooseRecruiter = role === 'Master Recruiter'
   const [showForm, setShowForm] = useState(false)
   const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
