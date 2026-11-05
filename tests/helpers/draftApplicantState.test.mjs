@@ -10,9 +10,11 @@ test('draft setup refuses production even when its ref is explicitly allowed', a
     process.env.VITE_SUPABASE_URL = 'https://btbqdviuqcpauojmorvx.supabase.co'
     process.env.PLAYWRIGHT_DRAFT_TEST_PROJECT_REF = 'btbqdviuqcpauojmorvx'
 
-    const result = await prepareDraftApplicantState()
-    assert.equal(result.prepared, false)
-    assert.match(result.reason, /non-production/)
+    for (const resetApplication of [false, true]) {
+      const result = await prepareDraftApplicantState({ resetApplication })
+      assert.equal(result.prepared, false)
+      assert.match(result.reason, /non-production/)
+    }
   } finally {
     if (previousUrl === undefined) delete process.env.VITE_SUPABASE_URL
     else process.env.VITE_SUPABASE_URL = previousUrl

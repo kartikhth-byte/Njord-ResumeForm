@@ -15,7 +15,7 @@ test.describe('applicant full test-data fill', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {
-    await prepareDraftApplicantState()
+    await prepareDraftApplicantState({ resetApplication: true })
   })
 
   test('fills visible fields across all applicant sections', async ({ page }) => {

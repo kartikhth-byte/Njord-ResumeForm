@@ -140,11 +140,10 @@ export async function startBlankApplication(page) {
   })
 
   await page.goto('/dashboard')
-  await page.getByRole('heading', { name: 'Manage your maritime application journey' }).waitFor({ state: 'visible', timeout: 60_000 }).catch(() => null)
-  await page.getByText('Loading your applications...').waitFor({ state: 'hidden', timeout: 60_000 }).catch(() => null)
+  await page.getByRole('heading', { name: /Your application|Manage your maritime application journey/ }).waitFor({ state: 'visible', timeout: 60_000 })
 
   const startButton = page.getByRole('button', {
-    name: /Resume draft|Create new application|Start application|Apply now/i,
+    name: /Continue|Resume draft|Create new application|Start application|Apply now/i,
   }).first()
 
   await startButton.waitFor({ state: 'visible', timeout: 60_000 })

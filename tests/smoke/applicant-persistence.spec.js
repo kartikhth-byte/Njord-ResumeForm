@@ -22,7 +22,7 @@ test.describe('applicant section persistence smoke', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {
-    await prepareDraftApplicantState()
+    await prepareDraftApplicantState({ resetApplication: true })
   })
 
   test('persists visible field values when navigating away and back for every section', async ({ page }) => {

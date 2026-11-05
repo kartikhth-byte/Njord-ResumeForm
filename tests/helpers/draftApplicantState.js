@@ -106,7 +106,7 @@ export function getDraftApplicantStorageStatePath() {
   return process.env.PLAYWRIGHT_DRAFT_APPLICANT_STORAGE_STATE || DEFAULT_DRAFT_STATE
 }
 
-export async function prepareDraftApplicantState() {
+export async function prepareDraftApplicantState({ resetApplication = false } = {}) {
   loadEnv()
   const statePath = getDraftApplicantStorageStatePath()
   const absoluteStatePath = path.resolve(process.cwd(), statePath)
@@ -123,7 +123,7 @@ export async function prepareDraftApplicantState() {
     }
   }
 
-  if (readFreshDraftState(absoluteStatePath, expectedOrigin, projectRef)) {
+  if (!resetApplication && readFreshDraftState(absoluteStatePath, expectedOrigin, projectRef)) {
     return {
       prepared: true,
       reason: 'existing-state',
