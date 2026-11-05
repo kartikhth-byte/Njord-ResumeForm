@@ -46,3 +46,15 @@ From the repo root:
 ```bash
 docker build -f services/worksheet-service/Dockerfile .
 ```
+
+## Staging deployment
+
+Render service `njord-worksheet-service-staging` uses the `ui/warm-theme` branch,
+`services/worksheet-service/Dockerfile`, Free compute, `/ready` health checks,
+and manual deploys. Its `SUPABASE_URL` and service-role key must belong to Holmes
+staging (`dwslhetniuzpyuspuomy`), never production. `APP_URL` currently allows
+the local staging frontend at `localhost:3000` and `127.0.0.1:3000`. The
+staging `WORKSHEET_SERVICE_URL` runtime setting points to
+`https://njord-worksheet-service-staging.onrender.com`. Update the allowed
+origin before using a remotely hosted staging frontend. The separate production
+Render service tracks `main`; do not change it as part of staging deploys.

@@ -83,7 +83,7 @@ Prototype caveats:
 
 ## Hosted Worksheet Export Validation
 
-Staging-backed local-service smoke (2026-11-05): the signed-in Recruiter generated and downloaded the synthetic customer's XLSX for submitted `STAGE-SUBMITTED-001` (HTTP 200); a direct request for an existing synthetic draft returned HTTP 409. The hosted service is not yet redeployed, and template fidelity remains open.
+Staging hosted-service smoke (2026-11-05): separate Render service `njord-worksheet-service-staging` deployed commit `4361477` from `ui/warm-theme`, with `/ready` returning HTTP 200. Only staging's `WORKSHEET_SERVICE_URL` was changed to the hosted URL. A signed-in Recruiter generated and downloaded the synthetic customer's XLSX for submitted `STAGE-SUBMITTED-001`; its archive integrity check passed. A direct request for unsubmitted synthetic application `45eb5031-10f1-4945-9f6d-ead69c82f203` returned HTTP 409 with `Submit the application before generating a worksheet`. The production service was not redeployed. Template fidelity remains open.
 
 - as an export-permitted recruiter, confirm the Worksheet action appears only for a submitted application
 - POST a draft application ID directly to the worksheet service with an authorized recruiter session; expect HTTP 409 and no template download or workbook generation
