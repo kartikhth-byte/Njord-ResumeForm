@@ -6,6 +6,10 @@ import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
 
 const MAGIC_LINK_REQUEST_LIMIT = 3
 const MIN_RESPONSE_DELAY_MS = 700
+const FORM_INVITE_ELIGIBLE_STAGES = [
+  'interview_passed', 'selected', 'offered', 'offer_accepted',
+  'documents_pending', 'documents_verified', 'sent_to_principal',
+]
 
 interface RequestApplicantMagicLinkPayload {
   email?: string
@@ -292,7 +296,19 @@ serve(async (req) => {
 
     // An email shared by two organizations needs the prospect-specific
     // recruiter invitation. Never guess which prospect should be claimed.
-    const prospect = matchingProspects?.length === 1 ? matchingProspects[0] : null
+    let prospect = matchingProspects?.length === 1 ? matchingProspects[0] : null
+    if (prospect) {
+      const { data: invitedCase, error: caseError } = await supabaseClient
+        .from('recruitment_cases')
+        .select('id')
+        .eq('prospect_id', prospect.id)
+        .eq('organization_id', prospect.organization_id)
+        .not('form_invited_at', 'is', null)
+        .in('status', FORM_INVITE_ELIGIBLE_STAGES)
+        .limit(1)
+      if (caseError) throw caseError
+      if (!invitedCase?.length) prospect = null
+    }
 
     const { data: requestRow, error: requestError } = await supabaseClient
       .from('applicant_magic_link_requests')

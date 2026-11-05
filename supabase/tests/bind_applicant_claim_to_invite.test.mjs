@@ -111,10 +111,65 @@ await asUser(id(32), 'different@example.test')
 await expectRejected(() => claim(token('f')), 'invalid_claim')
 await asUser(id(32))
 await expectRejected(() => claim(token('f')), 'invalid_claim')
+
+await asUser(id(31))
+await query(`insert into applicant_magic_link_requests
+  (id, prospect_id, organization_id, email, email_normalized, request_status, claim_token_hash, sent_at)
+  values ($1,$2,$3,$4,$5,'sent',$6,now())`, [id(26), id(11), id(1), email, email, token('g')])
+await query('update prospects set email=$1 where id=$2', ['corrected@example.test', id(11)])
+await expectRejected(() => claim(token('g')), 'invalid_claim')
+await query('update prospects set email=$1 where id=$2', [email, id(11)])
+
+await query(`insert into applicant_magic_link_requests
+  (id, prospect_id, organization_id, email, email_normalized, request_status, claim_token_hash, sent_at)
+  values ($1,$2,$3,$4,$5,'sent',$6,now())`, [id(27), id(11), id(1), email, email, token('h')])
+await query('update prospects set archived_at=now() where id=$1', [id(11)])
+await expectRejected(() => claim(token('h')), 'invalid_claim')
+await query('update prospects set archived_at=null where id=$1', [id(11)])
+assert.equal((await query('select claimed_at from applicant_magic_link_requests where id=$1', [id(27)]))[0].claimed_at, null)
+
 assert.equal((await query("select has_function_privilege('anon','public.claim_applicant_magic_link(text)','execute') as allowed"))[0].allowed, false)
 assert.equal((await query("select has_function_privilege('authenticated','public.claim_applicant_magic_link(text)','execute') as allowed"))[0].allowed, true)
 assert.equal((await query("select has_function_privilege('anon','public.start_claimed_application(uuid,jsonb)','execute') as allowed"))[0].allowed, false)
 assert.equal((await query("select has_function_privilege('authenticated','public.start_claimed_application(uuid,jsonb)','execute') as allowed"))[0].allowed, true)
 assert.equal((await query("select count(*)::int as n from pg_policies where tablename='applications' and policyname='applications_insert_own_draft'"))[0].n, 0)
+
+if (process.argv[3]) {
+  await db.exec(`
+    create table public.recruitment_cases(
+      id uuid primary key, prospect_id uuid not null, organization_id uuid not null,
+      status text not null, form_invited_at timestamptz
+    );
+    revoke all on public.recruitment_cases from public, anon, authenticated, service_role;
+    create function public.recruitment_case_post_interview(p_status text)
+    returns boolean language sql immutable as $$
+      select p_status in ('interview_passed', 'selected', 'offered',
+        'offer_accepted', 'documents_pending', 'documents_verified', 'sent_to_principal')
+    $$;
+  `)
+  const gateMigration = fs.readFileSync(process.argv[3], 'utf8')
+  await db.exec(gateMigration)
+  await db.exec(gateMigration)
+  if (process.argv[4]) {
+    const grantMigration = fs.readFileSync(process.argv[4], 'utf8')
+    await db.exec(grantMigration)
+    await db.exec(grantMigration)
+    assert.equal((await query("select has_table_privilege('service_role','public.recruitment_cases','select') as allowed"))[0].allowed, true)
+    assert.equal((await query("select has_table_privilege('anon','public.recruitment_cases','select') as allowed"))[0].allowed, false)
+  }
+  assert.equal((await query('select jsonb_array_length(get_applicant_claims()) as n'))[0].n, 0)
+  await expectRejected(() => query('select start_claimed_application($1)', [id(11)]), 'form_invite_required')
+  await query('insert into recruitment_cases(id,prospect_id,organization_id,status) values ($1,$2,$3,$4)',
+    [id(41), id(11), id(1), 'interview_passed'])
+  await expectRejected(() => query('select start_claimed_application($1)', [id(11)]), 'form_invite_required')
+  await query('update recruitment_cases set form_invited_at=now() where id=$1', [id(41)])
+  assert.equal((await query('select jsonb_array_length(get_applicant_claims()) as n'))[0].n, 1)
+  assert.equal((await query('select start_claimed_application($1) as id', [id(11)])).length, 1)
+  await expectRejected(() => query('select start_claimed_application($1)', [id(12)]), 'form_invite_required')
+  await query("update recruitment_cases set status='rejected' where id=$1", [id(41)])
+  assert.equal((await query('select jsonb_array_length(get_applicant_claims()) as n'))[0].n, 0)
+  await expectRejected(() => query('select start_claimed_application($1)', [id(11)]), 'form_invite_required')
+  console.log('Case-gated form invite migration checks passed')
+}
 
 console.log('Invite-bound applicant claim migration checks passed')

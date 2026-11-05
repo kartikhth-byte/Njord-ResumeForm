@@ -21,6 +21,7 @@ import {
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
+import { CASE_FORM_INVITE_STAGES, caseStatusMeta } from '../utils/recruitmentCase'
 import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
@@ -69,6 +70,8 @@ export default function RecruiterProspectDetail() {
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteStatus, setInviteStatus] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteCases, setInviteCases] = useState([])
+  const [inviteCaseId, setInviteCaseId] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
   const [attachOptions, setAttachOptions] = useState(null) // null = picker closed
   const [attachValue, setAttachValue] = useState('')
@@ -89,6 +92,7 @@ export default function RecruiterProspectDetail() {
           notesResult,
           junctionsResult,
           applicationsResult,
+          casesResult,
           countriesResult,
           ranksResult,
           vesselTypesResult,
@@ -117,6 +121,10 @@ export default function RecruiterProspectDetail() {
             )
             .eq('prospect_id', prospectId)
             .order('created_at', { ascending: false }),
+          supabase
+            .from('recruitment_cases')
+            .select('id, requirement_id, status')
+            .eq('prospect_id', prospectId),
           supabase.from('countries').select('id, code, name').order('name'),
           supabase.from('ranks').select('id, code, name').order('name'),
           supabase.from('vessel_types').select('id, code, name').order('name'),
@@ -168,6 +176,11 @@ export default function RecruiterProspectDetail() {
         setJunctions(junctionRows)
         setApplications(applicationRows)
         setLinkedRequirements(requirementRows)
+        const eligibleCases = (casesResult.error ? [] : casesResult.data || [])
+          .filter((row) => CASE_FORM_INVITE_STAGES.includes(row.status))
+        setInviteCases(eligibleCases)
+        setInviteCaseId((current) => eligibleCases.some((row) => row.id === current)
+          ? current : eligibleCases.length === 1 ? eligibleCases[0].id : '')
         setAuthorMap(buildLookupMap(authors))
         setInviteEmail(prospectRow.email || '')
         setInviteStatus('')
@@ -316,6 +329,9 @@ export default function RecruiterProspectDetail() {
       if (!inviteEmail.trim()) {
         throw new Error('Email is required to send an invite.')
       }
+      if (!inviteCaseId) {
+        throw new Error('Choose a case with a passed interview before inviting the long form.')
+      }
 
       const canUpdateEmail = canEditProspect
       const finalEmail = canUpdateEmail ? inviteEmail.trim() : (prospect.email || '').trim()
@@ -336,11 +352,16 @@ export default function RecruiterProspectDetail() {
       const { error } = await supabase.functions.invoke('send-prospect-invite', {
           body: {
             prospectId: prospect.id,
+            caseId: inviteCaseId,
             personalMessage: inviteMessage || undefined,
           },
         })
 
-      if (error) throw error
+      if (error) {
+        const detail = typeof error.context?.json === 'function'
+          ? await error.context.json().catch(() => null) : null
+        throw new Error(detail?.error || error.message)
+      }
 
       setInviteStatus('Invite sent successfully.')
       const { data: refreshed, error: refreshError } = await supabase
@@ -652,7 +673,26 @@ export default function RecruiterProspectDetail() {
 
               {canSendInvite ? (
               <div className="recruiter-panel p-6">
-                <h2 className="mt-2 text-lg font-semibold text-fg">Invite</h2>
+                <h2 className="mt-2 text-lg font-semibold text-fg">Invite to long application</h2>
+                <p className="mt-2 text-sm text-fg-secondary">
+                  The interview must be passed first. Completing the form does not mean the candidate has been selected.
+                </p>
+
+                <label className="mt-4 block">
+                  <span className="text-sm font-medium text-fg-secondary">Recruitment case</span>
+                  <select
+                    value={inviteCaseId}
+                    onChange={(event) => setInviteCaseId(event.target.value)}
+                    className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
+                  >
+                    <option value="">Choose an eligible case</option>
+                    {inviteCases.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {linkedRequirementMap[row.requirement_id]?.req_id_display || 'Requirement'} · {caseStatusMeta(row.status).label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
@@ -681,11 +721,14 @@ export default function RecruiterProspectDetail() {
                   <button
                     type="button"
                     onClick={handleSendInvite}
-                    disabled={inviteLoading || !canSendInvite || !inviteEmail.trim()}
+                    disabled={inviteLoading || !canSendInvite || !inviteEmail.trim() || !inviteCaseId}
                     className="workspace-action-button workspace-action-button--primary"
                   >
-                    {inviteLoading ? 'Sending...' : 'Send invite'}
+                    {inviteLoading ? 'Sending...' : 'Send form invite'}
                   </button>
+                  {inviteCases.length === 0 ? (
+                    <span className="text-sm text-fg-muted">No case has a passed interview yet.</span>
+                  ) : null}
                   {prospect.bounce_flag ? (
                     <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">
                       Email bounced

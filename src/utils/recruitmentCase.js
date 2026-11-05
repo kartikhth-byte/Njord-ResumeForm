@@ -32,6 +32,11 @@ export const CASE_STATUS_META = {
   closed: { label: 'Closed', tone: 'bg-raised text-fg-secondary' },
 }
 
+export const CASE_FORM_INVITE_STAGES = [
+  'interview_passed', 'selected', 'offered', 'offer_accepted',
+  'documents_pending', 'documents_verified', 'sent_to_principal',
+]
+
 export const CASE_ALLOWED_NEXT = {
   sourced: ['contacted'],
   interested: ['contacted'],

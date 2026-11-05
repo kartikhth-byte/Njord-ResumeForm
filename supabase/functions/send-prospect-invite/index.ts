@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
@@ -6,8 +7,14 @@ import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
 
 interface ProspectInviteRequest {
   prospectId: string
+  caseId: string
   personalMessage?: string
 }
+
+const FORM_INVITE_ELIGIBLE_STAGES = [
+  'interview_passed', 'selected', 'offered', 'offer_accepted',
+  'documents_pending', 'documents_verified', 'sent_to_principal',
+]
 
 function escapeHtml(value: string) {
   return value
@@ -70,12 +77,32 @@ serve(async (req) => {
 
     const payload = (await req.json()) as ProspectInviteRequest
     prospectId = payload?.prospectId || null
+    const caseId = payload?.caseId || null
     const personalMessage = normalizePlainText(payload?.personalMessage || '')
 
-    if (!prospectId) {
-      return new Response(JSON.stringify({ error: 'prospectId is required' }), {
+    if (!prospectId || !caseId) {
+      return new Response(JSON.stringify({ error: 'prospectId and caseId are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
+      })
+    }
+
+    const { data: inviteCase, error: caseError } = await supabaseClient
+      .from('recruitment_cases')
+      .select('id, prospect_id, organization_id, status')
+      .eq('id', caseId)
+      .eq('prospect_id', prospectId)
+      .maybeSingle()
+    if (caseError || !inviteCase) {
+      return new Response(JSON.stringify({ error: 'An eligible recruitment case is required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    if (!FORM_INVITE_ELIGIBLE_STAGES.includes(inviteCase.status)) {
+      return new Response(JSON.stringify({ error: 'The case needs a passed interview before a form invite' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 409,
       })
     }
 
@@ -119,14 +146,12 @@ serve(async (req) => {
     inviteReservationAcquired = true
 
     if (reservation.invite_state === 'already_sent') {
+      inviteReservationAcquired = false
       return new Response(JSON.stringify({
-        success: true,
-        alreadySent: true,
-        prospectId: reservation.prospect_id,
-        message: `Invite already sent by ${reservation.invited_by_recruiter_name} at ${reservation.invited_at}`,
+        error: 'A recent invite was already sent. Retry after five minutes.',
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 409,
       })
     }
 
@@ -155,7 +180,8 @@ serve(async (req) => {
       .single()
     if (invitedProspectError || !invitedProspect || invitedProspect.status !== 'approved'
       || invitedProspect.archived_at || invitedProspect.deleted_at || invitedProspect.bounce_flag
-      || invitedProspect.email_normalized !== prospectEmail.trim().toLowerCase()) {
+      || invitedProspect.email_normalized !== prospectEmail.trim().toLowerCase()
+      || invitedProspect.organization_id !== inviteCase.organization_id) {
       throw new Error('Prospect is not eligible for applicant access')
     }
 
@@ -169,11 +195,23 @@ serve(async (req) => {
     const tokenHash = linkData?.properties?.hashed_token
     if (!tokenHash) throw new Error('Applicant sign-in link could not be generated')
 
+    const recruiterClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { error: formInviteError } = await recruiterClient.rpc('recruitment_case_record_form_invite', {
+      p_case_id: caseId,
+      p_idempotency_key: crypto.randomUUID(),
+    })
+    if (formInviteError) throw formInviteError
+
     const { data: claimRequest, error: claimRequestError } = await supabaseClient
       .from('applicant_magic_link_requests')
       .insert({
         prospect_id: invitedProspect.id,
         organization_id: invitedProspect.organization_id,
+        case_id: caseId,
         email: prospectEmail,
         email_normalized: invitedProspect.email_normalized,
         claim_token_hash: await claimTokenFingerprint(tokenHash),
@@ -218,6 +256,9 @@ serve(async (req) => {
               </p>
               <p style="margin: 0 0 14px 0; color: #475569; font-size: 16px; line-height: 1.6;">
                 ${escapeHtml(invitedBy)} has invited you to continue your maritime profile in the Holmes applicant portal.
+              </p>
+              <p style="margin: 0 0 14px 0; color: #475569; font-size: 15px; line-height: 1.6;">
+                You have passed an interview. Completing the long application does not mean you have been selected or offered a position.
               </p>
               ${safeMessage ? `
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin: 20px 0;">
