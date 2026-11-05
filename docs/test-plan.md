@@ -106,7 +106,9 @@ Specific worksheet checks:
 ### Automated
 
 - Run write-capable applicant smoke only against a non-production Supabase project. Set `PLAYWRIGHT_DRAFT_TEST_PROJECT_REF` to that project's ref and point `VITE_SUPABASE_URL` at the same project. The setup helper rejects the production project even if the ref is explicitly supplied; cached auth state is tied to the project ref.
+- Each write-capable applicant smoke resets its own synthetic staging draft before the test; a cached login state alone does not reset a previously filled form. The production guard applies to this reset too.
 - Public-route checks against a production-backed local build must use `npm run test:smoke -- tests/smoke/public.spec.js --no-deps` so the applicant setup dependency does not write data.
+- The former `/privacy-policy` and `/terms-conditions` routes were retired by owner decision in `079ebf3`; public-route smoke checks that they redirect to recruiter sign-in. Legal copy still needs review before wider customer rollout.
 - applicant authenticated smoke
 - applicant section route smoke across all 19 sections
 - applicant autofill smoke
@@ -146,6 +148,8 @@ Manual checks:
 
 ## Recruiter Test Strategy
 
+For the interview result and rejection email smoke, run the current frontend against Holmes staging on an origin allowed by its `APP_URL` setting (currently `http://localhost:3000`). Use only synthetic applications and an inbox controlled by the owner. Staging's `APPLICANT_NOTIFICATION_EMAIL` override must point to that inbox while Resend uses its testing sender; remove the override before any customer deployment. Verify both outcome buttons stay interactive; Passed requires a rating, then persists `interview_passed` and sends the candidate email without internal recommendation; Failed persists `rejected` and sends a neutral reason after the save. Check a retake's notification separately. An unsigned call to each staging function must return 401; signed-in Coordinator calls must be denied. A 401, CORS failure, or function success response alone is not evidence that a candidate email reached the inbox.
+
 ### Automated
 
 - recruiter authenticated smoke
@@ -156,6 +160,7 @@ Manual checks:
 - login as `Master Recruiter`
 - verify team-management visibility and actions
 - verify create recruiter/coordinator
+- verify Add/Edit member reject passwords shorter than 8 characters before any account or profile changes (including direct `create-recruiter` calls); an empty Edit password leaves the existing password unchanged
 - verify role restrictions
 - verify reset-password flows
 - open submitted application from recruiter flows and confirm recruiter review controls still appear
