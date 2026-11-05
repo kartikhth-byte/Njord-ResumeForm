@@ -34,6 +34,8 @@ const candidateRows = buildCandidateFunnelRows({ prospects, junctions, requireme
 const eq = (name, got, want) => test(name, () => assert.deepEqual(got, want))
 const r1 = requirementRows.find((r) => r.id === 'r1')
 eq('r1 pipeline (rejected excluded)', r1.pipeline, { shortlisted: 1, withCustomer: 1, accepted: 0, joined: 1 })
+eq('r1 linked candidates include rejected links', r1.linkedCandidateCount, 4)
+eq('r3 has no linked candidates', requirementRows.find((r) => r.id === 'r3').linkedCandidateCount, 0)
 eq('r1 last activity = latest junction', r1.lastActivityAt, d(1))
 eq('r3 owner falls back to creator', requirementRows.find((r) => r.id === 'r3').ownerId, A)
 for (const [period, expect] of [['week', { a: [2, 1, 1, 0.5] }], ['month', { a: [2, 1, 1, 0.5] }], ['all', { a: [3, 1, 2, 1 / 3] }]]) {

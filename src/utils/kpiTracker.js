@@ -260,6 +260,7 @@ export function buildRequirementTrackerRows({
       onTimeStatus,
       isArchived,
       latestRemark: latestRemark?.body || '',
+      linkedCandidateCount: attached.length,
       pipeline,
       lastActivityAt: lastActivityMs == null ? null : new Date(lastActivityMs).toISOString(),
       riskRank,
