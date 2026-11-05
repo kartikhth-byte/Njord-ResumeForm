@@ -4,12 +4,20 @@ Hosted worksheet-generation service for customer exports.
 
 This service:
 - accepts recruiter-authenticated worksheet export requests
+- rejects applications without `submitted_at` before reading template or form data
 - downloads the active uploaded `.xlsx` worksheet template from Supabase storage
 - fetches application data from Supabase
 - reuses the existing Python writer in `scripts/client_forms/cma_cgm_writer.py`
 - streams the generated workbook back to the caller
 
 It does not perform `.xls` to `.xlsx` conversion. Upload normalized `.xlsx` templates in the app.
+Submission is checked independently of the current workflow status, so a submitted form remains exportable after later case decisions.
+
+Run the focused gate tests from the repo root:
+
+```bash
+python3 -m unittest discover -s services/worksheet-service -p test_app.py -v
+```
 
 ## Environment
 

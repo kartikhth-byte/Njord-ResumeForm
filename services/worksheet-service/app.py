@@ -69,6 +69,15 @@ def generate_customer_worksheet() -> Response:
         if not application_id or not customer_id:
             return jsonify({"error": "applicationId and customerId are required"}), 400
 
+        application = fetch_single_row(
+            "applications",
+            "id",
+            application_id,
+            select="id,reference_number,public_token,status,submitted_at",
+        )
+        if not application.get("submitted_at"):
+            return jsonify({"error": "Submit the application before generating a worksheet"}), 409
+
         customer = fetch_single_row("worksheet_customers", "id", customer_id, select="id,name,slug")
         template = fetch_single_row(
             "worksheet_templates",
@@ -82,12 +91,6 @@ def generate_customer_worksheet() -> Response:
         if (template.get("source_extension") or "").lower() != "xlsx":
             return jsonify({"error": "Upload a normalized .xlsx worksheet template before generating customer worksheets"}), 400
 
-        application = fetch_single_row(
-            "applications",
-            "id",
-            application_id,
-            select="id,reference_number,public_token,status",
-        )
         application_data = fetch_single_row(
             "application_data",
             "application_id",

@@ -72,10 +72,10 @@ export default function ViewApplication() {
     loadApplication()
   }, [publicToken, emailAccessToken, user?.id, userType, authLoading, authorizationLoading])
 
-  const exportAllowed = userType === 'recruiter' && canExportData()
+  const worksheetAllowed = userType === 'recruiter' && canExportData() && Boolean(application?.submitted_at)
 
   const loadWorksheetCustomers = useCallback(async () => {
-    if (!exportAllowed) return
+    if (!worksheetAllowed) return
     setWorksheetLoading(true)
     setWorksheetError('')
     try {
@@ -88,7 +88,7 @@ export default function ViewApplication() {
     } finally {
       setWorksheetLoading(false)
     }
-  }, [exportAllowed])
+  }, [worksheetAllowed])
 
   useEffect(() => {
     if (!worksheetModalOpen) return
@@ -338,7 +338,7 @@ export default function ViewApplication() {
     : null
 
   const handleGenerateWorksheet = async () => {
-    if (!selectedWorksheetCustomerId) return
+    if (!worksheetAllowed || !selectedWorksheetCustomerId) return
 
     setWorksheetGenerating(true)
     setWorksheetError('')
@@ -412,7 +412,7 @@ export default function ViewApplication() {
               {isRecruiterView && canEditApplications && (application.status === 'rejected' || application.status === 'withdrawn') && (
                 <ReopenApplicationButton application={application} onReopened={refreshApplication} />
               )}
-              {exportAllowed && (
+              {worksheetAllowed && (
                 <button
                   type="button"
                   onClick={() => setWorksheetModalOpen(true)}
@@ -431,7 +431,7 @@ export default function ViewApplication() {
         </div>
       </div>
 
-      {worksheetModalOpen ? (
+      {worksheetAllowed && worksheetModalOpen ? (
         <div className="fixed inset-0 z-50 print:hidden">
           <div
             className="absolute inset-0 bg-black/55"

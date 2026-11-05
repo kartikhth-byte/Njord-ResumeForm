@@ -83,6 +83,12 @@ Prototype caveats:
 
 ## Hosted Worksheet Export Validation
 
+Staging-backed local-service smoke (2026-11-05): the signed-in Recruiter generated and downloaded the synthetic customer's XLSX for submitted `STAGE-SUBMITTED-001` (HTTP 200); a direct request for an existing synthetic draft returned HTTP 409. The hosted service is not yet redeployed, and template fidelity remains open.
+
+- as an export-permitted recruiter, confirm the Worksheet action appears only for a submitted application
+- POST a draft application ID directly to the worksheet service with an authorized recruiter session; expect HTTP 409 and no template download or workbook generation
+- confirm a submitted application still exports after a later case/status change such as Rejected
+
 Manual validation required for each supported customer template:
 - upload a normalized `.xlsx` template in recruiter settings
 - confirm the active template file name is shown correctly in settings
