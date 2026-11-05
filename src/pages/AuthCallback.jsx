@@ -43,7 +43,15 @@ export default function AuthCallback() {
       }
     }
 
+    let redeemed = false
     redeem()
+      .then(() => {
+        redeemed = true
+        // A previous recruiter session can leave stale role state in this tab.
+        // Reload with the redeemed applicant session before route guards run.
+        window.history.replaceState(null, '', window.location.pathname)
+        window.location.replace('/dashboard')
+      })
       .catch(async (error) => {
         console.error('Applicant link redemption failed:', error?.message)
         try {
@@ -53,6 +61,7 @@ export default function AuthCallback() {
         }
       })
       .finally(() => {
+        if (redeemed) return
         params.delete('token_hash')
         params.delete('type')
         params.delete('login_intent')

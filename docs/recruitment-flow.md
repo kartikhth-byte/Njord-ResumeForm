@@ -32,7 +32,7 @@ The recruiter app handles the organization's recruitment workflow. The Holmes op
 - `prospects` and `prospect_requirements` provide a pre-form link, but `prospects` requires DOB, nationality, rank, vessel type, experience, phone, and email. A resume or lightweight portal interest may not have these verified fields.
 - `prospect_requirements` supports shortlist/customer-decision/join states, not the test/interview progression above.
 - `applications` and its recruiter status control currently carry test/interview stages. This is the wrong record for the target pre-form process.
-- In the production baseline, the invite reservation checks `prospects.status = approved`, not a passed interview on the case. Staging `0225` adds a case-specific send gate and requires an eligible recorded form invitation before starting a new draft; its signed-in positive invite smoke is still pending. Production does not have this gate.
+- In the production baseline, the invite reservation checks `prospects.status = approved`, not a passed interview on the case. Staging `0225` adds a case-specific send gate and requires an eligible recorded form invitation before starting a new draft. A signed-in Recruiter sent the synthetic case invite, and a fresh link reached the applicant dashboard after the callback's recruiter-session redirect was fixed. Production does not have this gate.
 - The current Candidates page is a prospect funnel tracker, not the future Available/Interested talent directory. The candidate portal and organization-owned publication model do not exist yet.
 
 ## Migration Rules

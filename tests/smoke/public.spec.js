@@ -154,10 +154,76 @@ test.describe('public routes', () => {
         : []
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
     })
+    await page.route('**/rest/v1/rpc/claim_applicant_magic_link', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ prospect_id: '00000000-0000-4000-8000-000000000004' }),
+    }))
 
     await page.goto('/auth/callback?token_hash=synthetic-token-hash&type=email')
 
     await expect(page).toHaveURL(/\/dashboard$/)
+  })
+
+  test('applicant link replaces a prior recruiter session', async ({ page }) => {
+    const recruiterId = '00000000-0000-4000-8000-000000000005'
+    const applicantId = '00000000-0000-4000-8000-000000000006'
+    const applicantEmail = 'applicant@example.com'
+    const applicantToken = [
+      'eyJhbGciOiJIUzI1NiJ9',
+      Buffer.from(JSON.stringify({ sub: applicantId, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'),
+      'c2lnbmF0dXJl',
+    ].join('.')
+
+    await page.addInitScript(({ recruiterId }) => {
+      if (localStorage.getItem('test-recruiter-seeded')) return
+      localStorage.setItem('test-recruiter-seeded', '1')
+      localStorage.setItem('njord-auth-token', JSON.stringify({
+        access_token: 'synthetic-recruiter-token',
+        refresh_token: 'synthetic-recruiter-refresh',
+        token_type: 'bearer',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: recruiterId, email: 'recruiter@example.com', role: 'authenticated', aud: 'authenticated' },
+      }))
+      localStorage.setItem('njord-authz-cache', JSON.stringify({
+        userId: recruiterId,
+        profile: { id: recruiterId, user_type: 'recruiter' },
+        userType: 'recruiter',
+        role: 'Recruiter',
+        permissions: [],
+        cachedAt: Date.now(),
+      }))
+    }, { recruiterId })
+
+    await page.route('**/auth/v1/verify', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: applicantToken,
+        refresh_token: 'synthetic-applicant-refresh',
+        token_type: 'bearer',
+        expires_in: 3600,
+        user: { id: applicantId, email: applicantEmail, role: 'authenticated', aud: 'authenticated' },
+      }),
+    }))
+    await page.route('**/rest/v1/**', route => {
+      const path = new URL(route.request().url()).pathname
+      const body = path.endsWith('/profiles')
+        ? { id: applicantId, email: applicantEmail, user_type: 'applicant' }
+        : []
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+    })
+    await page.route('**/rest/v1/rpc/claim_applicant_magic_link', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ prospect_id: '00000000-0000-4000-8000-000000000007' }),
+    }))
+
+    await page.goto('/auth/callback?token_hash=synthetic-token-hash&type=email')
+
+    await expect(page).toHaveURL(/\/dashboard$/)
+    await expect(page.getByRole('heading', { name: 'Your application' })).toBeVisible()
+    await expect(page).not.toHaveURL(/\/recruiter\/dashboard$/)
   })
 
   for (const retiredPath of ['/privacy-policy', '/terms-conditions']) {
