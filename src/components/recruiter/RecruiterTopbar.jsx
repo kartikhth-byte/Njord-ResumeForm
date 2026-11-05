@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, Settings } from 'lucide-react'
 import BrandLockup from '../ui/BrandLockup'
+import { useAuth } from '../auth/AuthContext'
+import { canUseAiSearch } from '../../lib/needle'
 import { usePermissions } from '../../hooks/usePermissions'
 
 export default function RecruiterTopbar({ user, profile, role, signOut }) {
   const navigate = useNavigate()
+  const { isOperator } = useAuth()
   const { canManageSettings } = usePermissions()
   const showSettings = role === 'Master Recruiter' || canManageSettings()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -47,6 +50,12 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
         </button>
 
         <div className="flex items-center gap-2">
+        {canUseAiSearch({ isOperator, role }) && <button type="button"
+          className="workspace-action-button workspace-action-button--secondary"
+          onClick={() => navigate('/recruiter/ai/search')}>AI search</button>}
+        {isOperator && <button type="button"
+          className="workspace-action-button workspace-action-button--secondary"
+          onClick={() => navigate('/operator')}>Operator</button>}
         {showSettings ? (
           <button
             type="button"

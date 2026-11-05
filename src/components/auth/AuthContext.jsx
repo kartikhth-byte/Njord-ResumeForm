@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { endNeedleSession } from '../../lib/needle'
 
 const AuthContext = createContext({})
 const AUTHZ_CACHE_KEY = 'njord-authz-cache'
@@ -54,6 +55,8 @@ export const AuthProvider = ({ children }) => {
   const [userType, setUserType] = useState(null)
   const [role, setRole] = useState(null)
   const [permissions, setPermissions] = useState([])
+  // Platform operator flag (platform_operators table), separate from roles.
+  const [isOperator, setIsOperator] = useState(false)
   const hydratedSessionKeyRef = useRef(null)
 
   useEffect(() => {
@@ -97,7 +100,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    const writeAuthorizationCache = ({ userId, profile: nextProfile, userType: nextUserType, role: nextRole, permissions: nextPermissions }) => {
+    const writeAuthorizationCache = ({ userId, profile: nextProfile, userType: nextUserType, role: nextRole, permissions: nextPermissions, isOperator: nextIsOperator = false }) => {
       try {
         window.localStorage.setItem(AUTHZ_CACHE_KEY, JSON.stringify({
           userId,
@@ -105,6 +108,7 @@ export const AuthProvider = ({ children }) => {
           userType: nextUserType,
           role: nextRole,
           permissions: nextPermissions,
+          isOperator: Boolean(nextIsOperator),
           cachedAt: Date.now(),
         }))
       } catch {
@@ -139,6 +143,7 @@ export const AuthProvider = ({ children }) => {
           setUserType(null)
           setRole(null)
           setPermissions([])
+          setIsOperator(false)
           setAuthorizationLoading(false)
         }
         clearAuthorizationCache()
@@ -171,6 +176,7 @@ export const AuthProvider = ({ children }) => {
             setUserType('applicant')
             setRole(null)
             setPermissions([])
+            setIsOperator(false)
             setAuthorizationLoading(false)
           }
 
@@ -224,11 +230,25 @@ export const AuthProvider = ({ children }) => {
           ]
         }
 
+        // Operator console access. Missing function (before the migration
+        // is applied) or any error means "not an operator".
+        // A transient error keeps the last known value instead of bouncing an
+        // operator out of the console.
+        const previousOperatorFlag = Boolean(readAuthorizationCache(currentUser.id)?.isOperator)
+        let operatorFlag = previousOperatorFlag
+        try {
+          const { data: operatorData, error: operatorError } = await supabase.rpc('is_platform_operator')
+          if (!operatorError) operatorFlag = operatorData === true
+        } catch {
+          operatorFlag = previousOperatorFlag
+        }
+
         if (mounted) {
           setProfile(profileData ?? null)
           setUserType(profileData?.user_type ?? null)
           setRole(roleRows?.[0]?.roles?.name ?? null)
           setPermissions(permissionNames)
+          setIsOperator(operatorFlag)
           setAuthorizationLoading(false)
         }
 
@@ -238,6 +258,7 @@ export const AuthProvider = ({ children }) => {
           userType: profileData?.user_type ?? null,
           role: roleRows?.[0]?.roles?.name ?? null,
           permissions: permissionNames,
+          isOperator: operatorFlag,
         })
       } catch (error) {
         console.error('Authorization load error:', error)
@@ -270,11 +291,14 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (!currentUser) {
+        // Signed out (here, by expiry, or in another tab): end the AI search session too.
+        endNeedleSession()
         if (mounted) {
           setProfile(null)
           setUserType(null)
           setRole(null)
           setPermissions([])
+          setIsOperator(false)
           setAuthorizationLoading(false)
         }
         clearAuthorizationCache()
@@ -289,6 +313,7 @@ export const AuthProvider = ({ children }) => {
         setUserType(cachedAuthorization.userType ?? null)
         setRole(cachedAuthorization.role ?? null)
         setPermissions(cachedAuthorization.permissions ?? [])
+        setIsOperator(Boolean(cachedAuthorization.isOperator))
         setAuthorizationLoading(false)
       } else if (applicantIntent && mounted) {
         // Applicant login should not block on profile bootstrap after Google returns.
@@ -296,6 +321,7 @@ export const AuthProvider = ({ children }) => {
         setUserType('applicant')
         setRole(null)
         setPermissions([])
+        setIsOperator(false)
         setAuthorizationLoading(false)
       } else if (mounted) {
         setAuthorizationLoading(true)
@@ -338,6 +364,7 @@ export const AuthProvider = ({ children }) => {
           setUserType(null)
           setRole(null)
           setPermissions([])
+          setIsOperator(false)
           setAuthorizationLoading(false)
           setLoading(false)
         }
@@ -348,14 +375,18 @@ export const AuthProvider = ({ children }) => {
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (mounted) {
         setSession(newSession)
         setUser(newSession?.user ?? null)
         setLoading(false)
       }
 
-      await hydrateAuthState(newSession, { skipInitialLoading: true })
+      window.setTimeout(() => {
+        if (mounted) hydrateAuthState(newSession, { skipInitialLoading: true }).catch((error) => {
+          console.error('Auth state refresh error:', error)
+        })
+      }, 0)
     })
 
     return () => {
@@ -394,10 +425,14 @@ export const AuthProvider = ({ children }) => {
       setUserType(null)
       setRole(null)
       setPermissions([])
+      setIsOperator(false)
       setAuthorizationLoading(false)
       window.localStorage.removeItem(AUTHZ_CACHE_KEY)
       clearLoginIntent()
     }
+
+    // End the embedded AI search session too (best effort).
+    endNeedleSession()
 
     try {
       const { error } = await supabase.auth.signOut({ scope: 'local' })
@@ -427,6 +462,7 @@ export const AuthProvider = ({ children }) => {
     userType,
     role,
     permissions,
+    isOperator,
     isApplicant: userType === 'applicant',
     isRecruiter: userType === 'recruiter',
     hasPermission: permissionName => permissions.includes(permissionName),

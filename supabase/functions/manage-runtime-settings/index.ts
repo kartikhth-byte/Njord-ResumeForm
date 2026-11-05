@@ -124,12 +124,15 @@ serve(async (req) => {
       return json({ settings: values }, corsHeaders)
     }
 
-    const { data: canManageSettings, error: permError } = await supabaseClient.rpc('has_permission', {
-      user_uuid: user.id,
-      permission_name: 'manage_settings',
-    })
+    // Platform settings belong to the operator console (docs/needle-in-holmes-design.md
+    // section 5): only platform operators may read or change them.
+    const { data: operatorRow, error: operatorError } = await supabaseClient
+      .from('platform_operators')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-    if (permError || canManageSettings !== true) {
+    if (operatorError || !operatorRow) {
       return json({ error: 'Insufficient permissions' }, corsHeaders, 403)
     }
 

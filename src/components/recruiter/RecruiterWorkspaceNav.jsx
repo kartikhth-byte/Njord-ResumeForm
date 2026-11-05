@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { canUseAiSearch } from '../../lib/needle'
 import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Search, FileText, ClipboardList, Users } from 'lucide-react'
@@ -6,7 +7,7 @@ import { LayoutDashboard, BarChart3, Calendar, AlertCircle, Search, FileText, Cl
 export default function RecruiterWorkspaceNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, isOperator } = useAuth()
   const { role, canViewAnalytics } = usePermissions()
 
   if (!user) return null
@@ -69,7 +70,9 @@ export default function RecruiterWorkspaceNav() {
       icon: Search,
       path: '/recruiter/applications',
       visible: true
-    }
+    },
+    { key: 'needle', label: 'AI search', icon: Search, path: '/recruiter/ai/search',
+       visible: canUseAiSearch({ isOperator, role }) }
     // Settings moved to the topbar gear icon next to the user menu.
   ].filter(item => item.visible)
 

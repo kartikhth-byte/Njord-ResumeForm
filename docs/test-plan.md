@@ -144,3 +144,9 @@ Manual checks:
 - real logo appears undistorted
 - `Njord Holmes` name is visible where intended
 - recruiter/public surfaces are reviewed for consistency
+
+## Needle operator pilot gate (2026-11-05)
+
+Run the synthetic `tests/smoke/needle-embed.spec.js` against Needle's local fixture with fake Supabase endpoints; no production credentials. It checks operator access without recruiter roles, source page/PDF links under /ai, scoped repository, stream completion, Back/refresh, expired-session renewal/Retry and logout. Run `tests/needleAccess.test.mjs` and `tests/needleMiddleware.test.mjs`, including an inherited production origin in Preview (must be denied). The joint PGlite fixture in Needle checks additive DDL/RLS/server grants/membership and operator escalation denial.
+
+After KT's operator-only production deployment, repeat through real Vercel with the real secure cookie and one actual corpus search; local proxy results are not a substitute. Verify ordinary users/Coordinators are denied, and that the new review queue and original PDF work. Keep both recruiter rollout and intake off pending separate acceptance. See `docs/needle-embed-rollout.md`.

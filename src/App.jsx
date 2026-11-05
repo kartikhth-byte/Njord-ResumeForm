@@ -34,6 +34,9 @@ import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
 import RecruiterCandidatesPage from './pages/RecruiterCandidatesPage'
+import RecruiterAiSearch from './pages/RecruiterAiSearch'
+import OperatorConsole from './pages/OperatorConsole'
+import OperatorRoute from './components/auth/OperatorRoute'
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -266,6 +269,18 @@ function App() {
               <RecruiterRoute>
                 <RecruiterTeam />
               </RecruiterRoute>
+            } />
+
+            {/* AI search: Needle embedded under /ai (docs/needle-in-holmes-design.md 4.1). */}
+            <Route path="/recruiter/ai/*" element={
+              <RecruiterAiSearch />
+            } />
+
+            {/* Operator console: platform_operators flag (design section 5). */}
+            <Route path="/operator" element={
+              <OperatorRoute>
+                <OperatorConsole />
+              </OperatorRoute>
             } />
 
             <Route path="/recruiter/settings" element={

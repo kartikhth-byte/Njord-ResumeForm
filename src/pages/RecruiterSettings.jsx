@@ -5,18 +5,16 @@ import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import RecruiterTeamSection from '../components/recruiter/RecruiterTeamSection'
-import RecruiterIntegrationsSection from '../components/recruiter/RecruiterIntegrationsSection'
 import RecruiterWorksheetMappingsSection from '../components/recruiter/RecruiterWorksheetMappingsSection'
 import PageHeader from '../components/ui/PageHeader'
-import { Users, KeyRound, ArrowRight, X, FileSpreadsheet } from 'lucide-react'
+import { Users, ArrowRight, X, FileSpreadsheet } from 'lucide-react'
 
 export default function RecruiterSettings() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, isOperator } = useAuth()
   const { role, loading, permissions, canManageTeam } = usePermissions()
   const [activeSection, setActiveSection] = useState(searchParams.get('section') || null)
   const teamSectionRef = useRef(null)
-  const integrationsSectionRef = useRef(null)
   const worksheetSectionRef = useRef(null)
 
   useEffect(() => {
@@ -27,9 +25,6 @@ export default function RecruiterSettings() {
   useEffect(() => {
     if (activeSection === 'team' && teamSectionRef.current) {
       teamSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    if (activeSection === 'integrations' && integrationsSectionRef.current) {
-      integrationsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     if (activeSection === 'worksheets' && worksheetSectionRef.current) {
       worksheetSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -51,6 +46,10 @@ export default function RecruiterSettings() {
     )
   }
 
+  if (searchParams.get('section') === 'integrations') {
+    return <Navigate to={isOperator ? '/operator?section=platform' : '/recruiter/settings'} replace />
+  }
+
   if (role !== 'Master Recruiter' && !permissions.includes('manage_runtime_settings') && !permissions.includes('manage_settings')) {
     return <Navigate to="/recruiter/dashboard" replace />
   }
@@ -64,15 +63,6 @@ export default function RecruiterSettings() {
       icon: Users,
       onClick: () => openSection('team'),
       visible: canManageTeam()
-    },
-    {
-      key: 'integrations',
-      eyebrow: 'Runtime Config',
-      title: 'Integrations & Secrets',
-      description: 'Manage Microsoft, mail, AI, and app runtime values without editing environment files.',
-      icon: KeyRound,
-      onClick: () => openSection('integrations'),
-      visible: true
     },
     {
       key: 'worksheets',
@@ -149,26 +139,6 @@ export default function RecruiterSettings() {
                 </button>
               </div>
               <RecruiterTeamSection currentUserId={user?.id} embedded />
-            </section>
-          ) : null}
-
-          {activeSection === 'integrations' ? (
-            <section ref={integrationsSectionRef} className="recruiter-panel p-6">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Active Section</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Integrations &amp; Secrets</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openSection(null)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                >
-                  <X className="h-4 w-4" />
-                  Close section
-                </button>
-              </div>
-              <RecruiterIntegrationsSection />
             </section>
           ) : null}
 

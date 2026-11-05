@@ -134,3 +134,10 @@
 - `npm run lint` passes
 - `npm run build` passes
 - `npm run test:smoke` passes when applicable
+
+## KT-approved Needle operator pilot (2026-11-05)
+
+- Local production-based integration and operator queue are prepared on `codex/holmes-operator-pilot`; existing checkouts and staging work are preserved.
+- KT commits the isolated candidates, verifies backups, applies only the named migrations/assignments, and promotes with operator-only flags.
+- Actual Vercel streaming/cookies, deployed function authorization and real search remain release gates. No ordinary recruiter or intake enablement yet.
+- Add to Holmes/candidate-field relaxation follows the accepted pilot; this change does not deploy case v1. Procedure: `docs/needle-embed-rollout.md`.

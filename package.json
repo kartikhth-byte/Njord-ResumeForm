@@ -17,6 +17,7 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.80.0",
+    "@vercel/functions": "^3.10.6",
     "date-fns": "^4.1.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
