@@ -74,5 +74,54 @@ class WorksheetSubmissionGateTest(unittest.TestCase):
         generate_workbook.assert_called_once()
 
 
+class WorksheetAdminKeyTest(unittest.TestCase):
+    def test_secret_key_is_only_sent_as_apikey(self) -> None:
+        with (
+            patch.object(service, "SUPABASE_SECRET_KEY", "sb_secret_test"),
+            patch.object(service, "SUPABASE_SERVICE_ROLE_KEY", "legacy-test-key"),
+        ):
+            self.assertEqual(
+                service.service_role_headers(),
+                {"apikey": "sb_secret_test", "Content-Type": "application/json"},
+            )
+
+    def test_legacy_service_role_key_keeps_bearer_header(self) -> None:
+        with (
+            patch.object(service, "SUPABASE_SECRET_KEY", ""),
+            patch.object(service, "SUPABASE_SERVICE_ROLE_KEY", "legacy-test-key"),
+        ):
+            self.assertEqual(
+                service.service_role_headers(),
+                {
+                    "apikey": "legacy-test-key",
+                    "Authorization": "Bearer legacy-test-key",
+                    "Content-Type": "application/json",
+                },
+            )
+
+    def test_secret_key_does_not_replace_user_bearer_token(self) -> None:
+        with (
+            patch.object(service, "SUPABASE_URL", "https://staging.example.supabase.co"),
+            patch.object(service, "SUPABASE_SECRET_KEY", "sb_secret_test"),
+            patch.object(service, "SUPABASE_SERVICE_ROLE_KEY", "legacy-test-key"),
+            patch.object(service.requests, "get") as get_user,
+            patch.object(service.requests, "post") as check_permission,
+        ):
+            get_user.return_value.status_code = 200
+            get_user.return_value.json.return_value = {"id": "user-1"}
+            check_permission.return_value.json.return_value = True
+            user = service.authorize_request("Bearer user-jwt", "export_data")
+
+        self.assertEqual(user, {"id": "user-1"})
+        self.assertEqual(
+            get_user.call_args.kwargs["headers"],
+            {"apikey": "sb_secret_test", "Authorization": "Bearer user-jwt"},
+        )
+        self.assertEqual(
+            check_permission.call_args.kwargs["headers"],
+            {"apikey": "sb_secret_test", "Content-Type": "application/json"},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
