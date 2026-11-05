@@ -64,6 +64,7 @@
   - `test-email.js` no longer hardcodes the Resend API key (reads `RESEND_API_KEY`; old key must be rotated)
   - export buttons on the tracker/KPI pages are gated on `canExportData()` so non-permitted roles no longer hit a guaranteed 403
   - `/recruiter/kpi` now enforces the analytics gate at page level, matching the nav visibility rule
+  - KPI Overview and Charts are readable by Master Recruiters, Recruiters, and Coordinators; Reports still requires a separate export permission
   - tracker pages suppress metrics and show a retry state on load failure instead of rendering zeroed dashboards
   - workspace requirement edits no longer overwrite `owner_recruiter_id` (previously undid ownership transfers) and typed remarks are persisted on edit
   - workspace candidate rows now use the most recently updated application per prospect

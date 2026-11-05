@@ -195,6 +195,7 @@ Why:
 
 Decision:
 - Coordinators may read applications, status history, schedules, photos, and offer letters, but cannot change those records or send test/interview/offer workflow mail
+- Coordinators may view KPI Overview and Charts; this does not grant `view_audit_log` or export permissions, so Reports remains unavailable without a separate export grant
 - Recruiter and Master Recruiter retain application workflow writes through `edit_junction_status`; applicant draft ownership rules remain separate
 
 Why:

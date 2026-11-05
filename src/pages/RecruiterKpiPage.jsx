@@ -66,7 +66,7 @@ function formatRate(value) {
 export default function RecruiterKpiPage() {
   const { user, profile, signOut } = useAuth()
   const { role, loading: permLoading, canExportData, canViewAnalytics } = usePermissions()
-  const hasKpiAccess = role === 'Master Recruiter' || canViewAnalytics()
+  const hasKpiAccess = canViewAnalytics()
   const tracker = useKpiTrackerData({ enabled: !permLoading && hasKpiAccess })
   const [recruiterFilter, setRecruiterFilter] = useState('')
   const [period, setPeriod] = useState('month')

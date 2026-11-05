@@ -50,7 +50,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const menuRef = useRef(null)
 
   const isRecruiterOrMaster = role === 'Recruiter' || role === 'Master Recruiter'
-  const showKpi = role === 'Master Recruiter' || canViewAnalytics()
+  const showKpi = canViewAnalytics()
   const showSettings = role === 'Master Recruiter' || canManageSettings()
 
   const groups = [
