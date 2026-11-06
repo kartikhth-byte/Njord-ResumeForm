@@ -2,6 +2,15 @@
 
 ## Current Needle integration checkpoint (2026-11-06)
 
+Warm/KPI release preparation: KT accepted CMA Excel/print output. Final review
+closed the case-transition retry authorization gap with additive migration
+0603 and executable denied-role regression checks; it is on staging only. The
+fresh post-cleanup production dump and scratch counts pass. See
+`docs/WARM_KPI_KT_RELEASE_2026-11-06.md` for the exact ten-migration /
+thirteen-Function package and coordinated KT promotion. Normal Coordinator
+hosted worksheet denial passes (403); real-domain acceptance remains pending;
+this is not production release completion.
+
 The operator-only embed’s latest verified baseline is Holmes `21ac6a5` and
 Needle `401ec6e0`.
 The local `codex/holmes-warm-integration` candidate reconciles the committed

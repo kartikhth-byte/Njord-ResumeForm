@@ -1,6 +1,6 @@
 # Warm/KPI release manifest — preparation checkpoint 2026-11-06
 
-**Not approved for production.** Application source base: `2e11d4a`, plus the reviewed 0602 follow-up on
+**Not approved for production.** Application source base: `2e11d4a`, plus the reviewed 0602/0603 follow-ups on
 `codex/holmes-warm-integration`; production `main` was read back at
 `21ac6a51ae58d8a5867966e3e83b72aaabdc127c`. Recheck both heads and the deployed
 versions immediately before the final review. No force push or mass deployment.
@@ -21,6 +21,7 @@ Production project `btbqdviuqcpauojmorvx` only. The reviewed missing order is:
 7. `2026110227_close_filled_requirements_from_cases.sql`
 8. `2026110601_version_case_requirement_closure.sql`
 9. `2026110602_do_not_adopt_unlinked_applications_on_claim.sql`
+10. `2026110603_authorize_case_transition_replay.sql`
 
 Do not apply 0222 or 0228. Operator migrations 0501/0502 are already present;
 do not replay them. Check the seeded organization instead of recreating it.
@@ -31,6 +32,10 @@ removed 151 unlinked applications and 199 dependent rows while preserving
 accounts, roles, prospects and configuration. No legacy login bridge is needed
 for that removed test cohort. Migration 0602 prevents future invite claims from
 implicitly adopting an unrelated/unlinked draft; 0224 remains unchanged.
+Migration 0603 checks workflow permission before the SECURITY DEFINER retry
+shortcut can return case data. It preserves permitted retries and withdraw-only
+exit transitions. Applicant/read-only/null-target regression checks pass; the
+independent reviewer closed this finding. Both follow-ups are on staging only.
 
 ## Edge Functions (proposed exact set, still subject to final review)
 
@@ -86,8 +91,8 @@ versions; test their existing routes without incidentally replacing them.
   clearing and photo/signature checks. Confirm submitted export plus draft and
   Coordinator denial on the hosted route. The actual CMA-layout test now passes
   5,389 cell/style comparisons, photo/signature clearing and draft/applicant/
-  unsigned denial. A normal Coordinator worksheet HTTP check is still separate.
-  KT approved CMA-only pilot scope and will review Excel fitting/print; second
+  unsigned denial. A normal Coordinator worksheet HTTP check now also passes (403).
+  KT approved CMA-only pilot scope and confirmed Excel fitting/print passed; second
   customer acceptance is required before enabling another layout. No Excel
   installation is available on this Mac.
 - Production service promotion is a separate KT step; preserve its production
@@ -99,8 +104,10 @@ versions; test their existing routes without incidentally replacing them.
 
 ## Unresolved gates and rollback
 
-KT's Excel/print sign-off, final consolidated review, KT approval and real-domain
-post-deploy checks remain open for the CMA-only pilot. Before real-applicant use,
+KT's Excel/print sign-off and consolidated code review are complete, including
+the 0603 follow-up. The normal Coordinator hosted worksheet HTTP check also
+passed (403). KT's coordinated promotion and real-domain post-deploy checks remain open for the
+CMA-only pilot. Before real-applicant use,
 approve retention/deletion for pre-selection sensitive forms and a production
 sender; only owner-inbox synthetic staging delivery is accepted so far.
 
@@ -108,3 +115,26 @@ Record exact previous Vercel, Function and Render versions. Roll back compatible
 frontend/Functions/service together, preserve additive case/events/application
 data, keep intake false and turn AI off if needed. Do not restore a full old
 database over new legitimate records or delete test/customer data as rollback.
+
+## Final preparation checkpoint
+
+The post-cleanup read-only production preflight confirms zero applications,
+unchanged selected Function versions and the reviewed missing migration set.
+A fresh full snapshot has 91 table-data objects / 7,341 rows. All COPY payloads
+restore with exact counts; extension-compatible public DDL/data restores 48
+tables / 609 rows, with CHECK constraints validated. SHA-256 and receipts are
+private. Managed post-data/globals and Storage file bytes are outside this test.
+The backup must be refreshed if stale or production changes before migration.
+
+Current rollback deployment records were read from signed-in dashboards:
+
+- Vercel: `dpl_F3XeXkYufUm2eZEmCQpQUQvuugvu`, Ready production, commit
+  `21ac6a51ae58d8a5867966e3e83b72aaabdc127c`.
+- Render production service `srv-d761128ule4c73cn58v0`: Live
+  `dep-dbmmkuuc6qcc73b9k68g`, the same commit. It auto-deploys `main`.
+- Function source snapshots and each prior gateway/version are private; the
+  table above is the reviewed restore roster. Recheck for drift at release.
+
+Exact KT commands and stop conditions are in
+`WARM_KPI_KT_RELEASE_2026-11-06.md`. No production promotion is implied by
+completion of the local/staging checks.

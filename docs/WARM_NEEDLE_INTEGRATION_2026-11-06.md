@@ -466,3 +466,31 @@ smoke. Real applicant use additionally needs the sender and sensitive-form
 retention decisions. The pilot results do not approve customer rollout or intake;
 AI stays operator-only and Drive intake stays false. Candidate-field changes,
 Add to Holmes and Match resumes follow the current release gates.
+
+
+## Final review and KT Excel acceptance
+
+KT confirmed that the exported CMA workbook's three sheets and print layout
+pass in Excel. The consolidated reviewer reran 69 Node and 11 worksheet tests
+and found one additional SQL issue: 0223's idempotency shortcut could return a
+case row before permission checks. Additive migration 0603 moves the role gate
+ahead of that shortcut, without rewriting 0223 or historical rows. Its PGlite
+fixture checks unauthenticated, applicant, read-only and withdraw-only non-exit
+or null-target denials, authorized retries, legitimate withdraw-only exits and
+no duplicate events. The reviewer closed the finding. Staging application and
+function readback passed; production schema is unchanged.
+
+A fresh post-cleanup full production snapshot and scratch restore pass:
+91 table-data objects / 7,341 rows, with 48 public tables / 609 rows restored
+using the extension-compatible scratch image. The private receipt contains the
+archive SHA-256. Managed post-data/globals and Storage bytes are not certified.
+Production Vercel and Render rollback IDs were refreshed from their dashboards.
+
+The exact package now has **ten migrations** (0603 last) and thirteen Functions.
+KT's coordinated promotion and real-domain smoke remain release steps. A normal
+staging Coordinator session now receives HTTP 403 from the hosted worksheet
+endpoint for the submitted synthetic application. Its visible role, status and
+screenshot are recorded privately; the temporary probe page was removed.
+CMA-only acceptance does not enable another customer layout. Real applicant use
+still needs the production sender and sensitive-form retention decisions.
+Candidate-field changes → Add to Holmes → Match resumes follow this release.
