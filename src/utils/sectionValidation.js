@@ -287,7 +287,7 @@ export const validateSection11 = (data) => {
     return { isValid: false, errors }
   }
   
-  if (data.medicalHistory.signedOffMedical === undefined) {
+  if (typeof data.medicalHistory.signedOffMedical !== 'boolean') {
     errors.push('Medical history declaration is required')
     return { isValid: false, errors }
   }

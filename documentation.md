@@ -342,7 +342,32 @@ release manifest/review remain open. See the integration release record for
 limitations; nothing was promoted to production.
 
 Coordinator normal-session invitation and export HTTP probes both return 403.
-The applicant email gate is blocked by Resend's unverified test sender; the
-failed invitation was invalidated and staging's original override restored.
-KT chose verified-sender setup before more workflow emails. Await the owned
-domain and DNS provider, then finish applicant delivery/claim/submission.
+The first attempted non-owner recipient was blocked by Resend's unverified
+test sender; the failed invitation was invalidated and staging's original
+override restored. KT subsequently approved the account-owner inbox for
+synthetic staging tests because no sending domain is owned yet.
+
+
+KT subsequently approved the current Resend account-owner inbox for synthetic
+staging emails, deferring a verified sender until a domain exists. Fresh invite
+delivery/redemption and new draft creation pass. The submission-notification
+function now verifies actual user JWT and submitted-application ownership before
+form reads/token rotation; six new plus nine adjacent tests and focused review
+pass. The function is now ACTIVE v1 on staging only. The synthetic applicant
+completed declarations, submitted normally, and opened the read-only result;
+one saved application has the correct user/prospect binding. Its notification
+arrived at the approved owner inbox and the review link opened correctly in
+the applicant session. The temporary notification override is restored.
+
+Applicant HTTP checks deny submitted-form/application edits, foreign-record
+reads/writes and foreign-owner photo upload; anonymous application/private-photo
+reads are denied, while the own photo remains readable. A progress fix accepts
+an explicit medical-history No without accepting unanswered fields or missing
+consent. Four new tests and independent review pass. Final focused verification:
+69 Node tests, 16 validation-contract checks, lint/build. Temporary probe pages
+were removed. No production deployment is authorized by these staging results.
+
+Production read-only inventory has 151 legacy applications with no prospect
+link (21 submitted). Preserve existing history and avoid email-only backfills.
+Hosted/Excel/second-customer worksheet acceptance, retention policy, reviewed
+legacy reconciliation and final exact-manifest promotion review remain open.

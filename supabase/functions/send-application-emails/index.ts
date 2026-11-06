@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { BRAND } from '../_shared/branding.ts'
+import { authorizeSubmissionNotification } from './authorize.ts'
 
 const REVIEW_LINK_TTL_HOURS = 24 * 7
 
@@ -40,6 +41,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   try {
     const { applicationId }: RecruiterNotificationRequest = await req.json()
@@ -51,6 +57,11 @@ serve(async (req) => {
       )
     }
 
+    const supabaseClient = createAdminSupabaseClient()
+    const access = await authorizeSubmissionNotification(req, applicationId, supabaseClient, corsHeaders)
+    if (access.response) return access.response
+    const application = access.application
+
     const runtimeSettings = await getRuntimeSettings([
       'APP_URL',
       'RESEND_API_KEY',
@@ -61,21 +72,9 @@ serve(async (req) => {
     const resendApiKey = runtimeSettings.RESEND_API_KEY
     const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const recruiterNotificationEmail = runtimeSettings.RECRUITER_NOTIFICATION_EMAIL?.trim()
-    const supabaseClient = createAdminSupabaseClient()
 
     if (!appUrl || !resendApiKey) {
       throw new Error('APP_URL and RESEND_API_KEY must be configured')
-    }
-
-    const { data: application, error: applicationError } = await supabaseClient
-      .from('applications')
-      .select('id, public_token, reference_number, applied_rank, submitted_at')
-      .eq('id', applicationId)
-      .not('submitted_at', 'is', null)
-      .single()
-
-    if (applicationError || !application) {
-      throw new Error('Submitted application not found')
     }
 
     if (!application.public_token) {

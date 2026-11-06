@@ -249,13 +249,14 @@ Start with milestone 1 in the ordered backlog, then the single-organization recr
 - [x] Refresh full production dump and verify scratch table counts; record SHA-256 privately.
 - [x] Dedicated staging Master and Coordinator normal logins; Master team management and Coordinator case/KPI/application/photo read-only UI.
 - [x] Offline normalized CMA template: 261 static labels/styles, mapped values and overwrite clearing; clear retained photo/signature images (eleven service/writer tests).
-- [ ] Finish applicant invite/claim/draft/submit and owner-inbox workflow delivery on this candidate.
+- [x] Normal synthetic applicant invite/claim/draft/submit and owner-inbox submission notification; correct single-record binding and read-only result. Fixture-preloaded fields are not a full nineteen-section manual-entry test.
 - [x] Normal Coordinator session: direct invite/export HTTP 403 denials, using no valid invite record IDs.
-- [ ] Application/storage HTTP write denials, real Excel text fitting, second customer and hosted worksheet parity.
+- [x] Normal applicant HTTP: submitted application/form edits affect zero rows, foreign record reads/edits return zero rows, foreign-owner photo upload is denied; anonymous application/private-photo reads are denied and own photo reads succeed.
+- [ ] Real Excel text fitting, second customer and hosted worksheet parity; separate post-submission photo-replacement decision and anonymous review-token isolation.
 - [ ] Resolve pre-selection sensitive-form retention decision and existing unlinked-application reconciliation before enabling the expanded invite workflow.
 - [ ] Final exact migration/Function/service manifest, independent review and KT promotion approval.
 
 The source for the dormant production normalize-worksheet-template Function
 cannot be downloaded (404); preserve it and exclude it from this rollout.
 
-Email acceptance is blocked by Resend test-sender recipient restrictions. KT requested a verified sender first; await the owned domain/DNS provider. The failed test invitation is invalidated and the previous staging email override is restored.
+KT approved Resend's account-owner inbox for synthetic staging tests after confirming no sending domain is owned. The fresh invitation and submission notification arrived there; the temporary submission-recipient override is restored. Wider production mail still needs an approved sender. Progress now accepts a valid medical-history No; 69 Node tests, 16 validation-contract checks, lint/build and focused review pass. Read-only production inventory found 151 unlinked legacy applications (21 submitted); preserve their history and do not backfill by email alone.

@@ -1,7 +1,8 @@
 
 [functions.send-application-emails]
 enabled = true
-verify_jwt = true
+# User JWT and submitted-application ownership are checked inside the handler.
+verify_jwt = false
 import_map = "./functions/send-application-emails/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

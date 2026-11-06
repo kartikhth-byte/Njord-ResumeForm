@@ -15,7 +15,7 @@ export function hasMeaningfulDraftData(data) {
 }
 
 export function isDraftSectionComplete(sectionNumber, sectionData) {
-  if (!hasMeaningfulDraftData(sectionData)) return false
+  if (!hasMeaningfulDraftData(sectionData) && !MANDATORY_SECTION_NUMBERS.includes(sectionNumber)) return false
   return validateSection(sectionNumber, sectionData).isValid
 }
 
@@ -28,7 +28,11 @@ export function isDraftSectionComplete(sectionNumber, sectionData) {
 // counts as complete.
 export function getSectionStatus(sectionNumber, sectionData) {
   if (!hasMeaningfulDraftData(sectionData)) {
-    if (MANDATORY_SECTION_NUMBERS.includes(sectionNumber)) return 'incomplete'
+    // An explicit negative answer can be complete even though it contains no
+    // truthy values. Required-field validation distinguishes No from unanswered.
+    if (MANDATORY_SECTION_NUMBERS.includes(sectionNumber)) {
+      return isDraftSectionComplete(sectionNumber, sectionData) ? 'complete' : 'incomplete'
+    }
     const opened = Boolean(sectionData) && typeof sectionData === 'object' && Object.keys(sectionData).length > 0
     return opened ? 'complete' : 'empty'
   }

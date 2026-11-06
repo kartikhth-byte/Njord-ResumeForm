@@ -312,16 +312,16 @@ fixture is explicitly prepositioned at Interview passed for invitation testing;
 it is not evidence of the earlier interview/test transition workflow.
 
 
-#### Email acceptance blocker
+#### Email acceptance blocker (superseded for owner-inbox staging tests)
 
 The first synthetic invitation was accepted under staging's existing owner-inbox
 override. An attempt to use KT's newly approved test inbox was rejected by
 Resend with HTTP 403: its test sender permits only the account-owner address.
 The failed claim request is invalidated/unclaimed and the prior staging mail
-override was restored. KT chose to configure a verified sender before further
-workflow emails. Domain ownership and DNS-provider details are pending; do not
-claim applicant delivery/redemption/submission acceptance or send more workflow
-test mail until that sender is ready.
+override was restored. KT initially chose a verified sender, then confirmed no
+domain is owned and approved the Resend account-owner inbox for synthetic
+staging tests. The acceptance below supersedes this blocker for that inbox only.
+Candidate-facing production mail still needs an approved sender configuration.
 
 Independent worksheet follow-up review closed two findings: overlap checks now
 use image extents/offsets (including saved OneCellAnchor drawings), and geometry
@@ -331,3 +331,68 @@ all six new writer tests and the original overlap/dimension repros.
 Lint and frontend build pass again; existing bundle-size/Browserslist notices
 remain. The local-only authorization probe page was removed after evidence was
 saved. No diagnostic route is part of the application release.
+
+
+### Submission notification ownership gate (2026-11-06)
+
+KT approved using the Resend account-owner inbox for synthetic staging workflow
+emails while a sending domain is unavailable. The fresh invitation was delivered
+and redeemed into the intended applicant account; Start application created a
+new draft. The completed submission checks are recorded below.
+
+Before deploying the missing staging submission notifier, source review found
+that it did not verify the caller owned the submitted application. The handler
+now verifies the user JWT with Auth and scopes the application read to its
+verified owner and a non-null submitted_at, before reading form data or rotating
+review tokens. Missing, unsubmitted and another person's records fail closed.
+Gateway verify_jwt=false supports modern JWT signing; it does not bypass the
+handler's JWT verification. There is no service-role caller bypass.
+
+Six new authorization tests and nine adjacent export/key tests pass. Independent
+local review found no blocker and reran all 15 tests. The function was deployed
+only to staging: ACTIVE, version 1, gateway verification off with handler JWT
+verification enforced. Production deployment remains a KT release step.
+
+### Applicant submission and HTTP acceptance (2026-11-06)
+
+- KT approved submitting the fully synthetic application, including declarations
+  and electronic signature. The normal invited applicant reviewed 100% progress,
+  submitted through the confirmation dialog, and opened the read-only result.
+  A read-only database check found exactly one application for that test user,
+  correctly bound to the claimed prospect and marked submitted with a reference.
+- The form payload was preloaded from a synthetic fixture. Normal UI checks
+  cover rank/vessel selection, autosave, the negative medical-history answer,
+  declaration blocking/completion, submission and the read-only result. This is
+  not a claim of manually entering every field across all nineteen sections.
+- The test exposed a progress bug: an explicit medical-history No was treated
+  as empty before validation. Mandatory sections now reach their validators;
+  missing/invalid answers and unchecked declarations remain blocked. Four new
+  regression tests and independent review pass; optional-section semantics are
+  unchanged.
+- The submission notification arrived at the approved account-owner inbox and
+  its review link opened the correct read-only application in the existing
+  applicant session. This does not establish anonymous review-token isolation.
+  The temporary recruiter-notification override was restored immediately after
+  delivery. No notification was sent to other staging recruiters.
+- Normal-session HTTP probes for the notifier returned 401 without auth and
+  404 for an own draft or another applicant's submitted record, before writes.
+- Normal applicant HTTP probes affected zero rows when attempting same-value
+  updates to the submitted application/form or another synthetic application;
+  another applicant's application/form reads returned zero rows. Anonymous
+  application read returned 401; private photo read returned 400; foreign-owner
+  photo upload returned 403. Own private-photo download succeeded. These checks
+  do not resolve the separate post-submission photo-replacement policy decision.
+- All temporary local probe pages were removed. Final verification: 69 Node
+  tests, 16 applicant-validation contract checks, lint and build pass. The
+  default write-capable smoke harness was not run against production.
+
+Read-only production inventory found 151 legacy applications without a prospect
+link (21 submitted). Do not infer a person/case match from email alone or change
+these rows during deployment. Preserve their existing read/history path; prepare
+an explicit reviewed reconciliation before expanding the invite workflow.
+
+Still open before promotion: hosted actual-template/Excel/second-customer
+worksheet acceptance, final exact release manifest/review, and KT's retention
+decision for sensitive forms from unselected candidates. Production deployment
+and real-domain smoke remain KT release steps; no release is approved by the
+staging results above.
