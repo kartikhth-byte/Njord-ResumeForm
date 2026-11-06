@@ -252,11 +252,15 @@ Start with milestone 1 in the ordered backlog, then the single-organization recr
 - [x] Normal synthetic applicant invite/claim/draft/submit and owner-inbox submission notification; correct single-record binding and read-only result. Fixture-preloaded fields are not a full nineteen-section manual-entry test.
 - [x] Normal Coordinator session: direct invite/export HTTP 403 denials, using no valid invite record IDs.
 - [x] Normal applicant HTTP: submitted application/form edits affect zero rows, foreign record reads/edits return zero rows, foreign-owner photo upload is denied; anonymous application/private-photo reads are denied and own photo reads succeed.
-- [ ] Real Excel text fitting, second customer and hosted worksheet parity; separate post-submission photo-replacement decision and anonymous review-token isolation.
-- [ ] Resolve pre-selection sensitive-form retention decision and existing unlinked-application reconciliation before enabling the expanded invite workflow.
+- [x] Hosted staging CMA worksheet parity: 5,389 cells/styles and dimensions match local output; distinct old photo replaced, synthetic signature cleared, unused sea rows blank; draft 409 and applicant/unsigned 403. Normal Coordinator worksheet HTTP denial is not included in this result.
+- [x] Anonymous review link: valid link opens read-only in fresh Incognito; missing/invalid access token denied.
+- [ ] KT Excel/print review. KT limits this pilot to CMA; second-customer mapping/format acceptance is required before enabling another customer. Post-submission photo replacement remains a separate policy decision.
+- [x] KT confirmed the 151 unlinked Holmes applications are test data and authorized their removal. Fresh verified full backup plus targeted row archive; rollback rehearsal then guarded cleanup removed 151 applications / 199 dependent rows, retaining accounts/configuration/Storage. No legacy login bridge needed for that removed cohort.
+- [x] 0602 removes implicit draft adoption from invite claims; focused PGlite and review pass, applied/read back on staging only. Add it to the exact production manifest after 0601.
+- [ ] Approve retention/deletion for pre-selection sensitive forms and a production sender before real-applicant use.
 - [ ] Final exact migration/Function/service manifest, independent review and KT promotion approval.
 
 The source for the dormant production normalize-worksheet-template Function
 cannot be downloaded (404); preserve it and exclude it from this rollout.
 
-KT approved Resend's account-owner inbox for synthetic staging tests after confirming no sending domain is owned. The fresh invitation and submission notification arrived there; the temporary submission-recipient override is restored. Wider production mail still needs an approved sender. Progress now accepts a valid medical-history No; 69 Node tests, 16 validation-contract checks, lint/build and focused review pass. Read-only production inventory found 151 unlinked legacy applications (21 submitted); preserve their history and do not backfill by email alone.
+KT approved Resend's account-owner inbox for synthetic staging tests after confirming no sending domain is owned. The fresh invitation and submission notification arrived there; the temporary submission-recipient override is restored. Wider production mail still needs an approved sender. Progress now accepts a valid medical-history No; 69 Node tests, 16 validation-contract checks, lint/build and focused review pass. KT subsequently authorized removing the legacy test applications rather than reconciling them; the guarded cleanup above is complete. Production application code/schema promotion is still a KT step. See the exact manifest and integration record.

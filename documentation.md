@@ -367,7 +367,26 @@ consent. Four new tests and independent review pass. Final focused verification:
 69 Node tests, 16 validation-contract checks, lint/build. Temporary probe pages
 were removed. No production deployment is authorized by these staging results.
 
-Production read-only inventory has 151 legacy applications with no prospect
-link (21 submitted). Preserve existing history and avoid email-only backfills.
-Hosted/Excel/second-customer worksheet acceptance, retention policy, reviewed
-legacy reconciliation and final exact-manifest promotion review remain open.
+KT subsequently confirmed all Holmes records are test data and authorized
+legacy cleanup. A fresh full dump and scratch restore passed (91 data objects /
+7,691 rows; public DDL/data: 48 tables / 959 rows). Exact archived-row and
+protected-inventory guards passed in a rollback rehearsal and committed cleanup:
+151 unlinked applications / 199 dependent rows removed. Accounts, roles,
+prospects, configuration, worksheet metadata and Storage bytes were retained.
+No legacy login bridge is needed for that removed cohort. Serialize temporary
+production CLI credential lookups during dumps to avoid password invalidation.
+
+0602 removes only implicit old-draft adoption from invite claiming. Its expanded
+PGlite fixture and independent review pass; staging application/readback passed,
+production application is still pending. The staged worksheet service now runs
+2e11d4a: 5,389 hosted/local cell/style comparisons and layout metadata match;
+distinct stale photo/signature markers are cleared. Direct draft/applicant/
+unsigned requests are denied. Valid anonymous review opens read-only; missing
+and invalid tokens fail closed in fresh Incognito. All temporary probe pages
+and the test-only private window are removed.
+
+KT approved a CMA-only pilot and will review the downloaded workbook in Excel.
+Second-customer acceptance is required before enabling a second layout. The
+exact nine-migration/thirteen-Function manifest is prepared; final review, KT
+promotion and real-domain smoke remain. Sender/retention decisions are required
+before real-applicant use; AI stays operator-only and intake stays false.

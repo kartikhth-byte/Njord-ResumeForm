@@ -51,11 +51,12 @@ docker build -f services/worksheet-service/Dockerfile .
 
 ## Staging deployment
 
-Render service `njord-worksheet-service-staging` uses the `ui/warm-theme` branch,
+Render service `njord-worksheet-service-staging` is configured for the `ui/warm-theme` branch,
 `services/worksheet-service/Dockerfile`, Free compute, `/ready` health checks,
 and manual deploys. Its `SUPABASE_URL` and secret key must belong to Holmes
 staging (`dwslhetniuzpyuspuomy`), never production. `APP_URL` currently allows
-the local staging frontend at `localhost:3000` and `127.0.0.1:3000`. The
+the local staging frontend at `localhost:3000`, `127.0.0.1:3000`,
+`localhost:5197` and `127.0.0.1:5197`. The
 staging `WORKSHEET_SERVICE_URL` runtime setting points to
 `https://njord-worksheet-service-staging.onrender.com`. Update the allowed
 origin before using a remotely hosted staging frontend. The separate production
@@ -71,3 +72,13 @@ staging's legacy project keys until the frontend and Edge Function consumers
 have been migrated and tested independently.
 
 Signature output is left blank because the writer has no confirmed signature input. Images without cell anchors fail conversion instead of risking applicant-image reuse. Validate each normalized customer template in Excel and on the hosted service before release.
+
+The 2026-11-06 rehearsal manually deployed exact candidate commit `2e11d4a`
+from `codex/holmes-warm-integration`, now live at
+`dep-dbmv0orncjis73ajeer0`. Do not use Deploy latest on the older configured
+branch and unintentionally remove the reviewed writer fixes. Previous staging
+deploy: `dep-dbmag9142hec73e4icgg` / `8a2a0bc`. Production was not redeployed.
+The real CMA layout with synthetic data matches 5,389 local values/styles and
+layout metadata; old test photo/signature clearing and draft/applicant/unsigned
+denials pass. KT approved CMA-only pilot scope and will review Excel/print
+fidelity. A second customer needs its own mapping/layout acceptance first.

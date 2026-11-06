@@ -1,5 +1,5 @@
 // Run from a scratch directory with @electric-sql/pglite installed:
-// node bind_applicant_claim_to_invite.test.mjs <migration>
+// node bind_applicant_claim_to_invite.test.mjs <0224> [0225] [0226] [0602]
 import { PGlite } from '@electric-sql/pglite'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -170,6 +170,31 @@ if (process.argv[3]) {
   assert.equal((await query('select jsonb_array_length(get_applicant_claims()) as n'))[0].n, 0)
   await expectRejected(() => query('select start_claimed_application($1)', [id(11)]), 'form_invite_required')
   console.log('Case-gated form invite migration checks passed')
+}
+
+if (process.argv[5]) {
+  const noAdoptionMigration = fs.readFileSync(process.argv[5], 'utf8')
+  await db.exec(noAdoptionMigration)
+  await db.exec(noAdoptionMigration)
+  // The same verified account can have legacy drafts and submitted history,
+  // and a claim in a second organization must not change any of those rows.
+  await query(`insert into applications(id,user_id,status,submitted_at,prospect_id)
+    values ($1,$2,'new',null,null),($3,$2,'submitted',now(),null),
+           ($4,$5,'new',null,null),($6,$2,'new',null,$7)`,
+  [id(51), id(31), id(52), id(53), id(32), id(54), id(11)])
+  const before = await query('select * from applications order by id')
+  await query(`insert into applicant_magic_link_requests
+    (id,prospect_id,organization_id,email,email_normalized,request_status,claim_token_hash,sent_at)
+    values ($1,$2,$3,$4,$4,'sent',$5,now())`, [id(28), id(12), id(2), email, token('9')])
+  await asUser(id(31))
+  const claimed = (await claim(token('9')))[0].result
+  assert.equal(claimed.prospect_id, id(12))
+  assert.equal(claimed.organization_id, id(2))
+  assert.deepEqual(await query('select * from applications order by id'), before)
+  assert.ok((await query('select claimed_at from applicant_magic_link_requests where id=$1', [id(28)]))[0].claimed_at)
+  await expectRejected(() => claim(token('9')), 'invalid_claim')
+  assert.equal((await query("select has_function_privilege('anon','public.claim_applicant_magic_link(text)','execute') as allowed"))[0].allowed, false)
+  console.log('Invite claim preserves all existing application associations')
 }
 
 console.log('Invite-bound applicant claim migration checks passed')

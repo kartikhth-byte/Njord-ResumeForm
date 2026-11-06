@@ -387,12 +387,82 @@ verification enforced. Production deployment remains a KT release step.
   default write-capable smoke harness was not run against production.
 
 Read-only production inventory found 151 legacy applications without a prospect
-link (21 submitted). Do not infer a person/case match from email alone or change
-these rows during deployment. Preserve their existing read/history path; prepare
-an explicit reviewed reconciliation before expanding the invite workflow.
+link (21 submitted). KT subsequently confirmed these are all test data and
+authorized removing the legacy records; the separate cleanup below supersedes
+the reconciliation requirement for that removed cohort. Never infer a future
+person/case association from email alone.
 
 Still open before promotion: hosted actual-template/Excel/second-customer
 worksheet acceptance, final exact release manifest/review, and KT's retention
 decision for sensitive forms from unselected candidates. Production deployment
 and real-domain smoke remain KT release steps; no release is approved by the
-staging results above.
+staging results above. The later checkpoint narrows the pilot to CMA only.
+
+### Hosted worksheet, legacy-test cleanup and final manifest checkpoint
+
+- Committed applicant checkpoint `2e11d4a` was pushed only to the isolated
+  candidate branch, not production main. The separate staging worksheet service
+  now runs that exact commit at Render deploy `dep-dbmv0orncjis73ajeer0`.
+  Previous deploy `dep-dbmag9142hec73e4icgg` / `8a2a0bc` is recorded for rollback.
+  Staging APP_URL was extended to local port 5197 after an actual preflight
+  lacked its origin; production settings were not changed. The browser then
+  downloaded the workbook through the normal signed-in recruiter UI.
+- The hosted test used a real normalized CMA layout populated only with
+  synthetic data. Its old blue test photo and red signature rectangle were
+  replaced/removed correctly. All 5,389 cell values/styles, sheet names,
+  dimensions, merges and print settings match the local writer. The new
+  applicant values are present and unused sea-service rows are empty. These
+  assertions do not certify rendered Excel text fitting or print pagination.
+- Normal-session direct requests to the hosted service deny a recruiter draft
+  with HTTP 409, an applicant export with 403 and unsigned requests with 403.
+  The existing Coordinator role/UI and invite/export logger denials remain
+  separate evidence; no normal Coordinator request to the worksheet endpoint
+  was performed in this checkpoint.
+- KT approved a **CMA-only pilot** and will review the downloaded workbook in
+  Excel. A second customer is outside this pilot; validate its mapping/layout
+  before enabling that customer. Excel sign-off remains pending.
+- In a fresh Chrome Incognito window, the valid emailed review link opened the
+  read-only synthetic application without an authenticated session. Removing
+  its access token or supplying an invalid one showed Application Not Found.
+  The temporary private window and all local probe pages were removed.
+- KT explicitly confirmed all Holmes database records are test data and allowed
+  legacy cleanup. A new consistent full production dump completed: 91 table
+  data objects / 7,691 rows; every COPY payload restored with exact scratch
+  counts. Extension-compatible public DDL/data restore matched 48 tables / 959
+  rows, with CHECK constraints restored and validated. Archive hashes and exact
+  targeted row archives are private. Managed post-data/global restoration and
+  Storage bytes remain outside this verification.
+- The first fresh attempt lost its CLI temporary password because another
+  production login was minted concurrently. Serializing production credential
+  lookups fixed it. Stock PostgreSQL lacks the vector extension; the existing
+  network-isolated Supabase scratch image completed the public restore.
+  Do not run another production CLI credential lookup during a parallel dump.
+- A reviewed, count/data-guarded transaction first rehearsed with rollback, then
+  removed exactly **151 unlinked test applications and 199 dependent rows**.
+  Accounts, roles, prospects, requirements, settings, organizations and
+  worksheet metadata fingerprints stayed unchanged. Storage bytes were not
+  deleted. This was an explicitly authorized test-data write, not an application
+  deployment or a schema promotion. No legacy viewing bridge was implemented.
+- Independent review found 0224 would also adopt old unlinked drafts at claim
+  time. Additive `2026110602_do_not_adopt_unlinked_applications_on_claim.sql`
+  removes only that application UPDATE, preserving the claim's identity,
+  organization, locking, expiry and replay checks. The expanded PGlite fixture
+  checks same-owner draft/submitted, foreign-owner and already-linked rows all
+  remain unchanged across a valid cross-organization claim. Review closed the
+  finding; 0602 is applied/read back on staging only. Include it after 0601 in
+  the coordinated production manifest; do not rewrite already-applied 0224.
+
+The exact proposed nine-migration / thirteen-Function bundle and exclusions are
+in `WARM_RELEASE_MANIFEST_2026-11-06.md`; private per-file hashes pin its SQL and
+recursive Function dependencies. Versions were refreshed read-only: 15 staging
+Functions, 33 production Functions, with no production drift from the recorded
+manifest. The protected Function paths check their callers independently of
+gateway JWT verification; the manifest explicitly records public bootstrap and
+trusted service-role exceptions.
+
+Remaining pilot release gates: KT's Excel review, consolidated final review and
+KT's coordinated migration/Function/service/frontend promotion, then real-domain
+smoke. Real applicant use additionally needs the sender and sensitive-form
+retention decisions. The pilot results do not approve customer rollout or intake;
+AI stays operator-only and Drive intake stays false. Candidate-field changes,
+Add to Holmes and Match resumes follow the current release gates.
