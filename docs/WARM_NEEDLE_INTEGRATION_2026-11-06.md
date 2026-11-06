@@ -134,11 +134,26 @@ npm run lint
 npm run build
 ```
 
-The combined candidate remains an uncommitted merge in this isolated worktree.
-A commit here includes the full warm integration, not just the KPI delta.
-Review the full staged merge before committing; reconcile production main's
-responsive commit 21ac6a5 before final promotion. No production promotion is
+The combined warm/KPI merge was committed locally as `cc210f5`. Production
+main's responsive commit 21ac6a5 is being reconciled in this isolated worktree,
+preserving the warm sidebar and the mobile/keyboard regression checks. No production promotion is
 part of adding this code. Rehearse the exact case migrations through 0227 and
 function/frontend/service bundle on staging, then obtain KT's approval for
 production writes. The prior staging 0227 result in the source documentation
 is historical evidence, not a fresh environment readback from this run.
+
+
+## Staging preparation checkpoint — 2026-11-06
+
+Read-only staging catalog check for `dwslhetniuzpyuspuomy` confirms migrations
+0220, 0221 and 0223–0227, both case tables and the enabled closure trigger.
+0222 remains absent. Operator tables are absent on staging; no new operator
+access or AI forwarding is needed for the case/KPI rehearsal. Do not point a
+staging/Preview build at production Needle. No migration was applied by this
+preflight. The existing case function definitions were captured privately for
+comparison; no candidate rows or credentials were printed.
+
+The local merge review confirms all 37 deletions are inherited from the warm
+branch. Credential-pattern/private-path scanning found no staged matches.
+The six access/middleware/case/KPI unit files pass 46 tests. This is self-review
+and local evidence; the final production promotion review is still required.

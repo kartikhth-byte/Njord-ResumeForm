@@ -100,7 +100,14 @@ test.describe('Needle inside Holmes (synthetic local fixture)', () => {
     for (let i = 0; i < 2; i += 1) {
       const renewed = i === 0 ? page.waitForResponse(response => response.url().endsWith('/ai/auth/holmes')) : null
       await page.request.post('/ai/auth/logout')
-      await frame.locator('body').evaluate(() => window.location.reload())
+      // The auth-required message may remove the iframe while reload is in flight.
+      // Accept only that expected navigation race; the parent/session assertions
+      // below still require renewal or the bounded unavailable/Retry state.
+      await frame.locator('body').evaluate(() => {
+        window.setTimeout(() => window.location.reload(), 0)
+      }).catch(error => {
+        if (!/Frame was detached|Execution context was destroyed/.test(error.message)) throw error
+      })
       if (renewed) {
         expect((await renewed).status()).toBe(200)
         await expect(frame.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible()

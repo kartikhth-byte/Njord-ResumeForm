@@ -1,5 +1,26 @@
 # Holmes operator-only Needle pilot
 
+## Responsive follow-up — 2026-11-06 (local candidate)
+
+The pilot is live on Holmes `ea97b2a` and Needle `b82cc1ed`; the original
+preparation text below is historical. The current follow-up is
+`codex/holmes-embed-responsive`, paired with Needle's
+`codex/needle-embed-responsive`. It is independent of the broader warm-theme
+and recruitment-case rollout and needs no database migration or function deploy.
+
+The AI page gets a compact wrapping Holmes header. Needle's companion change
+turns the embedded search sidebar into a drawer below 768 pixels. The regression
+suite measures the entire outer page and iframe at 311, 375 and 640 pixels,
+checks search-menu navigation and Escape dismissal, and retains desktop,
+PDF-delivery, scope and session-renewal/logout coverage. All test data is synthetic.
+
+After review, KT commits the explicit files, deploys the Needle candidate to
+Railway, then deploys this Holmes candidate. Recheck the exact narrow pane and
+desktop in production. Rollback: previous Railway versions and previous Vercel
+deployment; no database rollback. Keep access `operator` and Drive intake false.
+Live Coordinator denial (no account available), same-candidate Preview denial
+and standard-Chrome inline PDF rendering remain separate acceptance checks.
+
 Date: 2026-11-05. Prepared locally; **nothing deployed or pushed**.
 KT confirmed there is no staging Needle. The first deployed test will therefore
 be production with AI access restricted to KT's platform-operator account.

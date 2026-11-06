@@ -118,7 +118,7 @@ export default function RecruiterAiSearch() {
   }
 
   return (
-    <div className="recruiter-shell recruiter-ai-shell flex h-dvh min-h-0 flex-col">
+    <div className="recruiter-shell recruiter-ai-shell flex h-dvh min-h-0 min-w-0 max-w-full flex-col overflow-hidden">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
       {status === 'ready' && frameSrc ? (
