@@ -135,7 +135,7 @@ npm run build
 ```
 
 The combined warm/KPI merge was committed locally as `cc210f5`. Production
-main's responsive commit 21ac6a5 is being reconciled in this isolated worktree,
+main's responsive commit 21ac6a5 was reconciled in local merge `79aa020`,
 preserving the warm sidebar and the mobile/keyboard regression checks. No production promotion is
 part of adding this code. Rehearse the exact case migrations through 0227 and
 function/frontend/service bundle on staging, then obtain KT's approval for
@@ -157,3 +157,74 @@ The local merge review confirms all 37 deletions are inherited from the warm
 branch. Credential-pattern/private-path scanning found no staged matches.
 The six access/middleware/case/KPI unit files pass 46 tests. This is self-review
 and local evidence; the final production promotion review is still required.
+
+
+## Completed KPI staging rehearsal and sign-in follow-up — 2026-11-06
+
+This checkpoint supersedes the earlier local test counts above. Local commits
+`cc210f5` and `79aa020` contain the warm/KPI integration and live responsive
+hotfix reconciliation. The original warm checkout and its unrelated work remain
+untouched. No production setting, schema, data or deployment changed.
+
+- **Live staging KPI:** database aggregates and signed-in UI agree: two
+  requirements, one open, three required positions, zero distinct hires, two
+  open positions; two active cases and one closed case. Dashboard and
+  Requirements also load. These are staging fixtures, not production totals.
+- **Actual closure rehearsal:** a rollback-only staging transaction verifies
+  that the first distinct hire leaves a two-position requirement open, a repeat
+  cycle for that person adds no position, and the second distinct hire closes
+  it. Transition retry is idempotent; authenticated direct case UPDATE is
+  denied. No rehearsal prospect/requirement remains after rollback.
+- **Exports:** staging lacked `log-recruiter-export`. Its request logic was
+  extracted into a tested handler. Gateway `verify_jwt=false` supports modern
+  signing keys; `auth.getUser` still verifies the user JWT and export
+  permissions are checked before any audit insert. Missing/invalid
+  authorization and permission failures deny access. Only this function was
+  deployed to staging: ACTIVE, version 1. The refreshed inventory has 14
+  functions. No other function was deployed during this rehearsal.
+- **Real downloads:** CSV and PDF download through the signed-in staging UI.
+  CSV has 47 metric rows and matches SQL totals; PDF opens as a valid one-page
+  management report with the expected headings. Copies and SHA-256 values are
+  private. This does not certify worksheet/template fidelity.
+- **CORS boundary:** staging’s APP_URL does not allow localhost:5197. The local
+  rehearsal uses a private Vite proxy pinned to staging Functions only;
+  Auth/REST still go directly to staging. No CORS/runtime setting changed and
+  no traffic forwards to production Needle. The deployed-domain path remains
+  a release check.
+- **Function comparison:** the previous 13 deployed staging handlers match
+  this candidate except for import-order/trailing-whitespace differences and
+  `manage-runtime-settings`, whose candidate authorization is operator-only.
+  It was not redeployed: staging lacks operator tables. This rehearsal does
+  not certify every warm email/calendar/worksheet flow.
+- **Sign-in:** `Forgot password?` is centered below Sign in. Keyboard order is
+  email, password, Sign in, recovery. Checks at 311 and 1280 pixels cover
+  placement, horizontal overflow and empty-email validation. No reset email
+  or credential change was performed for those checks.
+
+Final verification: **55 Node tests**, **33 synthetic browser tests**, lint and
+build pass. Browser coverage includes audited CSV/PDF downloads, denial before
+file generation, KPI permission failures, Coordinator read-only charts,
+embedded navigation/session recovery and public auth. Existing bundle-size
+and Browserslist notices remain. Private evidence is in the ignored
+operator-pilot folder; no credentials or applicant contents are in this record.
+
+### Remaining production gates
+
+1. Complete broader warm acceptance in `docs/tasks.md`: applicant, role,
+   worksheet and owner-inbox email flows. Live Coordinator denial,
+   same-candidate Preview isolation and ordinary-Chrome inline PDF checks
+   remain open; synthetic coverage does not close these checks.
+2. Refresh production schema/function inventory, take a fresh complete private
+   backup and verify scratch-restore row counts. Independently review the exact
+   candidate and deployment manifest before production writes.
+3. Obtain KT approval for only the reviewed missing migrations (currently
+   expected 0220, 0221 and 0223–0227); exclude 0222/0228. Coordinate invite/claim
+   Functions, export logger, frontend and worksheet service, recording previous
+   versions. Do not use unrestricted `db push`.
+4. KT promotes; repeat real-domain smoke before admitting recruiters. Keep AI
+   operator-only, Preview forwarding denied and Drive intake false. Add to
+   Holmes, Match resumes and optional candidate fields remain separate work.
+
+Rollback still restores compatible prior frontend/Functions/service together,
+retains additive case data and keeps intake off. Do not restore an old full
+database over legitimate new work.

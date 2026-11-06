@@ -22,6 +22,30 @@ test.describe('public routes', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   })
 
+  for (const width of [311, 1280]) {
+    test(`password recovery follows Sign in at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/recruiter/login')
+      const email = page.getByLabel('Email', { exact: true })
+      const password = page.getByLabel('Password', { exact: true })
+      const signIn = page.getByRole('button', { name: 'Sign in', exact: true })
+      const forgot = page.getByRole('button', { name: 'Forgot password?', exact: true })
+      const signInBox = await signIn.boundingBox()
+      const forgotBox = await forgot.boundingBox()
+      expect(forgotBox.y).toBeGreaterThanOrEqual(signInBox.y + signInBox.height)
+      await email.focus()
+      await page.keyboard.press('Tab')
+      await expect(password).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(signIn).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(forgot).toBeFocused()
+      await expect(page.locator('body')).toHaveJSProperty('scrollWidth', width)
+      await forgot.click()
+      await expect(page.getByRole('alert')).toHaveText('Enter your email first.')
+    })
+  }
+
   test('recruiter setup stays closed when status cannot be checked', async ({ page }) => {
     await page.route('**/functions/v1/create-recruiter', route => route.fulfill({
       status: 404,
@@ -82,7 +106,7 @@ test.describe('public routes', () => {
     await expect(page.getByRole('heading', { name: 'Recruiter sign in' })).toBeVisible()
     await expect(page.getByText('Signed in as an applicant.')).toBeVisible()
     await page.getByLabel('Email').fill(email)
-    await page.getByRole('button', { name: 'Forgot?' }).click()
+    await page.getByRole('button', { name: 'Forgot password?' }).click()
     await expect(page.getByRole('alert')).toHaveText('That’s an applicant email.')
 
     await page.goto('/recruiter/reset-password')

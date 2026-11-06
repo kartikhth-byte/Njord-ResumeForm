@@ -203,3 +203,18 @@ Manual checks:
 Run the synthetic `tests/smoke/needle-embed.spec.js` against Needle's local fixture with fake Supabase endpoints; no production credentials. It checks operator access without recruiter roles, source page/PDF links under /ai, scoped repository, stream completion, Back/refresh, expired-session renewal/Retry and logout. Run `tests/needleAccess.test.mjs` and `tests/needleMiddleware.test.mjs`, including an inherited production origin in Preview (must be denied). The joint PGlite fixture in Needle checks additive DDL/RLS/server grants/membership and operator escalation denial.
 
 After KT's operator-only production deployment, repeat through real Vercel with the real secure cookie and one actual corpus search; local proxy results are not a substitute. Verify ordinary users/Coordinators are denied, and that the new review queue and original PDF work. Keep both recruiter rollout and intake off pending separate acceptance. See `docs/needle-embed-rollout.md`.
+
+
+## Warm/KPI follow-up — 2026-11-06
+
+55 focused Node tests and 33 synthetic browser checks pass, including report
+download/audit denial, case-aware totals and recovery-link placement/tab order
+at 311/1280px. The real staging transaction rehearsal rolled back fully;
+signed-in KPI aggregates match SQL and CSV/PDF downloads succeed.
+`log-recruiter-export` is deployed on staging only and verifies the user JWT
+plus export permission despite gateway verification being off. Local Functions
+requests use a private staging-only proxy because the new localhost origin is
+not in staging CORS; repeat on the deployed domain before release. This does
+not close applicant, worksheet fidelity, live Coordinator, Preview isolation
+or full legacy/case metric parity gates. See
+`WARM_NEEDLE_INTEGRATION_2026-11-06.md` for evidence and remaining checks.

@@ -35,7 +35,7 @@ entrypoint = "./functions/prospect-email-bounce-webhook/index.ts"
 
 [functions.log-recruiter-export]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/log-recruiter-export/deno.json"
 entrypoint = "./functions/log-recruiter-export/index.ts"
 

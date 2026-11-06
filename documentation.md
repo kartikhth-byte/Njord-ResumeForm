@@ -2,12 +2,24 @@
 
 ## Current Needle integration checkpoint (2026-11-06)
 
-The operator-only embed is live on Holmes `ea97b2a` and Needle `b82cc1ed`.
+The operator-only embed’s latest verified baseline is Holmes `21ac6a5` and
+Needle `401ec6e0`.
 The local `codex/holmes-warm-integration` candidate reconciles the committed
 warm-theme line with that pilot; it is not a deployment. Read
 `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md` before rollout. The original
-working checkout's uncommitted KPI/requirement-completion work remains separate.
+working checkout remains untouched; its requested KPI/requirement-completion
+slice was copied explicitly into this isolated candidate.
 AI access stays operator-only and Drive intake stays false.
+
+Staging rehearsal is complete for this KPI slice: live totals match SQL,
+distinct-hire closure passes a rollback-only transaction, and audited CSV/PDF
+downloads succeed. The missing `log-recruiter-export` function was deployed
+only to staging with handler-side JWT/permission verification. A private local
+proxy routes Functions requests to staging because this localhost origin is
+outside staging’s CORS allowlist; deployed-domain acceptance remains open.
+Final checks: 55 unit tests, 33 synthetic browser tests, lint and build pass.
+Recruiter password recovery now follows Sign in, including keyboard order
+and narrow-screen checks. No production release occurred.
 
 ## Current Milestone
 

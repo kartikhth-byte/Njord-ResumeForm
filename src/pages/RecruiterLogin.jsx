@@ -139,17 +139,7 @@ export default function RecruiterLogin() {
           />
         </div>
         <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="recruiter-password" className="text-sm font-medium text-fg-secondary">Password</label>
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              disabled={resetLoading}
-              className="text-sm text-accent-text hover:underline disabled:opacity-50"
-            >
-              {resetLoading ? 'Sending…' : 'Forgot?'}
-            </button>
-          </div>
+          <label htmlFor="recruiter-password" className={authLabelClass}>Password</label>
           <input
             id="recruiter-password"
             type="password"
@@ -167,6 +157,16 @@ export default function RecruiterLogin() {
         <button type="submit" disabled={loading} className={authButtonClass}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={resetLoading}
+            className="text-sm text-accent-text hover:underline disabled:opacity-50"
+          >
+            {resetLoading ? 'Sending…' : 'Forgot password?'}
+          </button>
+        </div>
       </form>
     </AuthLayout>
   )

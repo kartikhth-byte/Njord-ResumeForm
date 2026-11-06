@@ -1,5 +1,6 @@
 /* global process */
 import { test, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 
 // Synthetic HTTP fixtures only. No staging/production credentials or writes.
 const USER = { id: '00000000-0000-4000-8000-000000000091', email: 'kpi@example.invalid',
@@ -25,6 +26,7 @@ const cases = [
 ]
 
 async function fixture(page, { mode = 'cases', role = 'Master Recruiter' } = {}) {
+  const exportCalls = []
   await page.addInitScript(user => {
     localStorage.setItem('njord-auth-token', JSON.stringify({
       access_token: 'synthetic-local-token', refresh_token: 'synthetic-local-refresh',
@@ -44,7 +46,12 @@ async function fixture(page, { mode = 'cases', role = 'Master Recruiter' } = {})
       { id: OTHER, full_name: 'Other recruiter', user_roles: [{ roles: { name: 'Recruiter' } }] }]
     else if (table === 'user_roles') body = [{ role_id: 'fixture-role', roles: { name: role } }]
     else if (table === 'role_permissions') body = ['view_requirements', 'view_prospects', 'view_analytics',
-      ...(role === 'Coordinator' ? [] : ['export_csv'])].map(name => ({ permissions: { name } }))
+      ...(role === 'Coordinator' ? [] : ['export_csv', 'export_pdf'])].map(name => ({ permissions: { name } }))
+    else if (table === 'log-recruiter-export') {
+      exportCalls.push(route.request().postDataJSON())
+      status = mode === 'denied_export' ? 403 : 200
+      body = status === 200 ? { success: true } : { error: 'Insufficient permissions' }
+    }
     else if (table === 'is_platform_operator') body = false
     else if (table === 'requirements') body = requirements
     else if (table === 'prospect_requirements') body = junctions
@@ -59,6 +66,7 @@ async function fixture(page, { mode = 'cases', role = 'Master Recruiter' } = {})
     }
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
   })
+  return { exportCalls }
 }
 
 async function expectDesktopInset(page) {
@@ -128,6 +136,42 @@ test.describe('KPI case parity (synthetic only)', () => {
     await page.goto('/recruiter/kpi')
     await expect(page.getByText('Could not load the live dashboard.', { exact: true })).toBeVisible()
     await expect(cardValue(page, 'Joined vs required')).toHaveCount(0)
+  })
+
+  test('authorized CSV and PDF reports record export intent and download valid files', async ({ page }, testInfo) => {
+    const { exportCalls } = await fixture(page)
+    await page.goto('/recruiter/kpi')
+    await page.getByRole('tab', { name: 'Reports', exact: true }).click()
+    const csvSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'KPI summary (CSV)', exact: true }) })
+    const csvDownload = page.waitForEvent('download')
+    await csvSection.getByRole('button', { name: 'Download', exact: true }).click()
+    const csv = await csvDownload
+    const csvPath = testInfo.outputPath('kpi-summary.csv')
+    await csv.saveAs(csvPath)
+    const text = await readFile(csvPath, 'utf8')
+    expect(text).toContain('"Open Positions","3"')
+    expect(text).toContain('"Joined vs Required","2 / 5"')
+    const pdfSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Management report (PDF)', exact: true }) })
+    const pdfDownload = page.waitForEvent('download')
+    await pdfSection.getByRole('button', { name: 'Download', exact: true }).click()
+    const pdf = await pdfDownload
+    const pdfPath = testInfo.outputPath('management-report.pdf')
+    await pdf.saveAs(pdfPath)
+    expect((await readFile(pdfPath)).subarray(0, 5).toString()).toBe('%PDF-')
+    expect(exportCalls.map(call => call.export_format)).toEqual(['csv', 'pdf'])
+    expect(exportCalls.every(call => /^[0-9a-f]{64}$/.test(call.row_ids_hash))).toBe(true)
+  })
+
+  test('report audit denial blocks file generation', async ({ page }) => {
+    await fixture(page, { mode: 'denied_export' })
+    const downloads = []
+    page.on('download', download => downloads.push(download))
+    await page.goto('/recruiter/kpi')
+    await page.getByRole('tab', { name: 'Reports', exact: true }).click()
+    const section = page.locator('section').filter({ has: page.getByRole('heading', { name: 'KPI summary (CSV)', exact: true }) })
+    await section.getByRole('button', { name: 'Download', exact: true }).click()
+    await expect(page.getByText('Edge Function returned a non-2xx status code', { exact: true })).toBeVisible()
+    expect(downloads).toHaveLength(0)
   })
 
   test('Coordinator can read KPI and charts without report/export controls', async ({ page }) => {

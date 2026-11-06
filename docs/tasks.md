@@ -208,6 +208,21 @@ Applicant:
 
 Start with milestone 1 in the ordered backlog, then the single-organization recruitment case v1 in milestone 2. Carry a seeded `organization_id`; do not wait for full multi-organization access work to correct the case flow. Existing worksheet and manual QA items above can be verified separately, but they do not replace that redesign.
 
+## Warm/Needle/KPI rehearsal checkpoint — 2026-11-06
+
+- [x] Isolated warm/KPI merge and current live responsive hotfix reconciled
+  locally (`cc210f5`, `79aa020`); original source checkout preserved.
+- [x] Staging SQL/UI totals agree; distinct-hire closure and retry passed a
+  rollback-only transaction with no rehearsal records remaining.
+- [x] Missing export logger deployed to staging only; audited CSV/PDF downloads
+  verified. Modern JWT validation remains in the handler.
+- [x] Forgot password follows Sign in; keyboard/narrow-screen checks pass.
+- [x] Final slice checks: 55 unit tests, 33 synthetic browser tests, lint/build.
+- [ ] Broader warm acceptance, fresh production backup/inventory, final review
+  and KT-approved coordinated rollout remain required. Local staging Functions
+  proxy results do not prove deployed-domain CORS. Details and exclusions:
+  `WARM_NEEDLE_INTEGRATION_2026-11-06.md`.
+
 ## Definition of Done For Major Changes
 
 - relevant docs updated
