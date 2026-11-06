@@ -2,7 +2,7 @@
 
 ## Local KPI integration checkpoint (2026-11-06)
 
-KT's pending KPI/requirement-completion slice is included in the isolated warm/Needle merge, with migration 0227. Local tests pass; the coordinated staging rehearsal, final merge review, main reconciliation and KT production approval remain. This does not implement the newer company/ship/0228 design or complete all legacy-to-case KPI parity. See `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md`.
+KT's pending KPI/requirement-completion slice is included in the isolated warm/Needle merge, with migration 0227. KPI staging totals, rollback-only closure and audited CSV/PDF exports pass; 2026110601 is applied on staging only. Broader applicant/email/worksheet acceptance, final exact-manifest review, main reconciliation and KT production approval remain. This does not implement the newer company/ship/0228 design or complete all legacy-to-case KPI parity. See `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md`.
 
 
 ## Active integration slice (2026-11-06)
@@ -241,3 +241,21 @@ Start with milestone 1 in the ordered backlog, then the single-organization recr
 - KT commits the isolated candidates, verifies backups, applies only the named migrations/assignments, and promotes with operator-only flags.
 - Actual Vercel streaming/cookies, deployed function authorization and real search remain release gates. No ordinary recruiter or intake enablement yet.
 - Add to Holmes/candidate-field relaxation follows the accepted pilot; this change does not deploy case v1. Procedure: `docs/needle-embed-rollout.md`.
+
+
+## Warm release gate update (2026-11-06)
+
+- [x] Apply additive closure-version fix 2026110601 on staging only and rerun rollback-only closure checks.
+- [x] Refresh full production dump and verify scratch table counts; record SHA-256 privately.
+- [x] Dedicated staging Master and Coordinator normal logins; Master team management and Coordinator case/KPI/application/photo read-only UI.
+- [x] Offline normalized CMA template: 261 static labels/styles, mapped values and overwrite clearing; clear retained photo/signature images (eleven service/writer tests).
+- [ ] Finish applicant invite/claim/draft/submit and owner-inbox workflow delivery on this candidate.
+- [x] Normal Coordinator session: direct invite/export HTTP 403 denials, using no valid invite record IDs.
+- [ ] Application/storage HTTP write denials, real Excel text fitting, second customer and hosted worksheet parity.
+- [ ] Resolve pre-selection sensitive-form retention decision and existing unlinked-application reconciliation before enabling the expanded invite workflow.
+- [ ] Final exact migration/Function/service manifest, independent review and KT promotion approval.
+
+The source for the dormant production normalize-worksheet-template Function
+cannot be downloaded (404); preserve it and exclude it from this rollout.
+
+Email acceptance is blocked by Resend test-sender recipient restrictions. KT requested a verified sender first; await the owned domain/DNS provider. The failed test invitation is invalidated and the previous staging email override is restored.

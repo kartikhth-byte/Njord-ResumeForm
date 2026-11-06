@@ -247,8 +247,10 @@ rejection. It also checks unchanged version on a non-final hire/retry and atomic
 rollback. A real staging rehearsal temporarily replaced the function inside a
 transaction: distinct-hire closure, version, stale RPC denial and retry passed.
 Rollback restored the original function definition (hash checked) and removed
-all synthetic rows. **2026110601 is not permanently applied on staging or
-production yet**; include it explicitly in the reviewed release manifest.
+all synthetic rows. **2026110601 is now permanently applied on staging only** (2026-11-06).
+The enabled closure trigger and function were read back, then the distinct-hire
+rollback rehearsal passed again without leaving fixture rows. Production still
+needs this migration explicitly in the reviewed release manifest.
 The 55 unit / 33 browser results above remain applicable; this follow-up changes
 only the SQL function, its fixture and release records.
 
@@ -259,3 +261,73 @@ blocker was found in that scope; 52 focused Node tests were independently run.
 This does not certify the broader warm applicant/email/worksheet flows or
 approve a production deployment. Recheck the exact release manifest against a
 fresh production inventory before promotion.
+
+
+### Expanded release rehearsal (2026-11-06)
+
+- Refreshed the full production backup from a consistent snapshot: 91 table
+  data objects / 7,689 rows. Scratch COPY restore matched every table count.
+  A separate extension-compatible public schema/data restore matched 48 tables
+  / 959 rows. SHA-256 and receipts remain private. This does not certify managed
+  extension/post-data DDL, database globals, or Storage object bytes.
+- Read production migration history and 33 deployed Function versions. The
+  missing migration manifest is 2026110220, 2026110221, 2026110223–2026110227,
+  and 2026110601. Exclude 0222/0228. No production write was performed.
+- Preserved downloaded source for 32 production Functions privately for exact
+  comparison and rollback. `normalize-worksheet-template` advertises version 1
+  but source download returns `Function store not found` (404). It is outside
+  this rollout; do not redeploy or remove it as part of the warm release.
+- Dedicated synthetic Master and Coordinator users signed in normally on
+  staging. Master team management loaded. Coordinator Dashboard, KPI Overview,
+  Charts, case history, submitted application and protected photo reads loaded;
+  settings, reports, exports and case-write controls were absent. The case panel
+  explicitly showed `read only`. Two direct HTTP checks using this normal
+  Coordinator session returned 403: `send-prospect-invite` and
+  `log-recruiter-export`. The invite probe had no valid case/prospect IDs; no
+  email could be sent. Application/storage write denials remain separate.
+- The original invitation callback could not load because localhost:3000 was
+  not running. The isolated staging candidate now also serves that port. Only
+  local rehearsal origins were added to staging Auth's redirect allowlist;
+  production Auth and staging Site URL were unchanged. The default Auth email
+  quota is two per hour; the Coordinator's consumed link was recovered by the
+  Master UI, with KT entering the password locally. No password is recorded.
+- The active staging workbook was an almost-empty synthetic transport fixture,
+  so that export did not establish customer-format fidelity. An offline run on
+  the normalized CMA reference checked 261 static labels/styles, mapped values,
+  and overwrite clearing. Main, History and End were rendered privately.
+- That check found retained applicant images in a reused template. The writer
+  now clears the photo and signature output zones before filling a new record,
+  preserves logos outside those zones, and fails on unlocatable image anchors.
+  It never reuses a template signature as the new applicant's signature.
+  Existing wrapping is preserved; single-line output cells request Excel text
+  fitting. Eleven focused service/writer tests pass. Actual Excel text fitting,
+  second-customer layout and hosted service acceptance remain open; the preview
+  renderer and a Numbers import still clip a narrow rank cell despite the
+  Excel fitting flag. Excel/print validation has not been substituted by those
+  previews.
+
+No production migration, Function deployment, frontend promotion or worksheet
+service promotion was performed in this rehearsal. The synthetic applicant
+fixture is explicitly prepositioned at Interview passed for invitation testing;
+it is not evidence of the earlier interview/test transition workflow.
+
+
+#### Email acceptance blocker
+
+The first synthetic invitation was accepted under staging's existing owner-inbox
+override. An attempt to use KT's newly approved test inbox was rejected by
+Resend with HTTP 403: its test sender permits only the account-owner address.
+The failed claim request is invalidated/unclaimed and the prior staging mail
+override was restored. KT chose to configure a verified sender before further
+workflow emails. Domain ownership and DNS-provider details are pending; do not
+claim applicant delivery/redemption/submission acceptance or send more workflow
+test mail until that sender is ready.
+
+Independent worksheet follow-up review closed two findings: overlap checks now
+use image extents/offsets (including saved OneCellAnchor drawings), and geometry
+reads preserve default/grouped column and row dimensions without creating new
+ones. Eleven focused service/writer tests pass; the reviewer independently ran
+all six new writer tests and the original overlap/dimension repros.
+Lint and frontend build pass again; existing bundle-size/Browserslist notices
+remain. The local-only authorization probe page was removed after evidence was
+saved. No diagnostic route is part of the application release.

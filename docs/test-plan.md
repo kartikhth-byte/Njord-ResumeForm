@@ -225,4 +225,19 @@ The automatic-closure fixture now applies historical 0227 and follow-up
 no increment before final hire/on retry, actual status-RPC stale-version denial,
 and rollback of status/version/case together. These pass in isolated PGlite;
 a staging rollback rehearsal also verified the original function definition
-was restored. The follow-up migration is prepared, not persistently applied.
+was restored in that earlier rehearsal. On 2026-11-06 the follow-up migration
+was permanently applied to staging only, then the rollback-only closure checks
+passed again; it remains unapplied in production.
+
+
+## Reused worksheet regression gate (2026-11-06)
+
+Run `python3 -m unittest discover -s services/worksheet-service -p 'test_*.py' -v`.
+A previous export used as a template must not retain its applicant photo or
+signature. Check one replacement photo only, no-photo clearing, branding-image
+preservation, boundary-crossing drawings and a loud failure for unlocatable
+image anchors. Preserve explicit wrapping and fixed column widths; single-line
+output cells use Excel text fitting. Static-label/style and mapped-value checks
+on the normalized reference passed, but actual Excel/hosted and second-customer
+visual checks remain required. A minimal synthetic transport template is not
+customer-format evidence.

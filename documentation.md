@@ -24,8 +24,10 @@ and narrow-screen checks. No production release occurred.
 Review follow-up: automatic requirement closure now has an additive prepared
 migration, `2026110601`, to advance its version and reject stale status actions.
 The isolated SQL fixture and a real staging rollback rehearsal pass; the latter
-restored both rows and the original function. The migration is not permanently
-applied on staging or production. Include it after 0227 in the release manifest.
+restored both rows and the original function. The migration is now permanently
+applied on staging only; function/trigger
+readback and a fresh rollback-only closure rehearsal pass. Production remains
+unchanged. Include it after 0227 in the release manifest.
 
 ## Current Milestone
 
@@ -325,3 +327,22 @@ Once the recruiter-facing panel and applications-list triage are validated, deci
 - Recruiter Workspace retired (2026-11-04, `ui/warm-theme`): its requirement and candidate actions moved to the Requirements and Candidates pages ("New requirement" / "New candidate") and to the detail pages (requirement: Edit, Close, Cancel, Archive, Delete; candidate: Attach to requirement, Archive, Delete; the application link stays in the candidate's invite panel). `/recruiter/workspace` redirects to Requirements, or Candidates for `?tab=candidates`; detail URLs under `/recruiter/workspace/...` are unchanged. Writes live in `src/services/recruiterRecordService.js`.
 - Migration renumbering (2026-11-04): case v1 `2026110207` → `2026110221` and the expiry fix `2026110208` → `2026110222`, so both sort after the applied `0209`-`0220`. Staging recorded case v1 as `0207`; its history is repaired to `0221` without rerunning the SQL (`supabase migration repair --status reverted 2026110207`, then `--status applied 2026110221`). The case backfill key stays `backfill:2026110207` so reruns skip staging's existing rows. Production has neither migration.
 - Case assessment/KPI build (2026-11-04, staging only): staging history repair is complete; `ui/warm-theme` was backed up to GitHub at `a529b28` before this build. New `0223` requires schedule/outcome timestamps and reasons for failed/no-show results on `recruitment_case_transition`, storing details in immutable case events. The requirement case panel records and displays them. KPI Overview shows case counts and assessment outcome rates; the stage chart and funnel CSV use cases where present. Older requirement/contact/application metrics still use legacy sources pending full parity. An isolated staging dry run listed only `0223`, then the migration was applied there without `0222`. A synthetic recruiter case passed test scheduling/result and interview scheduling/result in the browser; History and stage survived reload, and KPI Overview/Charts reflected them. New SQL/KPI tests and lint/build pass. `0222` remains pending on staging; neither `0222` nor `0223` is applied to production. This new build is not pushed.
+
+
+## Expanded warm release checks (2026-11-06)
+
+Fresh full production dump and scratch row-count checks passed (91 data tables /
+7,689 rows; separate public schema/data restore: 48 tables / 959 rows). Hashes
+and rollback Function sources are private. Normal staging Master and Coordinator
+sign-ins now pass the team/read-only UI checks. Worksheet audit found stale
+photo/signature reuse and added output-zone clearing plus preserved wrapping /
+Excel text fitting; eleven focused tests pass. Hosted workbook fidelity, second
+customer, applicant/email completion, application/storage HTTP denials and the final exact
+release manifest/review remain open. See the integration release record for
+limitations; nothing was promoted to production.
+
+Coordinator normal-session invitation and export HTTP probes both return 403.
+The applicant email gate is blocked by Resend's unverified test sender; the
+failed invitation was invalidated and staging's original override restored.
+KT chose verified-sender setup before more workflow emails. Await the owned
+domain and DNS provider, then finish applicant delivery/claim/submission.

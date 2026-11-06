@@ -31,7 +31,7 @@ from typing import Any
 import requests
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.utils import get_column_letter, range_boundaries
+from openpyxl.utils import get_column_letter, range_boundaries, coordinate_to_tuple
 from PIL import Image
 
 
@@ -455,6 +455,7 @@ FIELD_MAPPINGS = (
 
 PHOTO_SOURCE_PATH = "section2.photoStoragePath"
 PHOTO_TARGET_RANGE = "G5:H14"
+SIGNATURE_TARGET_RANGE = "D45:H47"
 MAIN_SHEET_NAME = "Main"
 HISTORY_SHEET_NAME = "History"
 END_SHEET_NAME = "End"
@@ -833,6 +834,7 @@ def generate_workbook(
         + FLAG_STATE_DOCUMENT_MERGED_RANGES,
     )
     clear_main_sheet_outputs(worksheet)
+    clear_personal_images(worksheet, PHOTO_TARGET_RANGE)
 
     for mapping in FIELD_MAPPINGS:
         value = get_by_path(payload, mapping.source_path)
@@ -851,6 +853,7 @@ def generate_workbook(
     end_worksheet = workbook[END_SHEET_NAME] if END_SHEET_NAME in workbook.sheetnames else None
     if end_worksheet is not None:
         clear_end_sheet_outputs(end_worksheet)
+        clear_personal_images(end_worksheet, SIGNATURE_TARGET_RANGE)
         populate_end_experience_summary(end_worksheet, payload)
         populate_end_references(end_worksheet, payload)
     else:
@@ -897,7 +900,9 @@ def write_preserving_style(
     style_border = copy(cell.border)
     style_font = copy(cell.font)
     style_alignment = copy(cell.alignment)
-    style_alignment.wrap_text = False
+    # Keep deliberate template wrapping; fit single-line values inside fixed cells.
+    if not style_alignment.wrap_text:
+        style_alignment.shrink_to_fit = True
     if horizontal_alignment is not None:
         style_alignment.horizontal = horizontal_alignment
     style_protection = copy(cell.protection)
@@ -1944,6 +1949,55 @@ def canonicalize_flag_state_endorsement_type(flag_state: Any, value: Any) -> str
     return normalized_value
 
 
+def clear_personal_images(worksheet, target_range: str) -> None:
+    """Discard images in applicant-owned output areas, preserving template logos.
+
+    Templates may themselves be previous exports. Neither a previous photo nor
+    a signature is evidence belonging to the current applicant. A signature is
+    deliberately left blank: this writer has no confirmed signature input.
+    """
+    def cell_origin(col: int, row: int) -> tuple[float, float]:
+        return (
+            sum(column_width_to_pixels(worksheet, c) for c in range(1, col)),
+            sum(row_height_to_pixels(worksheet, r) for r in range(1, row)),
+        )
+
+    def marker_origin(marker) -> tuple[float, float]:
+        x, y = cell_origin(marker.col + 1, marker.row + 1)
+        return x + marker.colOff / 9525, y + marker.rowOff / 9525
+
+    min_col, min_row, max_col, max_row = range_boundaries(target_range)
+    left, top = cell_origin(min_col, min_row)
+    right, bottom = cell_origin(max_col + 1, max_row + 1)
+    retained = []
+    for image in worksheet._images:
+        anchor = image.anchor
+        if isinstance(anchor, str):
+            row, col = coordinate_to_tuple(anchor)
+            x, y = cell_origin(col, row)
+            width, height = image.width, image.height
+            end_x, end_y = x + width, y + height
+        elif hasattr(anchor, "_from"):
+            x, y = marker_origin(anchor._from)
+            if hasattr(anchor, "to"):
+                end_x, end_y = marker_origin(anchor.to)
+            elif hasattr(anchor, "ext"):
+                # Saved images normally use OneCellAnchor. The occupied area,
+                # not just its starting cell, determines whether it is personal.
+                end_x = x + anchor.ext.cx / 9525
+                end_y = y + anchor.ext.cy / 9525
+            else:
+                raise ValueError("Template image has no measurable extent")
+        else:
+            # Absolute anchors cannot be assigned safely to a template zone.
+            raise ValueError("Template image requires a cell anchor for safe applicant-image replacement")
+        if end_x <= x or end_y <= y:
+            raise ValueError("Template image has an invalid extent")
+        if end_x <= left or x >= right or end_y <= top or y >= bottom:
+            retained.append(image)
+    worksheet._images[:] = retained
+
+
 def insert_photo(worksheet, photo_bytes: bytes, target_range: str) -> None:
     min_col, min_row, max_col, max_row = range_boundaries(target_range)
     start_cell = f"{get_column_letter(min_col)}{min_row}"
@@ -1970,14 +2024,27 @@ def insert_photo(worksheet, photo_bytes: bytes, target_range: str) -> None:
 
 def column_width_to_pixels(worksheet, col_idx: int) -> int:
     letter = get_column_letter(col_idx)
-    width = worksheet.column_dimensions[letter].width
+    # [] creates a width-13 ColumnDimension as a side effect. Geometry reads
+    # must preserve default widths and respect grouped column definitions.
+    dimension = worksheet.column_dimensions.get(letter)
+    if dimension is None:
+        dimension = next((
+            item for item in worksheet.column_dimensions.values()
+            if item.min is not None and item.max is not None and item.min <= col_idx <= item.max
+        ), None)
+    if dimension is not None and dimension.hidden:
+        return 0
+    width = dimension.width if dimension is not None else None
     if width is None:
         width = worksheet.sheet_format.defaultColWidth or 8.43
     return int(width * 7)
 
 
 def row_height_to_pixels(worksheet, row_idx: int) -> int:
-    height = worksheet.row_dimensions[row_idx].height
+    dimension = worksheet.row_dimensions.get(row_idx)
+    if dimension is not None and dimension.hidden:
+        return 0
+    height = dimension.height if dimension is not None else None
     if height is None:
         height = worksheet.sheet_format.defaultRowHeight or 15
     return int(height * 4 / 3)

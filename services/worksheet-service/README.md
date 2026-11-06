@@ -8,6 +8,8 @@ This service:
 - downloads the active uploaded `.xlsx` worksheet template from Supabase storage
 - fetches application data from Supabase
 - reuses the existing Python writer in `scripts/client_forms/cma_cgm_writer.py`
+- clears old applicant photo/signature images from reused templates while preserving branding outside those output zones
+- preserves template wrapping and requests Excel text fitting for single-line output cells
 - streams the generated workbook back to the caller
 
 It does not perform `.xls` to `.xlsx` conversion. Upload normalized `.xlsx` templates in the app.
@@ -16,7 +18,7 @@ Submission is checked independently of the current workflow status, so a submitt
 Run the focused gate tests from the repo root:
 
 ```bash
-python3 -m unittest discover -s services/worksheet-service -p test_app.py -v
+python3 -m unittest discover -s services/worksheet-service -p 'test_*.py' -v
 ```
 
 ## Environment
@@ -67,3 +69,5 @@ After switching staging to a new secret key, remove its legacy key from this
 service and confirm both a submitted export and draft HTTP 409. Do not disable
 staging's legacy project keys until the frontend and Edge Function consumers
 have been migrated and tested independently.
+
+Signature output is left blank because the writer has no confirmed signature input. Images without cell anchors fail conversion instead of risking applicant-image reuse. Validate each normalized customer template in Excel and on the hosted service before release.
