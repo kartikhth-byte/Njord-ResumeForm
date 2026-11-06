@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { getAdminApiKey, isModernSecretKey } from '../_shared/api-keys.ts'
 import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
+import { expiryJobCaller } from './authorization.js'
 
 serve(async (req) => {
   const corsHeaders = await getCorsHeaders(req, { allowMethods: 'POST, OPTIONS' })
@@ -13,26 +14,13 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
 
+  const operationClient = createAdminSupabaseClient()
+  let operationId: number | null = null
   try {
     const serviceRoleKey = getAdminApiKey()
     const supabaseClient = createAdminSupabaseClient()
 
-    // Sends email to applicants: only the scheduler (service role) or a signed-in recruiter may run it.
-    const token = (req.headers.get('Authorization') || '').replace('Bearer ', '')
-    let allowed = Boolean(serviceRoleKey) && (isModernSecretKey(serviceRoleKey)
-      ? req.headers.get('apikey') === serviceRoleKey
-      : token === serviceRoleKey)
-    if (!allowed && token) {
-      const { data: { user } } = await supabaseClient.auth.getUser(token)
-      if (user) {
-        const { data: profile } = await supabaseClient
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .maybeSingle()
-        allowed = profile?.user_type === 'recruiter'
-      }
-    }
+    const { allowed, actorId } = await expiryJobCaller(supabaseClient, req.headers, serviceRoleKey, isModernSecretKey(serviceRoleKey))
     if (!allowed) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -40,6 +28,9 @@ serve(async (req) => {
       })
     }
 
+    const operation = await operationClient.from('platform_operation_events').insert({ category: 'job', action: 'expiry_warnings', actor_id: actorId, status: 'started' }).select('id').single()
+    if (operation.error) throw new Error('Expiry audit unavailable')
+    operationId = operation.data.id
     console.log('Starting expiry warnings check...')
 
     // Get all documents that need warnings
@@ -187,6 +178,7 @@ serve(async (req) => {
 
     console.log('Expiry warnings check completed:', results)
 
+    await operationClient.from('platform_operation_events').update({ status: results.errors ? 'failed' : 'succeeded', details: { total_checked: results.total_checked, warnings_sent: results.warnings_sent, errors: results.errors } }).eq('id', operationId)
     return new Response(
       JSON.stringify({
         success: true,
@@ -200,7 +192,8 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Function error:', error)
+    if (operationId) await operationClient.from('platform_operation_events').update({ status: 'failed', details: { code: 'expiry_job_failed' } }).eq('id', operationId)
+    console.error('Expiry warning job failed')
     return new Response(
       JSON.stringify({
         error: error.message || 'An error occurred',

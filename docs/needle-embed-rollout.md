@@ -1,5 +1,14 @@
 # Holmes operator-only Needle pilot
 
+## Current completion candidate — 2026-11-07
+
+Production has advanced to Holmes `a1e62c1` and Needle `401ec6e0`. For the new
+candidate-field/Add/Match/upload/operator slice, use
+`INTEGRATION_COMPLETION_2026-11-06.md`. Its migration and Function manifest,
+source status, acceptance gaps and degraded-entry rollback boundary supersede
+the original embed preparation instructions below. The new slice is not
+promoted. Keep intake off, AI operator-only and Preview forwarding denied.
+
 ## Responsive follow-up — 2026-11-06 (local candidate)
 
 The pilot is live on Holmes `ea97b2a` and Needle `b82cc1ed`; the original

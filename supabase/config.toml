@@ -78,3 +78,18 @@ verify_jwt = false
 [functions.needle-token]
 enabled = true
 verify_jwt = false
+
+# These handlers verify the current Auth user and their permissions internally,
+# supporting the project's asymmetric JWT keys. Promotion needs exact-manifest
+# review; no anonymous caller is authorized by these settings.
+[functions.needle-integration]
+enabled = true
+verify_jwt = false
+
+[functions.operator-accounts]
+enabled = true
+verify_jwt = false
+
+[functions.process-expiry-warnings]
+enabled = true
+verify_jwt = false

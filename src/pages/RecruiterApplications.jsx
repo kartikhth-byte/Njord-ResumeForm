@@ -10,15 +10,12 @@ import { formatDisplayValue } from '../utils/formatUtils'
 import SequentialStatusControl from '../components/SequentialStatusControl'
 import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
-import EmbeddingGenerator from '../components/EmbeddingGenerator'
-import AISearch from '../components/AISearch'
 import ConfidenceBadge from '../components/ConfidenceBadge'
 import PageHeader from '../components/ui/PageHeader'
-import { getEmbeddingReadiness } from '../services/embeddingService'
 import { buildApplicationCompliance } from '../utils/applicationCompliance'
 import { applicationStatusLabel, CLOSED_APPLICATION_STATUSES } from '../constants/applicationStatus'
 
-import { Search, Loader2, Sparkles, SlidersHorizontal } from 'lucide-react'
+import { Search, Loader2, SlidersHorizontal } from 'lucide-react'
 
 function normalizeCertificateGrade(value) {
   return (value || '').toString().trim().toLowerCase()
@@ -116,11 +113,9 @@ export default function RecruiterApplications() {
   const { user, profile, signOut } = useAuth()
   const { canViewApplications, canManageApplications, loading: permLoading, role } = usePermissions()
   const canEditApplications = canManageApplications()
-  const aiSearchStorageKey = user?.id ? `aiSearchResults:${user.id}` : null
 
   const [applications, setApplications] = useState([])
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)
-  const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
 
   // Restore the interview modal after Teams OAuth returns to the applications workspace.
 useEffect(() => {
@@ -157,8 +152,6 @@ useEffect(() => {
   const [complianceFilter, setComplianceFilter] = useState('all')
   const [filters, setFilters] = useState({})
   const [showFilters, setShowFilters] = useState(false)
-  const [showAI, setShowAI] = useState(searchParams.get('tab') === 'search')
-  const [embeddingReadiness, setEmbeddingReadiness] = useState(null)
 
   // ?status= holds a stage id ("review", "closed", ...) or a single status.
   const statusFilter = searchParams.get('status') || 'all'
@@ -202,10 +195,6 @@ useEffect(() => {
     }
   }, [applications])
   
-  const [aiSearchActive, setAiSearchActive] = useState(false)
-  const [aiSearchResults, setAiSearchResults] = useState([])
-  const [aiSearchLoading, setAiSearchLoading] = useState(false)
-
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
       loadApplications(filters)
@@ -213,32 +202,7 @@ useEffect(() => {
     }
   }, [permLoading, scope])
 
-  useEffect(() => {
-    if (showAI && embeddingReadiness === null) refreshEmbeddingReadiness()
-  }, [showAI])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [statusFilter, searchTerm, filters, complianceFilter, aiSearchActive])
-
-  // Restore the last AI search (30 minutes) for this recruiter.
-  useEffect(() => {
-    if (!aiSearchStorageKey) return
-    const saved = localStorage.getItem(aiSearchStorageKey)
-    if (!saved) return
-    try {
-      const { results, timestamp } = JSON.parse(saved)
-      if (Date.now() - timestamp < 30 * 60 * 1000 && results.length > 0) {
-        setAiSearchResults(results)
-        setAiSearchActive(true)
-        setShowAI(true)
-      } else {
-        localStorage.removeItem(aiSearchStorageKey)
-      }
-    } catch {
-      localStorage.removeItem(aiSearchStorageKey)
-    }
-  }, [aiSearchStorageKey])
+  useEffect(() => { setCurrentPage(1) }, [statusFilter, searchTerm, filters, complianceFilter])
 
   const calculateExperience = (seaService) => {
     if (!seaService || seaService.length === 0) return 0
@@ -519,114 +483,6 @@ const handleStatusChange = async (applicationId, newStatus) => {
     loadApplications(filtersToApply || filters)
   }
 
-  const refreshEmbeddingReadiness = async () => {
-    try {
-      const readiness = await getEmbeddingReadiness()
-      setEmbeddingReadiness(readiness)
-    } catch (error) {
-      console.error('Error loading embedding readiness:', error)
-      setEmbeddingReadiness({
-        ready: false,
-        needsGeneration: true,
-        missing: [],
-        stale: [],
-      })
-    }
-  }
-
-const handleAISearchResults = async (results, query, isAnalyzing = false) => {
-  setCurrentPage(1)
-  setAiSearchResults(results)
-  setAiSearchActive(true)
-  setAnalyzingWithLLM(isAnalyzing)
-
-  if (results.length === 0) {
-    setAiSearchResults([])
-    if (aiSearchStorageKey) {
-      localStorage.removeItem(aiSearchStorageKey)
-    }
-    return
-  }
-
-  try {
-    const applicationIds = results.map(r => r.application_id)
-
-    const { data: fullApps, error } = await supabase
-      .from('applications')
-      .select(`
-        id,
-        user_id,
-        applied_rank,
-        status,
-        created_at,
-        updated_at,
-        reference_number,
-        public_token,
-        submitted_at,
-        test_attempt_number,
-        test_max_attempts,
-        handling_recruiter_id,
-        application_data (
-          data
-        )
-      `)
-      .in('id', applicationIds)
-
-    if (error) {
-      console.error('Error fetching full applications:', error)
-      setAiSearchResults(results)
-      return
-    }
-
-	    const enrichedResults = fullApps.map(app => {
-	      const appData = app.application_data?.data || {}
-        const matchingResult = results.find(r => r.application_id === app.id)
-
-	      return {
-	        ...app,
-	        full_name: `${appData.section2?.firstName || ''} ${appData.section2?.surname || ''}`.trim(),
-	        email: appData.section2?.email || appData.section4?.email || '',
-	        phone: appData.section2?.phoneNumber || appData.section4?.phoneNumber || '',
-	        desired_rank: appData.section1?.appliedForRank || app.applied_rank || '',
-	        vessel_type: appData.section1?.vesselType || '',
-	        nationality: appData.section2?.nationality || '',
-	        available_from: appData.section1?.availableFrom || '',
-	        date_of_birth: appData.section2?.dateOfBirth || '',
-	        similarity: matchingResult?.similarity || 0,
-	        matched_chunk: matchingResult?.chunk_text || '',
-	        llmAnalysis: matchingResult?.llmAnalysis,
-	        compliance_status: buildApplicationCompliance(appData).overallStatus || '',
-	      }
-	    })
-
-	    enrichedResults.sort((a, b) => {
-        const scoreA = a.llmAnalysis?.confidence ?? a.similarity
-        const scoreB = b.llmAnalysis?.confidence ?? b.similarity
-        return scoreB - scoreA
-      })
-    
-    setAiSearchResults(enrichedResults)
-    
-    if (aiSearchStorageKey) {
-      localStorage.setItem(aiSearchStorageKey, JSON.stringify({
-        results: enrichedResults,
-        query,
-        timestamp: Date.now()
-      }))
-    }
-
-  } catch (error) {
-    console.error('Error enriching search results:', error)
-    setAiSearchResults(results)
-  }
-}
-
-  const handleClearAISearch = () => {
-    setAiSearchActive(false)
-    setAiSearchResults([])
-    if (aiSearchStorageKey) localStorage.removeItem(aiSearchStorageKey)
-  }
-
   if (permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -659,7 +515,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
       return counts
     }, { red: 0, amber: 0, green: 0 })
 
-  const displayed = aiSearchActive ? aiSearchResults : listed
+  const displayed = listed
   const pageRows = displayed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const totalPages = Math.ceil(displayed.length / itemsPerPage)
 
@@ -808,15 +664,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
               {backgroundRefreshing ? <Loader2 className="h-4 w-4 animate-spin text-fg-muted" aria-label="Updating" /> : null}
               <button
                 type="button"
-                onClick={() => setShowAI((open) => !open)}
-                aria-pressed={showAI}
-                className={`workspace-action-button ${showAI ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
-              >
-                <Sparkles className="h-4 w-4" />
-                AI search
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowFilters((open) => !open)}
                 aria-pressed={showFilters}
                 className={`workspace-action-button ${showFilters ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
@@ -828,21 +675,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
           )}
         />
 
-        {showAI ? (
-          <div className="recruiter-panel space-y-4 p-5 md:p-6">
-            <AISearch
-              onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
-              onLoading={setAiSearchLoading}
-              onClearSearch={handleClearAISearch}
-              embeddingsReady={Boolean(embeddingReadiness?.ready)}
-              embeddingStatusMessage={embeddingReadiness && !embeddingReadiness.ready ? 'Index the applications below before searching.' : ''}
-            />
-            {embeddingReadiness && !embeddingReadiness.ready ? (
-              <EmbeddingGenerator onGenerated={refreshEmbeddingReadiness} onFailed={refreshEmbeddingReadiness} />
-            ) : null}
-          </div>
-        ) : null}
-
         {showFilters ? (
           <ApplicationFilters
             onFilterChange={setFilters}
@@ -852,17 +684,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         ) : null}
 
         <div className="recruiter-panel overflow-hidden">
-          {aiSearchActive ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 md:px-6">
-              <p className="text-sm font-medium text-fg">
-                {aiSearchResults.length} AI match{aiSearchResults.length === 1 ? '' : 'es'}
-                {analyzingWithLLM ? <span className="ml-2 text-fg-muted">Scoring top matches…</span> : null}
-              </p>
-              <button type="button" onClick={handleClearAISearch} className="workspace-action-button workspace-action-button--secondary">
-                Back to list
-              </button>
-            </div>
-          ) : (
             <div className="space-y-3 border-b border-line px-5 py-4 md:px-6">
               <div role="group" aria-label="Pipeline stage" className="flex flex-wrap gap-2">
                 {STAGES.map((stage) => {
@@ -936,16 +757,16 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                 </div>
               </div>
             </div>
-          )}
+
 
           <div className="space-y-6 p-5 md:p-6">
-            {loading || (aiSearchLoading && aiSearchResults.length === 0) ? (
+            {loading ? (
               <div className="flex h-64 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
               </div>
             ) : (
               <>
-                <ApplicationTable apps={pageRows} showRelevance={aiSearchActive} analyzingWithLLM={analyzingWithLLM} />
+                <ApplicationTable apps={pageRows} />
                 {displayed.length > itemsPerPage ? (
                   <Pagination
                     currentPage={currentPage}

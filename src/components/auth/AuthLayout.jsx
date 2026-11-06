@@ -12,6 +12,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
           <span className="recruiter-sidebar__mark" aria-hidden="true">H</span>
           <span className="brand-lockup__wordmark">Holmes</span>
         </div>
+        {import.meta.env.VITE_ENVIRONMENT_LABEL && <p className="mb-4 rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-center text-sm text-warning">{import.meta.env.VITE_ENVIRONMENT_LABEL}</p>}
         <div className="rounded-card border border-line bg-surface p-6">
           <h1 className="text-xl font-semibold text-fg">{title}</h1>
           {subtitle ? <p className="mt-1 text-sm text-fg-secondary">{subtitle}</p> : null}

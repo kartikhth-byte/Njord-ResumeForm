@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { canUseAiSearch } from '../lib/needle'
+import { needleIntegration } from '../services/needleIntegrationService'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -49,7 +51,7 @@ export default function RecruiterRequirementDetail() {
   const { requirementId } = useParams()
   // Return to wherever this page was opened from (tracker, KPI, workspace…).
   const backTo = location.state?.from || '/recruiter/requirements'
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, isOperator } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
   const canExportPdf = permissions.includes('export_data') || permissions.includes('export_pdf')
 
@@ -132,7 +134,7 @@ export default function RecruiterRequirementDetail() {
         if (casesResult.error && !isCaseTableMissing(casesResult.error)) throw casesResult.error
         const caseRows = casesResult.error ? null : casesResult.data || []
 
-        const prospectIds = [...new Set(junctionRows.map((row) => row.prospect_id).filter(Boolean))]
+        const prospectIds = [...new Set([...junctionRows, ...caseRows || []].map((row) => row.prospect_id).filter(Boolean))]
         let prospectRows = []
         if (prospectIds.length > 0) {
           const { data: fetchedProspects, error: prospectError } = await supabase
@@ -368,6 +370,16 @@ export default function RecruiterRequirementDetail() {
             title={requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
+                {requirement.status === 'open' && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={async () => {
+                  setActing(true); setActionError('')
+                  try {
+                    const result = await needleIntegration({ action: 'match', requirement_id: requirement.id, expected_version: requirement.version })
+                    if (result.warnings?.length && !window.confirm(`${result.warnings.join('\n')}\nOpen these results with that filter unapplied?`)) return
+                    navigate(`/recruiter/ai${result.path}?requirement=${requirement.id}`)
+                  } catch (failure) { setActionError(failure.message) }
+                  finally { setActing(false) }
+                }}>Match resumes</button>}
+
                 {canExportPdf ? (
                   <button
                     type="button"
@@ -492,6 +504,7 @@ export default function RecruiterRequirementDetail() {
 
               <RecruitmentCasePanel
                 requirementId={requirement.id}
+                requirementOpen={requirement.status === 'open' && !requirement.archived_at && !requirement.deleted_at}
                 linkedProspects={linkedProspects}
                 permissions={permissions}
                 onCaseChanged={() => setReloadToken((token) => token + 1)}

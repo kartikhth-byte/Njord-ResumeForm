@@ -7,10 +7,10 @@
 //   NEEDLE_AI_SEARCH_ACCESS   off (default) | operator | on
 //   NEEDLE_ORG_ID             optional; defaults to the seeded organization id
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { importPKCS8, SignJWT } from 'npm:jose@5.9.6'
+import { signNeedleToken } from '../_shared/needle-signing.ts'
 import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
-import { DEFAULT_NEEDLE_ORG_ID, needleRoleFor } from '../_shared/needle-access.js'
+import { DEFAULT_NEEDLE_ORG_ID, needleCallerAccess } from '../_shared/needle-access.js'
 
 const TOKEN_LIFETIME_SECONDS = 120
 
@@ -19,16 +19,6 @@ function json(body: unknown, headers: Record<string, string>, status = 200) {
     status,
     headers: { ...headers, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   })
-}
-
-let cachedKey: CryptoKey | null = null
-
-async function signingKey(): Promise<CryptoKey | null> {
-  if (cachedKey) return cachedKey
-  const pem = (Deno.env.get('NEEDLE_TOKEN_PRIVATE_KEY') || '').replace(/\\n/g, '\n').trim()
-  if (!pem) return null
-  cachedKey = await importPKCS8(pem, 'EdDSA')
-  return cachedKey
 }
 
 serve(async (req) => {
@@ -48,46 +38,25 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await admin.auth.getUser(token)
     if (authError || !user) return json({ error: 'Invalid token' }, corsHeaders, 401)
 
-    const [{ data: profile, error: profileError }, { data: roleRows, error: rolesError }, { data: operatorRow, error: operatorError }] = await Promise.all([
-      admin.from('profiles').select('full_name, email, user_type').eq('id', user.id).maybeSingle(),
-      admin.from('user_roles').select('roles ( name )').eq('user_id', user.id),
-      admin.from('platform_operators').select('user_id').eq('user_id', user.id).maybeSingle(),
-    ])
-
-    if (profileError || rolesError || operatorError) {
-      return json({ error: 'AI search authorization is unavailable' }, corsHeaders, 503)
-    }
-
-    const roleNames = (roleRows || [])
-      .map((row: { roles?: { name?: string } | null }) => row.roles?.name)
-      .filter(Boolean) as string[]
-
-    const needleRole = needleRoleFor({
-      access: Deno.env.get('NEEDLE_AI_SEARCH_ACCESS'),
-      isOperator: Boolean(operatorRow),
-      roleNames,
-      userType: profile?.user_type,
-    })
+    const access = await needleCallerAccess(admin, user.id, Deno.env.get('NEEDLE_AI_SEARCH_ACCESS'))
+    const profile = access.profile
+    const needleRole = access.role
     if (!needleRole) return json({ error: 'AI search is not available for this account' }, corsHeaders, 403)
 
-    const key = await signingKey()
-    if (!key) return json({ error: 'AI search is not configured' }, corsHeaders, 503)
+    if (needleRole === 'admin') {
+      const { error: auditError } = await admin.from('platform_operation_events').insert({
+        category: 'support', action: 'needle_admin_session', actor_id: user.id, status: 'succeeded',
+        details: { organization_id: Deno.env.get('NEEDLE_ORG_ID') || DEFAULT_NEEDLE_ORG_ID },
+      })
+      if (auditError) return json({ error: 'Administrative access audit is unavailable' }, corsHeaders, 503)
+    }
 
-    const now = Math.floor(Date.now() / 1000)
-    const signed = await new SignJWT({
+    const signed = await signNeedleToken(user.id, {
       email: profile?.email || user.email || '',
       name: profile?.full_name || '',
       org: Deno.env.get('NEEDLE_ORG_ID') || DEFAULT_NEEDLE_ORG_ID,
       role: needleRole,
     })
-      .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT' })
-      .setIssuer('holmes')
-      .setAudience('needle')
-      .setSubject(user.id)
-      .setIssuedAt(now)
-      .setExpirationTime(now + TOKEN_LIFETIME_SECONDS)
-      .setJti(crypto.randomUUID())
-      .sign(key)
 
     return json({ token: signed, expiresIn: TOKEN_LIFETIME_SECONDS }, corsHeaders)
   } catch (error) {

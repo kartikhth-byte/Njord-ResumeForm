@@ -2,6 +2,7 @@
 // Candidates pages and their detail pages. Moved unchanged from the old
 // Workspace page; each function throws the Supabase error on failure.
 import { supabase } from '../lib/supabase'
+import { resumeCandidateFields, saveResumeCandidate } from './needleIntegrationService'
 
 export function isSameDay(a, b) {
   if (!a || !b) return false
@@ -140,7 +141,7 @@ export function emptyCandidateForm(currentRecruiterId = '') {
   return {
     name: '',
     dob: '',
-    dateContacted: new Date().toISOString().slice(0, 10),
+    dateContacted: '',
     addedByRecruiterId: currentRecruiterId,
     rankId: '',
     vesselTypeId: '',
@@ -158,52 +159,21 @@ export function emptyCandidateForm(currentRecruiterId = '') {
 
 // Create a prospect, with an optional note and requirement link. Returns its id.
 export async function createCandidate(form, currentRecruiterId, { canAttach = false } = {}) {
-  if (!form.name.trim() || !form.dob || !form.dateContacted || !form.rankId || !form.vesselTypeId || !form.nationalityId || !form.expInRankMonths || !form.telephone || !form.email) {
-    throw new Error('Please complete the required candidate fields.')
-  }
-  if (!form.isFirstTimeAtSea && !form.previousEmployer?.trim()) {
-    throw new Error("Previous employer is required unless this is the candidate's first time at sea.")
-  }
-  const { data, error } = await supabase
-    .from('prospects')
-    .insert({
-      name: form.name,
-      dob: form.dob,
-      nationality_id: form.nationalityId,
-      rank_applied_for_id: form.rankId,
-      vessel_type_id: form.vesselTypeId,
-      exp_in_rank_months: Number(form.expInRankMonths),
-      previous_employer: form.previousEmployer?.trim() || null,
-      is_first_time_at_sea: form.isFirstTimeAtSea,
-      telephone: form.telephone,
-      email: form.email,
-      lead_source: form.leadSource || null,
-      status: 'contacted',
-      first_contacted_at: form.dateContacted ? new Date(`${form.dateContacted}T00:00:00`).toISOString() : new Date().toISOString(),
-      created_by_recruiter_id: form.addedByRecruiterId || currentRecruiterId,
-    })
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-
-  if (form.notes?.trim() && data?.id) {
-    const { error: noteError } = await supabase.rpc('add_prospect_note', {
-      p_prospect_id: data.id,
-      p_body: form.notes.trim(),
-      p_visibility: 'internal',
-    })
-    if (noteError) throw noteError
-  }
-  if (form.requirementId && data?.id && canAttach) {
-    await attachCandidateToRequirement(data.id, form.requirementId)
-  }
-  return data?.id
+  const existing = form.linkTo || form.resume?.matches?.some(row => row.reason === 'resume')
+  const result = await saveResumeCandidate(form.resume, existing ? {} : resumeCandidateFields({ ...form, addedByRecruiterId: form.addedByRecruiterId || currentRecruiterId }), {
+    requirementId: canAttach ? form.requirementId : null,
+    requirementVersion: form.requirementVersion,
+    linkTo: form.linkTo,
+    confirmNew: form.confirmNew,
+  })
+  return result.prospect_id
 }
 
 export async function attachCandidateToRequirement(prospectId, requirementId) {
-  const { error } = await supabase.rpc('attach_existing_prospect_to_requirement', {
+  const { error } = await supabase.rpc('recruitment_case_open', {
     p_prospect_id: prospectId,
     p_requirement_id: requirementId,
+    p_source: 'recruiter', p_idempotency_key: `attach:${prospectId}:${requirementId}`,
   })
   if (error) throw error
 }

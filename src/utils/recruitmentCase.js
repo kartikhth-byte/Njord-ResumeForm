@@ -115,6 +115,13 @@ export function caseActionLabel(toStatus) {
 const CASE_ERROR_MESSAGES = {
   auth_required: 'Your session has expired. Sign in again.',
   permission_denied: 'Your role cannot change recruitment cases.',
+  complete_phone_email_dob_nationality_before_progressing: 'Complete the candidate’s phone, email, date of birth and nationality before progressing past contacted.',
+  valid_send_time_required: 'Enter when the worksheet was sent; it cannot be in the future.',
+  application_already_linked: 'A form is already linked to this case. Ask the operator to review any correction.',
+  submitted_form_required: 'Choose a submitted form before linking it.',
+  application_prospect_mismatch: 'This form belongs to another candidate.',
+  form_link_requires_active_post_interview_case: 'Forms can be linked only to an active case after interview.',
+  attestation_requires_submitted_form: 'Link the candidate’s submitted form before recording the worksheet handoff.',
   version_conflict: 'Someone else updated this case. Refresh and try again.',
   case_closed: 'This case is already closed.',
   assessment_reason_required: 'Add a reason for this result.',

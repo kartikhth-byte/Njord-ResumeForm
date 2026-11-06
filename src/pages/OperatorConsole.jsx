@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruiterIntegrationsSection from '../components/recruiter/RecruiterIntegrationsSection'
+import OperatorOperationsSection from '../components/operator/OperatorOperationsSection'
 import OperatorHealthSection from '../components/operator/OperatorHealthSection'
 import { aiSearchEnabled } from '../lib/needle'
 import PageHeader from '../components/ui/PageHeader'
@@ -12,6 +13,8 @@ const TABS = [
   { key: 'health', label: 'Health' },
   { key: 'platform', label: 'Platform settings' },
   { key: 'ai', label: 'AI' },
+  { key: 'users', label: 'Organizations & users' },
+  { key: 'audit', label: 'Audit' },
 ]
 
 export default function OperatorConsole() {
@@ -28,7 +31,7 @@ export default function OperatorConsole() {
         <div className="space-y-6">
           <PageHeader title="Operator" />
 
-          <div role="tablist" aria-label="Operator" className="flex gap-1 border-b border-line">
+          <div role="tablist" aria-label="Operator" className="flex flex-wrap gap-1 border-b border-line">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -48,7 +51,8 @@ export default function OperatorConsole() {
           </div>
 
           <section role="tabpanel" className="recruiter-panel p-6">
-            {activeTab === 'health' && <OperatorHealthSection />}
+            {activeTab === 'health' && <div className="space-y-6"><OperatorHealthSection /><OperatorOperationsSection /></div>}
+            {['users', 'audit'].includes(activeTab) && <OperatorOperationsSection section={activeTab} />}
             {activeTab === 'platform' && <RecruiterIntegrationsSection />}
             {activeTab === 'ai' && (aiSearchEnabled() ? <div className="space-y-4">
               <p className="text-sm text-fg-secondary">Review conversion issues and pending facts against the original résumé. Approval remains an operator action.</p>
@@ -57,6 +61,8 @@ export default function OperatorConsole() {
                 <Link className="underline" to="/recruiter/ai/admin/facts-review">Facts approval</Link>
                 <Link className="underline" to="/recruiter/ai/admin/settings">AI settings</Link>
                 <Link className="underline" to="/recruiter/ai/admin/evals">Evaluations</Link>
+                <a className="underline" href="/ai/#/download" target="_blank" rel="noreferrer">SeaJobs downloads (operator)</a>
+                <a className="underline" href="/ai/#/user-settings" target="_blank" rel="noreferrer">Intake credentials (operator)</a>
               </div>
             </div> : <p className="text-sm text-fg-secondary">AI search is not enabled in this environment.</p>)}
           </section>

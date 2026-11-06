@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
+import CandidateResumePanel from '../components/recruiter/CandidateResumePanel'
 import StatusBadge from '../components/StatusBadge'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -21,7 +22,7 @@ import {
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { CASE_FORM_INVITE_STAGES, caseStatusMeta } from '../utils/recruitmentCase'
+import { CASE_FORM_INVITE_STAGES, caseStatusMeta, isCaseTerminal } from '../utils/recruitmentCase'
 import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
@@ -99,7 +100,7 @@ export default function RecruiterProspectDetail() {
         ] = await Promise.all([
           supabase
             .from('prospects')
-            .select('id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
+            .select('needle_resume_id, resume_source, id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
             .eq('id', prospectId)
             .maybeSingle(),
           supabase
@@ -123,7 +124,7 @@ export default function RecruiterProspectDetail() {
             .order('created_at', { ascending: false }),
           supabase
             .from('recruitment_cases')
-            .select('id, requirement_id, status')
+            .select('id, requirement_id, status, cycle, created_by, created_at, updated_at')
             .eq('prospect_id', prospectId),
           supabase.from('countries').select('id, code, name').order('name'),
           supabase.from('ranks').select('id, code, name').order('name'),
@@ -143,8 +144,15 @@ export default function RecruiterProspectDetail() {
         const noteRows = notesResult.error ? [] : notesResult.data || []
         const junctionRows = junctionsResult.error ? [] : junctionsResult.data || []
         const applicationRows = applicationsResult.error ? [] : applicationsResult.data || []
+        if (casesResult.error) throw casesResult.error
+        const caseRows = casesResult.data || []
+        const caseRequirementIds = new Set(caseRows.map(row => row.requirement_id))
+        const relationshipRows = [
+          ...caseRows.map(row => ({ ...row, isCase: true })),
+          ...junctionRows.filter(row => !caseRequirementIds.has(row.requirement_id)),
+        ]
 
-        const requirementIds = [...new Set(junctionRows.map((row) => row.requirement_id).filter(Boolean))]
+        const requirementIds = [...new Set([...junctionRows, ...(casesResult.data || [])].map((row) => row.requirement_id).filter(Boolean))]
         let requirementRows = []
         if (requirementIds.length > 0) {
           const { data: fetchedRequirements, error: requirementError } = await supabase
@@ -159,6 +167,7 @@ export default function RecruiterProspectDetail() {
           ...noteRows.map((row) => row.author_recruiter_id),
           ...junctionRows.map((row) => row.assigned_by_recruiter_id),
           ...junctionRows.map((row) => row.last_transition_by_recruiter_id),
+          ...caseRows.map((row) => row.created_by),
         ].filter(Boolean))]
 
         let authors = []
@@ -173,7 +182,7 @@ export default function RecruiterProspectDetail() {
 
         setProspect(prospectRow)
         setNotes(noteRows)
-        setJunctions(junctionRows)
+        setJunctions(relationshipRows)
         setApplications(applicationRows)
         setLinkedRequirements(requirementRows)
         const eligibleCases = (casesResult.error ? [] : casesResult.data || [])
@@ -269,9 +278,9 @@ export default function RecruiterProspectDetail() {
     )
   }
 
-  const nationalityName = getLookupName(lookupMaps.countries, prospect.nationality_id, 'Unknown nationality')
-  const rankName = getLookupName(lookupMaps.ranks, prospect.rank_applied_for_id, 'Unknown rank')
-  const vesselName = getLookupName(lookupMaps.vessel_types, prospect.vessel_type_id, 'Unknown vessel')
+  const nationalityName = getLookupName(lookupMaps.countries, prospect.nationality_id, 'Not provided')
+  const rankName = getLookupName(lookupMaps.ranks, prospect.rank_applied_for_id, 'Not provided')
+  const vesselName = getLookupName(lookupMaps.vessel_types, prospect.vessel_type_id, 'Not provided')
 
   const statusMeta = getStatusMeta(PROSPECT_STATUS_META, prospect.status)
   const canAttach = permissions.includes('edit_junction_status') && !prospect.archived_at && !prospect.deleted_at
@@ -298,7 +307,7 @@ export default function RecruiterProspectDetail() {
   // Open requirements this candidate is not linked to yet.
   const openAttachPicker = async () => {
     setActionError('')
-    const linked = new Set(junctions.map((junction) => junction.requirement_id))
+    const linked = new Set(junctions.filter(row => !row.isCase || !isCaseTerminal(row.status)).map((junction) => junction.requirement_id))
     const { data, error: loadError } = await supabase
       .from('requirements')
       .select('id, req_id_display, customer_name, status, archived_at, deleted_at')
@@ -366,7 +375,7 @@ export default function RecruiterProspectDetail() {
       setInviteStatus('Invite sent successfully.')
       const { data: refreshed, error: refreshError } = await supabase
         .from('prospects')
-        .select('id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
+        .select('needle_resume_id, resume_source, id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
         .eq('id', prospect.id)
         .maybeSingle()
 
@@ -481,6 +490,7 @@ export default function RecruiterProspectDetail() {
               {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
           </PageHeader>
+          <CandidateResumePanel candidate={prospect} countries={lookupMaps.countries} permissions={permissions} onChanged={() => setReloadToken(value => value + 1)} />
 
           {notice ? <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
           {actionError ? <div className="mt-4 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
@@ -541,15 +551,15 @@ export default function RecruiterProspectDetail() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Experience in rank</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{prospect.exp_in_rank_months} month{prospect.exp_in_rank_months === 1 ? '' : 's'}</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{prospect.exp_in_rank_months == null ? 'Not provided' : `${prospect.exp_in_rank_months} month${prospect.exp_in_rank_months === 1 ? '' : 's'}`}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Phone</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{prospect.telephone}</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{prospect.telephone || 'Not provided'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Email</p>
-                    <p className="mt-1 text-base font-semibold text-fg break-words">{prospect.email}</p>
+                    <p className="mt-1 text-base font-semibold text-fg break-words">{prospect.email || 'Not provided'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Lead source</p>
@@ -588,7 +598,7 @@ export default function RecruiterProspectDetail() {
                   ) : (
                     junctions.map((junction) => {
                       const requirement = linkedRequirementMap[junction.requirement_id]
-                      const authorName = authorMap[junction.last_transition_by_recruiter_id]?.full_name || authorMap[junction.assigned_by_recruiter_id]?.full_name || 'Recruiter'
+                      const authorName = authorMap[junction.last_transition_by_recruiter_id]?.full_name || authorMap[junction.assigned_by_recruiter_id]?.full_name || authorMap[junction.created_by]?.full_name || 'Recruiter'
 
                       return (
                         <div key={junction.id} className="p-6 transition-colors hover:bg-raised/70">
@@ -606,7 +616,7 @@ export default function RecruiterProspectDetail() {
                                     </button>
                                   ) : junction.requirement_id}
                                 </h3>
-                                <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />
+                                {junction.isCase ? <span className={`rounded-full px-3 py-1 text-xs font-semibold ${caseStatusMeta(junction.status).tone}`}>{caseStatusMeta(junction.status).label} · Cycle {junction.cycle}</span> : <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />}
                               </div>
                               <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">
                                 <div>

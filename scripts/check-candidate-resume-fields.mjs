@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict'
+import { normalizeResumePhone, resumeCandidateFields, withRequirementDefaults } from '../src/utils/candidateResumeFields.js'
+assert.equal(normalizeResumePhone('00 91 (90000) 00001'),'+919000000001')
+assert.equal(normalizeResumePhone('9000000001'),'')
+assert.throws(()=>resumeCandidateFields({name:'Synthetic',telephone:'9000000001'}),/country code/)
+const minimal=resumeCandidateFields({name:' Synthetic ',email:'one@example.invalid',expInRankMonths:''})
+assert.equal(minimal.name,'Synthetic');assert.equal(minimal.dob,null);assert.equal(minimal.contacted_at,null);assert.equal(minimal.exp_in_rank_months,null)
+assert.equal(resumeCandidateFields({name:'Synthetic',email:'one@example.invalid',expInRankMonths:0}).exp_in_rank_months,0)
+assert.throws(()=>resumeCandidateFields({name:'Synthetic',email:'',expInRankMonths:''}),/phone number or email/)
+const suggested=withRequirementDefaults({rankId:'',vesselTypeId:''},{value:'requirement',version:2,rankId:'rank',vesselTypeId:'vessel'})
+assert.equal(suggested.rankId,'rank');assert.equal(suggested.vesselFromRequirement,true)
+const cleared=withRequirementDefaults(suggested,null);assert.equal(cleared.rankId,'');assert.equal(cleared.vesselTypeId,'')
+const retained=withRequirementDefaults({...suggested,rankId:'recruiter-choice',rankFromRequirement:false},{value:'other',rankId:'different',vesselTypeId:'other-vessel'})
+assert.equal(retained.rankId,'recruiter-choice');assert.equal(retained.vesselTypeId,'other-vessel')
+console.log('Candidate input: PASS (no fabricated phone country/date/background, zero months retained)')

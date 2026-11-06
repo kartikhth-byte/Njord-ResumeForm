@@ -35,6 +35,7 @@ const VIEW_FILTERS = [
   { value: 'joined', label: 'Joined' },
   { value: 'closed', label: 'Rejected / Withdrawn' },
   { value: 'archived', label: 'Archived' },
+  { value: 'resume_missing', label: 'Résumé missing' },
   { value: 'all', label: 'All' },
 ]
 
@@ -70,6 +71,7 @@ export default function RecruiterCandidatesPage() {
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
+      if (viewFilter === 'resume_missing' && (row.needle_resume_id || row.isArchived)) return false
       if (viewFilter === 'active' && !row.inActivePipeline) return false
       if (viewFilter === 'unattached' && !(row.requirementCount === 0 && !row.isArchived)) return false
       if (viewFilter === 'joined' && !(row.hasJoined && !row.isArchived)) return false
@@ -96,6 +98,7 @@ export default function RecruiterCandidatesPage() {
     joined: rows.filter((row) => row.hasJoined && !row.isArchived).length,
     closed: rows.filter((row) => ['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived).length,
     archived: rows.filter((row) => row.isArchived).length,
+    resume_missing: rows.filter(row => !row.needle_resume_id && !row.isArchived).length,
     all: rows.length,
   }), [rows])
 
@@ -209,7 +212,7 @@ export default function RecruiterCandidatesPage() {
               canChooseRecruiter={role === 'Master Recruiter'}
               requirementOptions={tracker.data.requirements
                 .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
-                .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` }))}
+                .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}`, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))}
               currentRecruiterId={profile?.id || user?.id || ''}
               canAttach={canAttachCandidates}
               canSave={canCreateCandidates}

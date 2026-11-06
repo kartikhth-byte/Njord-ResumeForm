@@ -53,3 +53,21 @@ export async function transitionRecruitmentCase({ caseId, toStatus, reason = nul
   if (error) throw error
   return data
 }
+
+export async function attestPrincipalSend(row, form) {
+  const { data, error } = await supabase.rpc('recruitment_case_attest_principal_send_v2', {
+    p_case_id: row.id, p_expected_version: row.version, p_recipient: form.recipient.trim(),
+    p_channel: form.channel.trim(), p_worksheet_version: form.worksheetVersion.trim(),
+    p_sent_at: new Date(form.sentAt).toISOString(), p_idempotency_key: form.idempotencyKey,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function linkSubmittedCaseForm(row, applicationId) {
+  const { data, error } = await supabase.rpc('recruitment_case_link_application_v2', {
+    p_case_id: row.id, p_application_id: applicationId, p_expected_version: row.version,
+  })
+  if (error) throw error
+  return data
+}

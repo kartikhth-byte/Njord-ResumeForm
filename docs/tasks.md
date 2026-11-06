@@ -1,5 +1,47 @@
 # Pending Tasks
 
+## Integrated completion candidate (2026-11-07)
+
+KT's requested single slice is under acceptance in the isolated
+`codex/holmes-integration-completion` and `codex/needle-integration-completion`
+worktrees. Implementation covers H8 → H5 → H4 → H9, remaining pilot operator
+surfaces, manual principal handoff and legacy embedding-search retirement.
+Staging SQL through 0608 and the real-Auth/synthetic-Needle joined rehearsal
+cover the contact gate, normal Coordinator PDF/write denial, submitted-form
+link and synthetic handoff/hire/automatic closure. Consolidated code review
+closed retry/source-integrity findings. Version-2 distinct-stage retention and
+two-item bulk review/read-back also passed. KT source freeze and production
+promotion remain distinct gates. Exact evidence and rollback limits:
+`INTEGRATION_COMPLETION_2026-11-06.md`.
+
+Production remains Holmes `a1e62c1` / Needle `401ec6e0`; intake off and AI
+operator-only. No automatic post-extraction profile backfill is claimed before
+the separate NuExtract3/v18 hookup. Sender-domain/SMTP, retention and N8b remain
+owner/next-customer gates. The warm preparation sections below are historical.
+
+## Production warm/KPI checkpoint (2026-11-06)
+
+KT promoted `a1e62c1`; all ten SQL migrations, thirteen reviewed Functions and
+the pinned CMA worksheet service are deployed and read back. Real-domain
+Recruiter/operator, Master and Coordinator sign-ins pass. The synthetic case
+progressed through assessments, invitation, a single bound draft, submission,
+selection/offer and documents verified. Owner-inbox mail and emailed read-only
+review pass; temporary recipient overrides are restored. Normal recruiter CMA
+export downloads; Coordinator controls and Operator/AI access are denied in
+the production UI. The full post-release dump and all 93 table payload counts
+are verified; separate public DDL/data/CHECK restore passes for 50 tables.
+See `WARM_KPI_KT_RELEASE_2026-11-06.md` for exact evidence boundaries.
+
+Principal-send UI/hire browser acceptance remains in the later operator slice;
+the current slice's closure/version/replay evidence is from staging SQL tests.
+Do not treat it as a completed production browser hire. Next product order from
+KT: candidate-field changes, Add to Holmes, Match resumes, required uploads,
+then remaining operator features. Keep intake off and AI operator-only. The
+new-operator cached-authorization deep-link bounce is a bounded UX follow-up.
+Real-applicant sender/retention and second-customer acceptance remain open.
+
+The older preparation/staging checkpoints below are historical evidence.
+
 ## Local KPI integration checkpoint (2026-11-06)
 
 KT's pending KPI/requirement-completion slice is included in the isolated warm/Needle merge, with migration 0227. KPI staging totals, rollback-only closure and audited CSV/PDF exports pass; 2026110601 is applied on staging only. Broader applicant/email/worksheet acceptance, final exact-manifest review, main reconciliation and KT production approval remain. This does not implement the newer company/ship/0228 design or complete all legacy-to-case KPI parity. See `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md`.

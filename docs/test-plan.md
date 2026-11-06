@@ -1,5 +1,26 @@
 # Platform Test Plan
 
+## Integrated completion acceptance — 2026-11-07
+
+Use `INTEGRATION_COMPLETION_2026-11-06.md` for current source, receipts and
+open gates. New Node handler checks cover normal auth, Coordinator denial,
+server-only source/prefill, viewer scopes, account audit/revocation and expiry
+mail authorization. Isolated SQL checks cover minimal entry, duplicates,
+contact completion, stale versions, principal evidence, grants and redaction.
+Needle tests cover purpose-bound tokens, ownership/pool scope, source uploads,
+retry leases, metadata-only status and narrow workspace switching. Joint
+interactive smoke must use real staging roles and synthetic sources only.
+
+Required browser checks: single/bulk Add, exact-file/email/phone identity
+review, required upload failures and retry, preserved source history,
+Coordinator PDF without search/edit/operator, requirement reuse/version
+changes, missing-contact denial then successful completion, and manual
+principal send through hire/KPI closure. Do not sum overlapping CPU suite
+counts or treat a local adapter as a deployed Deno/Vercel gate. There is no
+staging Needle; final hosted acceptance is operator-only production after KT's
+exact-candidate approval. The existing CLI browser suite has not run in this
+turn; record the actual interactive checks and any remaining gates explicitly.
+
 ## KPI integration acceptance (2026-11-06)
 
 The local `tests/smoke/kpi-case-parity.spec.js` is synthetic-only. Check distinct hired candidates on KPI, Dashboard and Requirements, recruiter filtering/refresh, zero hires with available empty cases, legacy fallback only for missing tables, visible permission failures, and Coordinator Overview/Charts without reports/exports. The 0227 SQL fixture checks last-hire closure, duplicate cycles, cancellation/manual close and transactional rollback. Local PASS does not replace the coordinated staging case/applicant/worksheet acceptance. See `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md`.

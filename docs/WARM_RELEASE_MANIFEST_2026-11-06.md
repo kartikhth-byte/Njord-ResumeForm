@@ -1,6 +1,10 @@
 # Warm/KPI release manifest — preparation checkpoint 2026-11-06
 
-**Not approved for production.** Application source base: `2e11d4a`, plus the reviewed 0602/0603 follow-ups on
+**Historical preparation manifest; promoted after KT approval.** The frozen
+release is `a1e62c1f176770541ef70bc38692183148595923`, now deployed. Current
+readbacks and acceptance limits are in `WARM_KPI_KT_RELEASE_2026-11-06.md`.
+Do not rerun the baseline-guarded deployment helpers. The roster below preserves
+the preparation state. Application source base: `2e11d4a`, plus the reviewed 0602/0603 follow-ups on
 `codex/holmes-warm-integration`; production `main` was read back at
 `21ac6a51ae58d8a5867966e3e83b72aaabdc127c`. Recheck both heads and the deployed
 versions immediately before the final review. No force push or mass deployment.

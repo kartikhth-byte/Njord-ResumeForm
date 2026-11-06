@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import AddToHolmesDialog from '../components/recruiter/AddToHolmesDialog'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
@@ -33,6 +34,8 @@ export default function RecruiterAiSearch() {
   const [status, setStatus] = useState('connecting') // connecting | ready | unavailable
   // Set each time the frame is (re)created, from the place the user was at.
   const [frameSrc, setFrameSrc] = useState('')
+  const [selection, setSelection] = useState(null)
+  const requirementId = new URLSearchParams(location.search).get('requirement')
 
   const allowed = canUseAiSearch({ isOperator, role })
 
@@ -70,14 +73,21 @@ export default function RecruiterAiSearch() {
       const data = event.data
       if (!data || typeof data !== 'object') return
 
-      if (data.type === 'needle:route' && typeof data.path === 'string' && data.path.startsWith('/')) {
+      if (data.type === 'needle:route' && typeof data.path === 'string' && data.path.startsWith('/') && !data.path.startsWith('//')) {
         lastNeedlePathRef.current = data.path
         const next = `${ROUTE_PREFIX}${data.path}`
         // Replace: the frame's own hash changes already create history entries.
-        if (next !== window.location.pathname) navigate(next, { replace: true })
+        if (next !== window.location.pathname) navigate(`${next}${location.search}`, { replace: true })
         return
       }
 
+      if (data.type === 'needle:add-to-holmes') {
+        const ids = data.resume_ids
+        if (Array.isArray(ids) && ids.length > 0 && ids.length <= 25 && new Set(ids).size === ids.length && ids.every(id => typeof id === 'string' && /^[a-f0-9]{64}$/.test(id))) {
+          setSelection({ ids, stageId: typeof data.stage_id === 'string' ? data.stage_id : null })
+        }
+        return
+      }
       if (data.type === 'needle:auth-required') {
         if (Date.now() - lastResignInRef.current < RESIGN_IN_MIN_INTERVAL_MS) {
           setStatus('unavailable')
@@ -91,7 +101,7 @@ export default function RecruiterAiSearch() {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [status, navigate, signIn, postToFrame])
+  }, [status, navigate, signIn, postToFrame, location.search])
 
   // Holmes-side navigation (Back/Forward, sidebar link) moves the frame.
   useEffect(() => {
@@ -119,6 +129,7 @@ export default function RecruiterAiSearch() {
 
   return (
     <div className="recruiter-shell recruiter-ai-shell flex h-dvh min-h-0 min-w-0 max-w-full flex-col overflow-hidden">
+      {selection && <AddToHolmesDialog resumeIds={selection.ids} stageId={selection.stageId} requirementId={requirementId} onClose={() => { setSelection(null); frameRef.current?.focus() }} />}
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
       {status === 'ready' && frameSrc ? (

@@ -4,7 +4,9 @@ import { ChevronDown, ChevronUp, GitBranch, Loader2, Plus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import EmptyState from '../ui/EmptyState'
 import {
+  newIdempotencyKey,
   CASE_EXIT_STATUSES,
+  CASE_FORM_INVITE_STAGES,
   CASE_LEGACY_TARGETS,
   CASE_REASON_REQUIRED,
   CASE_RESULT_REASON_REQUIRED,
@@ -17,7 +19,9 @@ import {
   isCaseTerminal,
 } from '../../utils/recruitmentCase'
 import {
+  attestPrincipalSend,
   loadRequirementCases,
+  linkSubmittedCaseForm,
   openRecruitmentCase,
   transitionRecruitmentCase,
 } from '../../services/recruitmentCaseService'
@@ -30,9 +34,10 @@ function CaseStatusPill({ status }) {
 
 function describeEvent(event) {
   if (event.event_type === 'opened') return `Case opened (${event.payload?.source || 'recruiter'})${event.payload?.legacy_status ? `, earlier status ${String(event.payload.legacy_status).replaceAll('_', ' ')}` : ''}`
+  if (event.event_type === 'source_added' && event.payload?.action === 'application_linked') return 'Submitted form linked to this case'
   if (event.event_type === 'source_added') return `Also added via ${event.payload?.source || 'recruiter'}`
   if (event.event_type === 'form_invited') return 'Long form invited'
-  if (event.event_type === 'principal_send_attested') return `Worksheet sent to principal (${event.payload?.recipient || '—'}, ${event.payload?.channel || '—'})`
+  if (event.event_type === 'principal_send_attested') return `Worksheet sent to principal (${event.payload?.recipient || '—'}, ${event.payload?.channel || '—'}; ${event.payload?.worksheet_version || 'version not recorded'}${event.payload?.sent_at ? `; sent ${formatDateTime(event.payload.sent_at)}` : ''})`
   return `${caseStatusMeta(event.from_status).label} → ${caseStatusMeta(event.to_status).label}`
 }
 
@@ -50,16 +55,17 @@ function assessmentDetails(event) {
 // step by step through the agreed flow. All rules are enforced by the
 // database functions; this panel only offers the moves they allow.
 // Renders nothing where the case tables are not deployed yet.
-export default function RecruitmentCasePanel({ requirementId, linkedProspects = [], permissions = [], onCaseChanged }) {
+export default function RecruitmentCasePanel({ requirementId, requirementOpen = false, linkedProspects = [], permissions = [], onCaseChanged }) {
   const location = useLocation()
   const canMove = permissions.includes('edit_junction_status')
   const canExit = canMove || permissions.includes('withdraw_junctions')
   // Opening a case is a workflow change: same gate as moving one, so the
   // "read only" label holds for Coordinators.
-  const canOpen = canMove
+  const canOpen = canMove && requirementOpen
 
   const [state, setState] = useState({ loading: true, available: false, cases: [], events: [], error: '' })
   const [names, setNames] = useState({})
+  const [submittedForms, setSubmittedForms] = useState([])
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState('')
   const [actionError, setActionError] = useState({})
@@ -73,10 +79,13 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
         ...result.cases.map((row) => row.prospect_id),
       ])
       const actorIds = new Set(result.events.map((event) => event.actor_id).filter(Boolean))
-      const [prospectsResult, actorsResult] = await Promise.all([
+      const [prospectsResult, actorsResult, formsResult] = await Promise.all([
         ids.size ? supabase.from('prospects').select('id, name').in('id', [...ids]) : Promise.resolve({ data: [] }),
         actorIds.size ? supabase.from('profiles').select('id, full_name, email').in('id', [...actorIds]) : Promise.resolve({ data: [] }),
+        ids.size ? supabase.from('applications').select('id, prospect_id, submitted_at').in('prospect_id', [...ids]).not('submitted_at', 'is', null).order('submitted_at', { ascending: false }) : Promise.resolve({ data: [] }),
       ])
+      if (formsResult.error) throw formsResult.error
+      setSubmittedForms(formsResult.data || [])
       const nameMap = {}
       ;(prospectsResult.data || []).forEach((row) => { nameMap[row.id] = row.name })
       ;(actorsResult.data || []).forEach((row) => { nameMap[row.id] = row.full_name || row.email })
@@ -143,6 +152,25 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
 
   const renderForm = (row) => {
     if (!form || form.caseId !== row.id) return null
+    if (form.mode === 'link-form') return <form className="mt-4 space-y-3 rounded-control border border-line bg-raised p-4" onSubmit={event => {
+      event.preventDefault(); run(`${row.id}:link-form`, () => linkSubmittedCaseForm(row, form.applicationId), row.id)
+    }}>
+      <label className="block text-sm">Submitted form for this candidate<select required className="mt-1 w-full rounded border border-line bg-surface p-2" value={form.applicationId} onChange={event => setForm(current => ({ ...current, applicationId: event.target.value }))}>
+        <option value="">Choose the form reviewed for this case</option>
+        {submittedForms.filter(app => app.prospect_id === row.prospect_id).map(app => <option key={app.id} value={app.id}>{formatDateTime(app.submitted_at)} · {app.id.slice(0, 8)}</option>)}
+      </select></label>
+      <p className="text-sm text-fg-secondary">Linking records the existing submitted form. It does not send an invitation or change its contents.</p>
+      <div className="flex gap-3"><button disabled={Boolean(busy) || !form.applicationId} className="workspace-action-button workspace-action-button--primary">Link submitted form</button><button type="button" onClick={() => setForm(null)} className="underline">Cancel</button></div>
+    </form>
+    if (form.mode === 'principal') return <form className="mt-4 space-y-3 rounded-control border border-line bg-raised p-4" onSubmit={event => {
+      event.preventDefault(); run(`${row.id}:principal`, () => attestPrincipalSend(row, form), row.id)
+    }}>
+      <h3 className="font-semibold">Record worksheet sent to principal</h3>
+      <p className="text-sm text-fg-secondary">Send the reviewed worksheet yourself first, then record the details here. Saving this form sends no email.</p>
+      {[['recipient','Recipient','text'],['channel','Channel (email, portal or other)','text'],['worksheetVersion','Worksheet version / export filename','text'],['sentAt','Sent at','datetime-local']].map(([key,label,type]) => <label key={key} className="block text-sm">{label}<input required type={type} maxLength={key === 'recipient' ? 320 : key === 'channel' ? 100 : 200} className="mt-1 w-full rounded border border-line bg-surface p-2" value={form[key]} onChange={event => setForm(current => ({ ...current, [key]: event.target.value }))} /></label>)}
+      <label className="flex items-start gap-2 text-sm"><input type="checkbox" required checked={form.confirmed} onChange={event => setForm(current => ({ ...current, confirmed: event.target.checked }))} />I sent this worksheet to this recipient after reviewing it.</label>
+      <div className="flex gap-3"><button disabled={Boolean(busy)} className="workspace-action-button workspace-action-button--primary">Record send</button><button type="button" onClick={() => setForm(null)} className="underline">Cancel</button></div>
+    </form>
     const isTriage = form.mode === 'triage'
     const isExit = form.mode === 'exit'
     const isAssessment = form.mode === 'assessment'
@@ -253,6 +281,10 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
           </button>
         </div>
 
+        {row.application_id ? <p className="mt-3 text-sm">Submitted form linked · {row.application_id.slice(0, 8)}. <Link className="underline" to={`/recruiter/workspace/prospects/${row.prospect_id}`}>Open candidate’s applications</Link></p> : canMove && !terminal && CASE_FORM_INVITE_STAGES.includes(row.status) ? <div className="mt-3">
+          {submittedForms.some(app => app.prospect_id === row.prospect_id) ? <button disabled={Boolean(busy)} className="underline text-sm" onClick={() => setForm({ caseId: row.id, mode: 'link-form', applicationId: '' })}>Choose submitted form</button> : <p className="text-sm text-fg-muted">No submitted form linked to this case.</p>}
+        </div> : null}
+
         {!terminal && (canMove || canExit) ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {row.status === 'legacy' && canMove ? (
@@ -265,6 +297,7 @@ export default function RecruitmentCasePanel({ requirementId, linkedProspects = 
                 Place on new flow
               </button>
             ) : null}
+            {canMove && row.status === 'documents_verified' && <button disabled={Boolean(busy)} className="workspace-action-button workspace-action-button--primary" onClick={() => setForm({ caseId: row.id, mode: 'principal', recipient: '', channel: 'Email', worksheetVersion: '', sentAt: '', confirmed: false, idempotencyKey: newIdempotencyKey('principal-send') })}>Record sent to principal</button>}
             {canMove ? nextActions.map((toStatus, index) => (
               <button
                 key={toStatus}

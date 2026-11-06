@@ -67,13 +67,6 @@ const SETTING_DEFINITIONS = [
     clientVisible: false,
   },
   {
-    key: 'GEMINI_API_KEY',
-    label: 'Gemini API Key',
-    section: 'ai',
-    isSecret: true,
-    clientVisible: false,
-  },
-  {
     key: 'APP_URL',
     label: 'App URL',
     section: 'app',

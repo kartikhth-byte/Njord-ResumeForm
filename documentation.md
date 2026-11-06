@@ -1,6 +1,30 @@
 # Project Status
 
-## Current Needle integration checkpoint (2026-11-06)
+## Current integrated candidate (2026-11-07)
+
+Production is Holmes `a1e62c1` and Needle `401ec6e0`. KT promoted the warm/KPI
+release; the earlier preparation notes below are historical. Production
+operator is `kartik.neuralnet@gmail.com`; staging has separate accounts and
+passwords. Drive intake remains off and AI access remains operator-only.
+
+The new isolated completion candidate implements candidate minimum fields,
+reviewed Add to Holmes, requirement Match resumes, required PDF registration
+and history, viewer-only PDF access, operator health/users/audit and manual
+principal-send attestation. Its five new Holmes migrations are applied on
+staging only. Joint rehearsal uses staging Auth/RLS plus synthetic local
+Needle sources. Minimal entry, source-linked saving, identical-file dedupe,
+PDF delivery, contact completion, normal Coordinator read/write denial and
+explicit form link → synthetic principal handoff → hire/closure pass. Independent
+code review passed after retry/source-integrity fixes; 0608 version triggers
+passed follow-up review. Version/bulk browser acceptance and deduplicated
+read-back pass. KT local commit/source freeze and production promotion remain.
+
+Read `docs/INTEGRATION_COMPLETION_2026-11-06.md` for the exact boundaries,
+reset-email quota finding, new Function/gateway manifest, rollout and rollback
+limits. The new source is not committed, pushed or deployed. Stored uploads
+stay pending; extractor hookup and intake reopening remain separate gates.
+
+## Historical warm/KPI preparation checkpoint (2026-11-06)
 
 Warm/KPI release preparation: KT accepted CMA Excel/print output. Final review
 closed the case-transition retry authorization gap with additive migration
@@ -399,3 +423,29 @@ Second-customer acceptance is required before enabling a second layout. The
 exact nine-migration/thirteen-Function manifest is prepared; final review, KT
 promotion and real-domain smoke remain. Sender/retention decisions are required
 before real-applicant use; AI stays operator-only and intake stays false.
+
+## Production warm/KPI pilot (2026-11-06)
+
+KT promoted `a1e62c1`; the ten migrations and thirteen exact Functions are
+applied/read back. Vercel is Ready. The accepted CMA worksheet writer remains
+pinned on Render at `2e11d4a`, with Auto-Deploy off after specific-commit deploy.
+Normal production Recruiter/operator, Master and Coordinator sign-ins pass;
+one explicitly approved coarse-profile correction preserved its existing role
+and password. Synthetic invite/claim/draft/autosave/submission, owner mail,
+read-only review, submitted-editor denial and CMA download pass. Temporary
+mail routes are restored. Coordinator application/case/KPI reads work; workflow
+and worksheet controls are absent and direct Operator/AI entries are denied.
+Needle AI search completes through Vercel, and Repository/detail/original PDF,
+review queue, Health and logout propagation pass.
+
+The synthetic case stops at documents verified because principal-send UI is
+deferred. Staging SQL closure/version/replay proofs do not establish a live
+browser hire path. Full production Coordinator HTTP probes were not repeated;
+the normal-session 403 evidence remains staging-only. A new-operator cache can
+briefly bounce a direct deep link until live authorization refresh; server
+checks still enforce access. Post-release full dump and scratch payload counts
+pass (93 data objects / 7,377 rows); public DDL/data/CHECK restore also passes
+(50 tables / 632 rows). Archive hash stays private. This excludes managed-schema
+reconstruction, cluster globals and Storage file bytes. Live 375/640-pixel
+embed fitting and mobile menu/Escape focus checks pass; viewport restored.
+Current release details: `docs/WARM_KPI_KT_RELEASE_2026-11-06.md`.

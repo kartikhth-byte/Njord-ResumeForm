@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { isCaseTableMissing } from '../utils/recruitmentCase'
 
-const REQUIREMENT_COLUMNS = 'id, req_id_display, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, closure_reason, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, created_at, updated_at'
-const PROSPECT_COLUMNS = 'id, name, email, telephone, lead_source, status, rank_applied_for_id, vessel_type_id, nationality_id, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, deleted_at, invited_at, claimed_at, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at'
+const REQUIREMENT_COLUMNS = 'id, req_id_display, version, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, closure_reason, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, created_at, updated_at'
+const PROSPECT_COLUMNS = 'needle_resume_id, id, name, email, telephone, lead_source, status, rank_applied_for_id, vessel_type_id, nationality_id, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, deleted_at, invited_at, claimed_at, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at'
 const JUNCTION_COLUMNS = 'id, prospect_id, requirement_id, status, submitted_at, customer_decided_at, joined_at, withdrawn_at, withdrawal_reason, assigned_by_recruiter_id, last_transition_by_recruiter_id, created_at, updated_at'
 const APPLICATION_COLUMNS = 'id, prospect_id, user_id, applied_rank, status, submitted_at, reference_number, handling_recruiter_id, contract_end_date, created_at, updated_at'
 
@@ -91,7 +91,7 @@ export default function useKpiTrackerData({ enabled = true } = {}) {
             .eq('user_type', 'recruiter')
             .order('full_name'),
           supabase.from('requirements').select(REQUIREMENT_COLUMNS).order('date_opened', { ascending: false }),
-          supabase.from('prospects').select(PROSPECT_COLUMNS).order('last_activity_at', { ascending: false }),
+          loadCaseRows('prospects', PROSPECT_COLUMNS, 'id'),
           supabase.from('prospect_requirements').select(JUNCTION_COLUMNS).order('updated_at', { ascending: false }),
           supabase.from('applications').select(APPLICATION_COLUMNS).order('updated_at', { ascending: false }),
           supabase.from('requirement_remarks').select('id, requirement_id, body, created_at').order('created_at', { ascending: false }).limit(1000),

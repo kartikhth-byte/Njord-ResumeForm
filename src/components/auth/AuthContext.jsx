@@ -136,7 +136,8 @@ export const AuthProvider = ({ children }) => {
       return data
     }
 
-    const loadAuthorization = async currentUser => {
+    const loadAuthorization = async (currentUser, sessionKey) => {
+      const isActive = () => mounted && hydratedSessionKeyRef.current === sessionKey
       if (!currentUser) {
         if (mounted) {
           setProfile(null)
@@ -157,12 +158,14 @@ export const AuthProvider = ({ children }) => {
           .eq('id', currentUser.id)
           .maybeSingle()
 
+        if (!isActive()) return
         let { data: profileData, error: profileError } = profileResponse
 
         if (profileError) throw profileError
 
         if (!profileData && getLoginIntent() === 'applicant') {
           profileData = await ensureApplicantProfile(currentUser)
+          if (!isActive()) return
         }
 
         if (profileData) {
@@ -243,6 +246,7 @@ export const AuthProvider = ({ children }) => {
           operatorFlag = previousOperatorFlag
         }
 
+        if (!isActive()) return
         if (mounted) {
           setProfile(profileData ?? null)
           setUserType(profileData?.user_type ?? null)
@@ -261,8 +265,8 @@ export const AuthProvider = ({ children }) => {
           isOperator: operatorFlag,
         })
       } catch (error) {
-        console.error('Authorization load error:', error)
-        if (mounted) {
+        console.error('Authorization load error:', error?.code || error?.name || 'unknown', error?.message || 'No diagnostic message')
+        if (isActive()) {
           setAuthorizationLoading(false)
         }
       }
@@ -314,7 +318,9 @@ export const AuthProvider = ({ children }) => {
         setRole(cachedAuthorization.role ?? null)
         setPermissions(cachedAuthorization.permissions ?? [])
         setIsOperator(Boolean(cachedAuthorization.isOperator))
-        setAuthorizationLoading(false)
+        // Cached recruiter permissions may predate an operator grant or removal.
+        // Hold protected routes until the bounded live refresh completes.
+        setAuthorizationLoading(cachedAuthorization.userType !== 'applicant' && !applicantIntent)
       } else if (applicantIntent && mounted) {
         // Applicant login should not block on profile bootstrap after Google returns.
         setProfile(buildApplicantProfileSnapshot(currentUser))
@@ -328,17 +334,17 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (applicantIntent) {
-        loadAuthorization(currentUser).catch((error) => {
+        loadAuthorization(currentUser, sessionKey).catch((error) => {
           console.warn('Applicant authorization refresh failed:', error)
         })
         return
       }
 
       try {
-        await withTimeout(loadAuthorization(currentUser), 12000, 'Authorization bootstrap')
+        await withTimeout(loadAuthorization(currentUser, sessionKey), 12000, 'Authorization bootstrap')
       } catch (error) {
         console.warn('Authorization bootstrap fallback:', error)
-        if (mounted) {
+        if (mounted && hydratedSessionKeyRef.current === sessionKey) {
           setAuthorizationLoading(false)
         }
       }
@@ -379,6 +385,10 @@ export const AuthProvider = ({ children }) => {
       if (mounted) {
         setSession(newSession)
         setUser(newSession?.user ?? null)
+        if (newSession?.user && getSessionKey(newSession) !== hydratedSessionKeyRef.current) {
+          const cached = readAuthorizationCache(newSession.user.id)
+          setAuthorizationLoading(getLoginIntent() !== 'applicant' && cached?.userType !== 'applicant')
+        }
         setLoading(false)
       }
 

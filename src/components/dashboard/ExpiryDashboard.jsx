@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, CheckCircle, FileText, Mail, RefreshCw, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../ui/PageHeader'
+import { useAuth } from '../auth/AuthContext'
 
 const URGENCY_CONFIG = {
   all: {
@@ -64,6 +65,7 @@ function getDocumentTypeLabel(type) {
 }
 
 export default function ExpiryDashboard() {
+  const { isOperator } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [documents, setDocuments] = useState([])
@@ -73,6 +75,7 @@ export default function ExpiryDashboard() {
   const [warningsResult, setWarningsResult] = useState('')
 
   const sendExpiryWarnings = async () => {
+    if (!isOperator) return
     // Warnings already go out on a schedule; this is for a deliberate extra send.
     if (!window.confirm('Send expiry warning emails now?')) return
     if (sendingWarnings) return
@@ -193,7 +196,7 @@ export default function ExpiryDashboard() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            <button
+            {isOperator && <button
               onClick={sendExpiryWarnings}
               disabled={sendingWarnings}
               className="workspace-action-button workspace-action-button--primary"
@@ -201,7 +204,7 @@ export default function ExpiryDashboard() {
             >
               <Mail className="h-4 w-4" />
               {sendingWarnings ? 'Sending…' : 'Send expiry warnings'}
-            </button>
+            </button>}
           </div>
         }
       />

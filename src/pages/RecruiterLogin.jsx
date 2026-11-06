@@ -108,7 +108,9 @@ export default function RecruiterLogin() {
       setResetMessage('Reset link sent. Check your email.')
     } catch (resetError) {
       console.error('Recruiter password reset request error:', resetError)
-      setError(resetError.message || 'Unable to send password reset email.')
+      setError(resetError.code === 'over_email_send_rate_limit' || resetError.code === 'over_request_rate_limit' || resetError.status === 429
+        ? 'Password reset email is temporarily rate limited. Wait before requesting another link, or contact your operator.'
+        : resetError.message || 'Unable to send password reset email.')
     } finally {
       setResetLoading(false)
     }

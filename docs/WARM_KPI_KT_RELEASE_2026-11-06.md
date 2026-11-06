@@ -1,8 +1,60 @@
 # KT warm-theme / KPI release
 
-Status: prepared, not promoted. This is the current CMA-only pilot release;
+Status: promoted by KT at `a1e62c1`; production acceptance is in progress.
+This is the current CMA-only pilot release;
 candidate-field relaxation, Add to Holmes and Match resumes follow it.
 The exact SQL/Function roster is in `WARM_RELEASE_MANIFEST_2026-11-06.md`.
+
+## Current production checkpoint
+
+- The ten migrations and thirteen reviewed Functions are applied and read back.
+  Do not rerun the original baseline-guarded preparation/deployment helpers.
+- Vercel deployment `dpl_2nEHbcBRa3CQmzDvcRYZvs2cNDY7` is Ready at
+  `a1e62c1f176770541ef70bc38692183148595923`.
+- Render deployment `dep-dbmvu6ijnfac73bjs9ag` runs the accepted worksheet
+  source `2e11d4a209bf61071baf7c2b2bdf6a31d0bf65e8`. Deploying that specific
+  commit disabled Render Auto-Deploy; it remains pinned. A main push currently
+  does not update Render automatically.
+- Normal production Recruiter/operator and Master sign-in pass. An approved,
+  privately archived one-account correction aligned an existing Master role
+  with the coarse recruiter profile type; no password or role was changed.
+- Live AI search completed through Vercel; Repository, candidate detail, original
+  four-page PDF in Chrome, fault-dialog opening, review queue, Operator Health
+  and logout propagation pass. The fault form was closed without a false report.
+- The labelled synthetic workflow reached interview passed through normal UI
+  actions. Owner-only invitation delivery, production claim, one new draft and
+  rank autosave after reload pass. KT explicitly approved the synthetic
+  declarations/signature; submission, owner notification and emailed read-only
+  review pass. Direct editor entry after submission redirects to Dashboard.
+  Original mail settings are restored. Production CMA export downloads normally;
+  its three sheets, ZIP integrity, synthetic identity/document cells and absence
+  of stored formula errors were checked. KT's prior Excel/print acceptance
+  remains the layout evidence; the new download was not reopened in Excel here.
+- Normal production Coordinator sign-in passes. Application/case/KPI reads
+  work, case actions and worksheet controls are absent, and direct Operator/AI
+  routes return No access. The normal-session worksheet/invite HTTP 403 probes
+  are staging evidence; they were not repeated by copying production tokens.
+- The production synthetic case stops at documents verified. The plan explicitly
+  defers the principal-send UI from this slice, so no principal attestation or
+  hire was fabricated. Distinct-hire closure/version/replay checks are the
+  existing staging SQL evidence, not a completed production browser hire flow.
+- A cached non-operator flag can briefly reject a newly granted operator's
+  direct deep link before live authorization refresh. Re-entering from Dashboard
+  works; server authorization remains enforced. Track the bounded cache-loading
+  UX correction separately; do not count it as a passed cold-start deep link.
+- Complete post-release dump and scratch verification pass: 93 table data
+  objects / 7,377 rows; all snapshot counts match restored payload counts.
+  The separate extension-compatible public DDL/data/CHECK restore also passes:
+  50 tables / 632 rows. Archive SHA-256 and receipts remain private. Managed
+  Supabase schema/global reconstruction and Storage file bytes are outside this
+  restore certification; do not describe it as a full disaster-recovery drill.
+- Live responsive embed checks pass at 375 and 640 pixels without horizontal
+  document overflow. The mobile search menu opens and Escape closes it with
+  focus returned to the trigger; the browser viewport was restored afterward.
+
+The numbered instructions below preserve the original release sequence. Steps
+1–5 are complete for this release. Private receipts hold account identifiers,
+mail-routing restoration state and backup hashes; keep them out of Git.
 
 ## Before the release window
 
@@ -17,7 +69,8 @@ The exact SQL/Function roster is in `WARM_RELEASE_MANIFEST_2026-11-06.md`.
   unrestricted `supabase db push`, deploy all Functions, or force push.
 - Record the current Vercel, Render and Function versions again if they drift.
   The recorded baseline is `main@21ac6a51ae58d8a5867966e3e83b72aaabdc127c`.
-  Render auto-deploys `main`, so the final push triggers both Vercel and Render.
+  At the initial baseline Render auto-deployed `main`; the specific-commit
+  deployment disabled that setting (see the current checkpoint above).
 
 ## 1. Read-only KT preflight
 
@@ -92,11 +145,11 @@ commit with **Manual Deploy → Deploy a specific commit**, preserving productio
 Supabase credentials and production-only `APP_URL`. Confirm `/health`, `/ready`
 and the deployed source commit. Do not deploy the latest `ui/warm-theme` branch.
 
-Before frontend promotion, confirm production
-`VITE_WORKSHEET_SERVICE_URL=https://njord-worksheet-service.onrender.com` and the
+Before frontend promotion, confirm runtime setting
+`WORKSHEET_SERVICE_URL=https://njord-worksheet-service.onrender.com` and the
 production Supabase project `btbqdviuqcpauojmorvx`. Staging data/config must not
-be copied to production. The final main push also auto-deploys Render; verify
-that deployment's source before smoke testing.
+be copied to production. Read back Render's actual Auto-Deploy setting and source
+before smoke testing; this release's service is pinned with Auto-Deploy off.
 
 ## 5. Frontend promotion — KT only
 
@@ -117,7 +170,7 @@ subprocess.run(['git','push','origin',head+':refs/heads/main'], check=True)
 PY
 ```
 
-Wait for both Vercel and Render to report healthy at the intended commit. This
+Wait for Vercel and the pinned Render worksheet source to report healthy. This
 does not push Needle `railway-m1`; its deployed operator pilot stays unchanged.
 
 ## 6. Real-domain acceptance
@@ -128,8 +181,10 @@ Before admitting recruiters, record actual deployment IDs and perform:
   workflow, export, manage members or open Operator/AI.
 - Warm desktop and narrow-pane layout, sidebar/menu keyboard navigation,
   password recovery placement, KPI/case counts and export authorization.
-- Synthetic requirement/case transitions, stale-version denial and distinct-hire
-  closure. Confirm authorized retry works and unauthorized retry is denied.
+- Synthetic requirement/case transitions through documents verified. Retain
+  the staging SQL stale-version, authorized/unauthorized replay and distinct-hire
+  closure proofs. Repeat the full browser hire/closure path when the deferred
+  principal-send UI is implemented; it is not currently reachable from this UI.
 - An explicitly approved synthetic invite → claim → draft → submission flow;
   owner-inbox delivery and read-only review, invalid/missing link denial.
 - CMA submitted export, rejected draft/Coordinator/applicant export, readable
