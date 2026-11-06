@@ -218,7 +218,8 @@ operator-pilot folder; no credentials or applicant contents are in this record.
    backup and verify scratch-restore row counts. Independently review the exact
    candidate and deployment manifest before production writes.
 3. Obtain KT approval for only the reviewed missing migrations (currently
-   expected 0220, 0221 and 0223–0227); exclude 0222/0228. Coordinate invite/claim
+   expected 0220, 0221, 0223–0227 and follow-up 2026110601); exclude
+   0222/0228. Coordinate invite/claim
    Functions, export logger, frontend and worksheet service, recording previous
    versions. Do not use unrestricted `db push`.
 4. KT promotes; repeat real-domain smoke before admitting recruiters. Keep AI
@@ -228,3 +229,33 @@ operator-pilot folder; no credentials or applicant contents are in this record.
 Rollback still restores compatible prior frontend/Functions/service together,
 retains additive case data and keeps intake off. Do not restore an old full
 database over legitimate new work.
+
+
+### Review follow-up: automatic closure concurrency
+
+The independent review found that 0227 changed requirement status without
+advancing its optimistic-concurrency version. A client holding an older
+version could therefore submit a stale status action. Preserve already-applied
+0227 and apply the focused additive migration
+`2026110601_version_case_requirement_closure.sql` after it. The replacement
+function increments version atomically only on actual automatic closure; it
+changes no historical requirement rows.
+
+The expanded isolated SQL fixture applies both migrations, checks exactly one
+version increment, and invokes the original status RPC to prove stale-version
+rejection. It also checks unchanged version on a non-final hire/retry and atomic
+rollback. A real staging rehearsal temporarily replaced the function inside a
+transaction: distinct-hire closure, version, stale RPC denial and retry passed.
+Rollback restored the original function definition (hash checked) and removed
+all synthetic rows. **2026110601 is not permanently applied on staging or
+production yet**; include it explicitly in the reviewed release manifest.
+The 55 unit / 33 browser results above remain applicable; this follow-up changes
+only the SQL function, its fixture and release records.
+
+Independent local review is complete for the requested KPI addition, responsive
+reconciliation, export authentication and recovery placement. One P2 version
+finding was raised and closed after reviewing the follow-up above. No further
+blocker was found in that scope; 52 focused Node tests were independently run.
+This does not certify the broader warm applicant/email/worksheet flows or
+approve a production deployment. Recheck the exact release manifest against a
+fresh production inventory before promotion.

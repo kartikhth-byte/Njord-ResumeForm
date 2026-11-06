@@ -218,6 +218,11 @@ Start with milestone 1 in the ordered backlog, then the single-organization recr
   verified. Modern JWT validation remains in the handler.
 - [x] Forgot password follows Sign in; keyboard/narrow-screen checks pass.
 - [x] Final slice checks: 55 unit tests, 33 synthetic browser tests, lint/build.
+- [x] Review finding patched locally: automatic closure advances requirement
+  version; real status RPC rejects stale updates. Isolated SQL and staging
+  rollback-only rehearsal pass, including function restoration.
+- [ ] Apply reviewed follow-up `2026110601` after 0227 during the coordinated
+  staging/release sequence; it has not been permanently applied yet.
 - [ ] Broader warm acceptance, fresh production backup/inventory, final review
   and KT-approved coordinated rollout remain required. Local staging Functions
   proxy results do not prove deployed-domain CORS. Details and exclusions:

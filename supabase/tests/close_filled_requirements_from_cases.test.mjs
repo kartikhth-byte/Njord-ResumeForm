@@ -10,7 +10,10 @@ await db.exec(`
     id uuid primary key,
     status text not null default 'open',
     positions_required integer not null,
-    date_closed date
+    date_closed date,
+    version integer not null default 1,
+    req_id_display text,
+    closure_reason text
   );
   create table public.recruitment_cases (
     id uuid primary key,
@@ -30,6 +33,19 @@ await db.exec(`
   for each row execute function public.set_requirement_closed_date();
 `)
 await db.exec(fs.readFileSync(process.argv[2], 'utf8'))
+// Apply the follow-up after the historical migration, as staging must do.
+await db.exec(fs.readFileSync(process.argv[3] ?? new URL('../migrations/2026110601_version_case_requirement_closure.sql', import.meta.url), 'utf8'))
+// Exercise the actual status RPC's stale-version boundary, not a copied check.
+await db.exec(`
+  create schema auth;
+  create function auth.uid() returns uuid language sql as $$ select '00000000-0000-0000-0000-000000000091'::uuid $$;
+  create function public.has_permission(uuid, text) returns boolean language sql as $$ select true $$;
+  create function public.get_user_role(uuid) returns table(role_name text) language sql as $$ select 'Recruiter'::text $$;
+`)
+const rpcs = fs.readFileSync(process.argv[4] ?? new URL('../migrations/2026060305_prospect_enrollment_rpcs.sql', import.meta.url), 'utf8')
+const transition = rpcs.match(/create or replace function public\.transition_requirement_status\([\s\S]*?\$function\$;/)
+assert.ok(transition, 'status RPC definition must be available')
+await db.exec(transition[0])
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`
 const rows = async (sql) => (await db.query(sql)).rows
@@ -41,11 +57,17 @@ await db.exec(`insert into public.recruitment_cases (id, requirement_id, prospec
   ('${id(14)}', '${id(3)}', '${id(104)}', 'sent_to_principal')`)
 
 await db.exec(`update public.recruitment_cases set status = 'hired' where id = '${id(11)}'`)
+assert.equal((await rows(`select version from public.requirements where id = '${id(1)}'`))[0].version, 1)
 assert.equal((await rows(`select status from public.requirements where id = '${id(1)}'`))[0].status, 'open')
 await db.exec(`update public.recruitment_cases set status = 'hired' where id = '${id(12)}'`)
-const filled = (await rows(`select status, date_closed from public.requirements where id = '${id(1)}'`))[0]
+const filled = (await rows(`select status, date_closed, version from public.requirements where id = '${id(1)}'`))[0]
 assert.equal(filled.status, 'closed')
 assert.ok(filled.date_closed)
+assert.equal(filled.version, 2, 'automatic closure advances version exactly once')
+await assert.rejects(db.query(`select * from public.transition_requirement_status('${id(1)}', 'open', 1, null, 'Stale screen action')`), /Stale requirement version/)
+// Repeated case updates never advance an already-closed requirement again.
+await db.exec(`update public.recruitment_cases set status = 'hired' where id = '${id(12)}'`)
+assert.equal((await rows(`select version from public.requirements where id = '${id(1)}'`))[0].version, 2)
 
 await db.exec(`update public.requirements set status = 'closed' where id = '${id(2)}'`)
 await db.exec(`update public.recruitment_cases set status = 'hired' where id = '${id(13)}'`)
@@ -71,8 +93,8 @@ assert.equal((await rows(`select status from public.requirements where id = '${i
 await db.exec(`insert into public.requirements (id, positions_required) values ('${id(6)}', 1)`)
 await db.exec(`begin; insert into public.recruitment_cases (id, requirement_id, prospect_id, status)
   values ('${id(19)}', '${id(6)}', '${id(108)}', 'hired')`)
-assert.equal((await rows(`select status from public.requirements where id = '${id(6)}'`))[0].status, 'closed')
+assert.deepEqual((await rows(`select status, version from public.requirements where id = '${id(6)}'`))[0], { status: 'closed', version: 2 })
 await db.exec('rollback')
-assert.equal((await rows(`select status from public.requirements where id = '${id(6)}'`))[0].status, 'open')
+assert.deepEqual((await rows(`select status, version from public.requirements where id = '${id(6)}'`))[0], { status: 'open', version: 1 })
 assert.equal((await rows(`select count(*)::int as n from public.recruitment_cases where id = '${id(19)}'`))[0].n, 0)
-console.log('PASS: closes on the last hire or hired insert, preserves manual closure/cancellation, deduplicates hires, rolls back atomically, denies direct client execution')
+console.log('PASS: closes on the last hire or hired insert, preserves manual closure/cancellation, deduplicates hires, advances version, rejects stale status RPC, rolls back atomically, denies direct client execution')

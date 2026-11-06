@@ -21,6 +21,12 @@ Final checks: 55 unit tests, 33 synthetic browser tests, lint and build pass.
 Recruiter password recovery now follows Sign in, including keyboard order
 and narrow-screen checks. No production release occurred.
 
+Review follow-up: automatic requirement closure now has an additive prepared
+migration, `2026110601`, to advance its version and reject stale status actions.
+The isolated SQL fixture and a real staging rollback rehearsal pass; the latter
+restored both rows and the original function. The migration is not permanently
+applied on staging or production. Include it after 0227 in the release manifest.
+
 ## Current Milestone
 
 - Local warm/Needle integration checkpoint (2026-11-06): the isolated `codex/holmes-warm-integration` candidate now includes KT's requested case-aware KPI/requirement-completion slice and migration 0227. Filled-position totals deduplicate hired candidates per requirement; legacy contact/funnel metrics remain separate. Unit, isolated SQL and synthetic browser checks pass. This is not deployed; see `docs/WARM_NEEDLE_INTEGRATION_2026-11-06.md`.

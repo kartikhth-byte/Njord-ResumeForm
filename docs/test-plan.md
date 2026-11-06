@@ -218,3 +218,11 @@ not in staging CORS; repeat on the deployed domain before release. This does
 not close applicant, worksheet fidelity, live Coordinator, Preview isolation
 or full legacy/case metric parity gates. See
 `WARM_NEEDLE_INTEGRATION_2026-11-06.md` for evidence and remaining checks.
+
+
+The automatic-closure fixture now applies historical 0227 and follow-up
+2026110601 in order. Verify one requirement version increment on final hire,
+no increment before final hire/on retry, actual status-RPC stale-version denial,
+and rollback of status/version/case together. These pass in isolated PGlite;
+a staging rollback rehearsal also verified the original function definition
+was restored. The follow-up migration is prepared, not persistently applied.
