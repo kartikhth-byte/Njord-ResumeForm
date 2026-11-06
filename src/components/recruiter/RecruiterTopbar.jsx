@@ -6,7 +6,7 @@ import { useAuth } from '../auth/AuthContext'
 import { canUseAiSearch } from '../../lib/needle'
 import { usePermissions } from '../../hooks/usePermissions'
 
-export default function RecruiterTopbar({ user, profile, role, signOut }) {
+export default function RecruiterTopbar({ user, profile, role, signOut, compact = false }) {
   const navigate = useNavigate()
   const { isOperator } = useAuth()
   const { canManageSettings } = usePermissions()
@@ -40,17 +40,17 @@ export default function RecruiterTopbar({ user, profile, role, signOut }) {
 
   return (
     <nav className="applicant-topbar">
-      <div className="applicant-topbar__inner">
+      <div className={`applicant-topbar__inner ${compact ? 'flex-wrap !gap-2 !px-3 !py-2' : ''}`}>
         <button
           type="button"
           onClick={() => navigate('/recruiter/dashboard')}
           className="applicant-topbar__brand"
         >
-          <BrandLockup compact />
+          {compact ? <span className="text-sm font-semibold text-slate-900">Holmes</span> : <BrandLockup compact />}
         </button>
 
-        <div className="flex items-center gap-2">
-        {canUseAiSearch({ isOperator, role }) && <button type="button"
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        {!compact && canUseAiSearch({ isOperator, role }) && <button type="button"
           className="workspace-action-button workspace-action-button--secondary"
           onClick={() => navigate('/recruiter/ai/search')}>AI search</button>}
         {isOperator && <button type="button"

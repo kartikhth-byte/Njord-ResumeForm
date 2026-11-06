@@ -118,8 +118,8 @@ export default function RecruiterAiSearch() {
   }
 
   return (
-    <div className="recruiter-shell flex h-dvh min-h-0 flex-col">
-      <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
+    <div className="recruiter-shell flex h-dvh min-h-0 min-w-0 w-full max-w-full flex-col overflow-hidden">
+      <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} compact />
 
       {status === 'ready' && frameSrc ? (
         <iframe
