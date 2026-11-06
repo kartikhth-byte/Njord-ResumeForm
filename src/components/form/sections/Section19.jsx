@@ -13,7 +13,6 @@ export default function Section19({ data = {}, onUpdate }) {
     noticePeriod: data.noticePeriod || '',
     preferredJoinDate: data.preferredJoinDate || '',
     contractDuration: data.contractDuration || '',
-    salaryExpectation: data.salaryExpectation || '',
     accuracyDeclaration: data.accuracyDeclaration || false,
     backgroundCheckConsent: data.backgroundCheckConsent || false,
     dataProcessingConsent: data.dataProcessingConsent || false,
@@ -37,7 +36,6 @@ export default function Section19({ data = {}, onUpdate }) {
         noticePeriod: data.noticePeriod || '',
         preferredJoinDate: data.preferredJoinDate || '',
         contractDuration: data.contractDuration || '',
-        salaryExpectation: data.salaryExpectation || '',
         accuracyDeclaration: data.accuracyDeclaration || false,
         backgroundCheckConsent: data.backgroundCheckConsent || false,
         dataProcessingConsent: data.dataProcessingConsent || false,
@@ -119,23 +117,14 @@ export default function Section19({ data = {}, onUpdate }) {
     setErrors((prev) => ({ ...prev, [name]: validateField(name, formData[name]) }))
   }
 
-  const allDeclarationsChecked =
-    formData.accuracyDeclaration &&
-    formData.backgroundCheckConsent &&
-    formData.dataProcessingConsent
-
   return (
     <div className="space-y-8">
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Final declarations</p>
         <h2 className="applicant-section-title">Additional information and declarations</h2>
-        <p className="applicant-section-copy">
-          Provide any additional information and complete the mandatory declarations
-        </p>
       </div>
 
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Additional Information</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Additional Information</h3>
 
         <FormTextArea
           label="Additional Information About Your Application"
@@ -144,7 +133,6 @@ export default function Section19({ data = {}, onUpdate }) {
           onChange={handleChange}
           rows={4}
           placeholder="Share any additional information that might be relevant to your application, such as special skills, achievements, or career goals..."
-          helpText="Optional - Use this space to highlight anything not covered in previous sections"
         />
 
         <FormTextArea
@@ -154,7 +142,6 @@ export default function Section19({ data = {}, onUpdate }) {
           onChange={handleChange}
           rows={3}
           placeholder="Any dietary requirements, religious observances, or other special needs we should be aware of..."
-          helpText="Optional - We respect all cultural and personal requirements"
         />
 
         <FormTextArea
@@ -173,7 +160,6 @@ export default function Section19({ data = {}, onUpdate }) {
             name="criminalRecord"
             checked={formData.criminalRecord}
             onChange={handleChange}
-            helpText="Check this box if you have any criminal convictions or pending charges"
           />
 
           {formData.criminalRecord && (
@@ -196,7 +182,7 @@ export default function Section19({ data = {}, onUpdate }) {
       </div>
 
       <div className="applicant-section-card space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Availability & Preferences</h3>
+        <h3 className="text-lg font-semibold text-fg border-b pb-2">Availability & Preferences</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
@@ -205,7 +191,6 @@ export default function Section19({ data = {}, onUpdate }) {
             value={formData.noticePeriod}
             onChange={handleChange}
             placeholder="e.g., Immediate, 2 weeks, 1 month"
-            helpText="How soon can you join?"
           />
 
           <FormInput
@@ -215,7 +200,6 @@ export default function Section19({ data = {}, onUpdate }) {
             value={formData.preferredJoinDate}
             onChange={handleChange}
             min={new Date().toISOString().split('T')[0]}
-            helpText="Earliest date you can join"
           />
         </div>
 
@@ -226,30 +210,14 @@ export default function Section19({ data = {}, onUpdate }) {
             value={formData.contractDuration}
             onChange={handleChange}
             placeholder="e.g., 4-6 months, 6-9 months"
-            helpText="Your preferred contract length"
-          />
-
-          <FormInput
-            label="Salary Expectation"
-            name="salaryExpectation"
-            value={formData.salaryExpectation}
-            onChange={handleChange}
-            placeholder="e.g., USD 5,000/month"
-            helpText="Optional compensation expectation"
           />
         </div>
       </div>
 
       <div className="applicant-section-card space-y-6">
-        <div>
-          <p className="applicant-section-kicker">Final declarations</p>
-          <h3 className="text-lg font-semibold text-gray-900">Declaration & consent</h3>
-          <p className="mt-1 text-sm text-gray-600">
-            These confirmations are mandatory before you can submit your application.
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold text-fg">Declaration & consent</h3>
 
-        <div className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50/80 p-4">
+        <div className="space-y-3 rounded-card border border-line bg-raised/80 p-4">
           <FormCheckbox
             label="I declare that the information provided in this application is true, complete, and accurate to the best of my knowledge."
             name="accuracyDeclaration"
@@ -288,11 +256,8 @@ export default function Section19({ data = {}, onUpdate }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
-          <h4 className="text-base font-semibold text-gray-900">Electronic signature</h4>
-          <p className="mt-1 text-sm text-gray-600">
-            Entering your details below acts as your confirmation that the declarations above are accepted.
-          </p>
+        <div className="rounded-card border border-line bg-accent-soft/70 p-5">
+          <h4 className="text-base font-semibold text-fg">Electronic signature</h4>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormInput
@@ -326,19 +291,10 @@ export default function Section19({ data = {}, onUpdate }) {
               onBlur={() => handleBlur('placeOfSigning')}
               required
               error={touched.placeOfSigning ? errors.placeOfSigning : ''}
-              placeholder="City and country where you are signing this application"
+              placeholder="City, country"
             />
           </div>
         </div>
-
-        {allDeclarationsChecked && formData.fullName && formData.signatureDate && formData.placeOfSigning && (
-          <div className="rounded-2xl border border-green-300 bg-green-50 p-5 text-green-900">
-            <p className="text-xl font-semibold">Section 19 Complete!</p>
-            <p className="mt-2 text-base">
-              All mandatory declarations and digital signature have been provided for this section. Please ensure all other sections are complete before proceeding to review and submit.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )

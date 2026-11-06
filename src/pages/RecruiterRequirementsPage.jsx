@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
+import RequirementForm from '../components/recruiter/RequirementForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -11,20 +11,19 @@ import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
   buildRequirementTrackerRows,
-  formatDays,
   ON_TIME_BADGE_CLASSES,
+  workingRecruiters,
 } from '../utils/kpiTracker'
 import { getStatusMeta, REQUIREMENT_STATUS_META, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
-  CheckCircle2,
+  AlertTriangle,
   ClipboardList,
   Download,
   Loader2,
   Plus,
   RefreshCcw,
   Ship,
-  Users,
 } from 'lucide-react'
 
 const STATUS_FILTERS = [
@@ -38,11 +37,20 @@ const STATUS_FILTERS = [
 export default function RecruiterRequirementsPage() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading, canExportData } = usePermissions()
+  const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
+  const canCreateRequirements = hasPermission('create_requirements') || hasPermission('edit_requirements')
+  const canChooseRecruiter = role === 'Master Recruiter'
+  const [showForm, setShowForm] = useState(false)
+  const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
-  const [statusFilter, setStatusFilter] = useState('open')
-  const [recruiterFilter, setRecruiterFilter] = useState('')
+  // Filters can be preset from the URL (links from KPI and Dashboard counts).
+  const initialParams = new URLSearchParams(location.search)
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const value = initialParams.get('status')
+    return STATUS_FILTERS.some((option) => option.value === value) ? value : 'open'
+  })
+  const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -85,7 +93,6 @@ export default function RecruiterRequirementsPage() {
   const openRows = rows.filter((row) => row.status === 'open' && !row.isArchived)
   const totalOpenPositions = openRows.reduce((sum, row) => sum + row.openPositions, 0)
   const overdueCount = openRows.filter((row) => row.onTimeStatus === 'Overdue').length
-  const joinedTotal = filteredRows.reduce((sum, row) => sum + row.joinedCount, 0)
 
   const exportCsv = async () => {
     if (exporting) return
@@ -136,26 +143,22 @@ export default function RecruiterRequirementsPage() {
 
   if (permLoading || tracker.loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Requirements"
-          title="Requirements tracker"
-          description="Every approved requirement with joins, open positions, ageing, and on-time delivery — calculated live. A requirement only closes when all required positions have joined."
+          title="Requirements"
           actions={(
             <div className="flex flex-wrap gap-3">
               {canExportData() ? (
@@ -163,7 +166,7 @@ export default function RecruiterRequirementsPage() {
                   type="button"
                   onClick={exportCsv}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export CSV'}
@@ -172,36 +175,58 @@ export default function RecruiterRequirementsPage() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              <Link
-                to="/recruiter/workspace"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <Plus className="h-4 w-4" />
-                Add requirement
-              </Link>
+              {canCreateRequirements && !showForm ? (
+                <button
+                  type="button"
+                  onClick={() => { setNotice(''); setShowForm(true) }}
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  New requirement
+                </button>
+              ) : null}
             </div>
           )}
         />
 
+        {notice ? (
+          <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
+        ) : null}
+
+        {showForm ? (
+          <div className="mt-6">
+            <RequirementForm
+              ranks={tracker.data.ranks}
+              vesselTypes={tracker.data.vesselTypes}
+              recruiters={workingRecruiters(tracker.data.recruiters)}
+              currentRecruiterId={profile?.id || user?.id || ''}
+              canChooseRecruiter={canChooseRecruiter}
+              canSave={canCreateRequirements}
+              onCancel={() => setShowForm(false)}
+              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+            />
+          </div>
+        ) : null}
+
         {exportError ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {exportError}
           </div>
         ) : null}
 
         {tracker.error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-6 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-5 py-6 text-sm text-danger">
             <p className="font-semibold">Could not load the requirements tracker.</p>
             <p className="mt-1">{tracker.error}</p>
             <button
               type="button"
               onClick={tracker.reload}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="mt-4 inline-flex items-center gap-2 rounded-control border border-danger-line bg-surface px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               <RefreshCcw className="h-4 w-4" />
               Try again
@@ -209,11 +234,9 @@ export default function RecruiterRequirementsPage() {
           </div>
         ) : (
         <>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Open requirements" value={statusCounts.open} icon={ClipboardList} tone="accent" hint="Approved requirements still being worked." />
-          <StatCard label="Open positions" value={totalOpenPositions} icon={Ship} tone="warning" hint="Positions still to be filled across open requirements." />
-          <StatCard label="Candidates joined" value={joinedTotal} icon={Users} tone="success" hint="Joined candidates across the filtered rows." />
-          <StatCard label="Overdue requirements" value={overdueCount} icon={CheckCircle2} tone={overdueCount > 0 ? 'warning' : 'success'} hint="Open requirements past their target days." />
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <StatCard label="Open positions" value={totalOpenPositions} icon={Ship} tone="warning" />
+          <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} />
         </div>
 
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -228,24 +251,24 @@ export default function RecruiterRequirementsPage() {
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Search</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Search</span>
                 <input
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Req ID, vessel, rank, customer…"
-                  className="w-56 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Recruiter</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
                 <select
                   value={recruiterFilter}
                   onChange={(event) => setRecruiterFilter(event.target.value)}
-                  className="w-44 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All recruiters</option>
-                  {tracker.data.recruiters.map((recruiter) => (
+                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
                     <option key={recruiter.id} value={recruiter.id}>
                       {recruiter.full_name || recruiter.email}
                     </option>
@@ -253,21 +276,21 @@ export default function RecruiterRequirementsPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Opened from</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Opened from</span>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => setDateFrom(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Opened to</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Opened to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
             </div>
@@ -277,7 +300,6 @@ export default function RecruiterRequirementsPage() {
             <EmptyState
               icon={ClipboardList}
               title="No requirements match"
-              description="Adjust the filters, or add a new requirement from the Workspace."
             />
           ) : (
             <div className="tracker-table-wrap max-h-[38rem] overflow-y-auto">
@@ -290,12 +312,9 @@ export default function RecruiterRequirementsPage() {
                     <th>Vessel</th>
                     <th>Type</th>
                     <th>Rank</th>
-                    <th className="tracker-cell--num">Required</th>
-                    <th className="tracker-cell--num">Joined</th>
-                    <th className="tracker-cell--num">Open</th>
+                    <th className="tracker-cell--num">Filled</th>
                     <th>Status</th>
                     <th className="tracker-cell--num">Days open</th>
-                    <th className="tracker-cell--num">Target</th>
                     <th>On-time</th>
                     <th>Recruiter</th>
                     <th>Remarks</th>
@@ -307,11 +326,11 @@ export default function RecruiterRequirementsPage() {
                     return (
                       <tr key={row.id}>
                         <td className="tracker-cell--primary tracker-cell--nowrap">
-                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-blue-700 hover:underline">
+                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
                             {row.reqId}
                           </Link>
                           {row.isArchived ? (
-                            <span className="tracker-pill ml-2 bg-slate-200 text-slate-600">Archived</span>
+                            <span className="tracker-pill ml-2 bg-line text-fg-secondary">Archived</span>
                           ) : null}
                         </td>
                         <td className="tracker-cell--nowrap">{formatDate(row.date_opened)}</td>
@@ -319,16 +338,17 @@ export default function RecruiterRequirementsPage() {
                         <td>{row.vessel_name || '—'}</td>
                         <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
                         <td className="tracker-cell--nowrap">{row.rankName}</td>
-                        <td className="tracker-cell--num">{row.positions_required}</td>
-                        <td className="tracker-cell--num">{row.joinedCount}</td>
-                        <td className={`tracker-cell--num ${row.openPositions > 0 ? 'font-semibold text-amber-700' : 'text-emerald-700'}`}>
-                          {row.openPositions}
+                        <td className="tracker-cell--num tracker-cell--nowrap">
+                          <span className={row.openPositions > 0 ? 'font-semibold text-fg' : 'font-semibold text-success'}>{row.joinedCount}</span>
+                          <span className="text-fg-muted"> / {row.positions_required}</span>
                         </td>
                         <td>
                           <span className={`tracker-pill ${statusMeta.className}`}>{statusMeta.label}</span>
                         </td>
-                        <td className="tracker-cell--num">{row.daysOpen ?? '—'}</td>
-                        <td className="tracker-cell--num tracker-cell--muted">{row.targetDays ?? '—'}</td>
+                        <td className="tracker-cell--num tracker-cell--nowrap">
+                          {row.daysOpen ?? '—'}
+                          {row.targetDays ? <span className="text-fg-muted"> / {row.targetDays}</span> : null}
+                        </td>
                         <td>
                           <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[row.onTimeStatus] || ON_TIME_BADGE_CLASSES['—']}`}>
                             {row.onTimeStatus}
@@ -346,15 +366,8 @@ export default function RecruiterRequirementsPage() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-slate-500">
-            {filteredRows.length} requirement{filteredRows.length === 1 ? '' : 's'} shown · days to close for closed rows: {filteredRows.filter((row) => row.daysToClose != null).length > 0
-              ? formatDays(
-                  filteredRows
-                    .filter((row) => row.daysToClose != null)
-                    .reduce((sum, row) => sum + row.daysToClose, 0) /
-                    filteredRows.filter((row) => row.daysToClose != null).length
-                ) + ' average'
-              : 'no closed rows in view'}
+          <p className="mt-4 text-xs text-fg-muted">
+            {filteredRows.length} shown
           </p>
         </section>
         </>

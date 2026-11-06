@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect } from '@playwright/test'
 import { loadPlaywrightEnv } from '../loadPlaywrightEnv.js'
+import { getPublicApiKey } from '../supabaseApiKeys.js'
 
 loadPlaywrightEnv()
 loadPlaywrightEnv(process.cwd(), '.env.local')
@@ -11,7 +12,7 @@ loadPlaywrightEnv(process.cwd(), '.env')
 const authFile = process.env.PLAYWRIGHT_APPLICANT_STORAGE_STATE || 'playwright/.auth/applicant.json'
 const hasApplicantStorageState = fs.existsSync(authFile)
 const supabaseUrl = process.env.VITE_SUPABASE_URL
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
+const supabaseAnonKey = getPublicApiKey()
 
 test.setTimeout(2 * 60 * 1000)
 

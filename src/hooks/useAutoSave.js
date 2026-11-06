@@ -33,7 +33,6 @@ export function useAutoSave(applicationId, initialData = {}) {
         if (error) throw error
 
         if (appData && appData.data) {
-          console.log('useAutoSave: Loaded data from DB:', appData.data)
           const mergedData = hasLocalEditsRef.current
             ? { ...appData.data, ...latestDataRef.current }
             : appData.data
@@ -60,7 +59,6 @@ export function useAutoSave(applicationId, initialData = {}) {
       isSavingRef.current = true
       setSaveStatus('saving')
 
-      console.log('useAutoSave: Saving to database:', dataToSave)
 
       // Update application_data
       const { error: dataError } = await supabase
@@ -87,7 +85,6 @@ export function useAutoSave(applicationId, initialData = {}) {
       setLastSaved(new Date())
       hasLocalEditsRef.current = false
       
-      console.log('useAutoSave: Save successful')
     } catch (error) {
       console.error('Auto-save error:', error)
       setSaveStatus('error')
@@ -120,22 +117,18 @@ export function useAutoSave(applicationId, initialData = {}) {
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      console.log('useAutoSave: Debounce timer fired, saving...')
       saveToDatabase(newData)
       debounceTimerRef.current = null
     }, 2000) // 2 seconds
 
-    console.log('useAutoSave: Auto-save scheduled in 2 seconds')
   }, [saveToDatabase])
 
   // Update data and trigger debounced save
   const updateData = useCallback((updates) => {
-    console.log('useAutoSave: updateData called with:', updates)
     
     setData(prevData => {
       const newData = { ...prevData, ...updates }
       hasLocalEditsRef.current = true
-      console.log('useAutoSave: New data state:', newData)
       debouncedSave(newData)
       return newData
     })
@@ -145,10 +138,8 @@ export function useAutoSave(applicationId, initialData = {}) {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event in useAutoSave:', event)
         
         if (event === 'SIGNED_OUT' || !session) {
-          console.log('Session expiry detected - triggering immediate save')
           
           if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current)
@@ -158,7 +149,6 @@ export function useAutoSave(applicationId, initialData = {}) {
           if (!isSavingRef.current && applicationId && Object.keys(data).length > 0) {
             try {
               await saveImmediately({ timeout: 5000 })
-              console.log('Final save before logout completed')
             } catch (error) {
               console.error('Final save failed:', error)
             }

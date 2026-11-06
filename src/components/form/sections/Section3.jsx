@@ -94,11 +94,7 @@ const autoCapitalize = (value) => {
     <div className="space-y-6">
       {/* Section Header */}
       <div className="applicant-section-intro">
-        <p className="applicant-section-kicker">Identity documents</p>
         <h2 className="applicant-section-title">Passport details</h2>
-        <p className="applicant-section-copy">
-          Provide your passport information
-        </p>
       </div>
 
       {/* Form Fields */}
@@ -112,7 +108,6 @@ const autoCapitalize = (value) => {
           onBlur={handleBlur}
           error={touched.passportNumber ? errors.passportNumber : ''}
           placeholder="e.g., A12345678"
-          helpText="Your passport number as shown on the passport"
         />
 
 <FormInput
@@ -127,7 +122,6 @@ const autoCapitalize = (value) => {
   onBlur={handleBlur}
   error={touched.placeOfIssue ? errors.placeOfIssue : ''}
   placeholder="e.g., Mumbai, India"
-  helpText="City and country where passport was issued"
 />
 
 <FormSelect
@@ -140,7 +134,6 @@ const autoCapitalize = (value) => {
   options={COUNTRIES}
   placeholder="Select issuing country"
   error={touched.issuingAuthority ? errors.issuingAuthority : ''}
-  helpText="Country that issued your passport"
 />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -153,7 +146,6 @@ const autoCapitalize = (value) => {
             onBlur={handleBlur}
             error={touched.dateOfIssue ? errors.dateOfIssue : ''}
             max={new Date().toISOString().split('T')[0]}
-            helpText="When the passport was issued"
           />
 
           <FormDatePicker
@@ -164,26 +156,9 @@ const autoCapitalize = (value) => {
             onChange={handleChange}
             onBlur={handleBlur}
             error={touched.dateOfExpiry ? errors.dateOfExpiry : ''}
+            helpText="Must be valid at least 6 months beyond joining"
             min={formData.dateOfIssue || new Date().toISOString().split('T')[0]}
-            helpText="When the passport expires"
           />
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="applicant-section-card applicant-section-card--muted">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">Important</h3>
-            <p className="text-sm text-blue-800">
-              Your passport must be valid for at least 6 months beyond your intended date of embarkation. Ensure all information matches your physical passport exactly.
-            </p>
-          </div>
         </div>
       </div>
     </div>

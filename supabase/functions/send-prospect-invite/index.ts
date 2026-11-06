@@ -1,11 +1,21 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
+import { getPublicApiKey } from '../_shared/api-keys.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
+import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
 
 interface ProspectInviteRequest {
   prospectId: string
+  caseId: string
   personalMessage?: string
 }
+
+const FORM_INVITE_ELIGIBLE_STAGES = [
+  'interview_passed', 'selected', 'offered', 'offer_accepted',
+  'documents_pending', 'documents_verified', 'sent_to_principal',
+]
 
 function escapeHtml(value: string) {
   return value
@@ -28,6 +38,7 @@ serve(async (req) => {
   let prospectId: string | null = null
   let actorRole: string | null = null
   let inviteReservationAcquired = false
+  let claimRequestId: string | null = null
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
@@ -67,12 +78,32 @@ serve(async (req) => {
 
     const payload = (await req.json()) as ProspectInviteRequest
     prospectId = payload?.prospectId || null
+    const caseId = payload?.caseId || null
     const personalMessage = normalizePlainText(payload?.personalMessage || '')
 
-    if (!prospectId) {
-      return new Response(JSON.stringify({ error: 'prospectId is required' }), {
+    if (!prospectId || !caseId) {
+      return new Response(JSON.stringify({ error: 'prospectId and caseId are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
+      })
+    }
+
+    const { data: inviteCase, error: caseError } = await supabaseClient
+      .from('recruitment_cases')
+      .select('id, prospect_id, organization_id, status')
+      .eq('id', caseId)
+      .eq('prospect_id', prospectId)
+      .maybeSingle()
+    if (caseError || !inviteCase) {
+      return new Response(JSON.stringify({ error: 'An eligible recruitment case is required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    if (!FORM_INVITE_ELIGIBLE_STAGES.includes(inviteCase.status)) {
+      return new Response(JSON.stringify({ error: 'The case needs a passed interview before a form invite' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 409,
       })
     }
 
@@ -116,14 +147,12 @@ serve(async (req) => {
     inviteReservationAcquired = true
 
     if (reservation.invite_state === 'already_sent') {
+      inviteReservationAcquired = false
       return new Response(JSON.stringify({
-        success: true,
-        alreadySent: true,
-        prospectId: reservation.prospect_id,
-        message: `Invite already sent by ${reservation.invited_by_recruiter_name} at ${reservation.invited_at}`,
+        error: 'A recent invite was already sent. Retry after five minutes.',
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 409,
       })
     }
 
@@ -136,7 +165,7 @@ serve(async (req) => {
 
     const appUrl = runtimeSettings.APP_URL?.replace(/\/$/, '')
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const overrideInbox = runtimeSettings.APPLICANT_NOTIFICATION_EMAIL?.trim()
 
     if (!appUrl || !resendApiKey) {
@@ -145,7 +174,58 @@ serve(async (req) => {
 
     const prospectEmail = reservation.email
     const recipientEmail = overrideInbox || prospectEmail
-    const portalUrl = `${appUrl}/applicant/login`
+    const { data: invitedProspect, error: invitedProspectError } = await supabaseClient
+      .from('prospects')
+      .select('id, organization_id, email_normalized, status, archived_at, deleted_at, bounce_flag')
+      .eq('id', prospectId)
+      .single()
+    if (invitedProspectError || !invitedProspect || invitedProspect.status !== 'approved'
+      || invitedProspect.archived_at || invitedProspect.deleted_at || invitedProspect.bounce_flag
+      || invitedProspect.email_normalized !== prospectEmail.trim().toLowerCase()
+      || invitedProspect.organization_id !== inviteCase.organization_id) {
+      throw new Error('Prospect is not eligible for applicant access')
+    }
+
+    const redirectTo = `${appUrl}/auth/callback?login_intent=applicant`
+    const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: prospectEmail,
+      options: { redirectTo },
+    })
+    if (linkError) throw linkError
+    const tokenHash = linkData?.properties?.hashed_token
+    if (!tokenHash) throw new Error('Applicant sign-in link could not be generated')
+
+    const recruiterClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      getPublicApiKey(),
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { error: formInviteError } = await recruiterClient.rpc('recruitment_case_record_form_invite', {
+      p_case_id: caseId,
+      p_idempotency_key: crypto.randomUUID(),
+    })
+    if (formInviteError) throw formInviteError
+
+    const { data: claimRequest, error: claimRequestError } = await supabaseClient
+      .from('applicant_magic_link_requests')
+      .insert({
+        prospect_id: invitedProspect.id,
+        organization_id: invitedProspect.organization_id,
+        case_id: caseId,
+        email: prospectEmail,
+        email_normalized: invitedProspect.email_normalized,
+        claim_token_hash: await claimTokenFingerprint(tokenHash),
+        request_status: 'sent',
+        sent_to_email: recipientEmail,
+        sent_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    if (claimRequestError) throw claimRequestError
+    claimRequestId = claimRequest.id
+
+    const portalUrl = `${redirectTo}&token_hash=${encodeURIComponent(tokenHash)}&type=email`
     const portalHost = new URL(portalUrl).host
     const invitedBy = actorProfile?.full_name || actorProfile?.email || actorRole || 'Recruiter'
     const safeName = escapeHtml(reservation.prospect_name || 'there')
@@ -165,7 +245,7 @@ serve(async (req) => {
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <tr>
             <td style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">NJORD Ships</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">${BRAND.name}</h1>
               <p style="margin: 6px 0 0 0; color: #dbeafe; font-size: 14px;">Recruiter invitation to the applicant portal</p>
             </td>
           </tr>
@@ -176,7 +256,10 @@ serve(async (req) => {
                 Hello ${safeName},
               </p>
               <p style="margin: 0 0 14px 0; color: #475569; font-size: 16px; line-height: 1.6;">
-                ${escapeHtml(invitedBy)} has invited you to continue your maritime profile in the NJORD Ships applicant portal.
+                ${escapeHtml(invitedBy)} has invited you to continue your maritime profile in the Holmes applicant portal.
+              </p>
+              <p style="margin: 0 0 14px 0; color: #475569; font-size: 15px; line-height: 1.6;">
+                You have passed an interview. Completing the long application does not mean you have been selected or offered a position.
               </p>
               ${safeMessage ? `
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin: 20px 0;">
@@ -189,13 +272,13 @@ serve(async (req) => {
                 <p style="margin: 0; color: #1d4ed8; font-size: 14px;">Open the portal, sign in with your account, and continue your profile from the applicant dashboard.</p>
               </div>
               <div style="text-align: center; margin: 28px 0;">
-                <a href="${portalUrl}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                <a href="${escapeHtml(portalUrl)}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600;">
                   Open Applicant Portal
                 </a>
               </div>
               <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; word-break: break-all;">
                 If the button does not open, copy this URL into your browser:<br>
-                <a href="${portalUrl}" style="color: #2563eb; text-decoration: none;">${portalUrl}</a>
+                <a href="${escapeHtml(portalUrl)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(portalUrl)}</a>
               </p>
             </td>
           </tr>
@@ -216,7 +299,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: emailFrom,
         to: [recipientEmail],
-        subject: 'Invitation to continue your NJORD Ships profile',
+        subject: 'Invitation to continue your Holmes profile',
         html,
         tags: {
           category: 'prospect_invite',
@@ -286,6 +369,13 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('send-prospect-invite error:', error)
+    if (claimRequestId) {
+      await supabaseClient.from('applicant_magic_link_requests').update({
+        request_status: 'invalidated',
+        invalidated_at: new Date().toISOString(),
+        invalidation_reason: 'invite_send_failed',
+      }).eq('id', claimRequestId)
+    }
     if (inviteReservationAcquired && prospectId && user?.id) {
       try {
         await supabaseClient.rpc('release_prospect_invite_reservation', {

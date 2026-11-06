@@ -68,30 +68,30 @@ export function formatRelativeTime(value) {
 const makeStatusMeta = (label, className) => ({ label, className })
 
 export const PROSPECT_STATUS_META = {
-  open: makeStatusMeta('Open', 'bg-blue-100 text-blue-800'),
-  contacted: makeStatusMeta('Contacted', 'bg-sky-100 text-sky-800'),
-  approved: makeStatusMeta('Approved', 'bg-emerald-100 text-emerald-800'),
-  rejected: makeStatusMeta('Rejected', 'bg-rose-100 text-rose-800'),
+  open: makeStatusMeta('Open', 'bg-accent-soft text-accent-text'),
+  contacted: makeStatusMeta('Contacted', 'bg-accent-soft text-accent-text'),
+  approved: makeStatusMeta('Approved', 'bg-success-soft text-success'),
+  rejected: makeStatusMeta('Rejected', 'bg-danger-soft text-danger'),
 }
 
 export const REQUIREMENT_STATUS_META = {
-  open: makeStatusMeta('Open', 'bg-emerald-100 text-emerald-800'),
-  closed: makeStatusMeta('Closed', 'bg-slate-100 text-slate-800'),
-  cancelled: makeStatusMeta('Cancelled', 'bg-rose-100 text-rose-800'),
+  open: makeStatusMeta('Open', 'bg-success-soft text-success'),
+  closed: makeStatusMeta('Closed', 'bg-raised text-fg'),
+  cancelled: makeStatusMeta('Cancelled', 'bg-danger-soft text-danger'),
 }
 
 export const JUNCTION_STATUS_META = {
-  shortlisted: makeStatusMeta('Shortlisted', 'bg-blue-100 text-blue-800'),
-  submitted_to_customer: makeStatusMeta('Submitted', 'bg-indigo-100 text-indigo-800'),
-  customer_reviewing: makeStatusMeta('Customer Reviewing', 'bg-violet-100 text-violet-800'),
-  customer_accepted: makeStatusMeta('Customer Accepted', 'bg-emerald-100 text-emerald-800'),
-  customer_rejected: makeStatusMeta('Customer Rejected', 'bg-rose-100 text-rose-800'),
-  joined: makeStatusMeta('Joined', 'bg-green-100 text-green-800'),
-  withdrawn: makeStatusMeta('Withdrawn', 'bg-slate-100 text-slate-800'),
+  shortlisted: makeStatusMeta('Shortlisted', 'bg-accent-soft text-accent-text'),
+  submitted_to_customer: makeStatusMeta('Submitted', 'bg-accent-soft text-accent-text'),
+  customer_reviewing: makeStatusMeta('Customer Reviewing', 'bg-progress-soft text-progress'),
+  customer_accepted: makeStatusMeta('Customer Accepted', 'bg-success-soft text-success'),
+  customer_rejected: makeStatusMeta('Customer Rejected', 'bg-danger-soft text-danger'),
+  joined: makeStatusMeta('Joined', 'bg-success-soft text-success'),
+  withdrawn: makeStatusMeta('Withdrawn', 'bg-raised text-fg'),
 }
 
 export function getStatusMeta(map, status) {
-  return map?.[status] || makeStatusMeta(status || 'Unknown', 'bg-gray-100 text-gray-800')
+  return map?.[status] || makeStatusMeta(status || 'Unknown', 'bg-raised text-fg')
 }
 
 export function safeList(rows) {

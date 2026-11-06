@@ -194,7 +194,7 @@ export default function RecruiterWorksheetMappingsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="flex items-center gap-3 text-slate-600">
+        <div className="flex items-center gap-3 text-fg-secondary">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading worksheet settings...</span>
         </div>
@@ -204,10 +204,10 @@ export default function RecruiterWorksheetMappingsSection() {
 
   const activeTemplate = selectedCustomer?.worksheet_templates?.find((template) => template.is_active)
   const templateStatusClasses = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    warning: 'border-amber-200 bg-amber-50 text-amber-700',
-    info: 'border-sky-200 bg-sky-50 text-sky-700',
-    neutral: 'border-slate-200 bg-slate-50 text-slate-600',
+    success: 'border-success-line bg-success-soft text-success',
+    warning: 'border-warning-line bg-warning-soft text-warning',
+    info: 'border-accent/40 bg-accent-soft text-accent-text',
+    neutral: 'border-line bg-raised text-fg-secondary',
   }
   const templateStatusIcon = templateStatus.tone === 'success'
     ? <CheckCircle2 className="h-4 w-4" />
@@ -219,36 +219,31 @@ export default function RecruiterWorksheetMappingsSection() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Worksheet Export Admin</p>
-          <h2 className="mt-3 text-3xl font-semibold text-slate-900">Customer Templates &amp; Mappings</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Manage customer worksheet templates and adjust field-to-cell mappings section by section. Upload customer
-            templates as normalized XLSX files here. The app will use the uploaded workbook directly during export.
-          </p>
+          <h2 className="mt-3 text-3xl font-semibold text-fg">Customer Templates &amp; Mappings</h2>
         </div>
-        <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-card bg-accent-fill text-on-accent">
           <FileSpreadsheet className="h-5 w-5" />
         </span>
       </div>
 
       {status ? (
-        <div className={`rounded-2xl border px-4 py-3 text-sm ${
-          status.type === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-rose-200 bg-rose-50 text-rose-700'
-        }`}>
+        <div className={`rounded-control border px-4 py-3 text-sm ${
+ status.type === 'success'
+ ? 'border-success-line bg-success-soft text-success'
+ : 'border-danger-line bg-danger-soft text-danger'
+ }`}>
           {status.message}
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[320px,minmax(0,1fr)]">
         <aside className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Customer</p>
+          <div className="rounded-card border border-line bg-raised p-5">
+            <p className="text-xs font-semibold text-fg-muted">Customer</p>
             <select
               value={selectedCustomerId}
               onChange={(event) => setSelectedCustomerId(event.target.value)}
-              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+              className="mt-3 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
             >
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -258,17 +253,17 @@ export default function RecruiterWorksheetMappingsSection() {
             </select>
 
             <div className="mt-5 space-y-3">
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Add Customer</label>
+              <label className="text-xs font-semibold text-fg-muted">Add Customer</label>
               <input
                 value={newCustomerName}
                 onChange={(event) => setNewCustomerName(event.target.value)}
                 placeholder="New customer name"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
               />
               <button
                 type="button"
                 onClick={handleCreateCustomer}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover"
               >
                 <Plus className="h-4 w-4" />
                 Add Customer
@@ -276,25 +271,25 @@ export default function RecruiterWorksheetMappingsSection() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="rounded-card border border-line bg-surface p-5">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Active Template</p>
+              <p className="text-xs font-semibold text-fg-muted">Active Template</p>
               <button
                 type="button"
                 onClick={handleRefreshTemplateStatus}
                 disabled={!selectedCustomer || uploadingTemplate || templateUploadStage === 'refreshing'}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-3 py-2 text-xs font-medium text-fg-secondary transition hover:border-line-input hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${templateUploadStage === 'refreshing' ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
-            <div className="mt-3 space-y-3 text-sm text-slate-600">
+            <div className="mt-3 space-y-3 text-sm text-fg-secondary">
               <p>{activeTemplate ? activeTemplate.file_name : 'No active template uploaded yet.'}</p>
               {activeTemplate?.source_extension ? (
-                <p className="text-xs text-slate-500">Source format: .{activeTemplate.source_extension}</p>
+                <p className="text-xs text-fg-muted">Source format: .{activeTemplate.source_extension}</p>
               ) : null}
-              <div className={`rounded-2xl border px-3 py-3 ${templateStatusClasses[templateStatus.tone]}`}>
+              <div className={`rounded-control border px-3 py-3 ${templateStatusClasses[templateStatus.tone]}`}>
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   {templateStatusIcon}
                   <span>{templateStatus.label}</span>
@@ -309,9 +304,9 @@ export default function RecruiterWorksheetMappingsSection() {
                 onChange={(event) => setTemplateNotes(event.target.value)}
                 rows={3}
                 placeholder="Template notes (optional)"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                className="w-full rounded-control border border-line bg-raised px-4 py-3 text-sm text-fg"
               />
-              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900">
+              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-dashed border-line-input px-4 py-3 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg">
                 {uploadingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 Upload XLSX Template
                 <input
@@ -327,23 +322,18 @@ export default function RecruiterWorksheetMappingsSection() {
         </aside>
 
         <section className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="rounded-card border border-line bg-surface p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Editable Mapping</p>
-                <h3 className="mt-2 text-xl font-semibold text-slate-900">
+                <h3 className="mt-2 text-xl font-semibold text-fg">
                   {selectedCustomer?.name || 'Customer'} Mapping
                 </h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  Left side shows the worksheet field. Right side is the editable target cell. Complex repeating and
-                  computed worksheet logic still remains code-managed for now.
-                </p>
               </div>
               <button
                 type="button"
                 onClick={handleSaveMappings}
                 disabled={saving || !selectedCustomerId}
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Mapping
@@ -352,24 +342,24 @@ export default function RecruiterWorksheetMappingsSection() {
           </div>
 
           {Object.entries(groupedMappings).map(([sectionLabel, sectionMappings], sectionIndex) => (
-            <div key={`${sectionLabel}-${sectionIndex}`} className="rounded-3xl border border-slate-200 bg-white p-5">
-              <h4 className="text-lg font-semibold text-slate-900">{sectionLabel}</h4>
+            <div key={`${sectionLabel}-${sectionIndex}`} className="rounded-card border border-line bg-surface p-5">
+              <h4 className="text-lg font-semibold text-fg">{sectionLabel}</h4>
               <div className="mt-4 space-y-3">
                 {sectionMappings.map((mapping, index) => (
                   <div
                     key={mapping.field_key || `${sectionLabel}-${mapping.cell_ref || 'row'}-${index}`}
-                    className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 md:grid-cols-[minmax(0,1fr),180px]"
+                    className="grid gap-3 rounded-control border border-line bg-raised px-4 py-4 md:grid-cols-[minmax(0,1fr),180px]"
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{mapping.field_label}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="text-sm font-medium text-fg">{mapping.field_label}</p>
+                      <p className="mt-1 text-xs text-fg-muted">
                         {mapping.sheet_name} · {mapping.source_path} · {mapping.transform}
                       </p>
                     </div>
                     <input
                       value={mapping.cell_ref}
                       onChange={(event) => handleMappingCellChange(mapping.field_key, event.target.value)}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      className="rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
                     />
                   </div>
                 ))}

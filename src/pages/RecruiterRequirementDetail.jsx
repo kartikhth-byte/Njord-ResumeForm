@@ -4,21 +4,25 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import StatCard from '../components/ui/StatCard'
+import MoreMenu from '../components/ui/MoreMenu'
+import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
+import { isCaseTableMissing } from '../utils/recruitmentCase'
+import RequirementForm from '../components/recruiter/RequirementForm'
+import {
+  archiveRequirement,
+  canDeleteRecord,
+  deleteRequirement,
+  setRequirementStatus,
+} from '../services/recruiterRecordService'
 import {
   ArrowLeft,
-  ArrowRight,
-  Clock,
   FileText,
   Layers3,
-  ListChecks,
-  Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
+import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
   formatDate,
@@ -44,10 +48,9 @@ export default function RecruiterRequirementDetail() {
   const location = useLocation()
   const { requirementId } = useParams()
   // Return to wherever this page was opened from (tracker, KPI, workspace…).
-  const backTo = location.state?.from || '/recruiter/workspace?tab=requirements'
+  const backTo = location.state?.from || '/recruiter/requirements'
   const { user, profile, signOut } = useAuth()
   const { permissions = [], role = null, loading: permLoading } = usePermissions()
-  const canExportCsv = permissions.includes('export_data') || permissions.includes('export_csv')
   const canExportPdf = permissions.includes('export_data') || permissions.includes('export_pdf')
 
   const [loading, setLoading] = useState(true)
@@ -56,8 +59,14 @@ export default function RecruiterRequirementDetail() {
   const [remarks, setRemarks] = useState([])
   const [junctions, setJunctions] = useState([])
   const [linkedProspects, setLinkedProspects] = useState([])
+  const [requirementCases, setRequirementCases] = useState(null)
   const [nationalityRows, setNationalityRows] = useState([])
   const [authorMap, setAuthorMap] = useState({})
+  const [editing, setEditing] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [notice, setNotice] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [acting, setActing] = useState(false)
   const [lookupMaps, setLookupMaps] = useState({
     countries: {},
     ranks: {},
@@ -80,10 +89,11 @@ export default function RecruiterRequirementDetail() {
           countriesResult,
           ranksResult,
           vesselTypesResult,
+          casesResult,
         ] = await Promise.all([
           supabase
             .from('requirements')
-            .select('id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id')
+            .select('id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
             .eq('id', requirementId)
             .maybeSingle(),
           supabase
@@ -103,6 +113,7 @@ export default function RecruiterRequirementDetail() {
           supabase.from('countries').select('id, code, name').order('name'),
           supabase.from('ranks').select('id, code, name').order('name'),
           supabase.from('vessel_types').select('id, code, name').order('name'),
+          supabase.from('recruitment_cases').select('prospect_id, status').eq('requirement_id', requirementId),
         ])
 
         if (cancelled) return
@@ -118,6 +129,8 @@ export default function RecruiterRequirementDetail() {
         const remarkRows = remarksResult.error ? [] : remarksResult.data || []
         const junctionRows = junctionsResult.error ? [] : junctionsResult.data || []
         const nationalityPreferenceRows = nationalityResult?.error ? [] : nationalityResult?.data || []
+        if (casesResult.error && !isCaseTableMissing(casesResult.error)) throw casesResult.error
+        const caseRows = casesResult.error ? null : casesResult.data || []
 
         const prospectIds = [...new Set(junctionRows.map((row) => row.prospect_id).filter(Boolean))]
         let prospectRows = []
@@ -150,6 +163,7 @@ export default function RecruiterRequirementDetail() {
         setRemarks(remarkRows)
         setJunctions(junctionRows)
         setLinkedProspects(prospectRows)
+        setRequirementCases(caseRows)
         setNationalityRows(nationalityPreferenceRows)
         setAuthorMap(buildLookupMap(authors))
         setLookupMaps({
@@ -173,44 +187,9 @@ export default function RecruiterRequirementDetail() {
     return () => {
       cancelled = true
     }
-  }, [user, permLoading, requirementId])
+  }, [user, permLoading, requirementId, reloadToken])
 
   const linkedProspectMap = useMemo(() => buildLookupMap(linkedProspects), [linkedProspects])
-
-  const activityItems = useMemo(() => {
-    if (!requirement) return []
-
-    const items = [
-      {
-        id: `requirement-${requirement.id}`,
-        label: 'Requirement created',
-        detail: `${requirement.req_id_display} entered the live requirement pool.`,
-        when: requirement.created_at,
-        tone: 'bg-emerald-100 text-emerald-800',
-      },
-      ...remarks.map((remark) => ({
-        id: `remark-${remark.id}`,
-        label: remark.is_transition_note ? 'Transition note' : 'Requirement remark',
-        detail: remark.body,
-        when: remark.edited_at || remark.created_at,
-        tone: remark.visibility === 'master_only' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-800',
-      })),
-      ...junctions.map((junction) => {
-        const prospect = linkedProspectMap[junction.prospect_id]
-        return {
-          id: `junction-${junction.id}`,
-          label: `Junction ${junction.status}`,
-          detail: prospect ? prospect.name : junction.prospect_id,
-          when: junction.updated_at,
-          tone: 'bg-indigo-100 text-indigo-800',
-        }
-      }),
-    ]
-
-    return items
-      .filter((item) => item.when)
-      .sort((a, b) => new Date(b.when) - new Date(a.when))
-  }, [junctions, linkedProspectMap, remarks, requirement])
 
   const nationalityPreferences = useMemo(() => {
     if (!requirement) return []
@@ -221,51 +200,6 @@ export default function RecruiterRequirementDetail() {
       })
       .filter(Boolean)
   }, [nationalityRows, lookupMaps.countries, requirement])
-
-  const exportRequirementCsv = async () => {
-    const rows = [
-      {
-        id: requirement.id,
-        req_id_display: requirement.req_id_display,
-        customer_name: requirement.customer_name || 'Not provided',
-        status: requirement.status,
-        rank: rankName,
-        vessel_type: vesselTypeName,
-        positions_required: requirement.positions_required,
-        target_days: requirement.target_days,
-        closure_reason: requirement.closure_reason || 'Not set',
-      },
-    ]
-
-    try {
-      await logRecruiterExport({
-        reportType: 'requirement_snapshot',
-        exportFormat: 'csv',
-        rowIds: [requirement.id],
-        rowCount: 1,
-        requirementId: requirement.id,
-        filters: { requirement_id: requirement.id },
-        sort: { field: 'updated_at', direction: 'desc' },
-      })
-      await downloadCsvReport({
-        filename: `requirement-${requirement.req_id_display}`,
-        columns: [
-          { label: 'Requirement', value: (row) => row.req_id_display },
-          { label: 'Customer', value: (row) => row.customer_name },
-          { label: 'Status', value: (row) => row.status },
-          { label: 'Rank', value: (row) => row.rank },
-          { label: 'Vessel type', value: (row) => row.vessel_type },
-          { label: 'Positions', value: (row) => row.positions_required },
-          { label: 'Target days', value: (row) => row.target_days },
-          { label: 'Closure reason', value: (row) => row.closure_reason },
-        ],
-        rows,
-      })
-    } catch (exportError) {
-      console.error('Failed to log requirement CSV export:', exportError)
-      window.alert('Unable to export requirement CSV right now.')
-    }
-  }
 
   const exportRequirementPdf = async () => {
     try {
@@ -297,8 +231,8 @@ export default function RecruiterRequirementDetail() {
             rows: nationalityPreferences.length > 0 ? nationalityPreferences.map((country) => [country]) : [['None recorded']],
           },
           {
-            title: 'Linked prospects',
-            headers: ['Prospect', 'Status', 'Joined', 'Withdrawn'],
+            title: 'Linked candidates',
+            headers: ['Candidate', 'Status', 'Joined', 'Withdrawn'],
             rows: junctions.slice(0, 20).map((junction) => {
               const prospect = linkedProspectMap[junction.prospect_id]
               return [
@@ -310,7 +244,6 @@ export default function RecruiterRequirementDetail() {
             }),
           },
         ],
-        footerNote: 'Generated from the live recruiter requirement detail page.',
       })
     } catch (exportError) {
       console.error('Failed to log requirement PDF export:', exportError)
@@ -325,20 +258,19 @@ export default function RecruiterRequirementDetail() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={FileText}
-            title="Requirement detail could not load"
+            title="Could not load requirement"
             description={error}
             action={
               <button
@@ -357,21 +289,19 @@ export default function RecruiterRequirementDetail() {
 
   if (!requirement) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             icon={FileText}
             title="Requirement not found"
-            description="The requirement may have been closed, cancelled, or the ID may be incorrect."
             action={
               <button
                 type="button"
                 onClick={() => navigate(backTo)}
                 className="workspace-action-button workspace-action-button--primary"
               >
-                Back to requirements
+                Back
               </button>
             }
           />
@@ -381,41 +311,63 @@ export default function RecruiterRequirementDetail() {
   }
 
   const statusMeta = getStatusMeta(REQUIREMENT_STATUS_META, requirement.status)
+  const canEditRequirement = permissions.includes('create_requirements') || permissions.includes('edit_requirements')
+  const canArchiveRequirement = permissions.includes('edit_requirements') || permissions.includes('archive_prospects')
+  const canDeleteThis = canDeleteRecord({ role, createdAt: requirement.created_at })
+  const currentRecruiterId = profile?.id || user?.id || ''
+
+  const runAction = async (fn, message, after) => {
+    setActing(true)
+    setActionError('')
+    setNotice('')
+    try {
+      await fn()
+      setNotice(message)
+      if (after) after()
+      else setReloadToken((token) => token + 1)
+    } catch (actionErr) {
+      setActionError(actionErr?.message || 'The requirement could not be updated.')
+    } finally {
+      setActing(false)
+    }
+  }
+
+  // A filled position is a hired case; legacy junctions remain the fallback
+  // until the case migration is deployed in this environment.
+  const joinedCount = requirementCases === null
+    ? junctions.filter((junction) => junction.status === 'joined').length
+    : new Set(requirementCases.filter((row) => row.status === 'hired').map((row) => row.prospect_id)).size
+  const stillOpen = Math.max((Number(requirement.positions_required) || 0) - joinedCount, 0)
+  const onClose = () => {
+    if (stillOpen > 0 && !window.confirm(`${stillOpen} of ${requirement.positions_required} position${requirement.positions_required === 1 ? '' : 's'} still open. Close anyway?`)) return
+    runAction(() => setRequirementStatus(requirement, 'closed'), 'Requirement closed.')
+  }
+
+  const onCancelRequirement = () => {
+    const reason = window.prompt(`Why is ${requirement.req_id_display} being cancelled?`)
+    if (reason === null) return
+    runAction(() => setRequirementStatus(requirement, 'cancelled', reason), 'Requirement cancelled.')
+  }
+
+  const onDelete = () => {
+    if (!window.confirm(`Delete requirement ${requirement.req_id_display}? This is a restricted action.`)) return
+    runAction(() => deleteRequirement(requirement, currentRecruiterId), 'Requirement deleted.', () => navigate('/recruiter/requirements'))
+  }
+
   const rankName = getLookupName(lookupMaps.ranks, requirement.rank_id, 'Unknown rank')
   const vesselTypeName = getLookupName(lookupMaps.vessel_types, requirement.vessel_type_id, 'Unknown vessel')
 
-  const statusCounts = {
-    shortlisted: junctions.filter((junction) => junction.status === 'shortlisted').length,
-    submitted_to_customer: junctions.filter((junction) => junction.status === 'submitted_to_customer').length,
-    customer_reviewing: junctions.filter((junction) => junction.status === 'customer_reviewing').length,
-    customer_accepted: junctions.filter((junction) => junction.status === 'customer_accepted').length,
-    customer_rejected: junctions.filter((junction) => junction.status === 'customer_rejected').length,
-    joined: junctions.filter((junction) => junction.status === 'joined').length,
-    withdrawn: junctions.filter((junction) => junction.status === 'withdrawn').length,
-  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Requirement Detail"
             title={requirement.req_id_display}
-            description="Read the live requirement record, nationality preferences, remarks, and linked prospects in one place."
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {canExportCsv ? (
-                  <button
-                    type="button"
-                    onClick={exportRequirementCsv}
-                    className="workspace-action-button workspace-action-button--secondary"
-                  >
-                    Export CSV
-                  </button>
-                ) : null}
                 {canExportPdf ? (
                   <button
                     type="button"
@@ -431,15 +383,26 @@ export default function RecruiterRequirementDetail() {
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to requirements
+                  Back
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/recruiter/workspace?tab=candidates')}
-                  className="workspace-action-button workspace-action-button--primary"
-                >
-                  Open enrollment workspace
-                </button>
+                {canEditRequirement && !editing ? (
+                  <button type="button" disabled={acting} onClick={() => setEditing(true)} className="workspace-action-button workspace-action-button--primary">
+                    Edit
+                  </button>
+                ) : null}
+                {canEditRequirement && requirement.status === 'open' ? (
+                  <button type="button" disabled={acting} onClick={onClose} className="workspace-action-button workspace-action-button--secondary">
+                    Close
+                  </button>
+                ) : null}
+                <MoreMenu
+                  disabled={acting}
+                  items={[
+                    canEditRequirement && requirement.status === 'open' && { label: 'Cancel requirement', onClick: onCancelRequirement },
+                    canArchiveRequirement && !requirement.archived_at && { label: 'Archive', onClick: () => runAction(() => archiveRequirement(requirement, currentRecruiterId), 'Requirement archived.') },
+                    canEditRequirement && canDeleteThis && { label: 'Delete', danger: true, onClick: onDelete },
+                  ]}
+                />
               </div>
             }
           >
@@ -447,88 +410,110 @@ export default function RecruiterRequirementDetail() {
               <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
                 {statusMeta.label}
               </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">
                 {requirement.positions_required} position{requirement.positions_required === 1 ? '' : 's'}
               </span>
             </div>
           </PageHeader>
 
-          <div className="workspace-kpi-grid">
-            <StatCard label="Linked prospects" value={junctions.length} icon={Users} tone="accent" hint="Prospects attached to this requirement." />
-            <StatCard label="Shortlisted" value={statusCounts.shortlisted} icon={Layers3} tone="accent" hint="Prospects waiting to be submitted to the customer." />
-            <StatCard label="Submitted" value={statusCounts.submitted_to_customer} icon={ArrowRight} tone="accent" hint="Prospects already in customer review." />
-            <StatCard label="Joined" value={statusCounts.joined} icon={ListChecks} tone="success" hint="Final placements reached from this requirement." />
-          </div>
+          {notice ? <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
+          {actionError ? <div className="mt-4 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
+          {editing ? (
+            <div className="mt-4">
+              <RequirementForm
+                requirement={requirement}
+                ranks={Object.values(lookupMaps.ranks)}
+                vesselTypes={Object.values(lookupMaps.vessel_types)}
+                currentRecruiterId={currentRecruiterId}
+                canSave={canEditRequirement}
+                onCancel={() => setEditing(false)}
+                onSaved={(message) => { setEditing(false); setNotice(message); setReloadToken((token) => token + 1) }}
+              />
+            </div>
+          ) : null}
+
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Requirement Overview</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Customer</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{requirement.customer_name || 'Not provided'}</p>
+                    <p className="text-sm font-medium text-fg-muted">Customer</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{requirement.customer_name || 'Not provided'}</p>
+                  </div>
+                  {requirement.vessel_name ? (
+                    <div>
+                      <p className="text-sm font-medium text-fg-muted">Vessel</p>
+                      <p className="mt-1 text-base font-semibold text-fg">{requirement.vessel_name}</p>
+                    </div>
+                  ) : null}
+                  <div>
+                    <p className="text-sm font-medium text-fg-muted">Rank</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(rankName)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Rank</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDisplayValue(rankName)}</p>
+                    <p className="text-sm font-medium text-fg-muted">Vessel type</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(vesselTypeName)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Vessel type</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDisplayValue(vesselTypeName)}</p>
+                    <p className="text-sm font-medium text-fg-muted">Open date</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{formatDate(requirement.date_opened)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Open date</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{formatDate(requirement.date_opened)}</p>
+                    <p className="text-sm font-medium text-fg-muted">Target days</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{requirement.target_days}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Target days</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{requirement.target_days}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Closure reason</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{requirement.closure_reason || 'Not set'}</p>
-                  </div>
+                  {requirement.closure_reason && requirement.status !== 'open' ? (
+                    <div>
+                      <p className="text-sm font-medium text-fg-muted">Closure reason</p>
+                      <p className="mt-1 text-base font-semibold text-fg">{requirement.closure_reason}</p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-sm font-medium text-slate-500">Nationality preferences</p>
+                  <p className="text-sm font-medium text-fg-muted">Nationality preferences</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {nationalityPreferences.length > 0 ? (
                       nationalityPreferences.map((countryName) => (
                         <span
                           key={countryName}
-                          className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800"
+                          className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-text"
                         >
                           {countryName}
                         </span>
                       ))
                     ) : (
-                      <span className="text-sm text-slate-500">No nationality preferences recorded</span>
+                      <span className="text-sm text-fg-muted">No nationality preferences recorded</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="recruiter-panel overflow-hidden">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Linked prospects</p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-950">Prospects attached to this requirement</h2>
+              <RecruitmentCasePanel
+                requirementId={requirement.id}
+                linkedProspects={linkedProspects}
+                permissions={permissions}
+                onCaseChanged={() => setReloadToken((token) => token + 1)}
+              />
+
+              {requirementCases === null ? <div className="recruiter-panel overflow-hidden">
+                <div className="border-b border-line px-6 py-4">
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Linked candidates</h2>
                 </div>
                 <div className="divide-y">
                   {junctions.length === 0 ? (
                     <div className="p-8">
                       <EmptyState
                         icon={Layers3}
-                        title="No linked prospects yet"
-                        description="This requirement does not have any shortlist or submission records yet."
+                        title="No linked candidates"
                         action={
                           <button
                             type="button"
-                            onClick={() => navigate('/recruiter/workspace?tab=candidates')}
+                            onClick={() => navigate('/recruiter/candidates')}
                             className="workspace-action-button workspace-action-button--primary"
                           >
-                            Open enrollment workspace
+                            Open candidates
                           </button>
                         }
                       />
@@ -539,83 +524,81 @@ export default function RecruiterRequirementDetail() {
                       const authorName = authorMap[junction.last_transition_by_recruiter_id]?.full_name || authorMap[junction.assigned_by_recruiter_id]?.full_name || 'Recruiter'
 
                       return (
-                        <div key={junction.id} className="p-6 transition-colors hover:bg-gray-50/70">
+                        <div key={junction.id} className="p-6 transition-colors hover:bg-raised/70">
                           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-3">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                  {prospect ? prospect.name : junction.prospect_id}
+                                <h3 className="text-lg font-semibold text-fg">
+                                  {prospect ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/recruiter/workspace/prospects/${prospect.id}`, { state: { from: `${location.pathname}${location.search}` } })}
+                                      className="text-left hover:text-accent-text hover:underline"
+                                    >
+                                      {prospect.name}
+                                    </button>
+                                  ) : junction.prospect_id}
                                 </h3>
                                 <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />
                               </div>
-                              <div className="grid gap-2 text-sm text-gray-600 md:grid-cols-2">
+                              <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">
                                 <div>
-                                  <span className="font-medium text-gray-700">Updated:</span> {formatRelativeTime(junction.updated_at)}
+                                  <span className="font-medium text-fg-secondary">Updated:</span> {formatRelativeTime(junction.updated_at)}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-gray-700">Last transition by:</span> {authorName}
+                                  <span className="font-medium text-fg-secondary">By:</span> {authorName}
                                 </div>
-                                <div>
-                                  <span className="font-medium text-gray-700">Joined:</span> {formatDateTime(junction.joined_at)}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-700">Withdrawn:</span> {formatDateTime(junction.withdrawn_at)}
-                                </div>
+                                {junction.joined_at ? (
+                                  <div>
+                                    <span className="font-medium text-fg-secondary">Joined:</span> {formatDateTime(junction.joined_at)}
+                                  </div>
+                                ) : null}
+                                {junction.withdrawn_at ? (
+                                  <div>
+                                    <span className="font-medium text-fg-secondary">Withdrawn:</span> {formatDateTime(junction.withdrawn_at)}
+                                  </div>
+                                ) : null}
                               </div>
                               {junction.withdrawal_reason ? (
-                                <p className="text-sm leading-6 text-slate-700">
-                                  <span className="font-medium text-slate-900">Withdrawal reason:</span> {junction.withdrawal_reason}
+                                <p className="text-sm leading-6 text-fg-secondary">
+                                  <span className="font-medium text-fg">Withdrawal reason:</span> {junction.withdrawal_reason}
                                 </p>
                               ) : null}
                             </div>
-
-                            {prospect ? (
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/recruiter/workspace/prospects/${prospect.id}`, { state: { from: `${location.pathname}${location.search}` } })}
-                                className="workspace-action-button workspace-action-button--secondary"
-                              >
-                                Open prospect
-                                <ArrowRight className="h-4 w-4" />
-                              </button>
-                            ) : null}
                           </div>
                         </div>
                       )
                     })
                   )}
                 </div>
-              </div>
+              </div> : null}
             </div>
 
             <div className="space-y-6">
               <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Remarks</p>
+                <p className="text-sm font-medium text-fg">Remarks</p>
                 <div className="mt-4 space-y-3">
                   {remarks.length === 0 ? (
                     <EmptyState
                       icon={FileText}
                       title="No remarks yet"
-                      description="This requirement does not have any internal remarks recorded yet."
                     />
                   ) : (
                     remarks.map((remark) => {
                       const authorName = authorMap[remark.author_recruiter_id]?.full_name || authorMap[remark.author_recruiter_id]?.email || 'Recruiter'
                       return (
-                        <div key={remark.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <div key={remark.id} className="rounded-control border border-line bg-raised px-4 py-4">
                           <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-sm font-semibold text-slate-900">{authorName}</p>
+                            <p className="text-sm font-semibold text-fg">{authorName}</p>
                             {remark.is_transition_note ? (
-                              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Transition note</span>
+                              <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-text">Transition note</span>
                             ) : null}
                             {remark.visibility === 'master_only' ? (
-                              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Master only</span>
-                            ) : (
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Internal</span>
-                            )}
+                              <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">Master only</span>
+                            ) : null}
                           </div>
-                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{remark.body}</p>
-                          <p className="mt-3 text-xs text-slate-500">
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-fg-secondary">{remark.body}</p>
+                          <p className="mt-3 text-xs text-fg-muted">
                             {formatDateTime(remark.edited_at || remark.created_at)}
                           </p>
                         </div>
@@ -625,52 +608,6 @@ export default function RecruiterRequirementDetail() {
                 </div>
               </div>
 
-              <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Activity feed</p>
-                <div className="mt-4 space-y-3">
-                  {activityItems.length === 0 ? (
-                    <EmptyState
-                      icon={Clock}
-                      title="No activity yet"
-                      description="The requirement activity feed will populate as remarks and junction transitions are added."
-                    />
-                  ) : (
-                    activityItems.slice(0, 10).map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item.tone}`}>{item.label}</span>
-                          <span className="text-xs text-slate-500">{formatRelativeTime(item.when)}</span>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-slate-700">{item.detail}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="recruiter-panel p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Fast path</p>
-                <h3 className="mt-2 text-lg font-semibold text-slate-950">Keep the requirement flowing</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Open candidate workspace to add or match prospects, then use the workspace pipeline to see how the requirement is progressing.
-                </p>
-                <div className="mt-5 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/recruiter/workspace?tab=candidates')}
-                    className="workspace-action-button workspace-action-button--primary w-full justify-center"
-                  >
-                    Open candidates
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/recruiter/applications')}
-                    className="workspace-action-button workspace-action-button--secondary w-full justify-center"
-                  >
-                    Review pipeline
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>

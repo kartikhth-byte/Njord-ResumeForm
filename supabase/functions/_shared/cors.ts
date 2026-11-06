@@ -1,3 +1,5 @@
+import { getAdminApiKey, isModernSecretKey } from './api-keys.ts'
+
 const DEFAULT_ALLOW_HEADERS = 'authorization, x-client-info, apikey, content-type'
 const DEFAULT_ALLOW_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 
@@ -14,7 +16,7 @@ function getConfiguredAppUrlFallback() {
 
 async function getStoredAppUrl() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const serviceRoleKey = getAdminApiKey()
 
   if (!supabaseUrl || !serviceRoleKey) {
     return ''
@@ -23,10 +25,9 @@ async function getStoredAppUrl() {
   const response = await fetch(
     `${supabaseUrl}/rest/v1/runtime_settings?setting_key=eq.APP_URL&select=setting_value`,
     {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
+      headers: isModernSecretKey(serviceRoleKey)
+        ? { apikey: serviceRoleKey }
+        : { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` },
     },
   )
 

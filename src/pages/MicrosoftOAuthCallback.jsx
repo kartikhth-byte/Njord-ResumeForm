@@ -38,7 +38,6 @@ export default function MicrosoftOAuthCallback() {
       return
     }
 
-    console.log('✅ Authorization code received, exchanging for tokens...')
 
     try {
       // Call edge function to exchange code for access token
@@ -52,7 +51,6 @@ export default function MicrosoftOAuthCallback() {
         }
       )
 
-      console.log('📧 Edge function response:', { data, error: functionError })
 
       if (functionError) {
         console.error('❌ Edge function error:', functionError)
@@ -65,18 +63,13 @@ export default function MicrosoftOAuthCallback() {
       if (data && data.success) {
 
 
-  console.log('✅ Microsoft Teams connected successfully!')
-  console.log('📍 About to navigate with teams_connected=true')
-  console.log('📍 Current localStorage before navigate:', localStorage.getItem('reopen_interview_modal'))
           setStatus('success')
         setMessage('Successfully connected to Microsoft Teams!')
         setTimeout(() => {
-                console.log('📍 Navigating NOW...')
           navigate('/recruiter/applications?teams_connected=true')
         }, 2000)
       } else {
         console.error('❌ Token exchange failed:', data)
-          console.log('📍 Data received:', JSON.stringify(data))
 
         setStatus('error')
         setMessage(data?.message || 'Failed to connect Microsoft Teams')
@@ -96,33 +89,33 @@ export default function MicrosoftOAuthCallback() {
           {/* Icon */}
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
             {status === 'processing' && (
-              <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
+              <Loader2 className="w-16 h-16 text-accent-text animate-spin" />
             )}
             {status === 'success' && (
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-green-600" />
+              <div className="w-16 h-16 bg-success-soft rounded-full flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-success" />
               </div>
             )}
             {status === 'error' && (
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="w-10 h-10 text-red-600" />
+              <div className="w-16 h-16 bg-danger-soft rounded-full flex items-center justify-center">
+                <XCircle className="w-10 h-10 text-danger" />
               </div>
             )}
           </div>
 
           {/* Message */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-semibold text-fg mb-2">
             {status === 'processing' && 'Connecting...'}
             {status === 'success' && 'Connected!'}
             {status === 'error' && 'Connection Failed'}
           </h2>
           
-          <p className="text-gray-600 mb-6">
+          <p className="text-fg-secondary mb-6">
             {message}
           </p>
 
           {/* Auto-redirect message */}
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-fg-muted">
             {status === 'processing' && 'Please wait...'}
             {status === 'success' && 'Redirecting to applications...'}
             {status === 'error' && 'Redirecting back...'}

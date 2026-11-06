@@ -2,6 +2,7 @@
 // UPDATED: Two-stage analysis with LLM reasoning and confidence scoring
 
 import { supabase } from '../lib/supabase'
+import { supabaseApiKey } from '../lib/supabaseKey'
 
 const AI_SEARCH_ACTIVE_STATUSES = [
   'submitted',
@@ -143,13 +144,16 @@ export async function getEmbeddingReadiness() {
 export async function generateEmbedding(text) {
   try {
     const safeText = (text || '').substring(0, MAX_EMBEDDING_TEXT_LENGTH)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) throw new Error('Sign in to generate embeddings')
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-embedding-proxy`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          apikey: supabaseApiKey,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ text: safeText })
       }
@@ -190,6 +194,8 @@ export async function generateEmbedding(text) {
  */
 async function analyzeWithLLM(query, application, matchedChunks) {
   try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) throw new Error('Sign in to analyze candidates')
     // Build application context
     const appData = application.application_data?.data || {}
     const profile = getApplicationSearchProfile(appData)
@@ -248,7 +254,8 @@ ${profile.endorsements.map((end, i) => `
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          apikey: supabaseApiKey,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           query,

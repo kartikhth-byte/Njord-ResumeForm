@@ -1,4 +1,5 @@
 import { useAuth } from '../components/auth/AuthContext'
+import { canViewKpi } from '../utils/kpiAccess'
 
 export function usePermissions() {
   const {
@@ -23,7 +24,7 @@ export function usePermissions() {
   const canManageRequirements = () => hasAnyPermission('edit_requirements', 'create_requirements', 'transition_requirements', 'edit_requirement_owner')
   const canScheduleInterviews = () => hasAnyPermission('transition_requirements', 'edit_requirements')
   const canExportData = () => hasAnyPermission('export_data', 'export_csv', 'export_pdf')
-  const canViewAnalytics = () => hasAnyPermission('view_audit_log', 'view_analytics')
+  const canViewAnalytics = () => canViewKpi(role, permissions)
   const canDeleteApplications = () => hasAnyPermission('delete_applications', 'delete_prospects', 'archive_prospects')
   const canManageSettings = () => hasAnyPermission('manage_runtime_settings', 'manage_settings')
   const canViewTeam = () => role === 'Master Recruiter' || hasAnyPermission('manage_runtime_settings', 'manage_settings')

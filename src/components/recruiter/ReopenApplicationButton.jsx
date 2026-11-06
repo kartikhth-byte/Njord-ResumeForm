@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { RotateCcw, AlertTriangle } from 'lucide-react'
+import { rejectionSummary } from '../../constants/rejection'
 import { supabase } from '../../lib/supabase'
 
 export default function ReopenApplicationButton({ application, onReopened }) {
@@ -26,12 +27,9 @@ export default function ReopenApplicationButton({ application, onReopened }) {
         historicalData = {
           previous_rejection: {
             rejected_at: application.updated_at,
-            rejection_reason: application.interview_feedback?.rejection_reason || 
-                             application.test_feedback?.rejection_reason ||
-                             'Previously rejected',
-            rejection_stage: application.interview_feedback ? 'interview' : 'test',
-            rejection_feedback: application.interview_feedback?.rejection_feedback ||
-                               application.test_feedback?.rejection_feedback,
+            rejection_category: application.rejection_category || null,
+            rejection_reason: rejectionSummary(application).reason || 'Previously rejected',
+            rejection_notes: rejectionSummary(application).notes || null,
             interview_ratings: application.interview_feedback?.ratings,
             test_scores: application.test_feedback?.scores
           }
@@ -93,9 +91,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
 
   const getReasonText = () => {
     if (isRejected) {
-      return application.interview_feedback?.rejection_reason || 
-             application.test_feedback?.rejection_reason ||
-             'Rejected'
+      return rejectionSummary(application).reason || 'Rejected'
     }
     if (isWithdrawn) {
       return application.withdrawal_data?.reason || 'Withdrawn'
@@ -108,7 +104,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
       {/* Reopen Button */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-800 transition hover:bg-amber-100"
+        className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-[14px] border border-warning-line bg-warning-soft px-4 py-3 font-semibold text-warning transition hover:bg-warning-soft"
       >
         <RotateCcw className="w-4 h-4" />
         Reopen Application
@@ -125,10 +121,9 @@ export default function ReopenApplicationButton({ application, onReopened }) {
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="recruiter-modal__eyebrow">Status Management</p>
                   <h2 className="recruiter-modal__title">{getTitle()}</h2>
                   <p className="recruiter-modal__subtitle">
-                    Move this candidate back to under review while preserving historical context.
+                    Moves the application back to Under review.
                   </p>
                 </div>
               </div>
@@ -145,23 +140,23 @@ export default function ReopenApplicationButton({ application, onReopened }) {
               <div className="recruiter-surface mb-4">
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Reference:</span>
-                  <span className="font-medium text-gray-900">{application.reference_number}</span>
+                  <span className="text-fg-secondary">Reference:</span>
+                  <span className="font-medium text-fg">{application.reference_number}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Candidate:</span>
-                  <span className="font-medium text-gray-900">{application.full_name}</span>
+                  <span className="text-fg-secondary">Candidate:</span>
+                  <span className="font-medium text-fg">{application.full_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Position:</span>
-                  <span className="font-medium text-gray-900">{application.applied_rank}</span>
+                  <span className="text-fg-secondary">Position:</span>
+                  <span className="font-medium text-fg">{application.applied_rank}</span>
                 </div>
               </div>
               </div>
 
               <div className="recruiter-form-field">
                 <label className="recruiter-form-label">
-                Reason for Reopening <span className="text-gray-400">(Optional)</span>
+                Reason for Reopening <span className="text-fg-muted">(Optional)</span>
                 </label>
                 <textarea
                   value={notes}
@@ -170,9 +165,6 @@ export default function ReopenApplicationButton({ application, onReopened }) {
                   rows={3}
                   className="recruiter-form-textarea"
                 />
-                <p className="recruiter-form-hint">
-                  This note stays visible to other recruiters reviewing the application history.
-                </p>
               </div>
 
               <div className="recruiter-note recruiter-note--info mt-4">
@@ -197,7 +189,7 @@ export default function ReopenApplicationButton({ application, onReopened }) {
               <button
                 onClick={handleReopen}
                 disabled={loading}
-                className="workspace-action-button bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                className="workspace-action-button border border-warning-line bg-warning-soft text-warning hover:border-warning disabled:opacity-50"
               >
                 {loading ? (
                   <>

@@ -1,9 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
+import { claimTokenFingerprint } from '../_shared/applicant-claim.ts'
 
 const MAGIC_LINK_REQUEST_LIMIT = 3
 const MIN_RESPONSE_DELAY_MS = 700
+const FORM_INVITE_ELIGIBLE_STAGES = [
+  'interview_passed', 'selected', 'offered', 'offer_accepted',
+  'documents_pending', 'documents_verified', 'sent_to_principal',
+]
 
 interface RequestApplicantMagicLinkPayload {
   email?: string
@@ -11,6 +17,11 @@ interface RequestApplicantMagicLinkPayload {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
+}
+
+function escapeHtml(value: string) {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
 }
 
 function json(payload: unknown, corsHeaders: Record<string, string>, status = 200) {
@@ -76,6 +87,16 @@ async function sendApplicantMagicLink({
   }
   const actionLink = `${redirectTo}&token_hash=${encodeURIComponent(hashedToken)}&type=email`
 
+  const { error: claimError } = await supabaseClient
+    .from('applicant_magic_link_requests')
+    .update({
+      claim_token_hash: await claimTokenFingerprint(hashedToken),
+      request_status: 'sent',
+      sent_at: new Date().toISOString(),
+    })
+    .eq('id', requestId)
+  if (claimError) throw claimError
+
   const deliveryAddress = applicantNotificationEmail || recipientEmail
   const deliveryNote =
     applicantNotificationEmail && applicantNotificationEmail !== recipientEmail
@@ -98,20 +119,20 @@ async function sendApplicantMagicLink({
         <table width="640" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);">
           <tr>
             <td style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); padding: 32px;">
-              <p style="margin: 0; color: #bfdbfe; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">Njordships Applicant Access</p>
+              <p style="margin: 0; color: #bfdbfe; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">Holmes</p>
               <h1 style="margin: 10px 0 0 0; color: #ffffff; font-size: 28px;">Your sign-in link is ready</h1>
             </td>
           </tr>
           <tr>
             <td style="padding: 32px;">
               <p style="margin: 0 0 16px 0; color: #1f2937; font-size: 16px; line-height: 1.7;">
-                Hi ${prospectName}, we received a request to sign in for <strong>${recipientEmail}</strong>.
+                Hi ${escapeHtml(prospectName)}, we received a request to sign in for <strong>${escapeHtml(recipientEmail)}</strong>.
               </p>
               <p style="margin: 0 0 24px 0; color: #475569; font-size: 15px; line-height: 1.7;">
                 If this email belongs to an approved prospect, use the secure link below to continue to the applicant portal.
               </p>
               <div style="text-align: center; margin: 28px 0;">
-                <a href="${actionLink}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; padding: 14px 24px; border-radius: 10px;">
+                <a href="${escapeHtml(actionLink)}" style="display: inline-block; background-color: #1d4ed8; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; padding: 14px 24px; border-radius: 10px;">
                   Continue to applicant portal
                 </a>
               </div>
@@ -119,7 +140,7 @@ async function sendApplicantMagicLink({
                 If the button does not work, copy and paste this link into your browser:
               </p>
               <p style="margin: 0 0 24px 0; color: #1d4ed8; font-size: 14px; line-height: 1.6; word-break: break-all;">
-                ${actionLink}
+                ${escapeHtml(actionLink)}
               </p>
               ${deliveryNote}
               <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6;">
@@ -144,26 +165,25 @@ async function sendApplicantMagicLink({
     body: JSON.stringify({
       from: emailFrom,
       to: [deliveryAddress],
-      subject: 'Njordships applicant access link',
+      subject: 'Your Holmes sign-in link',
       html,
     }),
   })
 
   if (!emailResponse.ok) {
+    await supabaseClient.from('applicant_magic_link_requests').update({
+      request_status: 'invalidated',
+      invalidated_at: new Date().toISOString(),
+      invalidation_reason: 'email_send_failed',
+    }).eq('id', requestId)
     const error = await emailResponse.json().catch(() => ({}))
     throw new Error(`Applicant access email send failed: ${JSON.stringify(error)}`)
   }
 
   await emailResponse.json().catch(() => null)
 
-  await supabaseClient
-    .from('applicant_magic_link_requests')
-    .update({
-      request_status: 'sent',
-      sent_to_email: deliveryAddress,
-      sent_at: new Date().toISOString(),
-    })
-    .eq('id', requestId)
+  await supabaseClient.from('applicant_magic_link_requests')
+    .update({ sent_to_email: deliveryAddress }).eq('id', requestId)
 }
 
 serve(async (req) => {
@@ -184,7 +204,7 @@ serve(async (req) => {
     ], supabaseClient)
 
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const appUrl = runtimeSettings.APP_URL || Deno.env.get('APP_URL') || Deno.env.get('VITE_APP_URL') || 'http://localhost:3000'
     const applicantNotificationEmail = runtimeSettings.APPLICANT_NOTIFICATION_EMAIL || ''
 
@@ -211,20 +231,22 @@ serve(async (req) => {
       .gte('created_at', hourAgoIso)
 
     if ((recentRequestCount ?? 0) >= MAGIC_LINK_REQUEST_LIMIT) {
-      const { data: matchingProspect } = await supabaseClient
+      const { data: matchingProspects } = await supabaseClient
         .from('prospects')
-        .select('id, name, email, status, archived_at, deleted_at, bounce_flag')
+        .select('id, organization_id')
         .eq('email_normalized', normalizedEmail)
         .eq('status', 'approved')
         .is('archived_at', null)
         .is('deleted_at', null)
         .eq('bounce_flag', false)
-        .maybeSingle()
+        .limit(2)
+      const matchingProspect = matchingProspects?.length === 1 ? matchingProspects[0] : null
 
       const { data: requestRow, error: requestError } = await supabaseClient
         .from('applicant_magic_link_requests')
         .insert({
           prospect_id: matchingProspect?.id ?? null,
+          organization_id: matchingProspect?.organization_id ?? null,
           email,
           email_normalized: normalizedEmail,
           request_status: 'rate_limited',
@@ -258,24 +280,41 @@ serve(async (req) => {
       }, corsHeaders)
     }
 
-    const { data: prospect, error: prospectError } = await supabaseClient
+    const { data: matchingProspects, error: prospectError } = await supabaseClient
       .from('prospects')
-      .select('id, name, email, status, archived_at, deleted_at, bounce_flag')
+      .select('id, name, email, organization_id')
       .eq('email_normalized', normalizedEmail)
       .eq('status', 'approved')
       .is('archived_at', null)
       .is('deleted_at', null)
       .eq('bounce_flag', false)
-      .maybeSingle()
+      .limit(2)
 
     if (prospectError) {
       throw prospectError
+    }
+
+    // An email shared by two organizations needs the prospect-specific
+    // recruiter invitation. Never guess which prospect should be claimed.
+    let prospect = matchingProspects?.length === 1 ? matchingProspects[0] : null
+    if (prospect) {
+      const { data: invitedCase, error: caseError } = await supabaseClient
+        .from('recruitment_cases')
+        .select('id')
+        .eq('prospect_id', prospect.id)
+        .eq('organization_id', prospect.organization_id)
+        .not('form_invited_at', 'is', null)
+        .in('status', FORM_INVITE_ELIGIBLE_STAGES)
+        .limit(1)
+      if (caseError) throw caseError
+      if (!invitedCase?.length) prospect = null
     }
 
     const { data: requestRow, error: requestError } = await supabaseClient
       .from('applicant_magic_link_requests')
       .insert({
         prospect_id: prospect?.id ?? null,
+        organization_id: prospect?.organization_id ?? null,
         email,
         email_normalized: normalizedEmail,
         request_status: prospect ? 'attempted' : 'suppressed',

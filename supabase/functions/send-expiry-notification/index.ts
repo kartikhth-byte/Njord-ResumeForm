@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 
 interface NotificationRequest {
   documentExpiryId: string
@@ -28,7 +29,7 @@ serve(async (req) => {
   try {
     const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const payload: NotificationRequest = await req.json()
 
     const {
@@ -188,7 +189,7 @@ serve(async (req) => {
 
               <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.6;">
                 Best regards,<br>
-                <strong>NJORD Ships Recruitment Team</strong>
+                <strong>${BRAND.team}</strong>
               </p>
             </td>
           </tr>
@@ -197,7 +198,7 @@ serve(async (req) => {
           <tr>
             <td style="background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
-                This is an automated notification from NJORD Ships
+                This is an automated notification from Holmes
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
                 Reference: ${referenceNumber} | Document: ${documentName}

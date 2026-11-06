@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
 import { usePermissions } from './hooks/usePermissions'
+import { useThemeForRoute } from './hooks/useThemeForRoute'
 
 import ApplicantRoute from './components/auth/ApplicantRoute'
 import RecruiterRoute from './components/auth/RecruiterRoute'
@@ -12,11 +13,7 @@ import AuthCallback from './pages/AuthCallback'
 import FormSection from './pages/FormSection'
 import FormLayout from './components/form/FormLayout'
 import ReviewSubmit from './pages/ReviewSubmit'
-import SubmissionSuccess from './pages/SubmissionSuccess'
 import ViewApplication from './pages/ViewApplication'
-import PrivacyPolicy from './pages/PrivacyPolicy'
-import TermsConditions from './pages/TermsConditions'
-import RecruiterTeam from './pages/RecruiterTeam'
 import RecruiterDashboard from './pages/RecruiterDashboardSimple'
 import RecruiterKpiPage from './pages/RecruiterKpiPage'
 import RecruiterLogin from './pages/RecruiterLogin'
@@ -24,12 +21,10 @@ import RecruiterSetup from './pages/RecruiterSetup'
 import RecruiterResetPassword from './pages/RecruiterResetPassword'
 import Unauthorized from './pages/Unauthorized'
 import RecruiterApplications from './pages/RecruiterApplications'
-import CleanupDrafts from './pages/CleanupDrafts'
 import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
 import CalendarDashboardPage from './pages/CalendarDashboardPage'
 import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
 import RecruiterSettings from './pages/RecruiterSettings'
-import RecruiterWorkspace from './pages/RecruiterWorkspace'
 import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
@@ -80,13 +75,13 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-raised">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-            <p className="text-gray-600 mb-4">Please refresh the page and try again</p>
+            <h1 className="text-2xl font-semibold text-fg mb-2">Something went wrong</h1>
+            <p className="text-fg-secondary mb-4">Please refresh the page and try again</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover"
             >
               Refresh Page
             </button>
@@ -137,12 +132,17 @@ function RootRedirect() {
   if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
       </div>
     )
   }
 
   return null
+}
+
+function WorkspaceRedirect() {
+  const [searchParams] = useSearchParams()
+  return <Navigate to={searchParams.get('tab') === 'candidates' ? '/recruiter/candidates' : '/recruiter/requirements'} replace />
 }
 
 function RecruiterProspectDetailRedirect() {
@@ -155,10 +155,16 @@ function RecruiterRequirementDetailRedirect() {
   return <Navigate to={`/recruiter/workspace/requirements/${requirementId}`} replace />
 }
 
+function ThemeSync() {
+  useThemeForRoute()
+  return null
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <Router>
+        <ThemeSync />
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
@@ -166,8 +172,6 @@ function App() {
             <Route path="/login" element={<Navigate to="/recruiter/login" replace />} />
             <Route path="/applicant/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-conditions" element={<TermsConditions />} />
             <Route path="/recruiter/login" element={<RecruiterLogin />} />
             <Route path="/recruiter/setup" element={<RecruiterSetup />} />
             <Route path="/recruiter/reset-password" element={<RecruiterResetPassword />} />
@@ -175,13 +179,10 @@ function App() {
             <Route path="/auth/microsoft/callback" element={<MicrosoftOAuthCallback />} />
             
 
-<Route path="/cleanup-drafts" element={
-  <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
-    <CleanupDrafts />
-  </ProtectedRoute>
-} />
+{/* Old Expiry address; the page moved to /recruiter/expiry. */}
+<Route path="/dashboard/expiry" element={<Navigate to="/recruiter/expiry" replace />} />
 
-<Route path="/dashboard/expiry" element={
+<Route path="/recruiter/expiry" element={
   <ProtectedRoute allowedRoles={['Recruiter', 'Master Recruiter']}>
     <ExpiryDashboardPage />
   </ProtectedRoute>
@@ -211,9 +212,10 @@ function App() {
               </RecruiterRoute>
             } />
 
+            {/* The Workspace page was merged into Requirements and Candidates. */}
             <Route path="/recruiter/workspace" element={
               <RecruiterRoute>
-                <RecruiterWorkspace />
+                <WorkspaceRedirect />
               </RecruiterRoute>
             } />
 
@@ -229,7 +231,7 @@ function App() {
               </RecruiterRoute>
             } />
 
-            <Route path="/recruiter/dashboard/:dashboardTab?" element={
+            <Route path="/recruiter/dashboard" element={
               <RecruiterRoute>
                 <RecruiterDashboard />
               </RecruiterRoute>
@@ -267,7 +269,7 @@ function App() {
             
             <Route path="/recruiter/team" element={
               <RecruiterRoute>
-                <RecruiterTeam />
+                <Navigate to="/recruiter/settings?section=team" replace />
               </RecruiterRoute>
             } />
 
@@ -286,12 +288,6 @@ function App() {
             <Route path="/recruiter/settings" element={
               <RecruiterRoute>
                 <RecruiterSettings />
-              </RecruiterRoute>
-            } />
-
-            <Route path="/recruiter/prospects" element={
-              <RecruiterRoute>
-                <Navigate to="/recruiter/workspace" replace />
               </RecruiterRoute>
             } />
 
@@ -321,11 +317,8 @@ function App() {
               </ApplicantRoute>
             } />
             
-            <Route path="/application/success" element={
-              <ApplicantRoute>
-                <SubmissionSuccess />
-              </ApplicantRoute>
-            } />
+            {/* Old success page: confirmation now shows on the submitted application. */}
+            <Route path="/application/success" element={<Navigate to="/dashboard" replace />} />
 
             {/* Catch-All Route */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,13 +4,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
+import { requireApplicationEditor } from '../_shared/require-application-editor.ts'
 
 interface InterviewPassedEmailRequest {
   applicantEmail: string
   applicantName: string
   referenceNumber: string
   position: string
-  recommendation?: string
   nextSteps?: string
 }
 
@@ -21,16 +22,18 @@ serve(async (req) => {
   }
 
   try {
-    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
+    const denied = await requireApplicationEditor(req, corsHeaders)
+    if (denied) return denied
+
+    const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM', 'APPLICANT_NOTIFICATION_EMAIL'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
 
     const {
       applicantEmail,
       applicantName,
       referenceNumber,
       position,
-      recommendation,
       nextSteps
     }: InterviewPassedEmailRequest = await req.json()
 
@@ -45,7 +48,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: emailFrom,
-        to: [applicantEmail],
+        to: [runtimeSettings.APPLICANT_NOTIFICATION_EMAIL?.trim() || applicantEmail],
         subject: `🎉 Congratulations! Interview Passed - ${referenceNumber}`,
         html: `
 <!DOCTYPE html>
@@ -77,17 +80,8 @@ serve(async (req) => {
               </p>
 
               <p style="margin: 0 0 20px 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
-                We're delighted to inform you that you have <strong>successfully passed the interview</strong> for the <strong>${position}</strong> position with NJORD Ships.
+                We're delighted to inform you that you have <strong>successfully passed the interview</strong> for the <strong>${position}</strong> position${BRAND.with}.
               </p>
-
-              ${recommendation ? `
-              <div style="background-color: #dcfce7; border-left: 4px solid #22c55e; padding: 20px; margin: 25px 0; border-radius: 4px;">
-                <p style="margin: 0; color: #166534; font-size: 15px; line-height: 1.5;">
-                  <strong>Interviewer's Feedback:</strong><br>
-                  ${recommendation}
-                </p>
-              </div>
-              ` : ''}
 
               <!-- Application Reference -->
               <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 25px 0; border-radius: 6px;">
@@ -120,7 +114,7 @@ serve(async (req) => {
               </div>
 
               <p style="margin: 25px 0 0 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
-                We're excited about the possibility of having you join the NJORD Ships team and look forward to the next steps in this process.
+                We're excited about the possibility of having you join the team and look forward to the next steps in this process.
               </p>
 
               <p style="margin: 25px 0 0 0; color: #1f2937; font-size: 16px; line-height: 1.6;">
@@ -133,12 +127,11 @@ serve(async (req) => {
           <tr>
             <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="margin: 0 0 10px 0; color: #1f2937; font-size: 16px; font-weight: 600;">Best regards,</p>
-              <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 15px;">NJORD Ships Recruitment Team</p>
+              <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 15px;">${BRAND.team}</p>
               
               <div style="margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                 <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                  NJORD Ships Maritime Recruitment<br>
-                  <a href="mailto:recruitment@njordships.com" style="color: #3b82f6; text-decoration: none;">recruitment@njordships.com</a>
+                  ${BRAND.contactLink}
                 </p>
               </div>
             </td>

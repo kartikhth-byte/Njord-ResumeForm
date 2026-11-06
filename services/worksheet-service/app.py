@@ -20,6 +20,7 @@ from scripts.client_forms.cma_cgm_writer import generate_workbook
 
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 APP_URL = os.environ.get("APP_URL", "*")
 ALLOWED_ORIGINS = [origin.strip() for origin in APP_URL.split(",") if origin.strip()]
@@ -49,7 +50,7 @@ def health() -> Response:
 
 @app.route("/ready", methods=["GET"])
 def ready() -> Response:
-    configured = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+    configured = bool(SUPABASE_URL and (SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY))
     return jsonify({"ok": configured})
 
 
@@ -69,6 +70,15 @@ def generate_customer_worksheet() -> Response:
         if not application_id or not customer_id:
             return jsonify({"error": "applicationId and customerId are required"}), 400
 
+        application = fetch_single_row(
+            "applications",
+            "id",
+            application_id,
+            select="id,reference_number,public_token,status,submitted_at",
+        )
+        if not application.get("submitted_at"):
+            return jsonify({"error": "Submit the application before generating a worksheet"}), 409
+
         customer = fetch_single_row("worksheet_customers", "id", customer_id, select="id,name,slug")
         template = fetch_single_row(
             "worksheet_templates",
@@ -82,12 +92,6 @@ def generate_customer_worksheet() -> Response:
         if (template.get("source_extension") or "").lower() != "xlsx":
             return jsonify({"error": "Upload a normalized .xlsx worksheet template before generating customer worksheets"}), 400
 
-        application = fetch_single_row(
-            "applications",
-            "id",
-            application_id,
-            select="id,reference_number,public_token,status",
-        )
         application_data = fetch_single_row(
             "application_data",
             "application_id",
@@ -136,7 +140,7 @@ def authorize_request(auth_header: str, permission_name: str) -> dict[str, Any] 
     response = requests.get(
         f"{SUPABASE_URL}/auth/v1/user",
         headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "apikey": SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY,
             "Authorization": f"Bearer {token}",
         },
         timeout=30,
@@ -220,11 +224,13 @@ def fetch_photo_bytes(payload: dict[str, Any], warnings: list[str]) -> bytes | N
 
 
 def service_role_headers() -> dict[str, str]:
-    return {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY,
         "Content-Type": "application/json",
     }
+    if not SUPABASE_SECRET_KEY:
+        headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+    return headers
 
 
 def get_by_path(value: Any, path: str) -> Any:

@@ -2,26 +2,26 @@
 
 ## Current Brand
 
-- product name: `Njord Holmes`
-- logo source: `njord_logo.png`
+- product name: `Holmes`
+- Holmes is operated by Kartik Raghavan; Njordships is a manning-company customer, not the product operator
+- visible identity: text wordmark and `public/favicon.svg`
+- customer names and logos are separate from the Holmes product identity
 
 ## Current Applied Branding
 
-- applicant shared header/dashboard uses the real logo
+- applicant and recruiter surfaces use the Holmes wordmark
 - shared brand lockup component:
   - `src/components/ui/BrandLockup.jsx`
 
 ## Current Design Direction
 
-- light, high-clarity backgrounds
-- glassy/soft panel styling
-- strong typography for dashboard headings
+- superseded by `docs/ui-theme-spec.md` (warm compact theme: recruiter dark, applicant light)
 - clear role separation between applicant and recruiter surfaces
 
 ## Current Gaps
 
 - branding consistency across all recruiter/public pages may still need a follow-up pass
-- final visual QA of the logo scale and spacing should continue during manual review
+- final visual QA of the wordmark scale and spacing should continue during manual review
 
 ## Interaction Notes
 

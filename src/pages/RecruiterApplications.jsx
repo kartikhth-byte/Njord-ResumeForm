@@ -1,11 +1,10 @@
-/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
 import StatusBadge from '../components/StatusBadge'
 import { formatDisplayValue } from '../utils/formatUtils'
 import SequentialStatusControl from '../components/SequentialStatusControl'
@@ -13,30 +12,13 @@ import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
 import EmbeddingGenerator from '../components/EmbeddingGenerator'
 import AISearch from '../components/AISearch'
-import OfferModal from '../components/recruiter/OfferModal'
 import ConfidenceBadge from '../components/ConfidenceBadge'
 import PageHeader from '../components/ui/PageHeader'
-import SegmentedControl from '../components/ui/SegmentedControl'
-import WorkspaceToolbar from '../components/ui/WorkspaceToolbar'
-import EmptyState from '../components/ui/EmptyState'
 import { getEmbeddingReadiness } from '../services/embeddingService'
 import { buildApplicationCompliance } from '../utils/applicationCompliance'
+import { applicationStatusLabel, CLOSED_APPLICATION_STATUSES } from '../constants/applicationStatus'
 
-import { 
-  Users, 
-  Search, 
-  Eye, 
-  Loader2, 
-  PanelLeft,
-  ChevronDown, 
-  ChevronRight,
-  FileText,
-  Clock,
-  CheckCircle,
-  Sparkles,
-  SlidersHorizontal,
-  ShieldCheck
-} from 'lucide-react'
+import { Search, Loader2, Sparkles, SlidersHorizontal } from 'lucide-react'
 
 function normalizeCertificateGrade(value) {
   return (value || '').toString().trim().toLowerCase()
@@ -64,24 +46,46 @@ function getApplicationFields(appData = {}) {
   }
 }
 
-function ComplianceBadge({ status, summary, size = 'default' }) {
-  const styles = {
-    red: 'bg-rose-100 text-rose-700 border-rose-200',
-    amber: 'bg-amber-100 text-amber-700 border-amber-200',
-    green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  }
-  const sizeClass = size === 'compact'
-    ? 'rounded-lg px-2.5 py-1 text-[11px] font-semibold'
-    : 'rounded-xl px-3 py-1.5 text-xs font-semibold'
+const COMPLIANCE_STYLES = {
+  red: 'bg-danger-soft text-danger border-danger-line',
+  amber: 'bg-warning-soft text-warning border-warning-line',
+  green: 'bg-success-soft text-success border-success-line',
+}
 
-  const label = status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Unknown'
+function complianceLabel(status) {
+  return status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Unknown'
+}
 
+function ComplianceBadge({ status }) {
   return (
-    <div className={`inline-flex items-center border ${sizeClass} ${styles[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-      <span>{label}</span>
-      {typeof summary === 'number' ? <span className="ml-2">{summary}</span> : null}
-    </div>
+    <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${COMPLIANCE_STYLES[status] || 'bg-raised text-fg-secondary border-line'}`}>
+      {complianceLabel(status)}
+    </span>
   )
+}
+
+// Pipeline stages for the chips above the list. "Active" is everything
+// not closed; "Closed" loads hired, rejected and withdrawn.
+const STAGES = [
+  { id: 'all', label: 'Active', statuses: null },
+  { id: 'review', label: 'Review', statuses: ['submitted', 'new', 'under_review'] },
+  { id: 'test', label: 'Test', statuses: ['test_scheduled', 'test_completed', 'test_passed', 'test_failed'] },
+  { id: 'interview', label: 'Interview', statuses: ['interview_scheduled', 'interview_completed', 'interview_passed', 'second_interview_scheduled', 'second_interview_completed'] },
+  { id: 'offer', label: 'Offer', statuses: ['offered', 'offer_accepted', 'documents_pending'] },
+  { id: 'closed', label: 'Closed', statuses: CLOSED_APPLICATION_STATUSES },
+]
+
+function stageForFilter(filter) {
+  return STAGES.find((stage) => stage.id === filter) ||
+    STAGES.find((stage) => stage.statuses?.includes(filter)) ||
+    STAGES[0]
+}
+
+function matchesStatusFilter(status, filter) {
+  if (!filter || filter === 'all') return !CLOSED_APPLICATION_STATUSES.includes(status)
+  const stage = STAGES.find((entry) => entry.id === filter)
+  if (stage) return stage.statuses.includes(status)
+  return status === filter
 }
 
 const ACTIVE_APPLICATION_STATUSES = [
@@ -106,30 +110,6 @@ function applyRecruiterVisibilityFilter(query) {
   return query.not('submitted_at', 'is', null)
 }
 
-function formatEmbeddingStatusMessage(readiness) {
-  if (!readiness) return ''
-
-  const issues = []
-  if (readiness.missing?.length) {
-    issues.push(`${readiness.missing.length} active application${readiness.missing.length === 1 ? '' : 's'} are not indexed`)
-  }
-  if (readiness.stale?.length) {
-    issues.push(`${readiness.stale.length} indexed application${readiness.stale.length === 1 ? ' is' : 's are'} out of date`)
-  }
-
-  if (issues.length === 0) {
-    return 'Embeddings are ready for AI Search.'
-  }
-
-  return `AI Search is locked until embeddings are ready: ${issues.join(' and ')}. Generate embeddings now, then run the search.`
-}
-
-const VALID_RECRUITER_APPLICATION_TABS = new Set(['all', 'search'])
-
-function normalizeRecruiterApplicationsTab(tabValue) {
-  return VALID_RECRUITER_APPLICATION_TABS.has(tabValue) ? tabValue : 'all'
-}
-
 export default function RecruiterApplications() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -137,11 +117,10 @@ export default function RecruiterApplications() {
   const { canViewApplications, canManageApplications, loading: permLoading, role } = usePermissions()
   const canEditApplications = canManageApplications()
   const aiSearchStorageKey = user?.id ? `aiSearchResults:${user.id}` : null
-  
+
   const [applications, setApplications] = useState([])
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)
   const [analyzingWithLLM, setAnalyzingWithLLM] = useState(false)
-
 
   // Restore the interview modal after Teams OAuth returns to the applications workspace.
 useEffect(() => {
@@ -171,78 +150,30 @@ useEffect(() => {
   }
 }, [applications])
 
-  const [filteredApplications, setFilteredApplications] = useState([])
-  const [allStatusCounts, setAllStatusCounts] = useState({}) // New: stores counts of ALL applications
+  const [statusCounts, setStatusCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  
-  // Initialize statusFilter from URL or default to 'all'
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all')
-  const [filters, setFilters] = useState({})
   const [complianceFilter, setComplianceFilter] = useState('all')
-  const [includeRejected, setIncludeRejected] = useState(false) // Include rejected candidates
-  const [includeWithdrawn, setIncludeWithdrawn] = useState(false) // Include withdrawn candidates  
-  const [includeHired, setIncludeHired] = useState(false) // Include hired candidates
-  const [includeActive, setIncludeActive] = useState(true) // Include active candidates (default: true)
-  
-const [isOfferModalOpen, setIsOfferModalOpen] = useState(false)
-const [offerApplication, setOfferApplication] = useState(null)
+  const [filters, setFilters] = useState({})
+  const [showFilters, setShowFilters] = useState(false)
+  const [showAI, setShowAI] = useState(searchParams.get('tab') === 'search')
   const [embeddingReadiness, setEmbeddingReadiness] = useState(null)
-  const [embeddingReadinessLoading, setEmbeddingReadinessLoading] = useState(false)
 
-  // Tab management - initialize from URL or default to 'all'
-  const [activeTab, setActiveTab] = useState(normalizeRecruiterApplicationsTab(searchParams.get('tab') || 'all'))
-  
-  // Helper function to update tab and URL
-  const updateActiveTab = (newTab) => {
-    setActiveTab(newTab)
-    const newParams = new URLSearchParams(searchParams)
-    newParams.set('tab', newTab)
-    if (statusFilter && statusFilter !== 'all') {
-      newParams.set('status', statusFilter)
-    }
-    setSearchParams(newParams, { replace: true })
+  // ?status= holds a stage id ("review", "closed", ...) or a single status.
+  const statusFilter = searchParams.get('status') || 'all'
+  const scope = stageForFilter(statusFilter).id === 'closed' ? 'closed' : 'active'
+
+  const updateStatusFilter = (next) => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('tab')
+    if (!next || next === 'all') params.delete('status')
+    else params.set('status', next)
+    setSearchParams(params, { replace: true })
   }
-  
-  // Helper function to update status filter and URL
-  const updateStatusFilter = (newStatus) => {
-    setStatusFilter(newStatus)
-    const newParams = new URLSearchParams(searchParams)
-    if (activeTab && activeTab !== 'all') {
-      newParams.set('tab', activeTab)
-    }
-    newParams.set('status', newStatus)
-    setSearchParams(newParams, { replace: true })
-  }
-  
-  // Sync state with URL when navigating back
-  useEffect(() => {
-    const rawTabFromUrl = searchParams.get('tab') || 'all'
-    const tabFromUrl = normalizeRecruiterApplicationsTab(rawTabFromUrl)
-    const statusFromUrl = searchParams.get('status') || 'all'
 
-    if (rawTabFromUrl !== tabFromUrl) {
-      const correctedParams = new URLSearchParams(searchParams)
-      correctedParams.set('tab', tabFromUrl)
-      setSearchParams(correctedParams, { replace: true })
-    }
-    
-    // Only update if different to avoid infinite loops
-    setActiveTab(prev => {
-      if (prev !== tabFromUrl) return tabFromUrl
-      return prev
-    })
-    setStatusFilter(prev => {
-      if (prev !== statusFromUrl) return statusFromUrl
-      return prev
-    })
-  }, [searchParams])
-  
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(20)
+  const itemsPerPage = 20
   const [notesByProspect, setNotesByProspect] = useState({})
 
   useEffect(() => {
@@ -271,86 +202,43 @@ const [offerApplication, setOfferApplication] = useState(null)
     }
   }, [applications])
   
-  // AI Search
   const [aiSearchActive, setAiSearchActive] = useState(false)
   const [aiSearchResults, setAiSearchResults] = useState([])
-  const [aiSearchQuery, setAiSearchQuery] = useState('')
   const [aiSearchLoading, setAiSearchLoading] = useState(false)
-  
-  // Advanced Search mode toggle
-  const [searchMode, setSearchMode] = useState('ai')
-  
-  const [showDetailedStatusNav, setShowDetailedStatusNav] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState(['initial', 'test', 'interview', 'final'])
-
-  // Status groups for sidebar
-  const statusGroups = [
-    {
-      id: 'initial',
-      label: 'Initial Stage',
-      icon: FileText,
-      statuses: [
-        { value: 'all', label: 'All Applications', count: 0 },
-        { value: 'submitted', label: 'Submitted', count: 0 },
-        { value: 'under_review', label: 'Under Review', count: 0 },
-      ]
-    },
-    {
-      id: 'test',
-      label: 'Test',
-      icon: Clock,
-      statuses: [
-        { value: 'test_scheduled', label: 'Test Scheduled', count: 0 },
-        { value: 'test_completed', label: 'Test Completed', count: 0 },
-      ]
-    },
-    {
-      id: 'interview',
-      label: 'Interview',
-      icon: Users,
-      statuses: [
-        { value: 'interview_scheduled', label: 'Interview Scheduled', count: 0 },
-        { value: 'interview_passed', label: 'Interview Passed', count: 0 },
-      ]
-    },
-    {
-      id: 'final',
-      label: 'Final Stage',
-      icon: CheckCircle,
-      statuses: [
-        { value: 'offered', label: 'Offered', count: 0 },
-        { value: 'hired', label: 'Hired', count: 0 },
-        { value: 'rejected', label: 'Rejected', count: 0 },
-        { value: 'withdrawn', label: 'Withdrawn', count: 0 },
-      ]
-    }
-  ];
 
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
-      loadApplications({})
-      loadAllStatusCounts() // Load counts separately
-      refreshEmbeddingReadiness()
+      loadApplications(filters)
+      loadStatusCounts()
     }
-  }, [permLoading, includeRejected, includeWithdrawn, includeHired, includeActive]) // Reload when any status filter changes
+  }, [permLoading, scope])
 
-useEffect(() => {
-  if ((activeTab === 'all' || (activeTab === 'search' && searchMode === 'filters')) && !aiSearchActive) {
-    filterApplications()
-  }
-}, [activeTab, applications, statusFilter, searchTerm, complianceFilter, includeRejected, aiSearchActive, searchMode])
-  
+  useEffect(() => {
+    if (showAI && embeddingReadiness === null) refreshEmbeddingReadiness()
+  }, [showAI])
+
   useEffect(() => {
     setCurrentPage(1)
-  }, [statusFilter, searchTerm, filters, complianceFilter])
+  }, [statusFilter, searchTerm, filters, complianceFilter, aiSearchActive])
 
-  const complianceCounts = filteredApplications.reduce((counts, app) => {
-    const status = app.compliance_status
-    if (status && Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status] += 1
+  // Restore the last AI search (30 minutes) for this recruiter.
+  useEffect(() => {
+    if (!aiSearchStorageKey) return
+    const saved = localStorage.getItem(aiSearchStorageKey)
+    if (!saved) return
+    try {
+      const { results, timestamp } = JSON.parse(saved)
+      if (Date.now() - timestamp < 30 * 60 * 1000 && results.length > 0) {
+        setAiSearchResults(results)
+        setAiSearchActive(true)
+        setShowAI(true)
+      } else {
+        localStorage.removeItem(aiSearchStorageKey)
+      }
+    } catch {
+      localStorage.removeItem(aiSearchStorageKey)
     }
-    return counts
-  }, { red: 0, amber: 0, green: 0 })
+  }, [aiSearchStorageKey])
 
   const calculateExperience = (seaService) => {
     if (!seaService || seaService.length === 0) return 0
@@ -366,40 +254,6 @@ useEffect(() => {
     return Math.floor(totalDays / 365)
   }
 
-
-// Restore AI search results from localStorage on mount
-useEffect(() => {
-  if (!aiSearchStorageKey) return
-  
-  const savedSearch = localStorage.getItem(aiSearchStorageKey)
-  if (!savedSearch) {
-    return
-  }
-
-  try {
-    const { results, query, timestamp } = JSON.parse(savedSearch)
-    
-    // Only restore if less than 30 minutes old
-    const THIRTY_MINUTES = 30 * 60 * 1000
-    const age = Date.now() - timestamp
-    
-    if (age < THIRTY_MINUTES) {
-      setAiSearchResults(results)
-      setAiSearchQuery(query)
-      setAiSearchActive(true)
-      
-      // Switch to search tab if we have results
-      if (results.length > 0 && activeTab !== 'search') {
-        updateActiveTab('search')
-      }
-    } else {
-      localStorage.removeItem(aiSearchStorageKey)
-    }
-  } catch (error) {
-    console.error('❌ Error restoring search results:', error)
-    localStorage.removeItem(aiSearchStorageKey)
-  }
-}, [aiSearchStorageKey]) // Restore per signed-in recruiter only
 
   const matchesExperienceFilter = (years, filterValue) => {
     switch (filterValue) {
@@ -469,33 +323,7 @@ useEffect(() => {
 
       query = applyRecruiterVisibilityFilter(query)
 
-      // Comprehensive status filtering based on checkboxes
-      const statusesToInclude = []
-      
-      if (includeActive) {
-        // Active statuses = not terminal (not hired, rejected, withdrawn)
-        statusesToInclude.push(...ACTIVE_APPLICATION_STATUSES)
-      }
-      
-      if (includeHired) {
-        statusesToInclude.push('hired')
-      }
-      
-      if (includeRejected) {
-        statusesToInclude.push('rejected')
-      }
-      
-      if (includeWithdrawn) {
-        statusesToInclude.push('withdrawn')
-      }
-      
-      // Apply status filter - if no statuses selected, show nothing
-      if (statusesToInclude.length > 0) {
-        query = query.in('status', statusesToInclude)
-      } else {
-        // No statuses selected - return empty result
-        query = query.eq('status', 'non_existent_status')
-      }
+      query = query.in('status', scope === 'closed' ? CLOSED_APPLICATION_STATUSES : ACTIVE_APPLICATION_STATUSES)
 
       if (appliedFilters.position) {
         query = query.eq('applied_rank', appliedFilters.position)
@@ -530,9 +358,7 @@ useEffect(() => {
         const profile = profilesData.find(p => p.id === app.user_id)
         const section1 = app.application_data?.data?.section1 || {}
         const section2 = app.application_data?.data?.section2 || {}
-        const section5 = app.application_data?.data?.section5 || {}
         const section8 = app.application_data?.data?.section8 || {}
-        const section15 = app.application_data?.data?.section15 || {}
         const section16 = app.application_data?.data?.section16 || {}
         
         const fullName = [
@@ -556,15 +382,10 @@ useEffect(() => {
           age: age,
           experience_years: calculateExperience(section16.seaService),
           available_from: section1.availableFrom || '',
-          total_experience: section5.totalSeaService || '',
           last_vessel: section16.seaService?.[0]?.vesselName || '',
           last_rank: section16.seaService?.[0]?.rankHeld || '',
           coc_number: section8.certificates?.[0]?.certificateNumber || '',
           coc_issuing_country: section8.certificates?.[0]?.issuingAuthority || '',
-          english_proficiency: section15.englishProficiency || '',
-          marlins_score: section15.marlinsScore || '',
-          bmi: section16.bmi || '',
-          blood_group: section16.bloodGroup || '',
           compliance: buildApplicationCompliance(app.application_data?.data || {}),
         }
       }).map((app) => ({
@@ -621,10 +442,6 @@ useEffect(() => {
         })
       }
 
-      if (appliedFilters.complianceStatus) {
-        formattedData = formattedData.filter(app => app.compliance_status === appliedFilters.complianceStatus)
-      }
-
       setApplications(formattedData)
     } catch (error) {
       console.error('Error loading applications:', error)
@@ -637,80 +454,22 @@ useEffect(() => {
     }
   }
 
-  const loadAllStatusCounts = async () => {
+  const loadStatusCounts = async () => {
     try {
-      const visibleQuery = applyRecruiterVisibilityFilter(
-        supabase
-          .from('applications')
-          .select('status')
+      const { data, error } = await applyRecruiterVisibilityFilter(
+        supabase.from('applications').select('status')
       )
-
-      const { data: visibleData, error: visibleError } = await visibleQuery
-
-      if (visibleError) throw visibleError
-
-      const counts = {
-        all: visibleData?.length || 0,
-        submitted: 0,
-        new: 0,
-        under_review: 0,
-        test_scheduled: 0,
-        test_completed: 0,
-        test_passed: 0,
-        test_failed: 0,
-        interview_scheduled: 0,
-        interview_completed: 0,
-        interview_passed: 0,
-        offered: 0,
-        hired: 0,
-        rejected: 0,
-        withdrawn: 0
+      if (error) throw error
+      const counts = {}
+      for (const row of data || []) {
+        counts[row.status] = (counts[row.status] || 0) + 1
       }
-
-      visibleData?.forEach(app => {
-        if (Object.prototype.hasOwnProperty.call(counts, app.status)) {
-          counts[app.status]++
-        }
-      })
-
-      setAllStatusCounts(counts)
+      setStatusCounts(counts)
     } catch (error) {
       console.error('Error loading status counts:', error)
     }
   }
 
-  const filterApplications = () => {
-    let filtered = [...applications]
-
-    if (statusFilter && statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter)
-    }
-
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(app =>
-        app.full_name?.toLowerCase().includes(term) ||
-        app.email?.toLowerCase().includes(term) ||
-        app.reference_number?.toLowerCase().includes(term) ||
-        app.desired_rank?.toLowerCase().includes(term) ||
-        app.vessel_type?.toLowerCase().includes(term) ||
-        app.nationality?.toLowerCase().includes(term)
-      )
-    }
-
-    if (complianceFilter !== 'all') {
-      filtered = filtered.filter(app => app.compliance_status === complianceFilter)
-    }
-
-    setFilteredApplications(filtered)
-  }
-
-  const getStatusCounts = () => {
-    // Return the separately fetched counts that include ALL applications
-    return allStatusCounts
-  }
-
- // --- CHANGED: STATUS CHANGE HANDLER WITH MODAL LOGIC & DB UPDATE ---
 const updateContractEndDate = async (applicationId, value) => {
   try {
     const { error: updateError } = await supabase
@@ -720,7 +479,6 @@ const updateContractEndDate = async (applicationId, value) => {
     if (updateError) throw updateError
     const patch = (rows) => rows.map((row) => (row.id === applicationId ? { ...row, contract_end_date: value || null } : row))
     setApplications(patch)
-    setFilteredApplications(patch)
   } catch (contractError) {
     console.error('Failed to update contract end date:', contractError)
     alert(`Could not save the contract end date${contractError?.message ? `: ${contractError.message}` : ''}`)
@@ -731,9 +489,6 @@ const handleStatusChange = async (applicationId, newStatus) => {
   const appToUpdate = applications.find(a => a.id === applicationId)
   if (!appToUpdate) return
 
-  // DELETED: Rejection intercept (now handled by TestResultModal)
-  
-  // 2. Handle "Simple" statuses (Direct DB Update)
   try {
     const { error } = await supabase
       .from('applications')
@@ -749,9 +504,9 @@ const handleStatusChange = async (applicationId, newStatus) => {
       )
     )
 
-    // Refresh derived queues and sidebar counts so submitted/reviewed items move immediately.
+    // Refresh the counts and the list so the row moves to its new stage.
     await Promise.all([
-      loadAllStatusCounts(),
+      loadStatusCounts(),
       loadApplications(filters, { background: true })
     ])
   } catch (error) {
@@ -760,18 +515,12 @@ const handleStatusChange = async (applicationId, newStatus) => {
   }
 }
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters)
-  }
-
   const handleApplyFilters = (filtersToApply = null) => {
-    const activeFilters = filtersToApply || filters
-    loadApplications(activeFilters)
+    loadApplications(filtersToApply || filters)
   }
 
   const refreshEmbeddingReadiness = async () => {
     try {
-      setEmbeddingReadinessLoading(true)
       const readiness = await getEmbeddingReadiness()
       setEmbeddingReadiness(readiness)
     } catch (error) {
@@ -782,15 +531,12 @@ const handleStatusChange = async (applicationId, newStatus) => {
         missing: [],
         stale: [],
       })
-    } finally {
-      setEmbeddingReadinessLoading(false)
     }
   }
 
 const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   setCurrentPage(1)
   setAiSearchResults(results)
-  setAiSearchQuery(query)
   setAiSearchActive(true)
   setAnalyzingWithLLM(isAnalyzing)
 
@@ -848,7 +594,8 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 	        date_of_birth: appData.section2?.dateOfBirth || '',
 	        similarity: matchingResult?.similarity || 0,
 	        matched_chunk: matchingResult?.chunk_text || '',
-	        llmAnalysis: matchingResult?.llmAnalysis
+	        llmAnalysis: matchingResult?.llmAnalysis,
+	        compliance_status: buildApplicationCompliance(appData).overallStatus || '',
 	      }
 	    })
 
@@ -860,7 +607,6 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
     
     setAiSearchResults(enrichedResults)
     
-    // ✅ SAVE TO LOCALSTORAGE HERE - AFTER ENRICHMENT
     if (aiSearchStorageKey) {
       localStorage.setItem(aiSearchStorageKey, JSON.stringify({
         results: enrichedResults,
@@ -876,43 +622,15 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
 }
 
   const handleClearAISearch = () => {
-  setAiSearchActive(false)
-  setAiSearchResults([])
-  setAiSearchQuery('')
-  setCurrentPage(1)
-  filterApplications()
-  
-  // Clear from localStorage
-  if (aiSearchStorageKey) {
-    localStorage.removeItem(aiSearchStorageKey)
+    setAiSearchActive(false)
+    setAiSearchResults([])
+    if (aiSearchStorageKey) localStorage.removeItem(aiSearchStorageKey)
   }
-}
-
-  const toggleGroup = (groupId) => {
-    setExpandedGroups(prev =>
-      prev.includes(groupId)
-        ? prev.filter(g => g !== groupId)
-        : [...prev, groupId]
-    )
-  }
-
-  const getPaginatedData = (data) => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return data.slice(startIndex, endIndex)
-  }
-
-    const displayedApplications = activeTab === 'search' && searchMode === 'filters'
-    ? applications
-    : filteredApplications
-
-  const displayedPaginatedApplications = getPaginatedData(displayedApplications)
-  const displayedTotalPages = Math.ceil(displayedApplications.length / itemsPerPage)
 
   if (permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
       </div>
     )
   }
@@ -920,88 +638,56 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
   if (!canViewApplications()) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">You do not have permission to view applications.</p>
-        </div>
+        <p className="text-fg-secondary">You do not have permission to view applications.</p>
       </div>
     )
   }
 
-  const statusCounts = getStatusCounts()
-  const totalPages = Math.ceil(filteredApplications.length / itemsPerPage)
-  const paginatedApplications = getPaginatedData(filteredApplications)
-  const activeStatusScopes = [
-    includeActive && 'Active',
-    includeHired && 'Hired',
-    includeRejected && 'Rejected',
-    includeWithdrawn && 'Withdrawn'
-  ].filter(Boolean)
+  const term = searchTerm.trim().toLowerCase()
+  const listed = applications.filter((app) => {
+    if (!matchesStatusFilter(app.status, statusFilter)) return false
+    if (complianceFilter !== 'all' && app.compliance_status !== complianceFilter) return false
+    if (!term) return true
+    return [app.full_name, app.email, app.reference_number, app.desired_rank, app.vessel_type, app.nationality]
+      .some((value) => value?.toLowerCase().includes(term))
+  })
 
-  const manualFilterChips = Object.entries(filters)
-    .filter(([, value]) => Boolean(value))
-    .map(([key, value]) => ({
-      label: `${key}: ${typeof value === 'object' ? 'Date range' : value}`,
-      onRemove: () => {
-        const nextFilters = { ...filters }
-        delete nextFilters[key]
-        handleFilterChange(nextFilters)
-      }
-    }))
+  const complianceCounts = applications
+    .filter((app) => matchesStatusFilter(app.status, statusFilter))
+    .reduce((counts, app) => {
+      if (Object.prototype.hasOwnProperty.call(counts, app.compliance_status)) counts[app.compliance_status] += 1
+      return counts
+    }, { red: 0, amber: 0, green: 0 })
 
-  const searchTabs = [
-    { value: 'ai', label: 'AI Search', icon: Sparkles },
-    { value: 'filters', label: 'Manual Search', icon: SlidersHorizontal }
-  ]
+  const displayed = aiSearchActive ? aiSearchResults : listed
+  const pageRows = displayed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(displayed.length / itemsPerPage)
 
-  const toggleStatusScope = (scope) => {
-    const setters = {
-      active: setIncludeActive,
-      hired: setIncludeHired,
-      rejected: setIncludeRejected,
-      withdrawn: setIncludeWithdrawn
-    }
-
-    setters[scope]?.(prev => !prev)
+  const stageCount = (stage) => {
+    if (stage.statuses) return stage.statuses.reduce((sum, status) => sum + (statusCounts[status] || 0), 0)
+    return Object.entries(statusCounts)
+      .filter(([status]) => !CLOSED_APPLICATION_STATUSES.includes(status))
+      .reduce((sum, [, count]) => sum + count, 0)
   }
-
-  const setManualScope = (scope) => {
-    if (scope === 'active') {
-      setIncludeActive(true)
-      setIncludeHired(false)
-      setIncludeRejected(false)
-      setIncludeWithdrawn(false)
-      return
-    }
-
-    if (scope === 'archived') {
-      setIncludeActive(false)
-      setIncludeHired(true)
-      setIncludeRejected(true)
-      setIncludeWithdrawn(true)
-      return
-    }
-
-    setIncludeActive(true)
-    setIncludeHired(true)
-    setIncludeRejected(true)
-    setIncludeWithdrawn(true)
-  }
+  const activeStage = stageForFilter(statusFilter)
+  const subStatuses = activeStage.statuses
+    ? activeStage.statuses.filter((status) => (statusCounts[status] || 0) > 0)
+    : []
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
 
   const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
   return (
-    <div className="tracker-table-wrap tracker-table-wrap--plain overflow-y-visible">
-      <table className="tracker-table tracker-table--tiles">
+    <div className="tracker-table-wrap overflow-y-visible">
+      <table className="tracker-table">
         <thead>
           <tr>
             <th className="tracker-cell--sticky-1">Reference</th>
             <th className="tracker-cell--sticky-2">Name</th>
-            <th>Email</th>
-            <th>Phone</th>
+            <th>Status</th>
+            <th>Compliance</th>
             <th>Present rank</th>
             <th>Applied rank</th>
             <th>Vessel type</th>
-            <th>Status</th>
-            <th>Compliance</th>
             <th>Submitted</th>
             {showRelevance ? (
               <>
@@ -1016,7 +702,7 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         <tbody>
           {apps.length === 0 ? (
             <tr>
-              <td colSpan={showRelevance ? 14 : 12} className="px-6 py-12 text-center text-gray-500">
+              <td colSpan={showRelevance ? 12 : 10} className="px-6 py-12 text-center text-fg-muted">
                 No applications found
               </td>
             </tr>
@@ -1024,27 +710,23 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
             apps.map((app) => (
               <tr key={app.id}>
                 <td className="tracker-cell--sticky-1 tracker-cell--nowrap">
-                  <span className="font-mono text-xs font-medium text-blue-700">{app.reference_number}</span>
+                  <span className="font-mono text-xs font-medium text-accent-text">{app.reference_number}</span>
                 </td>
                 <td className="tracker-cell--sticky-2 tracker-cell--primary tracker-cell--nowrap">
                   <button
                     type="button"
                     onClick={() => navigate(`/application/view/${app.public_token}`)}
-                    className="block max-w-[13rem] truncate text-left hover:text-blue-700"
+                    className="block max-w-[13rem] truncate text-left hover:text-accent-text"
                     title={app.full_name}
                   >
                     {app.full_name}
                   </button>
                 </td>
-                <td className="tracker-cell--nowrap tracker-cell--muted">
-                  <span className="block max-w-[13rem] truncate" title={app.email}>{app.email || '—'}</span>
-                </td>
-                <td className="tracker-cell--nowrap tracker-cell--muted">{app.phone || '—'}</td>
+                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
+                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} /></td>
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.last_rank) || '—'}</td>
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.desired_rank) || '—'}</td>
                 <td className="tracker-cell--nowrap">{formatDisplayValue(app.vessel_type) || '—'}</td>
-                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
-                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} size="compact" /></td>
                 <td className="tracker-cell--nowrap tracker-cell--muted">
                   {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
                 </td>
@@ -1052,22 +734,22 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                   <>
                     <td className="tracker-cell--nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-gray-200">
-                          <div className="h-2 rounded-full bg-blue-600" style={{ width: `${app.similarity * 100}%` }} />
+                        <div className="h-2 w-20 overflow-hidden rounded-full bg-line">
+                          <div className="h-2 rounded-full bg-accent-fill" style={{ width: `${app.similarity * 100}%` }} />
                         </div>
-                        <span className="text-xs font-medium text-gray-600">{(app.similarity * 100).toFixed(0)}%</span>
+                        <span className="text-xs font-medium text-fg-secondary">{(app.similarity * 100).toFixed(0)}%</span>
                       </div>
                     </td>
                     <td className="tracker-cell--nowrap">
                       {analyzingWithLLM && !app.llmAnalysis ? (
-                        <div className="flex items-center gap-2 text-purple-600">
-                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-purple-600"></div>
+                        <div className="flex items-center gap-2 text-progress">
+                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-progress"></div>
                           <span className="text-xs font-medium">Analyzing...</span>
                         </div>
                       ) : app.llmAnalysis ? (
                         <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-fg-muted">—</span>
                       )}
                     </td>
                   </>
@@ -1084,21 +766,14 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
                         onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
                       />
                     ) : null}
-                    <button
-                      onClick={() => navigate(`/application/view/${app.public_token}`)}
-                      className="inline-flex rounded-lg p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                      title="View application"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
                     {canEditApplications && app.status === 'hired' ? (
-                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-slate-500" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
+                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-fg-muted" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
                         Contract ends
                         <input
                           type="date"
                           value={app.contract_end_date || ''}
                           onChange={(event) => updateContractEndDate(app.id, event.target.value)}
-                          className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400"
+                          className="rounded-lg border border-line px-2 py-1 text-xs outline-none focus:border-accent"
                         />
                       </label>
                     ) : null}
@@ -1124,439 +799,166 @@ const handleAISearchResults = async (results, query, isAnalyzing = false) => {
         role={role}
         signOut={signOut}
       />
-      <RecruiterWorkspaceNav />
 
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-auto bg-white/30">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Applications"
+          actions={(
+            <div className="flex flex-wrap items-center gap-2">
+              {backgroundRefreshing ? <Loader2 className="h-4 w-4 animate-spin text-fg-muted" aria-label="Updating" /> : null}
+              <button
+                type="button"
+                onClick={() => setShowAI((open) => !open)}
+                aria-pressed={showAI}
+                className={`workspace-action-button ${showAI ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
+              >
+                <Sparkles className="h-4 w-4" />
+                AI search
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilters((open) => !open)}
+                aria-pressed={showFilters}
+                className={`workspace-action-button ${showFilters ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
+              </button>
+            </div>
+          )}
+        />
+
+        {showAI ? (
+          <div className="recruiter-panel space-y-4 p-5 md:p-6">
+            <AISearch
+              onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
+              onLoading={setAiSearchLoading}
+              onClearSearch={handleClearAISearch}
+              embeddingsReady={Boolean(embeddingReadiness?.ready)}
+              embeddingStatusMessage={embeddingReadiness && !embeddingReadiness.ready ? 'Index the applications below before searching.' : ''}
+            />
+            {embeddingReadiness && !embeddingReadiness.ready ? (
+              <EmbeddingGenerator onGenerated={refreshEmbeddingReadiness} onFailed={refreshEmbeddingReadiness} />
+            ) : null}
+          </div>
+        ) : null}
+
+        {showFilters ? (
+          <ApplicationFilters
+            onFilterChange={setFilters}
+            onApplyFilters={handleApplyFilters}
+            activeFilters={filters}
+          />
+        ) : null}
+
+        <div className="recruiter-panel overflow-hidden">
+          {aiSearchActive ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 md:px-6">
+              <p className="text-sm font-medium text-fg">
+                {aiSearchResults.length} AI match{aiSearchResults.length === 1 ? '' : 'es'}
+                {analyzingWithLLM ? <span className="ml-2 text-fg-muted">Scoring top matches…</span> : null}
+              </p>
+              <button type="button" onClick={handleClearAISearch} className="workspace-action-button workspace-action-button--secondary">
+                Back to list
+              </button>
             </div>
           ) : (
-            <>
-              {/* All Applications Tab */}
-              {activeTab === 'all' && (
-                <div className="space-y-6">
-                  <PageHeader
-                    eyebrow="Applications Workspace"
-                    title="Browse and manage submitted applications."
-                    description="Use the internal left rail for stage navigation, search within the current queue, and move candidates forward from the same pane."
-                    actions={backgroundRefreshing ? (
-                      <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Syncing updates
-                      </div>
-                    ) : null}
-                  />
+            <div className="space-y-3 border-b border-line px-5 py-4 md:px-6">
+              <div role="group" aria-label="Pipeline stage" className="flex flex-wrap gap-2">
+                {STAGES.map((stage) => {
+                  const active = activeStage.id === stage.id
+                  return (
+                    <button
+                      key={stage.id}
+                      type="button"
+                      onClick={() => updateStatusFilter(stage.id)}
+                      aria-pressed={active}
+                      className={`flex min-w-[6.5rem] flex-col items-start gap-0.5 rounded-card border px-3.5 py-2.5 text-left transition ${
+                        active ? 'border-accent-fill bg-accent-soft' : 'border-line bg-surface hover:border-line-strong'
+                      }`}
+                    >
+                      <span className="text-xl font-semibold leading-tight text-fg">{stageCount(stage)}</span>
+                      <span className="text-xs text-fg-secondary">{stage.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
 
-                  <div className="recruiter-panel overflow-hidden">
-                    <div className="grid min-h-[38rem] lg:grid-cols-[18rem_minmax(0,1fr)]">
-                      <aside className="border-b border-gray-200 bg-[rgba(247,245,239,0.9)] p-4 lg:border-b-0 lg:border-r lg:p-5">
-                        <div className="mb-4 flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Queue Nav</p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              {showDetailedStatusNav ? 'Detailed statuses are visible.' : 'Showing main stages only.'}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowDetailedStatusNav(prev => !prev)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-                          >
-                            <PanelLeft className="h-3.5 w-3.5" />
-                            {showDetailedStatusNav ? 'Hide menu' : 'Show menu'}
-                          </button>
-                        </div>
-
-                        <div className="space-y-4">
-                          {statusGroups.map(group => {
-                            const GroupIcon = group.icon
-                            const isExpanded = expandedGroups.includes(group.id)
-                            const groupTotal = group.statuses.reduce((sum, status) =>
-                              sum + (statusCounts[status.value] || 0), 0
-                            ) - (group.id === 'initial' ? (statusCounts.all || 0) : 0)
-                            const primaryStatus = group.statuses[0]
-                            const primaryCount = group.id === 'initial'
-                              ? (statusCounts.all || 0)
-                              : groupTotal
-
-                            return (
-                              <div key={group.id} className="rounded-2xl border border-gray-200 bg-white/85">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!showDetailedStatusNav) {
-                                      updateStatusFilter(primaryStatus.value)
-                                      return
-                                    }
-                                    toggleGroup(group.id)
-                                  }}
-                                  className="w-full rounded-2xl px-4 py-3 text-left transition hover:bg-gray-50"
-                                >
-                                  <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      {showDetailedStatusNav ? (
-                                        isExpanded ? (
-                                          <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                                        ) : (
-                                          <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                                        )
-                                      ) : null}
-                                      <GroupIcon className="h-4 w-4 flex-shrink-0 text-gray-500" />
-                                      <span className="truncate text-sm font-semibold text-gray-800">{group.label}</span>
-                                    </div>
-                                    <span className={`inline-flex h-6 min-w-10 items-center justify-center rounded-full px-2 text-xs font-medium ${
-                                      !showDetailedStatusNav && statusFilter === primaryStatus.value
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                      {primaryCount}
-                                    </span>
-                                  </div>
-
-                                  {!showDetailedStatusNav ? (
-                                    <div className="mt-2 pl-6 text-xs text-gray-500">
-                                      {primaryStatus.label}
-                                    </div>
-                                  ) : null}
-                                </button>
-
-                                {showDetailedStatusNav && isExpanded ? (
-                                  <div className="border-t border-gray-100 px-3 py-3">
-                                    <div className="space-y-2">
-                                      {group.statuses.map(status => (
-                                        <button
-                                          key={status.value}
-                                          type="button"
-                                          onClick={() => updateStatusFilter(status.value)}
-                                          className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition ${
-                                            statusFilter === status.value
-                                              ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                          }`}
-                                        >
-                                          <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                                            <span className="truncate font-medium">{status.label}</span>
-                                            <span className={`inline-flex h-6 min-w-9 items-center justify-center rounded-full px-2 text-xs font-medium ${
-                                              statusFilter === status.value
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-gray-100 text-gray-600'
-                                            }`}>
-                                              {statusCounts[status.value] || 0}
-                                            </span>
-                                          </div>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </aside>
-
-                      <div className="min-w-0 bg-white/65">
-                        <div className="border-b border-gray-200/80 px-5 py-4 md:px-6">
-                          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-sm font-medium text-gray-700">
-                                  {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''} found
-                                </p>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <ComplianceBadge status="red" summary={complianceCounts.red} size="compact" />
-                                  <ComplianceBadge status="amber" summary={complianceCounts.amber} size="compact" />
-                                  <ComplianceBadge status="green" summary={complianceCounts.green} size="compact" />
-                                </div>
-                                <span className="text-xs text-gray-500">
-                                  {includeRejected ? '(Rejected candidates included)' : '(Rejected candidates hidden)'}
-                                </span>
-                              </div>
-
-                              {statusFilter === 'all' && (
-                                <label htmlFor="includeRejected" className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    id="includeRejected"
-                                    checked={includeRejected}
-                                    onChange={(e) => setIncludeRejected(e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span>Include Rejected Candidates</span>
-                                </label>
-                              )}
-                            </div>
-
-                            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[34rem] xl:flex-row xl:items-center xl:justify-end">
-                              <div className="relative w-full xl:w-96">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <input
-                                  type="text"
-                                  value={searchTerm}
-                                  onChange={(e) => setSearchTerm(e.target.value)}
-                                  placeholder="Search by name, email, reference..."
-                                  className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                                />
-                              </div>
-                              <div className="w-full xl:w-48">
-                                <select
-                                  value={complianceFilter}
-                                  onChange={(e) => setComplianceFilter(e.target.value)}
-                                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                                >
-                                  <option value="all">All compliance</option>
-                                  <option value="red">Red</option>
-                                  <option value="amber">Amber</option>
-                                  <option value="green">Green</option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6 p-5 md:p-6">
-                          <ApplicationTable apps={paginatedApplications} showRelevance={aiSearchActive} />
-
-                          {filteredApplications.length > 0 && (
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={totalPages}
-                              onPageChange={setCurrentPage}
-                              itemsPerPage={itemsPerPage}
-                              totalItems={filteredApplications.length}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              {subStatuses.length > 1 ? (
+                <div role="group" aria-label={`${activeStage.label} statuses`} className="flex flex-wrap gap-2">
+                  {subStatuses.map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => updateStatusFilter(statusFilter === status ? activeStage.id : status)}
+                      aria-pressed={statusFilter === status}
+                      className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
+                        statusFilter === status
+                          ? 'border-accent/40 bg-accent-soft text-accent-text'
+                          : 'border-line bg-surface text-fg-secondary hover:bg-raised'
+                      }`}
+                    >
+                      {applicationStatusLabel(status)}
+                      <span className="text-fg">{statusCounts[status] || 0}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              ) : null}
 
-              {/* Advanced Search Tab */}
-              {activeTab === 'search' && (
-                <div className="workspace-surface-grid">
-                  <PageHeader
-                    eyebrow="Search Workspace"
-                    title="Search the applicant pool."
-                    description="Use AI Search for semantic matching or Manual Search for direct recruiter filters and browsing."
-                    actions={<SegmentedControl options={searchTabs} value={searchMode} onChange={setSearchMode} />}
-                  />
-
-                  {searchMode === 'ai' && (
-                    <>
-                      <div className="recruiter-panel p-5 md:p-6">
-                        <div className="space-y-5">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">AI Search</p>
-                            <h3 className="mt-2 text-xl font-semibold tracking-tight text-gray-900">Describe the profile you need, then review the ranked matches.</h3>
-                            <p className="mt-2 max-w-4xl text-sm leading-6 text-gray-600">
-                              AI Search should be a simple recruiter flow: make sure embeddings are ready, enter a prompt, and inspect the ranked candidate results below. No separate filter controls are needed here.
-                            </p>
-                          </div>
-
-                          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                            <div className="rounded-2xl border border-gray-200 bg-white/85 p-5">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Prompt</p>
-                              {embeddingReadinessLoading ? (
-                                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                  Checking embedding readiness...
-                                </div>
-                              ) : null}
-                              <div className="mt-4">
-                                <AISearch
-                                  onResults={(results, query, isAnalyzing) => handleAISearchResults(results, query, isAnalyzing)}
-                                  onLoading={setAiSearchLoading}
-                                  onClearSearch={handleClearAISearch}
-                                  embeddingsReady={Boolean(embeddingReadiness?.ready)}
-                                  embeddingStatusMessage={formatEmbeddingStatusMessage(embeddingReadiness)}
-                                  onRequireEmbeddings={() => {
-                                    const target = document.getElementById('embedding-setup-panel')
-                                    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div id="embedding-setup-panel" className="rounded-2xl border border-gray-200 bg-white/85 p-5">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Before First Search</p>
-                              <h4 className="mt-2 text-lg font-semibold text-gray-900">Generate embeddings once.</h4>
-                              <p className="mt-2 text-sm text-gray-600">
-                                Recruiters should not have to guess this. AI Search depends on embeddings being generated first, but it is a setup step, not something you repeat every time you search.
-                              </p>
-                              <div className="mt-4">
-                                <EmbeddingGenerator
-                                  onGenerated={() => {
-                                    refreshEmbeddingReadiness()
-                                  }}
-                                  onFailed={() => {
-                                    refreshEmbeddingReadiness()
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {aiSearchLoading && aiSearchResults.length === 0 ? (
-                        <div className="recruiter-panel p-8">
-                          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">Running AI Search</p>
-                              <p className="mt-1 text-sm text-gray-600">The search is in progress. Results will appear here without replacing the rest of the page.</p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : aiSearchResults.length > 0 ? (
-                        <>
-                          <WorkspaceToolbar
-                            title={`${aiSearchResults.length} AI search result${aiSearchResults.length === 1 ? '' : 's'}`}
-                            subtitle={aiSearchQuery ? `Query: ${aiSearchQuery}` : 'Semantic candidate search'}
-                            actions={(
-                              <>
-                                {analyzingWithLLM ? (
-                                  <span className="rounded-full bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800">
-                                    AI confidence is still enriching top matches
-                                  </span>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={handleClearAISearch}
-                                  className="workspace-action-button workspace-action-button--secondary"
-                                >
-                                  Clear search
-                                </button>
-                              </>
-                            )}
-                          />
-
-                          <ApplicationTable
-                            apps={aiSearchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
-                            showRelevance={true}
-                            analyzingWithLLM={analyzingWithLLM}
-                          />
-                          <Pagination
-                            currentPage={currentPage}
-                            totalPages={Math.ceil(aiSearchResults.length / itemsPerPage)}
-                            onPageChange={setCurrentPage}
-                            itemsPerPage={itemsPerPage}
-                            totalItems={aiSearchResults.length}
-                          />
-                        </>
-                      ) : (
-                        <EmptyState
-                          icon={Sparkles}
-                          title="No AI search has been run yet"
-                          description="Generate embeddings once if needed, enter a recruiter prompt, and run AI Search. Results and confidence scoring will appear here after the first query."
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {searchMode === 'filters' && (
-                    <>
-                      <div className="recruiter-panel p-5 md:p-6">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Manual Search</p>
-                            <p className="mt-1 text-sm text-gray-600">Choose the candidate pool, refine the filters, then review the matching results below.</p>
-                          </div>
-                          <div className="inline-flex rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
-                            <button
-                              type="button"
-                              onClick={() => setManualScope('active')}
-                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-                                includeActive && !includeHired && !includeRejected && !includeWithdrawn
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:bg-slate-50'
-                              }`}
-                            >
-                              Active
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setManualScope('archived')}
-                              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-                                !includeActive && includeHired && includeRejected && includeWithdrawn
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:bg-slate-50'
-                              }`}
-                            >
-                              Archived
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <ApplicationFilters
-                        onFilterChange={handleFilterChange}
-                        onApplyFilters={handleApplyFilters}
-                        activeFilters={filters}
-                      />
-
-                      {displayedApplications.length > 0 ? (
-                        <>
-                          <WorkspaceToolbar
-                            title={`${displayedApplications.length} candidate${displayedApplications.length === 1 ? '' : 's'}`}
-                            subtitle="Manual recruiter search"
-                            chips={manualFilterChips}
-                            actions={(
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFilters({})
-                                  handleApplyFilters({})
-                                }}
-                                className="workspace-action-button workspace-action-button--secondary"
-                              >
-                                Reset filters
-                              </button>
-                            )}
-                          />
-                          <ApplicationTable apps={displayedPaginatedApplications} />
-                          {displayedApplications.length > 0 && (
-                            <Pagination
-                              currentPage={currentPage}
-                              totalPages={displayedTotalPages}
-                              onPageChange={setCurrentPage}
-                              itemsPerPage={itemsPerPage}
-                              totalItems={displayedApplications.length}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <EmptyState
-                          icon={SlidersHorizontal}
-                          title="No candidates match these manual filters"
-                          description="Broaden the primary filters first, then re-apply certificate, visa, or availability filters only after you have a workable talent pool."
-                          action={(
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFilters({})
-                                handleApplyFilters({})
-                              }}
-                              className="workspace-action-button workspace-action-button--secondary"
-                            >
-                              Clear manual filters
-                            </button>
-                          )}
-                        />
-                      )}
-                    </>
-                  )}
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-fg-secondary">{listed.length} shown</span>
+                  {['red', 'amber', 'green'].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setComplianceFilter((current) => (current === status ? 'all' : status))}
+                      aria-pressed={complianceFilter === status}
+                      title={`Show only ${status}`}
+                      className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${COMPLIANCE_STYLES[status]} ${
+                        complianceFilter === status ? 'ring-2 ring-accent/40' : complianceFilter === 'all' ? '' : 'opacity-50'
+                      }`}
+                    >
+                      {complianceLabel(status)}
+                      <span>{complianceCounts[status]}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
-
-            </>
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Name, email or reference"
+                    className="w-full rounded-card border border-line-input bg-surface py-2.5 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              </div>
+            </div>
           )}
+
+          <div className="space-y-6 p-5 md:p-6">
+            {loading || (aiSearchLoading && aiSearchResults.length === 0) ? (
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
+              </div>
+            ) : (
+              <>
+                <ApplicationTable apps={pageRows} showRelevance={aiSearchActive} analyzingWithLLM={analyzingWithLLM} />
+                {displayed.length > itemsPerPage ? (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={displayed.length}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )

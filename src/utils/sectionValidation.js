@@ -660,10 +660,6 @@ export const validateSection13Field = (fieldName, value, formData = {}) => {
       if (!value) return 'Weight is required'
       if (Number(value) <= 0) return 'Please enter a valid weight'
       return ''
-    case 'hairColor':
-      return !value ? 'Hair color is required' : ''
-    case 'eyeColor':
-      return !value ? 'Eye color is required' : ''
     case 'shoeSize':
       return !value ? 'Shoe size is required' : ''
     case 'shoeSizeUnit':

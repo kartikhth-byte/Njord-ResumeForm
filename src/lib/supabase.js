@@ -2,13 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import { supabaseApiKey } from './supabaseKey'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = supabaseApiKey
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseApiKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, supabaseApiKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,

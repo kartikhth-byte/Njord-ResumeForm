@@ -43,12 +43,6 @@ const AGE_OPTIONS = [
 
 const VISA_OPTIONS = ['C1/D (USA)', 'Schengen', 'UK', 'Canada', 'Australia', 'Singapore', 'Japan', 'South Korea', 'UAE']
 const FLAG_OPTIONS = ['Panama', 'Liberia', 'Marshall Islands', 'Singapore', 'Hong Kong', 'Bahamas', 'Malta', 'Cyprus', 'Isle of Man', 'Antigua and Barbuda']
-const COMPLIANCE_STATUS_OPTIONS = [
-  { value: 'red', label: 'Red' },
-  { value: 'amber', label: 'Amber' },
-  { value: 'green', label: 'Green' },
-]
-
 const LABELS = {
   position: 'Rank',
   vesselType: 'Vessel',
@@ -57,7 +51,6 @@ const LABELS = {
   certificateGrade: 'Certificate',
   visaType: 'Visa',
   flagState: 'Flag State',
-  complianceStatus: 'Compliance',
   availability: 'Availability',
   ageRange: 'Age',
   dateRange: 'Date'
@@ -65,7 +58,7 @@ const LABELS = {
 
 export default function ApplicationFilters({ onFilterChange, onApplyFilters, activeFilters = {} }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const fieldClass = 'h-11 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200'
+  const fieldClass = 'h-11 w-full rounded-card border border-line-input bg-surface px-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30'
 
   const updateFilter = (key, value) => {
     const next = { ...activeFilters, [key]: value }
@@ -101,11 +94,11 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
             <button
               type="button"
               onClick={() => setIsExpanded(prev => !prev)}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-3 py-2 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:bg-raised"
             >
               <SlidersHorizontal className="h-4 w-4" />
               {isExpanded ? 'Less filters' : 'More filters'}
-              {activeCount > 0 ? <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-800">{activeCount}</span> : null}
+              {activeCount > 0 ? <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-text">{activeCount}</span> : null}
             </button>
           </div>
 
@@ -181,11 +174,6 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
               {FLAG_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
 
-            <select value={activeFilters.complianceStatus || ''} onChange={event => updateFilter('complianceStatus', event.target.value)} className={fieldClass}>
-              <option value="">Compliance</option>
-              {COMPLIANCE_STATUS_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-
             <select value={activeFilters.availability || ''} onChange={event => updateFilter('availability', event.target.value)} className={fieldClass}>
               <option value="">Availability</option>
               {AVAILABILITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -196,9 +184,9 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
               {AGE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
 
-            <div className="rounded-2xl border border-gray-300 bg-white px-4 py-3">
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Calendar className="h-4 w-4 text-gray-400" />
+            <div className="rounded-control border border-line-input bg-surface px-4 py-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-fg-secondary">
+                <Calendar className="h-4 w-4 text-fg-muted" />
                 Date range
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -206,13 +194,13 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
                   type="date"
                   value={activeFilters.dateRange?.from || ''}
                   onChange={event => updateFilter('dateRange', { ...activeFilters.dateRange, from: event.target.value })}
-                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+                  className="rounded-control border border-line-input px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
                 <input
                   type="date"
                   value={activeFilters.dateRange?.to || ''}
                   onChange={event => updateFilter('dateRange', { ...activeFilters.dateRange, to: event.target.value })}
-                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+                  className="rounded-control border border-line-input px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </div>
             </div>

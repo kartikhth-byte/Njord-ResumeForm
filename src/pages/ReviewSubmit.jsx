@@ -3,28 +3,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
-import Navbar from '../components/layout/Navbar'
+import FormSidebar from '../components/form/FormSidebar'
 import ConfirmationModal from '../components/form/shared/ConfirmationModal'
-import { CheckCircle, AlertCircle, Edit, Send, AlertTriangle, ChevronUp, Eye, X, ArrowLeft } from 'lucide-react'
+import { CheckCircle, AlertCircle, Edit, Send, ChevronUp, Eye } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { generateReferenceNumber } from '../utils/referenceGenerator' // ← ADD THIS LINE
+import { generateReferenceNumber } from '../utils/referenceGenerator'
 import PageHeader from '../components/ui/PageHeader'
 import { clearActiveDraftId, getActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
-import { FORM_SECTION_NAME_MAP, FORM_SECTION_NUMBERS, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
+import { FORM_SECTION_NAME_MAP, MANDATORY_SECTION_NUMBERS } from '../constants/formSections'
+import { getBlockingSections, getSectionStatuses } from '../utils/applicationProgress'
 
-const SECTION_NAMES = {
-  ...FORM_SECTION_NAME_MAP,
-  1: 'Availability & Application Details',
-  4: "CDC / National Seaman's Book",
-  8: 'National Certificates of Competency',
-  10: 'Medical Fitness & Vaccination',
-  14: 'STCW Courses & Competencies',
-  15: 'Flag State Endorsements',
-  16: 'Sea Service / Employment History',
-  17: 'Technical Experience & Skills',
-  18: 'Professional References',
-  19: 'Additional Information & Declarations',
-}
+const SECTION_NAMES = FORM_SECTION_NAME_MAP
 
 function isReferenceNumberConflict(error) {
   const message = error?.message || ''
@@ -52,9 +41,7 @@ export default function ReviewSubmit() {
   const [applicationData, setApplicationData] = useState({})
   const [applicationId, setApplicationId] = useState(null)
   const [completionStatus, setCompletionStatus] = useState({})
-  const [showIncompleteModal, setShowIncompleteModal] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [incompleteSections, setIncompleteSections] = useState([])
   const [expandedSections, setExpandedSections] = useState({})
 
   useEffect(() => {
@@ -128,25 +115,7 @@ export default function ReviewSubmit() {
   }
 
   const calculateCompletionStatus = (data) => {
-    const status = {}
-    
-    for (const sectionNumber of FORM_SECTION_NUMBERS) {
-      const sectionKey = `section${sectionNumber}`
-      const sectionData = data[sectionKey]
-      
-      if (!sectionData || Object.keys(sectionData).length === 0) {
-        status[sectionNumber] = 'empty'
-      } else {
-        const hasData = Object.values(sectionData).some(value => {
-          if (Array.isArray(value)) return value.length > 0
-          if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0
-          if (typeof value === 'boolean') return true
-          return value !== '' && value !== null && value !== undefined
-        })
-        status[sectionNumber] = hasData ? 'complete' : 'empty'
-      }
-    }
-    
+    const status = getSectionStatuses(data)
     setCompletionStatus(status)
     return status
   }
@@ -169,13 +138,7 @@ export default function ReviewSubmit() {
   }
 
   const validateApplication = () => {
-    const incomplete = []
-
-    MANDATORY_SECTION_NUMBERS.forEach(section => {
-      if (completionStatus[section] !== 'complete') {
-        incomplete.push(section)
-      }
-    })
+    const incomplete = getBlockingSections(applicationData)
 
     const section19 = applicationData.section19 || {}
     if (!section19.accuracyDeclaration || !section19.backgroundCheckConsent || !section19.dataProcessingConsent) {
@@ -189,14 +152,7 @@ export default function ReviewSubmit() {
   }
 
   const handleSubmitClick = () => {
-    const incomplete = validateApplication()
-    
-    if (incomplete.length > 0) {
-      setIncompleteSections(incomplete)
-      setShowIncompleteModal(true)
-    } else {
-      setShowConfirmModal(true)
-    }
+    if (validateApplication().length === 0) setShowConfirmModal(true)
   }
 
 const handleConfirmSubmit = async () => {
@@ -205,7 +161,6 @@ const handleConfirmSubmit = async () => {
 
     // Get position for success page
     const position = applicationData?.section1?.appliedForRank || 'Maritime Position'
-    console.log('Position:', position)
 
     // Reuse existing identifiers when present to avoid uniqueness conflicts on resubmission.
     const { data: currentApp, error: fetchError } = await supabase
@@ -219,18 +174,9 @@ const handleConfirmSubmit = async () => {
     let referenceNumber = currentApp?.reference_number
     if (!referenceNumber) {
       referenceNumber = await findAvailableReferenceNumber()
-      console.log('Generated unique reference number:', referenceNumber)
-    } else {
-      console.log('Using existing reference number:', referenceNumber)
     }
 
-    let publicToken = currentApp?.public_token
-    if (!publicToken) {
-      publicToken = crypto.randomUUID()
-      console.log('Generated new public_token:', publicToken)
-    } else {
-      console.log('Using existing public_token:', publicToken)
-    }
+    const publicToken = currentApp?.public_token || crypto.randomUUID()
 
     const updatePayload = {
       status: 'submitted',
@@ -248,7 +194,6 @@ const handleConfirmSubmit = async () => {
 
     if ((updateError?.code === '23505' || updateError?.status === 409) && isReferenceNumberConflict(updateError)) {
       referenceNumber = await findAvailableReferenceNumber()
-      console.warn('Reference number collision detected, retrying with:', referenceNumber)
 
       ;({ error: updateError } = await supabase
         .from('applications')
@@ -260,8 +205,6 @@ const handleConfirmSubmit = async () => {
     }
 
     if (isUniqueUserPositionConflict(updateError)) {
-      console.warn('Applied rank conflicts with an existing application, retrying submit without applications.applied_rank')
-
       ;({ error: updateError } = await supabase
         .from('applications')
         .update({
@@ -279,18 +222,12 @@ const handleConfirmSubmit = async () => {
       throw updateError
     }
 
-    console.log('✅ Application updated successfully')
-    console.log('Reference number:', referenceNumber)
-    console.log('Public token:', publicToken)
-
     // Verify the update worked
     const { data: verifyApp, error: verifyError } = await supabase
       .from('applications')
       .select('reference_number, public_token')
       .eq('id', applicationId)
       .single()
-
-    console.log('Verification - Saved values:', verifyApp)
 
     if (verifyError || !verifyApp?.reference_number) {
       console.error('Verification failed:', verifyError)
@@ -299,7 +236,7 @@ const handleConfirmSubmit = async () => {
 
     // Call edge function to send recruiter email
     try {
-      const { data: emailData, error: emailError } = await supabase.functions.invoke(
+      const { error: emailError } = await supabase.functions.invoke(
         'send-application-emails',
         {
           body: { applicationId }
@@ -309,8 +246,6 @@ const handleConfirmSubmit = async () => {
       if (emailError) {
         console.error('Email function error:', emailError)
         // Don't block submission if email fails
-      } else {
-        console.log('Email sent successfully:', emailData)
       }
     } catch (emailError) {
       console.error('Failed to send email:', emailError)
@@ -320,12 +255,8 @@ const handleConfirmSubmit = async () => {
     // Navigate to success page with reference number
     markActiveDraftExplicit(false)
     clearActiveDraftId()
-    navigate('/application/success', {
-      state: {
-        referenceNumber,
-        position: formatDisplayValue(position)
-      }
-    })
+    // Confirmation is shown on the read-only application (reference in a banner).
+    navigate(`/application/view/${publicToken}?submitted=1`, { replace: true })
 
   } catch (error) {
     console.error('Error submitting application:', error)
@@ -349,21 +280,21 @@ const handleConfirmSubmit = async () => {
 
   const renderSectionDetails = (sectionNumber) => {
     const sectionData = applicationData[`section${sectionNumber}`]
-    if (!sectionData) return <p className="text-gray-500 italic">No data provided</p>
+    if (!sectionData) return <p className="text-fg-muted italic">No data provided</p>
 
     // Helper to render key-value pairs
     const renderField = (label, value) => {
       if (value === null || value === undefined || value === '') return null
       if (typeof value === 'boolean') return (
-        <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-          <span className="font-medium text-gray-700">{label}:</span>
-          <span className="col-span-2 text-gray-900">{value ? 'Yes' : 'No'}</span>
+        <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b border-line">
+          <span className="font-medium text-fg-secondary">{label}:</span>
+          <span className="col-span-2 text-fg">{value ? 'Yes' : 'No'}</span>
         </div>
       )
       return (
-        <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-          <span className="font-medium text-gray-700">{label}:</span>
-          <span className="col-span-2 text-gray-900">{value}</span>
+        <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b border-line">
+          <span className="font-medium text-fg-secondary">{label}:</span>
+          <span className="col-span-2 text-fg">{value}</span>
         </div>
       )
     }
@@ -405,13 +336,13 @@ const handleConfirmSubmit = async () => {
 
       case 5:
         if (!sectionData.visas || sectionData.visas.length === 0) {
-          return <p className="text-gray-500 italic">No visas added</p>
+          return <p className="text-fg-muted italic">No visas added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.visas.map((visa, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Visa {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Visa {idx + 1}</p>
                 {renderField('Type', visa.type)}
                 {renderField('Number', visa.number)}
                 {renderField('Expiry', visa.dateOfExpiry)}
@@ -422,13 +353,13 @@ const handleConfirmSubmit = async () => {
 
       case 6:
         if (!sectionData.education || sectionData.education.length === 0) {
-          return <p className="text-gray-500 italic">No education added</p>
+          return <p className="text-fg-muted italic">No education added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.education.map((entry, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Education {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Education {idx + 1}</p>
                 {renderField('Institution', entry.institution)}
                 {renderField('Qualification', entry.qualification)}
                 {renderField('From', entry.from)}
@@ -440,13 +371,13 @@ const handleConfirmSubmit = async () => {
 
       case 7:
         if (!sectionData.dependents || sectionData.dependents.length === 0) {
-          return <p className="text-gray-500 italic">No dependents added</p>
+          return <p className="text-fg-muted italic">No dependents added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.dependents.map((dependent, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">{dependent.name || `Dependent ${idx + 1}`}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">{dependent.name || `Dependent ${idx + 1}`}</p>
                 {renderField('Relationship', dependent.relationship)}
                 {renderField('Gender', dependent.gender)}
                 {renderField('Date of Birth', dependent.dateOfBirth)}
@@ -458,13 +389,13 @@ const handleConfirmSubmit = async () => {
 
       case 8:
         if (!sectionData.certificates || sectionData.certificates.length === 0) {
-          return <p className="text-gray-500 italic">No certificates added</p>
+          return <p className="text-fg-muted italic">No certificates added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.certificates.map((cert, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Certificate {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Certificate {idx + 1}</p>
                 {renderField('Grade', cert.grade)}
                 {renderField('Number', cert.certificateNumber)}
                 {renderField('Issuing Authority', cert.issuingAuthority)}
@@ -476,13 +407,13 @@ const handleConfirmSubmit = async () => {
 
       case 9:
         if (!sectionData.gmdss || sectionData.gmdss.length === 0) {
-          return <p className="text-gray-500 italic">No GMDSS certificates added</p>
+          return <p className="text-fg-muted italic">No GMDSS certificates added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.gmdss.map((entry, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">GMDSS Certificate {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">GMDSS Certificate {idx + 1}</p>
                 {renderField('Issuing Authority', entry.issuingAuthority)}
                 {renderField('Number', entry.number)}
                 {renderField('Place of Issue', entry.placeOfIssue)}
@@ -498,19 +429,19 @@ const handleConfirmSubmit = async () => {
           <div className="space-y-3">
             {sectionData.medicalFitness?.length ? (
               sectionData.medicalFitness.map((entry, idx) => (
-                <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                  <p className="font-semibold text-gray-900 mb-2">Medical Certificate {idx + 1}</p>
+                <div key={idx} className="bg-raised p-3 rounded border border-line">
+                  <p className="font-semibold text-fg mb-2">Medical Certificate {idx + 1}</p>
                   {renderField('Type', entry.type)}
                   {renderField('Date of Issue', entry.dateOfIssue)}
                   {renderField('Date of Expiry', entry.dateOfExpiry)}
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 italic">No medical certificates added</p>
+              <p className="text-fg-muted italic">No medical certificates added</p>
             )}
             {sectionData.vaccinations && (
-              <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Vaccinations</p>
+              <div className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Vaccinations</p>
                 {renderField('Yellow Fever Received', sectionData.vaccinations.yellowFever?.received)}
                 {renderField('Yellow Fever Date of Issue', sectionData.vaccinations.yellowFever?.dateOfIssue)}
                 {renderField('Yellow Fever Date of Expiry', sectionData.vaccinations.yellowFever?.dateOfExpiry)}
@@ -518,18 +449,6 @@ const handleConfirmSubmit = async () => {
                 {renderField('COVID Vaccinated', sectionData.vaccinations.covidVaccinated)}
                 {renderField('COVID Doses', sectionData.vaccinations.covidDoses)}
                 {renderField('COVID Last Dose Date', sectionData.vaccinations.covidLastDoseDate)}
-                {renderField('Hepatitis A', sectionData.vaccinations.hepatitisA)}
-                {renderField('Hepatitis A Date', sectionData.vaccinations.hepatitisADate)}
-                {renderField('Hepatitis B', sectionData.vaccinations.hepatitisB)}
-                {renderField('Hepatitis B Date', sectionData.vaccinations.hepatitisBDate)}
-                {renderField('Typhoid', sectionData.vaccinations.typhoid)}
-                {renderField('Typhoid Date', sectionData.vaccinations.typhoidDate)}
-                {renderField('Tetanus', sectionData.vaccinations.tetanus)}
-                {renderField('Tetanus Date', sectionData.vaccinations.tetanusDate)}
-                {renderField('Measles', sectionData.vaccinations.measles)}
-                {renderField('Measles Date', sectionData.vaccinations.measlesDate)}
-                {renderField('Polio', sectionData.vaccinations.polio)}
-                {renderField('Polio Date', sectionData.vaccinations.polioDate)}
                 {renderField('Other Vaccinations', sectionData.vaccinations.otherVaccinations)}
               </div>
             )}
@@ -548,13 +467,13 @@ const handleConfirmSubmit = async () => {
 
       case 12:
         if (!sectionData.languages || sectionData.languages.length === 0) {
-          return <p className="text-gray-500 italic">No languages added</p>
+          return <p className="text-fg-muted italic">No languages added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.languages.map((entry, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Language {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Language {idx + 1}</p>
                 {renderField('Language', entry.language)}
                 {renderField('Level', entry.level)}
               </div>
@@ -564,13 +483,13 @@ const handleConfirmSubmit = async () => {
 
       case 14:
         if (!sectionData.courses || sectionData.courses.length === 0) {
-          return <p className="text-gray-500 italic">No STCW courses added</p>
+          return <p className="text-fg-muted italic">No STCW courses added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.courses.map((course, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">{course.courseName || `Course ${idx + 1}`}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">{course.courseName || `Course ${idx + 1}`}</p>
                 {renderField('IMO Model Course', course.imoModelCourse)}
                 {renderField('Reference - Regulation', course.referenceRegulation)}
                 {renderField('Certificate Number', course.certificateNumber)}
@@ -583,13 +502,13 @@ const handleConfirmSubmit = async () => {
 
       case 15:
         if (!sectionData.endorsements || sectionData.endorsements.length === 0) {
-          return <p className="text-gray-500 italic">No endorsements added</p>
+          return <p className="text-fg-muted italic">No endorsements added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.endorsements.map((entry, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Endorsement {idx + 1}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Endorsement {idx + 1}</p>
                 {renderField('Flag State', entry.flagState)}
                 {renderField('Endorsement Type', entry.endorsementType)}
                 {renderField('Rank Endorsed', entry.rankEndorsed)}
@@ -604,13 +523,13 @@ const handleConfirmSubmit = async () => {
 
       case 16:
         if (!sectionData.seaService || sectionData.seaService.length === 0) {
-          return <p className="text-gray-500 italic">No sea service added</p>
+          return <p className="text-fg-muted italic">No sea service added</p>
         }
         return (
           <div className="space-y-3">
             {sectionData.seaService.map((service, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">{service.vesselName || `Vessel ${idx + 1}`}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">{service.vesselName || `Vessel ${idx + 1}`}</p>
                 {renderField('Rank', formatDisplayValue(service.rankHeld))}
                 {renderField('Position', service.position)}
                 {renderField('Company', service.company || service.companyName)}
@@ -699,25 +618,25 @@ const handleConfirmSubmit = async () => {
         ].filter((group) => group.items.length > 0)
 
         if (skillGroups.length === 0 && !sectionData.additionalSkills) {
-          return <p className="text-gray-500 italic">No technical skills added</p>
+          return <p className="text-fg-muted italic">No technical skills added</p>
         }
 
         return (
           <div className="space-y-3">
             {skillGroups.map((group) => (
-              <div key={group.title} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">{group.title}</p>
-                <ul className="space-y-1 text-gray-900">
+              <div key={group.title} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">{group.title}</p>
+                <ul className="space-y-1 text-fg">
                   {group.items.map((item) => (
-                    <li key={item} className="border-b border-gray-100 py-2 last:border-b-0">{item}</li>
+                    <li key={item} className="border-b border-line py-2 last:border-b-0">{item}</li>
                   ))}
                 </ul>
               </div>
             ))}
             {sectionData.additionalSkills && (
-              <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">Additional Skills & Experience</p>
-                <p className="text-gray-900 whitespace-pre-wrap">{sectionData.additionalSkills}</p>
+              <div className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">Additional Skills & Experience</p>
+                <p className="text-fg whitespace-pre-wrap">{sectionData.additionalSkills}</p>
               </div>
             )}
           </div>
@@ -727,7 +646,7 @@ const handleConfirmSubmit = async () => {
       case 18:
         return (
           <div className="space-y-3">
-            <div className="bg-gray-50 p-3 rounded border border-gray-200">
+            <div className="bg-raised p-3 rounded border border-line">
               {renderField(
                 'Objection To Contact Last Employer',
                 sectionData.objectionToContactLastEmployer
@@ -740,11 +659,11 @@ const handleConfirmSubmit = async () => {
               {renderField('Current Employer Phone Number', sectionData.currentEmployer?.phoneNumber)}
             </div>
             {(!sectionData.references || sectionData.references.length === 0) && (
-              <p className="text-gray-500 italic">No references added</p>
+              <p className="text-fg-muted italic">No references added</p>
             )}
             {(sectionData.references || []).map((entry, idx) => (
-              <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
-                <p className="font-semibold text-gray-900 mb-2">{entry.name || `Reference ${idx + 1}`}</p>
+              <div key={idx} className="bg-raised p-3 rounded border border-line">
+                <p className="font-semibold text-fg mb-2">{entry.name || `Reference ${idx + 1}`}</p>
                 {renderField('Position', entry.position)}
                 {renderField('Company', entry.company)}
                 {renderField('Address', entry.address)}
@@ -778,8 +697,8 @@ const handleConfirmSubmit = async () => {
               if (Array.isArray(value)) {
                 return (
                   <div key={key} className="py-2">
-                    <span className="font-medium text-gray-700">{key}: </span>
-                    <span className="text-gray-900">{value.length} item(s)</span>
+                    <span className="font-medium text-fg-secondary">{key}: </span>
+                    <span className="text-fg">{value.length} item(s)</span>
                   </div>
                 )
               }
@@ -801,7 +720,7 @@ const handleConfirmSubmit = async () => {
       case 1:
         return sectionData.appliedForRank ? `Applied for: ${formatDisplayValue(sectionData.appliedForRank)}` : 'Incomplete'
       case 2:
-        return sectionData.firstName ? `${sectionData.firstName} ${sectionData.lastName || ''}` : 'Incomplete'
+        return sectionData.firstName ? [sectionData.firstName, sectionData.surname].filter(Boolean).join(' ') : 'Incomplete'
       case 3:
         return sectionData.passportNumber ? `Passport: ${sectionData.passportNumber}` : 'Not provided'
       case 4:
@@ -841,17 +760,15 @@ const handleConfirmSubmit = async () => {
     }
   }
 
-  const completedSections = Object.values(completionStatus).filter(s => s === 'complete').length
-  const totalSections = FORM_SECTION_NUMBERS.length
-  const completionPercentage = Math.round((completedSections / totalSections) * 100)
-  const canSubmit = validateApplication().length === 0
+  const blockingSections = validateApplication()
+  const canSubmit = blockingSections.length === 0
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-raised">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading application...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+          <p className="text-fg-secondary">Loading application...</p>
         </div>
       </div>
     )
@@ -859,55 +776,20 @@ const handleConfirmSubmit = async () => {
 
   return (
     <div className="applicant-shell">
-      <Navbar />
+      <FormSidebar applicationData={applicationData} mode="review" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="applicant-hero mb-8">
-          <div className="mb-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </button>
-          </div>
-
-          <PageHeader
-            eyebrow="Final Review"
-            title="Review your application before submission"
-            description="Check every required section, confirm the declarations, and submit only when the application is complete and accurate."
-          />
-        </div>
-
-        {/* Progress Card */}
-        <div className="applicant-panel p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Application Progress</h2>
-            <span className="text-2xl font-bold text-blue-600">{completionPercentage}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${completionPercentage}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {completedSections} of {totalSections} sections completed
-          </p>
+          <PageHeader title="Review and submit" />
         </div>
 
         {/* Section List */}
         <div className="applicant-panel mb-6">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Application Sections</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Click "Review" to expand and see details, or "Edit" to modify any section
-            </p>
+          <div className="p-6 border-b border-line">
+            <h2 className="text-xl font-semibold text-fg">Application Sections</h2>
           </div>
 
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-line">
             {Object.keys(SECTION_NAMES).map((sectionNum) => {
               const num = parseInt(sectionNum)
               const isComplete = completionStatus[num] === 'complete'
@@ -920,22 +802,15 @@ const handleConfirmSubmit = async () => {
                     <div className={`applicant-review-row ${!isComplete && isMandatory ? 'is-incomplete' : ''}`}>
                       <div className="flex items-center gap-3 flex-1">
                         {isComplete ? (
-                          <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                          <CheckCircle className="w-6 h-6 text-success flex-shrink-0" />
                         ) : (
-                          <AlertCircle className={`w-6 h-6 flex-shrink-0 ${isMandatory ? 'text-red-500' : 'text-amber-500'}`} />
+                          <AlertCircle className={`w-6 h-6 flex-shrink-0 ${isMandatory ? 'text-danger' : 'text-warning'}`} />
                         )}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-gray-900">
-                              Section {num}: {SECTION_NAMES[num]}
-                            </h3>
-                            {isMandatory && (
-                              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">
-                                REQUIRED
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <h3 className="font-medium text-fg">
+                            {num}. {SECTION_NAMES[num]}
+                          </h3>
+                          <p className="text-sm text-fg-secondary mt-1">
                             {getSectionSummary(num)}
                           </p>
                         </div>
@@ -943,7 +818,7 @@ const handleConfirmSubmit = async () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => toggleSection(num)}
-                          className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 text-accent-text hover:bg-accent-soft rounded-lg transition-colors"
                         >
                           {isExpanded ? (
                             <>
@@ -959,7 +834,7 @@ const handleConfirmSubmit = async () => {
                         </button>
                         <button
                           onClick={() => navigate(`/application/form/section/${num}?return=review`)}
-                          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 text-fg-secondary hover:bg-raised rounded-lg transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                           <span className="text-sm font-medium">Edit</span>
@@ -970,8 +845,8 @@ const handleConfirmSubmit = async () => {
 
                   {/* Expanded Section Details */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 bg-gray-50">
-                      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                    <div className="px-4 pb-4 bg-raised">
+                      <div className="rounded-card border border-line bg-surface p-4">
                         {renderSectionDetails(num)}
                       </div>
                     </div>
@@ -982,128 +857,44 @@ const handleConfirmSubmit = async () => {
           </div>
         </div>
 
-        {/* Submit Section */}
         <div className="applicant-panel p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Ready to Submit?</h2>
-          
-          {canSubmit ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex gap-3">
-                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-green-900">All Required Sections Complete!</h3>
-                  <p className="text-sm text-green-800 mt-1">
-                    All mandatory sections have been completed. You can now submit your application.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <div className="flex gap-3">
-                <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-red-900">Required Sections Incomplete</h3>
-                  <p className="text-sm text-red-800 mt-1">
-                    Please complete all required sections before submitting. Required sections are marked with a "REQUIRED" badge above.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {!canSubmit && (
+            <p className="mb-4 text-sm text-fg-secondary">
+              To submit, complete:{' '}
+              {blockingSections.map((num, index) => (
+                <span key={num}>
+                  {index > 0 ? ', ' : ''}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/application/form/section/${num}?return=review`)}
+                    className="font-medium text-accent-text hover:underline"
+                  >
+                    {SECTION_NAMES[num]}
+                  </button>
+                </span>
+              ))}
+            </p>
           )}
 
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              By clicking "Submit Application", you confirm that all information provided is accurate and complete. Once submitted, you will receive a confirmation email and our team will review your application.
-            </p>
-
-            <button
-              onClick={handleSubmitClick}
-              disabled={submitting || !canSubmit}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl transition-colors font-semibold text-lg ${
-                canSubmit
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              } disabled:bg-gray-400 disabled:cursor-not-allowed`}
-            >
-              {submitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Submit Application
-                </>
-              )}
-            </button>
-
-            {!canSubmit && (
-              <p className="text-xs text-center text-gray-500">
-                Complete all required sections to enable submission
-              </p>
+          <button
+            onClick={handleSubmitClick}
+            disabled={submitting || !canSubmit}
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-control transition-colors font-semibold text-lg bg-accent-fill text-on-accent hover:bg-accent-fill-hover disabled:bg-line-strong disabled:text-fg-muted disabled:cursor-not-allowed"
+          >
+            {submitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-line border-t-transparent rounded-full animate-spin"></div>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Submit application
+              </>
             )}
-          </div>
+          </button>
         </div>
       </div>
-
-      {/* Incomplete Sections Modal */}
-      {showIncompleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowIncompleteModal(false)}></div>
-          
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
-              <button
-                onClick={() => setShowIncompleteModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="p-6">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 border border-red-200">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
-                </div>
-
-                <h3 className="mt-4 text-xl font-semibold text-gray-900 text-center">
-                  Required Sections Incomplete
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-600 text-center">
-                  Please complete the following required sections before submitting:
-                </p>
-
-                <div className="mt-4 space-y-2">
-                  {incompleteSections.map(sectionNum => (
-                    <button
-                      key={sectionNum}
-                      onClick={() => {
-                        setShowIncompleteModal(false)
-                        navigate(`/application/form/section/${sectionNum}?return=review`)
-                      }}
-                      className="w-full flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-red-900">
-                        Section {sectionNum}: {SECTION_NAMES[sectionNum]}
-                      </span>
-                      <Edit className="w-4 h-4 text-red-600" />
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowIncompleteModal(false)}
-                  className="mt-6 w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Confirm Submit Modal */}
       <ConfirmationModal
@@ -1114,8 +905,7 @@ const handleConfirmSubmit = async () => {
         message={
           <div className="space-y-2">
             <p>Are you sure you want to submit your application?</p>
-            <p className="font-semibold">Once submitted, you will not be able to edit your application.</p>
-            <p className="text-xs">You will receive a confirmation email and our team will review your application.</p>
+            <p className="font-semibold">You can’t edit it after submitting.</p>
           </div>
         }
         type="success"

@@ -23,7 +23,7 @@ test.describe('applicant required-field coverage', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {
-    await prepareDraftApplicantState()
+    await prepareDraftApplicantState({ resetApplication: true })
   })
 
   for (const section of SECTION_SEQUENCE) {

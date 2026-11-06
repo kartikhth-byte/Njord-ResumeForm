@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './auth/AuthContext'
 import { CheckCircle, XCircle, RotateCcw, Calendar, Clock, Link as LinkIcon, Loader2, X, AlertTriangle } from 'lucide-react'
+import { REJECTION_CATEGORIES } from '../constants/rejection'
+import { rejectApplication } from '../services/rejectionService'
 
 export default function TestResultModal({ application, onResultUpdated, onCancel }) {
   const { user } = useAuth()
@@ -11,7 +13,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   const [formData, setFormData] = useState({
     testScore: '',
     notes: '',
-    rejectionReason: '',
+    rejectionReason: 'failed_assessment',
     newTestDate: '',
     newTestTime: '10:00',
     newTestUrl: '',
@@ -21,15 +23,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
   const currentAttempt = application.test_attempt_number || 1
   const maxAttempts = application.test_max_attempts || 2
   const canRetake = currentAttempt < maxAttempts
-
-  const rejectionReasons = [
-    'Insufficient technical knowledge',
-    'Failed safety procedures assessment',
-    'Did not meet minimum score requirement',
-    'Poor communication skills demonstrated',
-    'Incomplete test submission',
-    'Other (see notes)'
-  ]
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -58,62 +51,49 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('🔵 handleSubmit called', { result, formData })
 
     // Validation
     if (!result) {
-      console.log('❌ Validation failed: no result selected')
       alert('Please select a test result')
       return
     }
 
     if (result === 'failed' && !formData.rejectionReason) {
-      console.log('❌ Validation failed: no rejection reason')
       alert('Please select a rejection reason')
       return
     }
 
     if (result === 'retake') {
       if (!canRetake) {
-        console.log('❌ Validation failed: cannot retake')
         alert('Maximum test attempts reached. Cannot approve retake.')
         return
       }
       if (!formData.newTestDate || !formData.newTestUrl) {
-        console.log('❌ Validation failed: missing retake details')
         alert('Please provide new test date and URL for retake')
         return
       }
     }
 
-    console.log('✅ Validation passed, setting loading...')
     setLoading(true)
 
     try {
-      console.log('🔄 Processing result:', result)
       
       if (result === 'passed') {
-        console.log('→ Calling handlePassed')
         await handlePassed()
       } else if (result === 'failed') {
-        console.log('→ Calling handleFailed')
         await handleFailed()
       } else if (result === 'retake') {
-        console.log('→ Calling handleRetake')
         await handleRetake()
       }
 
-      console.log('✅ Handler completed successfully')
 
       // Success callback
       if (onResultUpdated) {
-        console.log('→ Calling onResultUpdated callback')
         onResultUpdated(result === 'passed' ? 'test_passed' : result === 'failed' ? 'rejected' : 'test_scheduled')
       }
 
       // Close modal after successful update
       if (onCancel) {
-        console.log('→ Calling onCancel to close modal')
         onCancel()
       }
 
@@ -122,7 +102,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
       alert('Failed to update test result: ' + error.message)
     } finally {
       setLoading(false)
-      console.log('🏁 handleSubmit finished')
     }
   }
 
@@ -141,64 +120,32 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
     // TODO: Send "test passed" email (if edge function exists)
     // Currently no edge function for "test passed" notification
     
-    console.log('Test marked as PASSED')
   }
 
   const handleFailed = async () => {
-    // Update application to REJECTED
-    const { error: updateError } = await supabase
-      .from('applications')
-      .update({
-        status: 'rejected',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', application.id)
-
-    if (updateError) throw updateError
-
-    // Send rejection email via edge function
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-      console.log('Sending rejection email to:', applicantEmail)
-
-      const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-rejection-email',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            position: application.applied_rank || 'the position',
-            reason: formData.rejectionReason
-          })
-        }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send rejection email:', await emailResponse.text())
-      } else {
-        console.log('Rejection email sent successfully')
-      }
-    } catch (emailError) {
-      console.error('Error sending rejection email:', emailError)
+    const { emailSent } = await rejectApplication({
+      applicationId: application.id,
+      candidate: {
+        email: application.application_data?.data?.section2?.email || application.email || '',
+        name: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+        referenceNumber: application.reference_number,
+        position: application.applied_rank || 'the position',
+      },
+      category: formData.rejectionReason,
+      notes: formData.notes,
+      actorId: user?.id || null,
+      currentHandlerId: application.handling_recruiter_id || null,
+    })
+    if (!emailSent) {
+      alert('The application was rejected, but the email to the candidate could not be sent.')
     }
-
-    console.log('Test marked as FAILED, application REJECTED')
   }
 
   const handleRetake = async () => {
     const nextAttempt = currentAttempt + 1
 
     // Update application - increment attempt, keep as TEST_SCHEDULED
-    const { error: updateError } = await supabase
+    const { data: updatedApplication, error: updateError } = await supabase
       .from('applications')
       .update({
         status: 'test_scheduled',
@@ -206,8 +153,11 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
         updated_at: new Date().toISOString()
       })
       .eq('id', application.id)
+      .select('id')
+      .single()
 
     if (updateError) throw updateError
+    if (!updatedApplication) throw new Error('The retake was not saved')
 
     // Create new scheduled event
     const scheduledDateTime = new Date(`${formData.newTestDate}T${formData.newTestTime}:00`)
@@ -232,54 +182,45 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
     if (eventError) throw eventError
 
-    // Send retake approval email via edge function
+    const applicantEmail = application.application_data?.data?.section2?.email || application.email
+    if (!applicantEmail) {
+      alert('The retake was scheduled, but the candidate has no email address for notification.')
+      return
+    }
+
+    // The retake is already saved; report mail failures without undoing it.
+    const testDateObj = new Date(formData.newTestDate)
+    const expiryDateObj = new Date(testDateObj)
+    expiryDateObj.setDate(expiryDateObj.getDate() + 7)
+    const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const applicantEmail = application.application_data?.data?.section2?.email || 
-                             application.application_data?.data?.section4?.email
-
-      // Calculate expiry date (7 days from test date)
-      const testDateObj = new Date(formData.newTestDate)
-      const expiryDateObj = new Date(testDateObj)
-      expiryDateObj.setDate(expiryDateObj.getDate() + 7)
-      const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-
-      const emailResponse = await fetch(
-        'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-test-retake-approved',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({
-            applicantEmail: String(applicantEmail || ''),
-            applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
-            referenceNumber: application.reference_number,
-            testLink: formData.newTestUrl,
-            testDate: formData.newTestDate,
-            attemptNumber: nextAttempt,
-            maxAttempts: maxAttempts,
-            expiryDate: expiryDate,
-            message: formData.retakeMessage
-          })
+      const { data, error } = await supabase.functions.invoke('send-test-retake-approved', {
+        body: {
+          applicantEmail,
+          applicantName: `${application.application_data?.data?.section2?.firstName || ''} ${application.application_data?.data?.section2?.surname || ''}`.trim(),
+          referenceNumber: application.reference_number,
+          testLink: formData.newTestUrl,
+          testDate: formData.newTestDate,
+          attemptNumber: nextAttempt,
+          maxAttempts,
+          expiryDate,
+          message: formData.retakeMessage
         }
-      )
-
-      if (!emailResponse.ok) {
-        console.error('Failed to send retake email:', await emailResponse.text())
-      } else {
-        console.log('Retake approval email sent successfully')
+      })
+      if (error || data?.success !== true) {
+        console.error('Failed to send retake email:', error || data?.error)
+        alert('The retake was scheduled, but the email to the candidate could not be sent.')
       }
     } catch (emailError) {
       console.error('Error sending retake email:', emailError)
+      alert('The retake was scheduled, but the email to the candidate could not be sent.')
     }
 
-    console.log(`Retake approved: Attempt ${nextAttempt} of ${maxAttempts}`)
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -294,7 +235,6 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                 <CheckCircle className="h-6 w-6" />
               </div>
               <div>
-              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
               <h3 className="recruiter-modal__title">
                 Update Test Result
               </h3>
@@ -314,14 +254,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
             <div className="recruiter-modal__body space-y-5">
               {/* Test Result Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-fg-secondary mb-3">
                   Test Result *
                 </label>
                 <div className="space-y-3">
                   {/* Passed */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'passed' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-                  }`}>
+ result === 'passed' ? 'border-success bg-success-soft' : 'border-line hover:border-success-line'
+ }`}>
                     <input
                       type="radio"
                       name="result"
@@ -332,17 +272,16 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-gray-900">Passed</span>
+                        <CheckCircle className="w-5 h-5 text-success" />
+                        <span className="font-medium text-fg">Passed</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Candidate passed the test. Proceed to interview stage.</p>
                     </div>
                   </label>
 
                   {/* Failed */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'failed' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
-                  }`}>
+ result === 'failed' ? 'border-danger bg-danger-soft' : 'border-line hover:border-danger-line'
+ }`}>
                     <input
                       type="radio"
                       name="result"
@@ -353,17 +292,17 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <XCircle className="w-5 h-5 text-red-600" />
-                        <span className="font-medium text-gray-900">Failed</span>
+                        <XCircle className="w-5 h-5 text-danger" />
+                        <span className="font-medium text-fg">Failed</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Candidate failed the test. Application will be rejected.</p>
+                      <p className="text-sm text-fg-secondary mt-1">Candidate failed the test. Application will be rejected.</p>
                     </div>
                   </label>
 
                   {/* Retake */}
                   <label className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    result === 'retake' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                  } ${!canRetake ? 'opacity-50 cursor-not-allowed' : ''}`}>
+ result === 'retake' ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+ } ${!canRetake ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="radio"
                       name="result"
@@ -375,12 +314,12 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <RotateCcw className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-900">
+                        <RotateCcw className="w-5 h-5 text-accent-text" />
+                        <span className="font-medium text-fg">
                           Retake {!canRetake && '(Not Available)'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-fg-secondary mt-1">
                         {canRetake 
                           ? `Allow candidate to retake the test. (Attempt ${currentAttempt + 1} of ${maxAttempts})`
                           : `Maximum attempts (${maxAttempts}) reached. Cannot approve retake.`
@@ -393,7 +332,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
 
               {/* Test Score */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Test Score (Optional)
                 </label>
                 <div className="flex items-center gap-2">
@@ -405,15 +344,15 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                     value={formData.testScore}
                     onChange={(e) => setFormData({ ...formData, testScore: e.target.value })}
                     placeholder="85.5"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-32 px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
-                  <span className="text-gray-600">%</span>
+                  <span className="text-fg-secondary">%</span>
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Notes {(result === 'failed' || result === 'retake') && '*'}
                 </label>
                 <textarea
@@ -422,25 +361,24 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                   placeholder="Add any relevant notes about the test performance..."
                   rows={3}
                   required={result === 'failed' || result === 'retake'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                 />
               </div>
 
-              {/* Conditional: Failed - Rejection Reason */}
+              {/* Conditional: Failed - Reason */}
               {result === 'failed' && (
                 <div className="recruiter-note recruiter-note--danger">
-                  <label className="block text-sm font-medium text-red-900 mb-2">
-                    Rejection Reason *
+                  <label className="block text-sm font-medium text-danger mb-2">
+                    Reason *
                   </label>
                   <select
                     required
                     value={formData.rejectionReason}
                     onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
-                    className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-danger-line rounded-lg focus:ring-2 focus:ring-danger/40 focus:border-transparent"
                   >
-                    <option value="">Select a reason...</option>
-                    {rejectionReasons.map(reason => (
-                      <option key={reason} value={reason}>{reason}</option>
+                    {REJECTION_CATEGORIES.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
                 </div>
@@ -450,14 +388,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               {result === 'retake' && (
                 <div className="recruiter-note recruiter-note--info space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-5 h-5 text-blue-700" />
-                    <h4 className="font-medium text-blue-900">Schedule Retake Test</h4>
+                    <AlertTriangle className="w-5 h-5 text-accent-text" />
+                    <h4 className="font-medium text-accent-text">Schedule Retake Test</h4>
                   </div>
 
                   {/* Date and Time */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-fg-secondary mb-2">
                         <Calendar className="w-4 h-4 inline mr-1" />
                         New Test Date *
                       </label>
@@ -467,12 +405,12 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                         min={today}
                         value={formData.newTestDate}
                         onChange={(e) => setFormData({ ...formData, newTestDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-fg-secondary mb-2">
                         <Clock className="w-4 h-4 inline mr-1" />
                         New Test Time *
                       </label>
@@ -481,14 +419,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                         required={result === 'retake'}
                         value={formData.newTestTime}
                         onChange={(e) => setFormData({ ...formData, newTestTime: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                       />
                     </div>
                   </div>
 
                   {/* Test URL */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-fg-secondary mb-2">
                       <LinkIcon className="w-4 h-4 inline mr-1" />
                       New Test Link/URL *
                     </label>
@@ -497,14 +435,14 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                       required={result === 'retake'}
                       value={formData.newTestUrl}
                       onChange={(e) => setFormData({ ...formData, newTestUrl: e.target.value })}
-                      placeholder="https://test.njord.com/assessment/xyz123"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="https://assessment.example.com/test"
+                      className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                     />
                   </div>
 
                   {/* Message to Candidate */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-fg-secondary mb-2">
                       Message to Candidate (Optional)
                     </label>
                     <textarea
@@ -512,32 +450,13 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
                       onChange={(e) => setFormData({ ...formData, retakeMessage: e.target.value })}
                       placeholder="We're giving you another opportunity to demonstrate your skills. Please review the material and prepare accordingly..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                     />
                   </div>
                 </div>
               )}
 
               {/* Info Box */}
-              {result && (
-                <div className={`border rounded-lg p-4 ${
-                  result === 'passed' ? 'bg-green-50 border-green-200' :
-                  result === 'failed' ? 'bg-red-50 border-red-200' :
-                  'bg-blue-50 border-blue-200'
-                }`}>
-                  <p className={`text-sm ${
-                    result === 'passed' ? 'text-green-900' :
-                    result === 'failed' ? 'text-red-900' :
-                    'text-blue-900'
-                  }`}>
-                    <strong>Action:</strong> {
-                      result === 'passed' ? 'Candidate will advance to the interview stage.' :
-                      result === 'failed' ? 'Candidate will receive a rejection email and application will be closed.' :
-                      `Candidate will receive a retake invitation email with new test details. This will be attempt ${currentAttempt + 1} of ${maxAttempts}.`
-                    }
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Actions */}
@@ -553,7 +472,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
               <button
                 type="submit"
                 disabled={loading || !result}
-                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
+                className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-fg-muted"
               >
                 {loading ? (
                   <>

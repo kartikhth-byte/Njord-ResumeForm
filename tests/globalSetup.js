@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { loadPlaywrightEnv } from './loadPlaywrightEnv.js'
+import { createAdminClient, getAdminApiKey, getPublicApiKey } from './supabaseApiKeys.js'
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))
@@ -62,8 +63,8 @@ async function refreshApplicantStorageState(rootDir) {
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseAnonKey = getPublicApiKey()
+  const serviceRoleKey = getAdminApiKey()
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return
@@ -139,12 +140,7 @@ async function refreshApplicantStorageState(rootDir) {
     }
 
     const password = process.env.PLAYWRIGHT_APPLICANT_PASSWORD || 'Playwright-Applicant-Fallback-123456!'
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    })
+    const adminClient = createAdminClient(supabaseUrl)
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,

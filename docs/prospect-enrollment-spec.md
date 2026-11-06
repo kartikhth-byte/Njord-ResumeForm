@@ -921,7 +921,7 @@ Instead, the existing Recruiter Dashboard route/workspace becomes a tabbed dashb
 | `Prospects` | Prospect intake rollups, status counts, stale invites, bounced prospects, approval/invite workload | Rollup cards above the filterable prospect list from §11.1 | Master Recruiter, Recruiter, Coordinator read-only; notes hidden for Coordinator |
 | `Requirements` | Open requirements, open positions, requirement ageing, customer/vessel/rank demand | Rollup cards above a filterable requirements list | Master Recruiter, Recruiter, Coordinator read-only |
 | `Funnel` | Candidate funnel tracker and stage movement by prospect/junction | Funnel tracker table from §10.4 | Master Recruiter, Recruiter, Coordinator read-only; notes hidden for Coordinator |
-| `KPI` | Workbook-style recruitment performance metrics, conversion, days to join, per-recruiter snapshot | KPI cards/charts from §10.6 and §10.7 | Master Recruiter and Recruiter; Coordinator hidden in v1 unless later approved |
+| `KPI` | Workbook-style recruitment performance metrics, conversion, days to join, per-recruiter snapshot | KPI cards/charts from §10.6 and §10.7 | Master Recruiter, Recruiter, Coordinator read-only; reports require separate export permission |
 | `Reports` | PDF/CSV export entry points and recent report/export activity | Export controls and recent export activity | Master Recruiter only |
 
 Shared dashboard controls:

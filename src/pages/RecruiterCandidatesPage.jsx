@@ -3,35 +3,35 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import RecruiterWorkspaceNav from '../components/recruiter/RecruiterWorkspaceNav'
+import CandidateForm from '../components/recruiter/CandidateForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import StatCard from '../components/ui/StatCard'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
   buildCandidateFunnelRows,
-  formatDays,
-  formatPercent,
   FUNNEL_STAGES,
   localDayString,
   STAGE_BADGE_CLASSES,
+  workingRecruiters,
 } from '../utils/kpiTracker'
 import { formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
-  CheckCircle2,
   Download,
   Loader2,
   Plus,
   RefreshCcw,
-  TrendingUp,
-  UserPlus,
   Users,
 } from 'lucide-react'
 
+// Joined, Rejected and Withdrawn have their own views, so the stage
+// dropdown lists only the active stages.
+const ACTIVE_STAGES = FUNNEL_STAGES.filter((stage) => !['Joined', 'Rejected', 'Withdrawn'].includes(stage))
+
 const VIEW_FILTERS = [
   { value: 'active', label: 'Active pipeline' },
+  { value: 'unattached', label: 'Unattached' },
   { value: 'joined', label: 'Joined' },
   { value: 'closed', label: 'Rejected / Withdrawn' },
   { value: 'archived', label: 'Archived' },
@@ -41,14 +41,23 @@ const VIEW_FILTERS = [
 export default function RecruiterCandidatesPage() {
   const location = useLocation()
   const { user, profile, signOut } = useAuth()
-  const { role, loading: permLoading, canExportData } = usePermissions()
+  const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
+  const canCreateCandidates = hasPermission('create_prospects')
+  const canAttachCandidates = hasPermission('edit_junction_status')
+  const [showForm, setShowForm] = useState(false)
+  const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
-  const [viewFilter, setViewFilter] = useState('active')
-  const [stageFilter, setStageFilter] = useState('')
-  const [recruiterFilter, setRecruiterFilter] = useState('')
+  // Filters can be preset from the URL (links from KPI and Dashboard counts).
+  const initialParams = new URLSearchParams(location.search)
+  const [viewFilter, setViewFilter] = useState(() => {
+    const value = initialParams.get('view')
+    return VIEW_FILTERS.some((option) => option.value === value) ? value : 'active'
+  })
+  const [stageFilter, setStageFilter] = useState(() => initialParams.get('stage') || '')
+  const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
   const [search, setSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
+  const [dateFrom, setDateFrom] = useState(() => (/^\d{4}-\d{2}-\d{2}$/.test(initialParams.get('from') || '') ? initialParams.get('from') : ''))
   const [dateTo, setDateTo] = useState('')
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
@@ -62,6 +71,7 @@ export default function RecruiterCandidatesPage() {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
       if (viewFilter === 'active' && !row.inActivePipeline) return false
+      if (viewFilter === 'unattached' && !(row.requirementCount === 0 && !row.isArchived)) return false
       if (viewFilter === 'joined' && !(row.hasJoined && !row.isArchived)) return false
       if (viewFilter === 'closed' && !(['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived)) return false
       if (viewFilter === 'archived' && !row.isArchived) return false
@@ -82,19 +92,12 @@ export default function RecruiterCandidatesPage() {
 
   const viewCounts = useMemo(() => ({
     active: rows.filter((row) => row.inActivePipeline).length,
+    unattached: rows.filter((row) => row.requirementCount === 0 && !row.isArchived).length,
     joined: rows.filter((row) => row.hasJoined && !row.isArchived).length,
     closed: rows.filter((row) => ['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived).length,
     archived: rows.filter((row) => row.isArchived).length,
     all: rows.length,
   }), [rows])
-
-  const liveRows = rows.filter((row) => !row.isArchived)
-  const joinedRows = liveRows.filter((row) => row.hasJoined)
-  const conversion = liveRows.length === 0 ? 0 : joinedRows.length / liveRows.length
-  const joinDurations = joinedRows.map((row) => row.daysToJoin).filter((value) => Number.isFinite(value) && value >= 0)
-  const avgDaysToJoin = joinDurations.length === 0
-    ? null
-    : joinDurations.reduce((sum, value) => sum + value, 0) / joinDurations.length
 
   const exportCsv = async () => {
     if (exporting) return
@@ -142,26 +145,22 @@ export default function RecruiterCandidatesPage() {
 
   if (permLoading || tracker.loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-raised">
         <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-        <RecruiterWorkspaceNav />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-text" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
-      <RecruiterWorkspaceNav />
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
-          eyebrow="Candidates"
-          title="Candidate funnel"
-          description="Every candidate in the funnel from first contact to joining. Only joined candidates count as success — join flags, days to join, and pipeline status are calculated automatically."
+          title="Candidates"
           actions={(
             <div className="flex flex-wrap gap-3">
               {canExportData() ? (
@@ -169,7 +168,7 @@ export default function RecruiterCandidatesPage() {
                   type="button"
                   onClick={exportCsv}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised disabled:opacity-60"
                 >
                   <Download className="h-4 w-4" />
                   {exporting ? 'Exporting…' : 'Export CSV'}
@@ -178,36 +177,62 @@ export default function RecruiterCandidatesPage() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              <Link
-                to="/recruiter/workspace?tab=candidates"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <Plus className="h-4 w-4" />
-                Add candidate
-              </Link>
+              {canCreateCandidates && !showForm ? (
+                <button
+                  type="button"
+                  onClick={() => { setNotice(''); setShowForm(true) }}
+                  className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  New candidate
+                </button>
+              ) : null}
             </div>
           )}
         />
 
+        {notice ? (
+          <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
+        ) : null}
+
+        {showForm ? (
+          <div className="mt-6">
+            <CandidateForm
+              ranks={tracker.data.ranks}
+              vesselTypes={tracker.data.vesselTypes}
+              recruiters={workingRecruiters(tracker.data.recruiters)}
+              canChooseRecruiter={role === 'Master Recruiter'}
+              requirementOptions={tracker.data.requirements
+                .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
+                .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` }))}
+              currentRecruiterId={profile?.id || user?.id || ''}
+              canAttach={canAttachCandidates}
+              canSave={canCreateCandidates}
+              onCancel={() => setShowForm(false)}
+              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+            />
+          </div>
+        ) : null}
+
         {exportError ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {exportError}
           </div>
         ) : null}
 
         {tracker.error ? (
-          <div className="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-6 text-sm text-rose-700">
+          <div className="mt-6 rounded-control border border-danger-line bg-danger-soft px-5 py-6 text-sm text-danger">
             <p className="font-semibold">Could not load the candidate funnel.</p>
             <p className="mt-1">{tracker.error}</p>
             <button
               type="button"
               onClick={tracker.reload}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="mt-4 inline-flex items-center gap-2 rounded-control border border-danger-line bg-surface px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               <RefreshCcw className="h-4 w-4" />
               Try again
@@ -215,13 +240,6 @@ export default function RecruiterCandidatesPage() {
           </div>
         ) : (
         <>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Active pipeline" value={viewCounts.active} icon={Users} tone="accent" hint="Candidates still moving through the funnel." />
-          <StatCard label="Joined" value={viewCounts.joined} icon={CheckCircle2} tone="success" hint="Candidates who joined a vessel — the success metric." />
-          <StatCard label="Contact-to-join conversion" value={formatPercent(conversion)} icon={TrendingUp} tone="accent" hint="Joined candidates over all candidates touched. Target: 8–12%." />
-          <StatCard label="Avg days to join" value={avgDaysToJoin == null ? '—' : formatDays(avgDaysToJoin)} icon={UserPlus} tone="warning" hint="Average speed from first contact to joining." />
-        </div>
-
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-full overflow-x-auto">
@@ -234,37 +252,37 @@ export default function RecruiterCandidatesPage() {
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Search</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Search</span>
                 <input
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Name, email, rank, requirement…"
-                  className="w-56 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Stage</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Stage</span>
                 <select
                   value={stageFilter}
                   onChange={(event) => setStageFilter(event.target.value)}
-                  className="w-40 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-40 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All stages</option>
-                  {FUNNEL_STAGES.map((stage) => (
+                  {ACTIVE_STAGES.map((stage) => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Recruiter</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
                 <select
                   value={recruiterFilter}
                   onChange={(event) => setRecruiterFilter(event.target.value)}
-                  className="w-44 rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value="">All recruiters</option>
-                  {tracker.data.recruiters.map((recruiter) => (
+                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
                     <option key={recruiter.id} value={recruiter.id}>
                       {recruiter.full_name || recruiter.email}
                     </option>
@@ -272,21 +290,21 @@ export default function RecruiterCandidatesPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Contacted from</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Contacted from</span>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => setDateFrom(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-slate-500">Contacted to</span>
+                <span className="mb-1 block text-xs font-medium text-fg-muted">Contacted to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
             </div>
@@ -296,7 +314,6 @@ export default function RecruiterCandidatesPage() {
             <EmptyState
               icon={Users}
               title="No candidates match"
-              description="Adjust the filters, or add a candidate from the Workspace."
             />
           ) : (
             <div className="tracker-table-wrap max-h-[38rem] overflow-y-auto">
@@ -310,8 +327,7 @@ export default function RecruiterCandidatesPage() {
                     <th>Rank</th>
                     <th>Vessel type</th>
                     <th>Stage</th>
-                    <th>Joined on</th>
-                    <th className="tracker-cell--num">Days to join</th>
+                    <th>Joined</th>
                     <th>Pipeline</th>
                     <th>Notes</th>
                   </tr>
@@ -320,8 +336,14 @@ export default function RecruiterCandidatesPage() {
                   {filteredRows.map((row) => (
                     <tr key={row.id}>
                       <td className="tracker-cell--primary">
-                        <div>{row.name}</div>
-                        <div className="mt-0.5 text-xs font-normal text-slate-500">{row.email}</div>
+                        <Link
+                          to={`/recruiter/workspace/prospects/${row.id}`}
+                          state={{ from: `${location.pathname}${location.search}` }}
+                          className="text-accent-text hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                        <div className="mt-0.5 text-xs font-normal text-fg-muted">{row.email}</div>
                       </td>
                       <td className="tracker-cell--nowrap">{formatDate(row.contactedAt)}</td>
                       <td className="tracker-cell--nowrap">{row.recruiterName}</td>
@@ -329,35 +351,37 @@ export default function RecruiterCandidatesPage() {
                         {row.primaryRequirement ? (
                           <Link
                             to={`/recruiter/workspace/requirements/${row.primaryRequirement.id}`} state={{ from: `${location.pathname}${location.search}` }}
-                            className="text-blue-700 hover:underline"
+                            className="text-accent-text hover:underline"
                           >
                             {row.requirementLabel}
                           </Link>
                         ) : (
-                          <span className="tracker-cell--muted">Unassigned</span>
+                          <span className="tracker-cell--muted">Unattached</span>
                         )}
                       </td>
                       <td className="tracker-cell--nowrap">{row.rankName}</td>
                       <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
                       <td>
-                        <span className={`tracker-pill ${STAGE_BADGE_CLASSES[row.stage] || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`tracker-pill ${STAGE_BADGE_CLASSES[row.stage] || 'bg-raised text-fg-secondary'}`}>
                           {row.stage}
                         </span>
                         {row.isArchived ? (
-                          <span className="tracker-pill ml-1.5 bg-slate-200 text-slate-600">Archived</span>
+                          <span className="tracker-pill ml-1.5 bg-line text-fg-secondary">Archived</span>
                         ) : null}
                       </td>
-                      <td className="tracker-cell--nowrap">{row.joinedAt ? formatDate(row.joinedAt) : '—'}</td>
-                      <td className="tracker-cell--num">{row.daysToJoin ?? '—'}</td>
+                      <td className="tracker-cell--nowrap">
+                        {row.joinedAt ? formatDate(row.joinedAt) : '—'}
+                        {row.joinedAt && row.daysToJoin != null ? <span className="text-fg-muted"> · {row.daysToJoin} d</span> : null}
+                      </td>
                       <td className="tracker-cell--nowrap">
                         {row.inActivePipeline ? (
-                          <span className="tracker-pill bg-sky-100 text-sky-800">
+                          <span className="tracker-pill bg-accent-soft text-accent-text">
                             {row.daysSinceContact == null ? 'Active · not contacted' : `Active · ${row.daysSinceContact}d`}
                           </span>
                         ) : row.cycleCompleted ? (
-                          <span className="tracker-pill bg-green-100 text-green-800">Completed</span>
+                          <span className="tracker-pill bg-success-soft text-success">Completed</span>
                         ) : (
-                          <span className="tracker-pill bg-slate-100 text-slate-600">Closed</span>
+                          <span className="tracker-pill bg-raised text-fg-secondary">Closed</span>
                         )}
                       </td>
                       <td className="max-w-[16rem] tracker-cell--muted">
@@ -370,8 +394,8 @@ export default function RecruiterCandidatesPage() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-slate-500">
-            {filteredRows.length} candidate{filteredRows.length === 1 ? '' : 's'} shown of {rows.length} tracked.
+          <p className="mt-4 text-xs text-fg-muted">
+            {filteredRows.length} shown
           </p>
         </section>
         </>

@@ -19,25 +19,25 @@ export default function ConfidenceBadge({ llmAnalysis, compact = false }) {
   const getBadgeStyle = () => {
     if (!matchStatus || confidence < 0.6) {
       return {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-700',
+        bg: 'bg-danger-soft',
+        border: 'border-danger-line',
+        text: 'text-danger',
         icon: '🔴',
         label: 'Low Match'
       }
     } else if (confidence >= 0.85) {
       return {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
-        text: 'text-green-700',
+        bg: 'bg-success-soft',
+        border: 'border-success-line',
+        text: 'text-success',
         icon: '🟢',
         label: 'High Confidence'
       }
     } else {
       return {
-        bg: 'bg-yellow-50',
-        border: 'border-yellow-200',
-        text: 'text-yellow-700',
+        bg: 'bg-warning-soft',
+        border: 'border-warning-line',
+        text: 'text-warning',
         icon: '🟡',
         label: 'Review Needed'
       }
@@ -61,18 +61,18 @@ export default function ConfidenceBadge({ llmAnalysis, compact = false }) {
 
         {/* Reasoning tooltip */}
         {showReasoning && reason && (
-          <div className="absolute z-50 top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700">
+          <div className="absolute z-50 top-full left-0 mt-2 w-80 bg-surface border border-line rounded-lg shadow-overlay p-3 text-xs text-fg-secondary">
             <div className="flex justify-between items-start mb-2">
-              <span className="font-semibold text-gray-900">AI Analysis:</span>
+              <span className="font-semibold text-fg">AI Analysis:</span>
               <button
                 onClick={() => setShowReasoning(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-fg-muted hover:text-fg-secondary"
               >
                 ✕
               </button>
             </div>
             <p className="whitespace-pre-wrap">{reason}</p>
-            <div className="mt-2 pt-2 border-t border-gray-200 text-gray-500 italic">
+            <div className="mt-2 pt-2 border-t border-line text-fg-muted italic">
               AI-powered match reasoning
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function ConfidenceBadge({ llmAnalysis, compact = false }) {
             {style.label}
           </span>
         </div>
-        <span className={`text-lg font-bold ${style.text}`}>
+        <span className={`text-lg font-semibold ${style.text}`}>
           {confidencePercent}%
         </span>
       </div>
@@ -106,7 +106,7 @@ export default function ConfidenceBadge({ llmAnalysis, compact = false }) {
           </button>
 
           {showReasoning && (
-            <div className="mt-2 text-sm text-gray-700 bg-white rounded p-2 border border-gray-200">
+            <div className="mt-2 text-sm text-fg-secondary bg-surface rounded p-2 border border-line">
               <p className="whitespace-pre-wrap">{reason}</p>
             </div>
           )}

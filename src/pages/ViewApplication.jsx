@@ -1,9 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { Children, isValidElement, useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
+import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import ApplicantSidebar from '../components/applicant/ApplicantSidebar'
+import ApplicantApplicationView from '../components/applicant/ApplicantApplicationView'
+import { TECHNICAL_SKILL_ROWS, formatPhone, formatSkillValue } from '../utils/technicalSkills'
 import { downloadGeneratedWorksheet, getWorksheetExportReadiness, listWorksheetCustomers } from '../services/worksheetConfigService'
 import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeCheck, BriefcaseBusiness, CalendarDays, FileSpreadsheet, Download, X } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
@@ -15,6 +19,7 @@ import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import StatCard from '../components/ui/StatCard'
 import { buildApplicationCompliance, buildRequirementComplianceOverlay } from '../utils/applicationCompliance'
+import { useTheme } from '../hooks/useThemeForRoute'
 
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
@@ -40,10 +45,11 @@ if (typeof document !== 'undefined') {
 export default function ViewApplication() {
   const { publicToken } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
-  const { user, userType, loading: authLoading, authorizationLoading } = useAuth()
-  const { canExportData, canManageApplications } = usePermissions()
+  const { user, userType, profile, signOut, loading: authLoading, authorizationLoading } = useAuth()
+  useTheme(userType === 'recruiter' ? 'dark' : 'light')
+  const { canExportData, canManageApplications, role } = usePermissions()
   const canEditApplications = canManageApplications()
   const [loading, setLoading] = useState(true)
   const [application, setApplication] = useState(null)
@@ -66,10 +72,10 @@ export default function ViewApplication() {
     loadApplication()
   }, [publicToken, emailAccessToken, user?.id, userType, authLoading, authorizationLoading])
 
-  const exportAllowed = userType === 'recruiter' && canExportData()
+  const worksheetAllowed = userType === 'recruiter' && canExportData() && Boolean(application?.submitted_at)
 
   const loadWorksheetCustomers = useCallback(async () => {
-    if (!exportAllowed) return
+    if (!worksheetAllowed) return
     setWorksheetLoading(true)
     setWorksheetError('')
     try {
@@ -82,7 +88,7 @@ export default function ViewApplication() {
     } finally {
       setWorksheetLoading(false)
     }
-  }, [exportAllowed])
+  }, [worksheetAllowed])
 
   useEffect(() => {
     if (!worksheetModalOpen) return
@@ -275,10 +281,10 @@ export default function ViewApplication() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-raised flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading application...</p>
+          <Loader2 className="w-12 h-12 text-accent-text animate-spin mx-auto mb-4" />
+          <p className="text-fg-secondary">Loading application...</p>
         </div>
       </div>
     )
@@ -286,14 +292,14 @@ export default function ViewApplication() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Application Not Found</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+      <div className="min-h-screen bg-raised flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-surface rounded-lg border p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-fg mb-2">Application Not Found</h2>
+          <p className="text-fg-secondary mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-3 bg-accent-fill text-on-accent rounded-lg hover:bg-accent-fill-hover"
           >
             Go to Login
           </button>
@@ -309,40 +315,30 @@ export default function ViewApplication() {
     .filter(Boolean)
     .join(' ')
     .trim()
-  const certificates = applicationData?.section8?.certificates || []
-  const endorsements = applicationData?.section15?.endorsements || []
-  const seaService = applicationData?.section16?.seaService || []
-  const visas = applicationData?.section5?.visas || []
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
-  const pageEyebrow = isApplicantView ? 'Application Summary' : 'Candidate Review'
-  const pageDescription = isApplicantView
-    ? 'Review the submitted details for your application and track the current recruitment status.'
-    : 'Review candidate evidence, move the application through status changes, and keep context visible while making a hiring decision.'
-  const summaryEyebrow = isApplicantView ? 'Application Summary' : 'Candidate Summary'
-  const summaryCardTitle = isApplicantView ? 'Application snapshot' : 'Recruiter summary'
+  // The status control and its modals read the candidate's name and email from
+  // the form data, in the same shape the Applications list passes.
+  const section2ForControl = applicationData?.section2 || {}
+  const controlApplication = {
+    ...application,
+    application_data: { data: applicationData || {} },
+    full_name: [section2ForControl.firstName, section2ForControl.middleName, section2ForControl.surname].filter(Boolean).join(' ').trim(),
+    email: section2ForControl.email || '',
+    desired_rank: applicationData?.section1?.appliedForRank || application?.applied_rank || '',
+  }
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
-  const summaryStats = [
-    { label: 'Certificates', value: certificates.length, icon: BadgeCheck, tone: 'accent', hint: 'CoC entries on file.' },
-    { label: 'Endorsements', value: endorsements.length, icon: Anchor, hint: 'Flag-state endorsements recorded.' },
-    { label: 'Sea Service Entries', value: seaService.length, icon: BriefcaseBusiness, hint: 'Previous contracts and vessel experience.' },
-    { label: 'Visas', value: visas.length, icon: CalendarDays, tone: 'warning', hint: 'Travel and port-entry documents.' }
-  ]
+  const summaryRows = [
+    { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
+  ].filter((row) => row.value !== null && row.value !== undefined && row.value !== '')
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
   const requirementCompliance = linkedRequirement
     ? buildRequirementComplianceOverlay(applicationData || {}, linkedRequirement, linkedRequirementNationalities)
     : null
 
-  const formatWorksheetTimestamp = (value) => {
-    if (!value) return 'Unknown'
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return 'Unknown'
-    return date.toLocaleString()
-  }
-
   const handleGenerateWorksheet = async () => {
-    if (!selectedWorksheetCustomerId) return
+    if (!worksheetAllowed || !selectedWorksheetCustomerId) return
 
     setWorksheetGenerating(true)
     setWorksheetError('')
@@ -357,7 +353,7 @@ export default function ViewApplication() {
         customerId: selectedWorksheetCustomerId,
       })
       setWorksheetSuccess(
-        `Worksheet download started successfully for ${fileName}. Check your browser's default Downloads folder.`
+        `Downloaded ${fileName}`
       )
       worksheetModalCloseTimeoutRef.current = setTimeout(() => {
         setWorksheetModalOpen(false)
@@ -371,24 +367,44 @@ export default function ViewApplication() {
     }
   }
 
+  if (isApplicantView) {
+    return (
+      <div className="applicant-shell">
+        <ApplicantSidebar />
+        <ApplicantApplicationView
+          application={application}
+          applicationData={applicationData}
+          photoUrl={photoUrl}
+          showSubmitted={searchParams.get('submitted') === '1'}
+          onDismissSubmitted={() => {
+            const next = new URLSearchParams(searchParams)
+            next.delete('submitted')
+            setSearchParams(next, { replace: true })
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={isApplicantView ? 'applicant-shell' : 'recruiter-shell'}>
-      <div className="border-b border-gray-200/80 bg-white/80 shadow-sm backdrop-blur print:hidden">
+      {isRecruiterView ? (
+        <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
+      ) : null}
+      <div className="border-b border-line/80 bg-surface/80 print:hidden">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-4">
               <button
                 onClick={handleBack}
-                className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="mt-1 flex items-center gap-2 rounded-control px-3 py-2 text-fg-secondary transition-colors hover:bg-raised hover:text-fg"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm font-medium">Back</span>
               </button>
 
               <PageHeader
-                eyebrow={pageEyebrow}
-                title={fullName || 'Application View'}
-                description={pageDescription}
+                title={fullName || 'Application'}
               />
             </div>
 
@@ -396,14 +412,14 @@ export default function ViewApplication() {
               {isRecruiterView && canEditApplications && (application.status === 'rejected' || application.status === 'withdrawn') && (
                 <ReopenApplicationButton application={application} onReopened={refreshApplication} />
               )}
-              {exportAllowed && (
+              {worksheetAllowed && (
                 <button
                   type="button"
                   onClick={() => setWorksheetModalOpen(true)}
                   className="workspace-action-button workspace-action-button--secondary"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  Generate Worksheet
+                  Worksheet
                 </button>
               )}
               <button onClick={handlePrint} className="workspace-action-button workspace-action-button--secondary">
@@ -415,50 +431,38 @@ export default function ViewApplication() {
         </div>
       </div>
 
-      {worksheetModalOpen ? (
+      {worksheetAllowed && worksheetModalOpen ? (
         <div className="fixed inset-0 z-50 print:hidden">
           <div
-            className="absolute inset-0 bg-slate-950/55 backdrop-blur-[3px]"
+            className="absolute inset-0 bg-black/55"
             onClick={() => !worksheetGenerating && setWorksheetModalOpen(false)}
           />
 
           <div className="absolute inset-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
             <div className="flex min-h-full items-center justify-center">
-              <div className="relative flex h-[min(88vh,860px)] w-full max-w-3xl flex-col overflow-hidden rounded-[32px] border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
-                <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:px-7">
+              <div className="recruiter-modal recruiter-modal--narrow relative flex flex-col">
+                <div className="flex items-start justify-between gap-4 border-b border-line bg-surface px-6 py-5 sm:px-7">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Customer Worksheet</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">Generate &amp; Download</h2>
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                      Use this to prepare customer worksheets at any application stage. Select the customer and download the
-                      generated workbook once the template status is ready.
-                    </p>
+                    <h2 className="text-xl font-semibold text-fg">Worksheet</h2>
                   </div>
                   <button
                     type="button"
                     onClick={() => setWorksheetModalOpen(false)}
                     disabled={worksheetGenerating}
-                    className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full p-2 text-fg-muted transition hover:bg-raised hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50/55 px-6 py-6 sm:px-7">
+                <div className="flex-1 overflow-y-auto overscroll-contain bg-raised/55 px-6 py-6 sm:px-7">
                   <div className="space-y-5">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Application Status</p>
-                    <p className="mt-2 text-sm text-slate-700">
-                      Current status: <span className="font-semibold text-slate-900">{formatDisplayValue(application.status)}</span>
-                    </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <label className="text-sm font-medium text-slate-800">Customer</label>
+                    <div className="rounded-card border border-line bg-surface p-4">
+                      <label className="text-sm font-medium text-fg">Customer</label>
                       <select
                         value={selectedWorksheetCustomerId}
                         onChange={(event) => setSelectedWorksheetCustomerId(event.target.value)}
-                        className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                        className="mt-3 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
                         disabled={worksheetLoading || worksheetGenerating}
                       >
                         {worksheetCustomers.map((customer) => (
@@ -469,66 +473,28 @@ export default function ViewApplication() {
                       </select>
                     </div>
 
-                    <div className={`rounded-2xl border px-4 py-3 text-sm ${
-                      worksheetReadiness.ready
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
-                    }`}>
+                    <div className={`rounded-control border px-4 py-3 text-sm ${
+ worksheetReadiness.ready
+ ? 'border-success-line bg-success-soft text-success'
+ : 'border-warning-line bg-warning-soft text-warning'
+ }`}>
                       {worksheetLoading ? 'Loading customer worksheet settings...' : worksheetReadiness.message}
                     </div>
 
-                    {selectedWorksheetCustomer ? (
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Template Details</p>
-                        {worksheetReadiness.template ? (
-                          <div className="mt-3 space-y-2 text-sm text-slate-700">
-                            <p>
-                              Active template: <span className="font-semibold text-slate-900">{worksheetReadiness.template.file_name}</span>
-                            </p>
-                            <p>
-                              Uploaded: <span className="font-medium text-slate-900">{formatWorksheetTimestamp(worksheetReadiness.template.created_at)}</span>
-                            </p>
-                            <p className="text-xs leading-5 text-slate-500">
-                              This export starts from a fresh copy of the uploaded template and overwrites mapped output cells with the current application data.
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-sm text-slate-600">
-                            No active template is configured for this customer yet.
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
-
-                    {worksheetGenerating ? (
-                      <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-800">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="font-medium">Generating worksheet...</span>
-                        </div>
-                        <p className="mt-2 text-xs leading-5 text-sky-700">
-                          The template is being populated now. This can take a few seconds.
-                        </p>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sky-100">
-                          <div className="h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-sky-500" />
-                        </div>
-                      </div>
-                    ) : null}
-
                     {worksheetSuccess ? (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                      <div className="rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">
                         {worksheetSuccess}
                       </div>
                     ) : null}
 
                     {worksheetError ? (
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      <div className="rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
                         <div className="flex items-start justify-between gap-3">
                           <span>{worksheetError}</span>
                           <button
                             type="button"
                             onClick={loadWorksheetCustomers}
-                            className="shrink-0 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                            className="shrink-0 rounded-control border border-danger-line bg-surface px-3 py-2 text-xs font-medium text-danger transition hover:border-danger-line hover:text-danger"
                           >
                             Retry
                           </button>
@@ -538,12 +504,12 @@ export default function ViewApplication() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:px-7">
+                <div className="flex flex-wrap justify-end gap-3 border-t border-line bg-surface px-6 py-4 sm:px-7">
                   <button
                     type="button"
                     onClick={() => setWorksheetModalOpen(false)}
                     disabled={worksheetGenerating}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-control border border-line bg-surface px-4 py-3 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Close
                   </button>
@@ -551,10 +517,10 @@ export default function ViewApplication() {
                     type="button"
                     onClick={handleGenerateWorksheet}
                     disabled={!worksheetReadiness.ready || worksheetLoading || worksheetGenerating || !selectedWorksheetCustomerId}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-3 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {worksheetGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    Generate Worksheet
+                    {worksheetGenerating ? 'Generating…' : 'Generate'}
                   </button>
                 </div>
               </div>
@@ -564,10 +530,9 @@ export default function ViewApplication() {
       ) : null}
 
       {/* Print Header - Only visible when printing */}
-      <div className="hidden print:block bg-white p-8 border-b">
+      <div className="hidden print:block bg-surface p-8 border-b">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Njordships Maritime Recruitment</h1>
-          <p className="text-gray-600">Seafarer Application</p>
+          <h1 className="text-3xl font-semibold text-fg mb-2">Seafarer application</h1>
         </div>
       </div>
 
@@ -582,7 +547,7 @@ export default function ViewApplication() {
                   <img
                     src={photoUrl}
                     alt={fullName}
-                    className="h-20 w-20 rounded-2xl object-cover border border-gray-200 shadow-sm"
+                    className="h-20 w-20 rounded-card object-cover border border-line"
                     onError={(e) => {
                       e.target.style.display = 'none'
                     }}
@@ -591,89 +556,76 @@ export default function ViewApplication() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold tracking-wide text-gray-600">
-                      {application.reference_number}
-                    </span>
+                    {application.reference_number ? (
+                      <button
+                        type="button"
+                        title="Copy reference"
+                        onClick={() => {
+                          navigator.clipboard.writeText(application.reference_number)
+                          setCopiedRef(true)
+                          setTimeout(() => setCopiedRef(false), 2000)
+                        }}
+                        className="rounded-control bg-raised px-2 py-0.5 font-mono text-xs text-fg-secondary transition hover:text-fg"
+                      >
+                        {copiedRef ? 'Copied' : application.reference_number}
+                      </button>
+                    ) : null}
                     <StatusBadge status={application.status} />
                   </div>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-gray-900">{fullName || 'Unnamed candidate'}</h2>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {formatDisplayValue(applicationData?.section1?.appliedForRank) || 'Rank not specified'} • {formatDisplayValue(applicationData?.section1?.vesselType) || 'Vessel preference not specified'}
+                  <p className="mt-2 text-sm text-fg-secondary">
+                    {[formatDisplayValue(applicationData?.section1?.appliedForRank), formatDisplayValue(applicationData?.section1?.vesselType)].filter(Boolean).join(' • ')}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <Mail className="h-4 w-4 text-gray-400" />
+              <div className="mt-5 space-y-2">
+                <div className="flex items-center gap-3 text-sm text-fg-secondary">
+                  <Mail className="h-4 w-4 text-fg-muted" />
                   <span>{applicationData?.section2?.email || 'No email provided'}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span>{applicationData?.section2?.phoneNumber ? `+${applicationData?.section2?.phoneCountryCode || ''} ${applicationData?.section2?.phoneNumber}` : 'No phone provided'}</span>
+                <div className="flex items-center gap-3 text-sm text-fg-secondary">
+                  <Phone className="h-4 w-4 text-fg-muted" />
+                  <span>{formatPhone(applicationData?.section2?.phoneCountryCode, applicationData?.section2?.phoneNumber) || 'No phone provided'}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <CalendarDays className="h-4 w-4 text-gray-400" />
-                  <span>Available from {applicationData?.section1?.availableFrom || 'unknown date'}</span>
-                </div>
+                {applicationData?.section1?.availableFrom ? (
+                  <div className="flex items-center gap-3 text-sm text-fg-secondary">
+                    <CalendarDays className="h-4 w-4 text-fg-muted" />
+                    <span>Available from {applicationData.section1.availableFrom}</span>
+                  </div>
+                ) : null}
               </div>
 
               {isRecruiterView && canEditApplications ? (
                 <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Decision Actions</p>
-                  <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4">
+                  <div>
                     <SequentialStatusControl
+                      emphasis
                       applicationId={application.id}
                       currentStatus={application.status}
                       onStatusChange={refreshApplication}
-                      application={application}
+                      application={controlApplication}
                     />
                   </div>
                 </div>
-              ) : (
-                <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Application Status</p>
-                  <div className="mt-3">
-                    <StatusBadge status={application.status} />
-                  </div>
-                </div>
-              )}
+              ) : null}
 
-              <div className="mt-5 grid grid-cols-1 gap-3">
-                {summaryStats.map(stat => (
-                  <StatCard key={stat.label} {...stat} />
+              <dl className="mt-5 divide-y divide-line border-t border-line text-sm">
+                {summaryRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between gap-3 py-2">
+                    <dt className="text-fg-secondary">{row.label}</dt>
+                    <dd className="font-medium text-fg">{row.value}</dd>
+                  </div>
                 ))}
-              </div>
-
-              <div className="mt-5 rounded-2xl border border-dashed border-gray-200 bg-white p-4">
-                <p className="text-sm font-semibold text-gray-900">{summaryCardTitle}</p>
-                <div className="mt-3 space-y-3 text-sm text-gray-700">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Nationality</span>
-                    <span className="font-medium text-gray-900">{applicationData?.section2?.nationality || 'Not provided'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Age</span>
-                    <span className="font-medium text-gray-900">{applicationData?.section2?.age || 'Not provided'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>Submission date</span>
-                    <span className="font-medium text-gray-900">
-                      {application.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </dl>
             </div>
           </aside>
 
-          <div className="space-y-6">
-            <div className="recruiter-panel p-6 print:shadow-none print:border">
+          <div className="flex flex-col gap-6">
+            <div className="recruiter-panel hidden p-6 print:block print:shadow-none print:border">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">{summaryEyebrow}</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">{fullName || 'Application view'}</h2>
-                  <p className="mt-2 text-sm text-gray-600">
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-fg">{fullName || 'Application view'}</h2>
+                  <p className="mt-2 text-sm text-fg-secondary">
                     Submitted on {application.submitted_at ? new Date(application.submitted_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -683,17 +635,17 @@ export default function ViewApplication() {
                 </div>
 
                 {application.reference_number ? (
-                  <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Application Reference</p>
+                  <div className="rounded-control border border-line bg-raised px-4 py-3">
+                    <p className="text-xs font-semibold text-fg-muted">Application Reference</p>
                     <div className="mt-2 flex items-center gap-3">
-                      <span className="text-xl font-bold font-mono tracking-wider text-gray-900">{application.reference_number}</span>
+                      <span className="text-xl font-semibold font-mono tracking-wider text-fg">{application.reference_number}</span>
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(application.reference_number)
                           setCopiedRef(true)
                           setTimeout(() => setCopiedRef(false), 2000)
                         }}
-                        className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                        className="rounded-control border border-line-input px-3 py-2 text-sm font-medium text-fg-secondary transition hover:bg-raised"
                       >
                         {copiedRef ? 'Copied' : 'Copy'}
                       </button>
@@ -705,22 +657,12 @@ export default function ViewApplication() {
 
             <div className="space-y-6">
           {isRecruiterView && compliance ? (
-            <div className={`grid gap-6 ${requirementCompliance ? 'xl:grid-cols-2' : ''}`}>
-              <ApplicationCompliancePanel
-                compliance={compliance}
-                eyebrow="Recruiter Compliance Review"
-                title="Documents, training, and review flags"
-                description="This is the general recruiter-side readiness pass based on the submitted application data."
-              />
-              {requirementCompliance ? (
-                <ApplicationCompliancePanel
-                  compliance={requirementCompliance}
-                  eyebrow="Requirement Compliance Overlay"
-                  title={`Application compared against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the live requirement'}`}
-                  description={`This overlay keeps the live candidate evidence visible beside the matching requirement${requirementCompliance.metadata?.requirementSummary?.customerName ? ` for ${requirementCompliance.metadata.requirementSummary.customerName}` : ''} so the recruiter can spot mismatches quickly.`}
-                />
-              ) : null}
-            </div>
+            <ApplicationCompliancePanel
+              compliance={requirementCompliance || compliance}
+              title={requirementCompliance
+                ? `Compliance against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the linked requirement'}`
+                : 'Compliance'}
+            />
           ) : null}
 
           {/* Section 1: Availability & Position */}
@@ -750,7 +692,8 @@ export default function ViewApplication() {
             <ViewRow label="Place of Birth" value={applicationData?.section2?.placeOfBirth} />
             <ViewRow label="Marital Status" value={applicationData?.section2?.maritalStatus} />
             <ViewRow label="Email" value={applicationData?.section2?.email} />
-            <ViewRow label="Phone" value={`+${applicationData?.section2?.phoneCountryCode || ''} ${applicationData?.section2?.phoneNumber || ''}`} />
+            <ViewRow label="Phone" value={formatPhone(applicationData?.section2?.phoneCountryCode, applicationData?.section2?.phoneNumber)} />
+            <ViewRow label="Home Telephone" value={applicationData?.section2?.homeTelephoneNumber} />
             <ViewRow label="Address" value={applicationData?.section2?.address} />
             <ViewRow label="City" value={applicationData?.section2?.city} />
             <ViewRow label="State" value={applicationData?.section2?.state} />
@@ -762,7 +705,7 @@ export default function ViewApplication() {
             {/* Emergency Contact - Parsed from JSON */}
             {emergencyContact && (
               <div className="mt-6 pt-6 border-t">
-                <p className="font-semibold text-gray-900 mb-3">Emergency Contact</p>
+                <p className="font-semibold text-fg mb-3">Emergency Contact</p>
                 <div className="space-y-2">
                   <ViewRow label="Name" value={emergencyContact.name} />
                   <ViewRow label="Relationship" value={emergencyContact.relationship} />
@@ -776,7 +719,7 @@ export default function ViewApplication() {
             {/* Next of Kin - Parsed from JSON */}
             {nextOfKin && (
               <div className="mt-6 pt-6 border-t">
-                <p className="font-semibold text-gray-900 mb-3">Next of Kin</p>
+                <p className="font-semibold text-fg mb-3">Next of Kin</p>
                 <div className="space-y-2">
                   <ViewRow label="Name" value={nextOfKin.name} />
                   <ViewRow label="Relationship" value={nextOfKin.relationship} />
@@ -813,7 +756,7 @@ export default function ViewApplication() {
                 if (!visa.type && !visa.number && !visa.dateOfIssue) return null
                 return (
                   <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                    <p className="font-semibold text-gray-900 mb-3">Visa {index + 1}</p>
+                    <p className="font-semibold text-fg mb-3">Visa {index + 1}</p>
                     <div className="space-y-2">
                       <ViewRow label="Type" value={visa.type} />
                       <ViewRow label="Number" value={visa.number} />
@@ -832,7 +775,7 @@ export default function ViewApplication() {
             <ViewSection title="Education">
               {applicationData.section6.education.map((edu, index) => (
                 <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                  <p className="font-semibold text-gray-900 mb-3">{edu.institution || `Education ${index + 1}`}</p>
+                  <p className="font-semibold text-fg mb-3">{edu.institution || `Education ${index + 1}`}</p>
                   <div className="space-y-2">
                     <ViewRow label="Institution" value={edu.institution} />
                     <ViewRow label="Qualification" value={edu.qualification} />
@@ -844,12 +787,28 @@ export default function ViewApplication() {
             </ViewSection>
           )}
 
+          {/* Section 7: Dependents */}
+          {applicationData?.section7?.dependents && applicationData.section7.dependents.length > 0 && (
+            <ViewSection title="Dependents">
+              {applicationData.section7.dependents.map((dependent, index) => (
+                <div key={index} className="mb-4 last:mb-0 pb-4 last:pb-0 border-b last:border-b-0">
+                  <div className="space-y-2">
+                    <ViewRow label="Name" value={dependent.name} />
+                    <ViewRow label="Relationship" value={dependent.relationship} />
+                    <ViewRow label="Date of Birth" value={dependent.dateOfBirth} />
+                    <ViewRow label="Gender" value={dependent.gender} />
+                  </div>
+                </div>
+              ))}
+            </ViewSection>
+          )}
+
           {/* Section 8: Certificates */}
           {applicationData?.section8?.certificates && applicationData.section8.certificates.length > 0 && (
             <ViewSection title="Certificates of Competency">
               {applicationData.section8.certificates.map((cert, index) => (
                 <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                  <p className="font-semibold text-gray-900 mb-3">Certificate {index + 1}</p>
+                  <p className="font-semibold text-fg mb-3">Certificate {index + 1}</p>
                   <div className="space-y-2">
                     <ViewRow label="Certificate Number" value={cert.certificateNumber} />
                     <ViewRow label="Grade" value={formatDisplayValue(cert.grade)} />
@@ -870,7 +829,7 @@ export default function ViewApplication() {
             <ViewSection title="GMDSS Certificates">
               {applicationData.section9.gmdss.map((gmdss, index) => (
                 <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                  <p className="font-semibold text-gray-900 mb-3">GMDSS Certificate {index + 1}</p>
+                  <p className="font-semibold text-fg mb-3">GMDSS Certificate {index + 1}</p>
                   <div className="space-y-2">
                     <ViewRow label="Certificate Number" value={gmdss.number} />
                     <ViewRow label="Issuing Authority" value={gmdss.issuingAuthority} />
@@ -887,7 +846,7 @@ export default function ViewApplication() {
           <ViewSection title="Medical Fitness & Vaccinations">
             {applicationData?.section10?.medicalFitness && applicationData.section10.medicalFitness.length > 0 && (
               <div className="mb-4">
-                <p className="font-semibold text-gray-900 mb-3">Medical Fitness Certificates</p>
+                <p className="font-semibold text-fg mb-3">Medical Fitness Certificates</p>
                 {applicationData.section10.medicalFitness.map((cert, index) => (
                   <div key={index} className="mb-4 last:mb-0 space-y-2">
                     <ViewRow label="Type" value={cert.type} />
@@ -900,7 +859,7 @@ export default function ViewApplication() {
             
             {applicationData?.section10?.vaccinations && (
               <div className="mt-4 pt-4 border-t">
-                <p className="font-semibold text-gray-900 mb-3">Vaccinations</p>
+                <p className="font-semibold text-fg mb-3">Vaccinations</p>
                 <div className="space-y-2">
                   {/* Polio */}
                   {applicationData.section10.vaccinations.polio && (
@@ -962,7 +921,7 @@ export default function ViewApplication() {
                    !applicationData.section10.vaccinations.hepatitisB && 
                    !applicationData.section10.vaccinations.yellowFever?.received && 
                    !applicationData.section10.vaccinations.covidVaccinated && (
-                    <p className="text-sm text-gray-500 italic">No vaccinations recorded</p>
+                    <p className="text-sm text-fg-muted italic">No vaccinations recorded</p>
                   )}
                 </div>
               </div>
@@ -981,7 +940,7 @@ export default function ViewApplication() {
                 </div>
               )}
               {!applicationData.section11.medicalHistory.vesselName && (
-                <p className="text-sm text-gray-500 italic">No medical incidents recorded</p>
+                <p className="text-sm text-fg-muted italic">No medical incidents recorded</p>
               )}
             </ViewSection>
           )}
@@ -1002,11 +961,11 @@ export default function ViewApplication() {
 
           {/* Section 13: Physical Details */}
           <ViewSection title="Physical Details & Uniform Sizes">
-            <ViewRow label="Height" value={`${applicationData?.section13?.height} ${applicationData?.section13?.heightUnit || ''}`} />
-            <ViewRow label="Weight" value={`${applicationData?.section13?.weight} ${applicationData?.section13?.weightUnit || ''}`} />
-            <ViewRow label="Eye Color" value={applicationData?.section13?.eyeColor} />
-            <ViewRow label="Hair Color" value={applicationData?.section13?.hairColor} />
-            <ViewRow label="Shoe Size" value={`${applicationData?.section13?.shoeSize} ${applicationData?.section13?.shoeSizeUnit || ''}`} />
+            <ViewRow label="Height" value={applicationData?.section13?.height ? `${applicationData.section13.height} ${applicationData.section13.heightUnit || ''}`.trim() : ''} />
+            <ViewRow label="Weight" value={applicationData?.section13?.weight ? `${applicationData.section13.weight} ${applicationData.section13.weightUnit || ''}`.trim() : ''} />
+            {applicationData?.section13?.eyeColor && <ViewRow label="Eye Color" value={applicationData.section13.eyeColor} />}
+            {applicationData?.section13?.hairColor && <ViewRow label="Hair Color" value={applicationData.section13.hairColor} />}
+            <ViewRow label="Shoe Size" value={applicationData?.section13?.shoeSize ? `${applicationData.section13.shoeSize} ${applicationData.section13.shoeSizeUnit || ''}`.trim() : ''} />
             <ViewRow label="Boiler Suit Size" value={applicationData?.section13?.boilerSuitSize} />
             <ViewRow label="Uniform Shirt Size" value={applicationData?.section13?.uniformShirtSize} />
             <ViewRow label="Uniform Trouser Size" value={applicationData?.section13?.uniformTrouserSize} />
@@ -1054,7 +1013,7 @@ export default function ViewApplication() {
             <ViewSection title="Sea Service Experience">
               {applicationData.section16.seaService.map((service, index) => (
                 <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                  <p className="font-semibold text-gray-900 mb-3">{service.vesselName || `Vessel ${index + 1}`}</p>
+                  <p className="font-semibold text-fg mb-3">{service.vesselName || `Vessel ${index + 1}`}</p>
                   <div className="space-y-2">
                     <ViewRow label="Vessel Name" value={service.vesselName} />
                     <ViewRow label="Vessel Type" value={formatDisplayValue(service.vesselType)} />
@@ -1072,13 +1031,21 @@ export default function ViewApplication() {
                     <ViewRow label="Company" value={service.company || service.companyName} />
                     <ViewRow label="Manning" value={service.manning} />
                     <ViewRow label="Trading Area" value={service.tradingArea || service.tradeRoute} />
-                    <ViewRow label="Trade Route" value={service.tradeRoute} />
                     <ViewRow label="Total mm/dd" value={service.totalMmDd} />
                     <ViewRow label="Sign On Date" value={service.signOnDate} />
                     <ViewRow label="Sign Off Date" value={service.signOffDate} />
                     {service.reasonForLeaving && <ViewRow label="Reason for Leaving" value={service.reasonForLeaving} />}
                   </div>
                 </div>
+              ))}
+            </ViewSection>
+          )}
+
+          {/* Section 17: Technical Experience & Skills */}
+          {applicationData?.section17 && (
+            <ViewSection title="Technical Experience & Skills">
+              {TECHNICAL_SKILL_ROWS.map(([key, label, detailKey]) => (
+                <ViewRow key={key} label={label} value={formatSkillValue(applicationData.section17, key, detailKey)} />
               ))}
             </ViewSection>
           )}
@@ -1098,7 +1065,7 @@ export default function ViewApplication() {
               </div>
               {(applicationData.section18.references || []).map((ref, index) => (
                 <div key={index} className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0">
-                  <p className="font-semibold text-gray-900 mb-3">Reference {index + 1}</p>
+                  <p className="font-semibold text-fg mb-3">Reference {index + 1}</p>
                   <div className="space-y-2">
                     <ViewRow label="Name" value={ref.name} />
                     <ViewRow label="Position" value={ref.position} />
@@ -1138,7 +1105,7 @@ export default function ViewApplication() {
               <ViewRow label="Medical Conditions" value={applicationData.section19.medicalConditions} />
             )}
             <div className="mt-4 pt-4 border-t">
-              <p className="font-semibold text-gray-900 mb-3">Consents & Declarations</p>
+              <p className="font-semibold text-fg mb-3">Consents & Declarations</p>
               <ViewRow label="Accuracy Declaration" value={applicationData?.section19?.accuracyDeclaration ? '✓ Confirmed' : '✗ Not confirmed'} />
               <ViewRow label="Data Processing Consent" value={applicationData?.section19?.dataProcessingConsent ? '✓ Granted' : '✗ Not granted'} />
               <ViewRow label="Background Check Consent" value={applicationData?.section19?.backgroundCheckConsent ? '✓ Granted' : '✗ Not granted'} />
@@ -1149,10 +1116,9 @@ export default function ViewApplication() {
       </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500 print:mt-12">
-          <p>Njordships Maritime Recruitment • recruitment@njordships.com</p>
+        <div className="mt-8 hidden text-center text-sm text-fg-muted print:mt-12 print:block">
           {application.reference_number && (
-            <p className="mt-1">Reference Number: {application.reference_number}</p>
+            <p>Reference number: {application.reference_number}</p>
           )}
         </div>
       </div>
@@ -1162,20 +1128,28 @@ export default function ViewApplication() {
 }
 
 // Helper Components
+const isEmptyValue = (value) =>
+  value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+
+// Empty fields are hidden; a section with nothing filled in collapses to one line.
 function ViewSection({ title, children }) {
+  const visibleChildren = Children.toArray(children).filter(
+    (child) => !(isValidElement(child) && child.type === ViewRow && isEmptyValue(child.props.value))
+  )
   return (
     <div className="recruiter-panel p-6 print:shadow-none print:border print:break-inside-avoid">
-      <h3 className="mb-5 border-b border-gray-200 pb-3 text-lg font-semibold tracking-tight text-gray-900">{title}</h3>
-      {children}
+      <h3 className={`text-base font-semibold text-fg ${visibleChildren.length ? 'mb-3 border-b border-line pb-3' : ''}`}>{title}</h3>
+      {visibleChildren.length ? visibleChildren : <p className="text-sm text-fg-muted">Nothing provided.</p>}
     </div>
   )
 }
 
 function ViewRow({ label, value }) {
+  if (isEmptyValue(value)) return null
   return (
-    <div className="flex flex-col gap-1 border-b border-gray-100 py-3 last:border-b-0 md:flex-row">
-      <span className="w-full text-sm font-medium text-gray-500 md:w-1/3">{label}</span>
-      <span className="w-full text-sm text-gray-900 md:w-2/3">{value || 'Not provided'}</span>
+    <div className="flex flex-col gap-1 border-b border-line py-2 last:border-b-0 md:flex-row">
+      <span className="w-full text-sm text-fg-secondary md:w-1/3">{label}</span>
+      <span className="w-full text-sm text-fg md:w-2/3">{value}</span>
     </div>
   )
 }

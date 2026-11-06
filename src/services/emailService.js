@@ -16,7 +16,6 @@ async function invokeEmailFunction(functionName, payload) {
       return { success: false, error: error.message };
     }
 
-    console.log(`✅ Email sent via ${functionName}:`, data);
     return { success: true, data: data };
   } catch (error) {
     console.error(`Error invoking ${functionName}:`, error);
@@ -76,7 +75,7 @@ export const sendTestRetakeApprovedEmail = async (arg1, arg2) => {
     applicantEmail: p.email,
     applicantName: p.name,
     referenceNumber: p.ref,
-    testLink: p.testLink || arg2 || 'https://njord-assessment.com/login',
+    testLink: p.testLink || arg2 || '',
     expiryDate: expiryDate,
     attemptNumber: p.attemptNumber || 2
   });
@@ -141,18 +140,6 @@ export const sendRejectionEmail = async (arg1, arg2) => {
   });
 };
 
-export const sendOfferLetterEmail = async (application, offerDetails) => {
-  return invokeEmailFunction('send-offer-letter', {
-    applicantEmail: application.email,
-    applicantName: application.full_name,
-    referenceNumber: application.reference_number,
-    position: application.desired_rank,
-    startDate: offerDetails.startDate,
-    salary: offerDetails.salary,
-    attachments: offerDetails.attachments || []
-  });
-};
-
 export const logEmail = async (emailData) => {
   try {
     const { error } = await supabase.from('email_logs').insert({
@@ -177,6 +164,5 @@ export default {
   sendTestFailedEmail,
   sendInterviewInvitationEmail,
   sendRejectionEmail,
-  sendOfferLetterEmail,
   logEmail
 };

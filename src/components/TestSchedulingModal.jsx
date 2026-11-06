@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { supabaseApiKey } from '../lib/supabaseKey'
 import { useAuth } from './auth/AuthContext'
 import { Calendar, Clock, Link as LinkIcon, Loader2, PencilLine, X } from 'lucide-react'
 
@@ -110,7 +111,6 @@ if (reminderError) {
         const applicantEmail = application.application_data?.data?.section2?.email || 
                                application.application_data?.data?.section4?.email
         
-        console.log('Sending test invitation to:', applicantEmail)
         
         // Calculate expiry date (7 days from test date)
         const testDateObj = new Date(formData.testDate)
@@ -123,11 +123,12 @@ if (reminderError) {
         })
         
         const emailResponse = await fetch(
-          'https://btbqdviuqcpauojmorvx.supabase.co/functions/v1/send-test-invitation',
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-invitation`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              apikey: supabaseApiKey,
               'Authorization': `Bearer ${session?.access_token || ''}`
             },
             body: JSON.stringify({
@@ -143,15 +144,12 @@ if (reminderError) {
         if (!emailResponse.ok) {
           console.error('Failed to send email:', await emailResponse.text())
           // Don't throw - test was scheduled successfully even if email failed
-        } else {
-          console.log('Test invitation email sent successfully')
         }
       } catch (emailError) {
         console.error('Error sending email:', emailError)
         // Don't throw - test was scheduled successfully even if email failed
       }
 
-      console.log('Test scheduled successfully:', eventData)
       
       // Success callback
       if (onScheduled) {
@@ -179,7 +177,6 @@ if (reminderError) {
               <PencilLine className="h-6 w-6" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Assessment workflow</p>
               <h3 className="recruiter-modal__title">Schedule competency test</h3>
               <p className="recruiter-modal__subtitle">
                 {application.application_data?.data?.section2?.firstName} {application.application_data?.data?.section2?.surname} - {application.reference_number} - {application.applied_rank}
@@ -197,7 +194,7 @@ if (reminderError) {
               <div className="grid grid-cols-2 gap-4">
                 {/* Test Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-fg-secondary mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
                     Test Date *
                   </label>
@@ -207,13 +204,13 @@ if (reminderError) {
                     min={today}
                     value={formData.testDate}
                     onChange={(e) => setFormData({ ...formData, testDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                 </div>
 
                 {/* Test Time */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-fg-secondary mb-2">
                     <Clock className="w-4 h-4 inline mr-1" />
                     Test Time *
                   </label>
@@ -222,14 +219,14 @@ if (reminderError) {
                     required
                     value={formData.testTime}
                     onChange={(e) => setFormData({ ...formData, testTime: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Test URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   <LinkIcon className="w-4 h-4 inline mr-1" />
                   Test Link/URL *
                 </label>
@@ -238,36 +235,28 @@ if (reminderError) {
                   required
                   value={formData.testUrl}
                   onChange={(e) => setFormData({ ...formData, testUrl: e.target.value })}
-                  placeholder="https://test.njord.com/assessment/xyz123"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://assessment.example.com/test"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-fg-muted mt-1">
                   This link will be sent to the candidate
                 </p>
               </div>
 
               {/* Notes for Candidate */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-fg-secondary mb-2">
                   Instructions for Candidate (Optional)
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Please ensure you have a stable internet connection and a quiet environment. The test will cover navigation rules, safety procedures, and technical knowledge..."
+                  placeholder="Instructions for the candidate"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-line-input rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                 />
               </div>
 
-              {/* Info Box */}
-              <div className="recruiter-note recruiter-note--info">
-                <p className="recruiter-note__title">What happens next</p>
-                <p className="recruiter-note__body">
-                  The candidate will receive an email with test details, date, time, and access link. 
-                  You will also receive a calendar reminder.
-                </p>
-              </div>
             </div>
 
           <div className="recruiter-modal__footer">
@@ -282,7 +271,7 @@ if (reminderError) {
             <button
               type="submit"
               disabled={loading}
-              className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-gray-400"
+              className="workspace-action-button workspace-action-button--primary min-w-[12rem] justify-center disabled:bg-fg-muted"
             >
               {loading ? (
                 <>

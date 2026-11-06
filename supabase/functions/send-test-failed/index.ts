@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 
 interface TestFailedRequest {
   applicantEmail: string
@@ -21,7 +22,7 @@ serve(async (req) => {
   try {
     const runtimeSettings = await getRuntimeSettings(['RESEND_API_KEY', 'EMAIL_FROM'])
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
 
     const {
       applicantEmail,
@@ -45,7 +46,7 @@ serve(async (req) => {
           
           <tr>
             <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">NJORD Ships</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">${BRAND.name}</h1>
               <p style="margin: 5px 0 0 0; color: #e0e7ff; font-size: 14px;">Maritime Recruitment Excellence</p>
             </td>
           </tr>
@@ -56,7 +57,7 @@ serve(async (req) => {
               
               <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">Dear ${applicantName},</p>
               
-              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">Thank you for your interest in the <strong>${position}</strong> position at NJORD Ships and for completing our assessment.</p>
+              <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">Thank you for your interest in the <strong>${position}</strong> position${BRAND.at} and for completing our assessment.</p>
               
               <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">After careful review of your assessment results, we regret to inform you that we will not be moving forward with your application at this time.</p>
               
@@ -75,15 +76,12 @@ serve(async (req) => {
               
               <p style="margin: 0 0 15px 0; color: #475569; font-size: 16px; line-height: 1.6;">We wish you all the best in your career journey.</p>
               
-              <p style="margin: 30px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">Best regards,<br><strong>NJORD Ships Recruitment Team</strong></p>
+              <p style="margin: 30px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">Best regards,<br><strong>${BRAND.team}</strong></p>
             </td>
           </tr>
           
           <tr>
             <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 10px 0; color: #64748b; font-size: 14px;">NJORD Ships - Your Partner in Maritime Excellence</p>
-              <p style="margin: 0; color: #94a3b8; font-size: 12px;"><a href="https://njordships.com" style="color: #3b82f6; text-decoration: none;">Website</a> | <a href="mailto:hr@njordships.com" style="color: #3b82f6; text-decoration: none;">Contact Support</a></p>
-              <p style="margin: 15px 0 0 0; color: #cbd5e1; font-size: 11px;">© ${new Date().getFullYear()} NJORD Ships. All rights reserved.</p>
             </td>
           </tr>
           

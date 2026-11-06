@@ -118,7 +118,7 @@ export default function RecruiterAiSearch() {
   }
 
   return (
-    <div className="recruiter-shell flex h-dvh min-h-0 flex-col">
+    <div className="recruiter-shell recruiter-ai-shell flex h-dvh min-h-0 flex-col">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
       {status === 'ready' && frameSrc ? (
@@ -131,14 +131,14 @@ export default function RecruiterAiSearch() {
       ) : (
         <div className="flex flex-1 items-center justify-center p-6">
           {status === 'connecting' ? (
-            <Loader2 className="h-6 w-6 animate-spin text-slate-500" aria-label="Loading" />
+            <Loader2 className="h-6 w-6 animate-spin text-fg-muted" aria-label="Loading" />
           ) : (
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="text-sm text-slate-600">AI search is unavailable right now.</div>
+              <div className="text-sm text-fg-secondary">AI search is unavailable right now.</div>
               <button
                 type="button"
                 onClick={retry}
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-800"
+                className="btn-primary"
               >
                 Retry
               </button>

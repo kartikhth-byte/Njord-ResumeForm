@@ -82,12 +82,12 @@ export default function AISearch({
       >
         <div className="flex flex-col gap-3">
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-gray-700">Recruiter prompt</span>
+            <span className="mb-2 block text-sm font-medium text-fg-secondary">Recruiter prompt</span>
             <textarea
               value={query}
               onChange={event => setQuery(event.target.value)}
               placeholder={'Try something like:\nNeed a Chief Officer for oil tanker operations with strong English communication, valid C1/D visa, recent tanker sea service, and availability within the next 30 days.'}
-              className="min-h-[180px] w-full resize-y rounded-2xl border border-gray-300 bg-white px-4 py-4 text-sm leading-6 text-gray-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-200"
+              className="min-h-[180px] w-full resize-y rounded-control border border-line-input bg-surface px-4 py-4 text-sm leading-6 text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
               disabled={searching}
             />
           </label>
@@ -96,7 +96,7 @@ export default function AISearch({
             <button
               type="submit"
               disabled={searching || !query.trim() || !embeddingsReady}
-              className="workspace-action-button workspace-action-button--primary min-w-[148px] rounded-2xl"
+              className="workspace-action-button workspace-action-button--primary min-w-[148px] rounded-card"
             >
               {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {searching ? 'Searching' : 'Search'}
@@ -106,7 +106,7 @@ export default function AISearch({
               type="button"
               onClick={handleClear}
               disabled={!query.trim() && !analyzingWithLLM}
-              className="workspace-action-button workspace-action-button--secondary rounded-2xl"
+              className="workspace-action-button workspace-action-button--secondary rounded-card"
             >
               Clear
             </button>
@@ -114,34 +114,34 @@ export default function AISearch({
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
             {error}
           </div>
         ) : null}
 
         {!embeddingsReady ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-control border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning">
             {embeddingStatusMessage || 'Generate embeddings before running AI Search.'}
           </div>
         ) : null}
 
         {analyzingWithLLM ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+          <div className="flex items-center gap-3 rounded-control border border-accent/40 bg-accent-soft px-4 py-3 text-sm text-accent-text">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Confidence analysis is running for the highest-matching profiles.</span>
           </div>
         ) : null}
       </form>
 
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Starter queries</p>
+      <div className="rounded-control border border-dashed border-line bg-raised px-4 py-4">
+        <p className="text-xs font-semibold text-fg-muted">Starter queries</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {QUICK_QUERIES.map(example => (
             <button
               key={example}
               type="button"
               onClick={() => setQuery(example)}
-              className="rounded-full border border-white/70 bg-white/85 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-teal-200 hover:text-teal-800"
+              className="rounded-full border border-line/70 bg-surface/85 px-3 py-2 text-xs font-medium text-fg-secondary transition hover:border-accent/40 hover:text-accent-text"
             >
               {example}
             </button>

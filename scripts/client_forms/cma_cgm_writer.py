@@ -611,7 +611,7 @@ def load_application_payload(args: argparse.Namespace) -> dict[str, Any]:
 
     env = load_env_file(Path(args.env_file))
     supabase_url = require_env(env, "VITE_SUPABASE_URL")
-    service_role_key = require_env(env, "SUPABASE_SERVICE_ROLE_KEY")
+    service_role_key = env.get("SUPABASE_SECRET_KEY") or require_env(env, "SUPABASE_SERVICE_ROLE_KEY")
 
     application = fetch_single_row(
         supabase_url,
@@ -683,12 +683,12 @@ def fetch_single_row(
         f"?select={urllib.parse.quote(select, safe=',*()')}"
         f"&{urllib.parse.quote(field)}=eq.{encoded_value}"
     )
+    headers = {"apikey": service_role_key}
+    if not service_role_key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {service_role_key}"
     response = requests.get(
         url,
-        headers={
-            "apikey": service_role_key,
-            "Authorization": f"Bearer {service_role_key}",
-        },
+        headers=headers,
         timeout=30,
     )
     response.raise_for_status()
@@ -803,11 +803,11 @@ def build_storage_url(storage_path: str) -> str:
 
 def build_service_role_headers() -> dict[str, str]:
     env = load_env_file(ENV_FILE_PATH)
-    service_role_key = require_env(env, "SUPABASE_SERVICE_ROLE_KEY")
-    return {
-        "apikey": service_role_key,
-        "Authorization": f"Bearer {service_role_key}",
-    }
+    service_role_key = env.get("SUPABASE_SECRET_KEY") or require_env(env, "SUPABASE_SERVICE_ROLE_KEY")
+    headers = {"apikey": service_role_key}
+    if not service_role_key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {service_role_key}"
+    return headers
 
 
 def generate_workbook(

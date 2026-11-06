@@ -20,7 +20,7 @@ test.describe('applicant section spec regressions', () => {
   test.use({ storageState: applicantStorageState })
   test.skip(!hasApplicantStorageState, 'Applicant storage state not captured yet. Run npm run test:auth:applicant first.')
   test.beforeEach(async () => {
-    await prepareDraftApplicantState()
+    await prepareDraftApplicantState({ resetApplication: true })
   })
 
   test('section 1 conditional referral and advertisement fields show and clear correctly', async ({ page }) => {

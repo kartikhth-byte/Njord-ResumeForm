@@ -28,7 +28,7 @@ export default function OperatorConsole() {
         <div className="space-y-6">
           <PageHeader title="Operator" />
 
-          <div role="tablist" aria-label="Operator" className="flex gap-1 border-b border-slate-200">
+          <div role="tablist" aria-label="Operator" className="flex gap-1 border-b border-line">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -38,8 +38,8 @@ export default function OperatorConsole() {
                 onClick={() => setSearchParams(tab.key === 'health' ? {} : { section: tab.key })}
                 className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
                   activeTab === tab.key
-                    ? 'border-teal-700 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-600'
+                    ? 'border-accent text-fg'
+                    : 'border-transparent text-fg-muted hover:text-fg-secondary'
                 }`}
               >
                 {tab.label}
@@ -51,14 +51,14 @@ export default function OperatorConsole() {
             {activeTab === 'health' && <OperatorHealthSection />}
             {activeTab === 'platform' && <RecruiterIntegrationsSection />}
             {activeTab === 'ai' && (aiSearchEnabled() ? <div className="space-y-4">
-              <p className="text-sm text-slate-600">Review conversion issues and pending facts against the original résumé. Approval remains an operator action.</p>
+              <p className="text-sm text-fg-secondary">Review conversion issues and pending facts against the original résumé. Approval remains an operator action.</p>
               <div className="flex flex-wrap gap-3">
                 <Link className="underline" to="/recruiter/ai/review">Review queue</Link>
                 <Link className="underline" to="/recruiter/ai/admin/facts-review">Facts approval</Link>
                 <Link className="underline" to="/recruiter/ai/admin/settings">AI settings</Link>
                 <Link className="underline" to="/recruiter/ai/admin/evals">Evaluations</Link>
               </div>
-            </div> : <p className="text-sm text-slate-600">AI search is not enabled in this environment.</p>)}
+            </div> : <p className="text-sm text-fg-secondary">AI search is not enabled in this environment.</p>)}
           </section>
         </div>
       </div>

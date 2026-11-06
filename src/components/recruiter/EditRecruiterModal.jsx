@@ -67,11 +67,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
         ...(formData.roleId && formData.roleId !== member.role_id && { role_id: formData.roleId })
       }
 
-      console.log('=== UPDATE REQUEST ===')
-      console.log('Member:', member)
-      console.log('Form data:', formData)
-      console.log('Sending body:', updateBody)
-      console.log('=====================')
 
       // Call edge function to update recruiter
       const { data, error: functionError } = await supabase.functions.invoke(
@@ -81,10 +76,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
         }
       )
 
-      console.log('=== RESPONSE ===')
-      console.log('Data:', data)
-      console.log('Error:', functionError)
-      console.log('================')
 
       if (functionError) {
         const errorMessage = data?.error || functionError.message || 'Failed to update recruiter'
@@ -97,14 +88,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
         throw new Error(data.error)
       }
 
-      // Build success message
-      const changes = []
-      if (formData.fullName && formData.fullName !== member.full_name) changes.push('name')
-      if (formData.password) changes.push('password')
-      if (formData.roleId && formData.roleId !== member.role_id) changes.push('role')
-
-      alert(`✅ Updated successfully: ${changes.join(', ')}`)
-      
       onSuccess()
       handleClose()
     } catch (error) {
@@ -134,11 +117,8 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
               <UserCog className="h-5 w-5" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
-              <h2 className="recruiter-modal__title">Edit Team Member</h2>
-              <p className="recruiter-modal__subtitle">
-                Update role coverage or reset credentials for {member.email}.
-              </p>
+              <h2 className="recruiter-modal__title">Edit member</h2>
+              <p className="recruiter-modal__subtitle">{member.email}</p>
             </div>
           </div>
           <button type="button" onClick={handleClose} className="recruiter-modal__close">
@@ -156,7 +136,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
                   value={formData.fullName}
                   onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                   className="recruiter-form-input"
-                  placeholder="John Doe"
                 />
               </div>
 
@@ -167,23 +146,24 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
                   onChange={e => setFormData({ ...formData, roleId: e.target.value })}
                   className="recruiter-form-select"
                 >
-                  <option value="">Keep current role</option>
+                  {member.role_id ? null : <option value="">Select role</option>}
                   {roles.map(role => (
                     <option key={role.id} value={role.id}>
                       {role.name}
                     </option>
                   ))}
                 </select>
-                <p className="recruiter-form-hint">Current role: {member.role_name}</p>
               </div>
 
               <div className="recruiter-form-field recruiter-form-field--full">
-                <label className="recruiter-form-label">New Password</label>
+                <label className="recruiter-form-label">New Password (optional, min 8)</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    minLength={8}
+                    autoComplete="new-password"
                     className="recruiter-form-input font-mono text-sm"
                     placeholder="Leave empty to keep current password"
                   />
@@ -196,7 +176,6 @@ export default function EditRecruiterModal({ isOpen, onClose, onSuccess, member 
                     Generate
                   </button>
                 </div>
-                <p className="recruiter-form-hint">Only enter a value if you want to issue a fresh password.</p>
               </div>
 
               {error ? (

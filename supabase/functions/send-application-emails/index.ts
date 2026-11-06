@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createAdminSupabaseClient, getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 
 const REVIEW_LINK_TTL_HOURS = 24 * 7
 
@@ -58,7 +59,7 @@ serve(async (req) => {
     ])
     const appUrl = runtimeSettings.APP_URL?.replace(/\/$/, '')
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'NJORD Ships <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
     const recruiterNotificationEmail = runtimeSettings.RECRUITER_NOTIFICATION_EMAIL?.trim()
     const supabaseClient = createAdminSupabaseClient()
 
@@ -165,7 +166,7 @@ serve(async (req) => {
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <tr>
             <td style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">NJORD Ships</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">${BRAND.name}</h1>
               <p style="margin: 6px 0 0 0; color: #dbeafe; font-size: 14px;">Submitted Application Ready For Review</p>
             </td>
           </tr>

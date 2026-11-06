@@ -26,7 +26,9 @@ test.describe('Needle inside Holmes (synthetic local fixture)', () => {
         const response = await request.get('http://127.0.0.1:5191/_fixture/token')
         body = await response.json()
       } else if (path.includes('/profiles')) {
-        body = { ...USER, full_name: 'Synthetic Operator', user_type: 'recruiter' }
+        body = new URL(route.request().url()).searchParams.has('id')
+          ? { ...USER, full_name: 'Synthetic Operator', user_type: 'recruiter' }
+          : []
       } else if (path.endsWith('/is_platform_operator')) {
         body = true
       } else if (path.endsWith('/user')) {
@@ -108,8 +110,106 @@ test.describe('Needle inside Holmes (synthetic local fixture)', () => {
     await page.getByRole('button', { name: 'Retry', exact: true }).click()
     await expect(frame.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible()
     await page.goto('/operator')
-    await page.getByRole('button', { name: /Synthetic Operator operator@example.invalid/ }).click()
-    await page.getByRole('button', { name: /sign out/i }).click()
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
     await expect.poll(async () => (await (await page.request.get('/ai/auth/me')).json()).authenticated).toBe(false)
   })
+
+  test('warm sidebar opens AI in a rail and restores the saved sidebar preference', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('holmes.sidebar.collapsed', '0'))
+    await page.goto('/operator?section=ai')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await expect(page.locator('html')).toHaveAttribute('data-rail', 'expanded')
+    await page.getByRole('button', { name: 'AI search', exact: true }).click()
+    const frame = page.frameLocator('iframe[title="AI search"]')
+    await expect(frame.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-rail', 'collapsed')
+    const bounds = await page.locator('iframe[title="AI search"]').boundingBox()
+    const viewport = page.viewportSize()
+    expect(bounds.width).toBeGreaterThan(viewport.width - 100)
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height)
+    await page.getByRole('button', { name: 'Operator', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Operator', exact: true })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-rail', 'expanded')
+  })
+
+  test('warm mobile shell keeps the review queue usable and its menu dismissible', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/recruiter/ai/review')
+    const frame = page.frameLocator('iframe[title="AI search"]')
+    await expect(frame.getByRole('heading', { name: 'Review queue', exact: true })).toBeVisible()
+    const bounds = await page.locator('iframe[title="AI search"]').boundingBox()
+    expect(bounds.width).toBeLessThanOrEqual(375)
+    expect(bounds.y).toBeGreaterThanOrEqual(56)
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(812)
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+    await page.getByRole('button', { name: 'Operator', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Operator', exact: true })).toBeVisible()
+    await expect(page.locator('.recruiter-sidebar')).not.toHaveClass(/is-open/)
+  })
+
+  test('legacy integrations address opens operator settings, not an organization integration tab', async ({ page }) => {
+    await page.goto('/recruiter/settings?section=integrations')
+    await expect(page).toHaveURL(/\/operator\?section=platform$/)
+    await expect(page.getByRole('tab', { name: 'Platform settings', exact: true })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  test('Coordinator cannot open operator or AI routes or request an engine token', async ({ page }) => {
+    let tokenRequests = 0
+    await page.route('https://supabase.invalid/rest/v1/rpc/is_platform_operator', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: 'false' }))
+    await page.route('https://supabase.invalid/rest/v1/user_roles*', route => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify([{ role_id: 'coordinator', roles: { name: 'Coordinator' } }]),
+    }))
+    await page.route('https://supabase.invalid/functions/v1/needle-token', route => {
+      tokenRequests += 1
+      return route.fulfill({ status: 403, body: '{}' })
+    })
+    await page.goto('/operator')
+    await expect(page).toHaveURL(/\/unauthorized$/)
+    await page.goto('/recruiter/ai/search')
+    await expect(page).toHaveURL(/\/unauthorized$/)
+    expect(tokenRequests).toBe(0)
+    expect((await page.request.get('/ai/auth/me')).status()).toBe(200)
+    expect((await (await page.request.get('/ai/auth/me')).json()).authenticated).toBe(false)
+  })
+  for (const width of [311, 375, 640]) {
+    test(`embedded search uses the full ${width}px pane and its menu remains usable`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 656 })
+      await page.goto('/recruiter/ai/search')
+      const frame = page.frameLocator('iframe[title="AI search"]')
+      const heading = frame.getByRole('heading', { name: 'Projects', exact: true })
+      await expect(heading).toBeVisible()
+      expect(await page.locator('body').evaluate(el => el.scrollWidth)).toBeLessThanOrEqual(width)
+      const bounds = await page.locator('iframe[title="AI search"]').boundingBox()
+      expect(bounds.width).toBe(width)
+      expect(bounds.y).toBeLessThanOrEqual(80)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(656)
+      await expect(frame.getByRole('complementary', { name: 'Search navigation' })).toBeHidden()
+      await frame.getByRole('button', { name: 'Search menu', exact: true }).click()
+      await expect(frame.getByRole('button', { name: 'Search menu', exact: true })).toHaveAttribute('aria-expanded', 'true')
+      await frame.getByRole('link', { name: 'Repository', exact: true }).click()
+      await expect(page).toHaveURL(/\/recruiter\/ai\/repository$/)
+      await expect(frame.getByText('Synthetic Seafarer', { exact: true })).toBeVisible()
+      await expect(frame.getByRole('complementary', { name: 'Search navigation' })).toBeHidden()
+      const menu = frame.getByRole('button', { name: 'Search menu', exact: true })
+      await menu.press('Enter')
+      const close = frame.getByRole('button', { name: 'Close search menu', exact: true })
+      await expect(close).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(frame.getByRole('link', { name: 'Search', exact: true })).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(close).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(frame.getByRole('complementary', { name: 'Search navigation' })).toContainText('Search')
+      await page.keyboard.press('Tab')
+      await expect(close).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(frame.getByRole('complementary', { name: 'Search navigation' })).toBeHidden()
+      await expect(menu).toBeFocused()
+      await page.screenshot({ path: `test-results/needle-pane-${width}.png`, fullPage: true })
+    })
+  }
+
 })

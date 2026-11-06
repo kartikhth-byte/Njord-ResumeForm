@@ -1,5 +1,8 @@
-export default function StatCard({ label, value, tone = 'default', icon: Icon, hint }) {
-  return (
+import { Link } from 'react-router-dom'
+
+// Label + value only; `hint` is intentionally not rendered (docs/ui-theme-spec.md §12).
+export default function StatCard({ label, value, tone = 'default', icon: Icon, to }) {
+  const card = (
     <div className={`stat-card stat-card--${tone}`}>
       <div className="stat-card__header">
         <div>
@@ -12,7 +15,13 @@ export default function StatCard({ label, value, tone = 'default', icon: Icon, h
           </div>
         ) : null}
       </div>
-      {hint ? <p className="stat-card__hint">{hint}</p> : null}
     </div>
+  )
+  // `to`: the count opens the list behind it.
+  if (!to) return card
+  return (
+    <Link to={to} className="block rounded-card transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
+      {card}
+    </Link>
   )
 }

@@ -60,13 +60,6 @@ const handleSubmit = async (e) => {
   setError(null)
 
   try {
-    console.log('Sending request with data:', {
-      action: 'create',
-      full_name: formData.fullName,
-      email: formData.email,
-      role_id: formData.roleId
-    })
-
     // Call edge function to create recruiter
     const { data, error: functionError } = await supabase.functions.invoke(
       'create-recruiter',
@@ -81,10 +74,6 @@ const handleSubmit = async (e) => {
       }
     )
 
-    console.log('=== FULL RESPONSE ===')
-    console.log('Data:', JSON.stringify(data, null, 2))
-    console.log('Error:', JSON.stringify(functionError, null, 2))
-    console.log('====================')
 
     // Check for errors
     if (functionError) {
@@ -100,15 +89,12 @@ const handleSubmit = async (e) => {
     }
 
     // Success!
-    alert(`✅ Recruiter Created Successfully!\n\n📧 Email: ${formData.email}\n🔑 Password: ${formData.password}\n\n⚠️ Please save these credentials and share them securely with the new team member.`)
+    alert(`Added ${formData.email}.\nPassword: ${formData.password}\nShare it with them securely.`)
     
     onSuccess()
     handleClose()
   } catch (error) {
-    console.error('=== ERROR CAUGHT ===')
-    console.error('Error object:', error)
-    console.error('Error message:', error.message)
-    console.error('==================')
+    console.error('Error creating recruiter:', error)
     setError(error.message || 'Failed to create recruiter')
   } finally {
     setLoading(false)
@@ -135,11 +121,7 @@ const handleSubmit = async (e) => {
               <ShieldPlus className="h-5 w-5" />
             </div>
             <div>
-              <p className="recruiter-modal__eyebrow">Recruiter Admin</p>
-              <h2 className="recruiter-modal__title">Add Team Member</h2>
-              <p className="recruiter-modal__subtitle">
-                Create a recruiter login and assign the right access level before sharing credentials.
-              </p>
+              <h2 className="recruiter-modal__title">Add member</h2>
             </div>
           </div>
           <button type="button" onClick={handleClose} className="recruiter-modal__close">
@@ -149,13 +131,6 @@ const handleSubmit = async (e) => {
 
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
           <div className="recruiter-modal__body flex-1">
-            <div className="recruiter-note recruiter-note--info mb-5">
-              <p className="recruiter-note__title">Credential handoff</p>
-              <p className="recruiter-note__body">
-                A password is generated and shown after creation. Share it securely with the new recruiter.
-              </p>
-            </div>
-
             <div className="recruiter-form-grid">
               <div className="recruiter-form-field recruiter-form-field--full">
                 <label className="recruiter-form-label">Email *</label>
@@ -165,7 +140,6 @@ const handleSubmit = async (e) => {
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                   className="recruiter-form-input"
-                  placeholder="recruiter@example.com"
                 />
               </div>
 
@@ -177,7 +151,6 @@ const handleSubmit = async (e) => {
                   value={formData.fullName}
                   onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                   className="recruiter-form-input"
-                  placeholder="John Doe"
                 />
               </div>
 
@@ -189,8 +162,8 @@ const handleSubmit = async (e) => {
                     required
                     value={formData.password}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    minLength={8}
                     className="recruiter-form-input font-mono text-sm"
-                    placeholder="Generate or enter a secure password"
                   />
                   <button
                     type="button"
@@ -201,7 +174,7 @@ const handleSubmit = async (e) => {
                     Generate
                   </button>
                 </div>
-                <p className="recruiter-form-hint">Minimum 6 characters. Generated passwords are easiest to onboard with.</p>
+                <p className="recruiter-form-hint">At least 8 characters.</p>
               </div>
 
               <div className="recruiter-form-field recruiter-form-field--full">
@@ -256,7 +229,7 @@ const handleSubmit = async (e) => {
                   Creating...
                 </>
               ) : (
-                'Create Recruiter'
+                'Add member'
               )}
             </button>
           </div>

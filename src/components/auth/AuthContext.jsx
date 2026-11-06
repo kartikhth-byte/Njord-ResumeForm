@@ -382,10 +382,13 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
       }
 
+      // Auth callbacks must return before a new Supabase query can acquire the auth lock.
       window.setTimeout(() => {
-        if (mounted) hydrateAuthState(newSession, { skipInitialLoading: true }).catch((error) => {
-          console.error('Auth state refresh error:', error)
-        })
+        if (mounted) {
+          hydrateAuthState(newSession, { skipInitialLoading: true }).catch((error) => {
+            console.error('Auth state refresh error:', error)
+          })
+        }
       }, 0)
     })
 
@@ -394,27 +397,6 @@ export const AuthProvider = ({ children }) => {
       subscription.unsubscribe()
     }
   }, [])
-
-  const signInWithGoogle = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      })
-      
-      if (error) throw error
-      return data
-    } catch (error) {
-      console.error('Sign in error:', error)
-      throw error
-    }
-  }
 
   const signOut = async () => {
     const clearLocalAuthState = () => {
@@ -466,7 +448,6 @@ export const AuthProvider = ({ children }) => {
     isApplicant: userType === 'applicant',
     isRecruiter: userType === 'recruiter',
     hasPermission: permissionName => permissions.includes(permissionName),
-    signInWithGoogle,
     signOut,
   }
 

@@ -2,10 +2,11 @@
 // Sends DUAL email notifications (applicant + recruiter) with calendar invites
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createAdminSupabaseClient } from '../_shared/runtime-settings.ts'
 import { generateICS } from '../_shared/ics-generator.ts'
 import { getRuntimeSettings } from '../_shared/runtime-settings.ts'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { BRAND } from '../_shared/branding.ts'
 import { requireApplicationEditor } from '../_shared/require-application-editor.ts'
 
 interface NotificationRequest {
@@ -30,10 +31,7 @@ serve(async (req) => {
       throw new Error('eventId is required')
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseClient = createAdminSupabaseClient()
 
     // =========================================================================
     // STEP 1: Get event details (NO JOINS - avoid RLS issues)
@@ -112,8 +110,8 @@ serve(async (req) => {
       .eq('id', event.scheduled_by)
       .single()
 
-    const recruiterEmail = recruiterProfile?.email || runtimeSettings.EMAIL_FROM || 'recruitment@njordships.com'
-    const recruiterName = recruiterProfile?.full_name || 'NJORD Ships Recruitment'
+    const recruiterEmail = recruiterProfile?.email || runtimeSettings.EMAIL_FROM || BRAND.contactEmail
+    const recruiterName = recruiterProfile?.full_name || BRAND.team
 
     // Format date and time
 const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
@@ -132,7 +130,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
     // Get environment variables
     const appUrl = runtimeSettings.APP_URL
     const resendApiKey = runtimeSettings.RESEND_API_KEY
-    const emailFrom = runtimeSettings.EMAIL_FROM || 'Njordships Recruitment <onboarding@resend.dev>'
+    const emailFrom = runtimeSettings.EMAIL_FROM || `${BRAND.sender} <onboarding@resend.dev>`
 
     if (!appUrl || !resendApiKey) {
       throw new Error('Missing required environment variables')
@@ -152,8 +150,8 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
 
     // Generate calendar invite (same for both)
     const icsContent = generateICS({
-      summary: `${event.event_type === 'interview' ? 'Interview' : 'Test'} - ${position} - NJORD Ships`,
-      description: `${event.event_type === 'interview' ? 'Interview' : 'Assessment Test'} for ${position} position at NJORD Ships.\\n\\nApplication Reference: ${referenceNumber}\\n${event.event_description ? `\\nNotes: ${event.event_description}` : ''}`,
+      summary: `${event.event_type === 'interview' ? 'Interview' : 'Test'} - ${position}`,
+      description: `${event.event_type === 'interview' ? 'Interview' : 'Assessment Test'} for ${position} position${BRAND.at}.\\n\\nApplication Reference: ${referenceNumber}\\n${event.event_description ? `\\nNotes: ${event.event_description}` : ''}`,
       location: locationString,
       startDate: event.scheduled_date,
       startTime: event.scheduled_time,
@@ -202,7 +200,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
           <div class="container">
             <div class="header">
               <h1>${isReminder ? '⏰ Event Reminder' : '📅 Event Scheduled'}</h1>
-              <p>NJORD Ships Maritime Recruitment</p>
+              <p>${BRAND.team}</p>
             </div>
             <div class="content">
               ${isReminder ? `
@@ -263,8 +261,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
               </p>
             </div>
             <div class="footer">
-              <p style="margin: 0;">NJORD Ships Recruitment Management</p>
-              <p style="margin: 5px 0 0 0;">© ${new Date().getFullYear()} NJORD Ships</p>
+              <p style="margin: 0;">Holmes</p>
             </div>
           </div>
         </body>
@@ -377,7 +374,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
               </div>
             </div>
             <div class="footer">
-              <p style="margin: 0;">NJORD Ships Recruitment Management</p>
+              <p style="margin: 0;">Holmes</p>
               <p style="margin: 5px 0 0 0;">© ${new Date().getFullYear()} Internal Use Only</p>
             </div>
           </div>
@@ -399,7 +396,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
         html: applicantBody,
         attachments: [
           {
-            filename: `njord-${event.event_type}-${referenceNumber}.ics`,
+            filename: `holmes-${event.event_type}-${referenceNumber}.ics`,
             content: icsBase64,
             content_type: 'text/calendar'
           }
@@ -426,7 +423,7 @@ const eventDate = new Date(`${event.scheduled_date}T${event.scheduled_time}`)
         html: recruiterBody,
         attachments: [
           {
-            filename: `njord-${event.event_type}-${referenceNumber}.ics`,
+            filename: `holmes-${event.event_type}-${referenceNumber}.ics`,
             content: icsBase64,
             content_type: 'text/calendar'
           }
