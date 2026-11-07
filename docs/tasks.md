@@ -1,5 +1,41 @@
 # Pending Tasks
 
+## Completed production matching/review slice (2026-11-07)
+
+Needle `a4599657` is independently reviewed and active on engine/worker; Holmes
+remains `b28d6c5`. Live positive matching/paging, original pages/zoom, stale
+versions, strict fresh queries, tray preferences/loyalty, held intake actions,
+session recovery/logout, normal Coordinator read-only access/AI denial and
+existing candidate/contact/case access passed. KPI counts matched baseline and
+the synthetic fixture was restored/closed without attachments, uploads or mail.
+See `docs/MATCHING_REVIEW_RELEASE_2026-11-07.md` for scope and evidence.
+
+Still deferred: choose intake-service hosting, connect/qualify its private Drive
+credentials/service and dispatcher, then separately accept reopening new intake.
+Automatic Drive intake and NuExtract/v18 remain off/deferred. The older pending
+release checks below are historical and must not cause a repeated cutover.
+
+## Resumed deployed matching gate (2026-11-07)
+
+The pre-demo release is deployed: Holmes `b28d6c5`, Needle `7a0670c4`, Holmes
+0604–0617, Needle 024–026 and the seven explicitly approved Functions. The older
+preparation checklists below do not mean these steps must be repeated.
+
+The normal operator live smoke resumed using the approved synthetic company
+and ship. Its new requirement exercised Second Officer/Bulk Carrier and
+Master/Bulk Carrier versions and was then closed; no uploads, invitations or
+candidate attachments occurred. An absent Function `NEEDLE_API_ORIGIN` was set
+to the existing bare HTTPS Needle origin. Both intake holds and operator-only
+AI access remain in force.
+
+Positive matching is still gated: saved Needle results contain matching ranks
+and vessel types, but the older projection marks the populated vessel summary
+MISSING, so the strict modal excludes it. A correction is implemented/tested
+locally in Needle `codex/search-correctness`, with read-time compatibility and
+no production fact rewrite. Freeze/review/promote that candidate, then finish
+live positive rows, paging/originals, stale versions, held Attach, role/session
+checks and final acceptance. Hosting remains KT's deferred choice.
+
 ## Matching/review-first release (2026-11-07)
 
 KT accepted a matching/review-only phase before intake hosting is chosen. Row

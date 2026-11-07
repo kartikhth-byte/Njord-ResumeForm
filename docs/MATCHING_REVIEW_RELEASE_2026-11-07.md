@@ -1,5 +1,38 @@
 # Matching and review first — 2026-11-07
 
+## Accepted production slice
+
+The combined Needle correction `a4599657` passed independent review and is active
+on both existing Railway services after KT's explicit one-time agent promotion
+approval. Holmes remains `b28d6c5`; no additional schema/Function deployment was
+needed. Normal production smoke passed 174 Master/Bulk Carrier matching rows,
+two result pages, original pages/zoom, stale-version rejection, held Attach and
+single/bulk Add/uploads, strict fresh AI searches and tray preferences, loyalty,
+structured/native PDF detail, embedded session recovery, Holmes logout clearing
+Needle, and normal Coordinator read-only access/direct AI denial. Eight no-auth
+matching/viewing requests were denied. Existing contacts/cases remained usable
+and KPI counts returned to baseline. The approved synthetic requirement is
+closed, restored to its original target and has zero active cases; no candidate
+was attached, résumé uploaded or invitation sent.
+
+Matching/review acceptance is complete within the operator-only, intake-held
+scope. Hosting, connected intake credentials/service and dispatcher qualification
+remain deferred; automatic Drive intake and NuExtract/v18 stay separate. Detailed
+release evidence is in Needle's `docs/AI_SEARCH_CORRECTNESS_2026-11-07.md` and the
+shared root's ignored `.local/search-correctness-20261107/`. Pending statements
+in the checkpoint/procedure below describe earlier states.
+
+## Deployed checkpoint, after the demo pause
+
+KT promoted Holmes `b28d6c5` and Needle `7a0670c4`; the 17 reviewed migrations
+and seven approved Functions are applied. The resumed live smoke corrected a
+missing Function `NEEDLE_API_ORIGIN` and found contradictory vessel-summary
+metadata in the existing Needle projection. Its local correction belongs to
+the Needle search-correctness candidate. The synthetic requirement is closed;
+positive matching/originals and remaining live acceptance are still pending
+that candidate's review/promotion. The release sequence below is historical
+procedure, not authorization to repeat the completed cutover.
+
 ## KT decision and scope
 
 KT approved releasing matching/review before choosing intake-service hosting.
@@ -31,6 +64,7 @@ NuExtract/v18 hookup. Production has not been changed by this follow-up.
 | Vercel Production server | Existing `NEEDLE_ORIGIN` remains the production Needle HTTPS origin |
 | Supabase Functions | `NEEDLE_AI_SEARCH_ACCESS=operator` |
 | Supabase Functions | `RESUME_INTAKE_ENABLED=false` |
+| Supabase Functions | `NEEDLE_API_ORIGIN=https://njordhr.up.railway.app` (bare origin, no `/ai` suffix) |
 | Railway worker | `NJORDHR_DRIVE_INTAKE_ENABLED=false` |
 
 `VITE_FEATURE_RESUME_INTAKE` is public configuration, not a secret. Only `on`

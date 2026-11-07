@@ -1,5 +1,29 @@
 # Project Status
 
+## Production matching/review accepted — 2026-11-07
+
+Holmes `b28d6c5` plus independently reviewed Needle `a4599657` pass the production
+operator-only matching/review gate: positive rows/paging, original pages/zoom,
+stale versions, strict search/tray/loyalty, held creation/add/attachment/uploads,
+session recovery/logout, normal Coordinator read-only access and AI denial,
+existing contacts/cases and unchanged KPI counts. The synthetic fixture is
+restored and closed with no attachments, uploads or invitations. Exact evidence
+and limits: `docs/MATCHING_REVIEW_RELEASE_2026-11-07.md`. Intake remains off and
+hosting/connected-service/dispatcher qualification remains pending. Earlier
+pending checkpoints below are historical.
+
+## Resumed production smoke — 2026-11-07
+
+Holmes `b28d6c5` and Needle `7a0670c4` were promoted before the demo pause;
+the approved schema/Function cutover is complete. On resumption a missing
+Function `NEEDLE_API_ORIGIN` was configured to the existing Needle origin.
+The approved synthetic requirement was created, exercised and closed without
+attachments, uploads or mail. Positive results remain gated on a local Needle
+vessel-summary metadata correction: populated projected experience was marked
+MISSING and therefore excluded by the modal. See the current top of
+`docs/tasks.md`; the preparation statuses below are historical. Intake remains
+off, AI operator-only, hosting deferred, and full live acceptance is not claimed.
+
 ## Matching/review first — accepted release split (2026-11-07)
 
 KT approved releasing matching and original review while intake hosting remains
