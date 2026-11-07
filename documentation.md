@@ -1,5 +1,16 @@
 # Project Status
 
+## Production release gate review (2026-11-07)
+
+The full pending Holmes/Needle release was independently reviewed. Four findings
+were fixed and independently rechecked locally: candidate/source writes now
+require the reviewed owner transaction (additive 0617), referenced ships cannot
+be reparented, outbox retries do not starve later work, and uncertain mandatory
+rank/vessel matches are excluded. See `docs/PRODUCTION_GATE_REVIEW_2026-11-07.md`
+and the amended production manifest. Production remains unchanged. KT promotion,
+production service/credentials/scheduler, reviewed requirement mapping and
+deployed-domain acceptance remain gates. Automatic Drive intake remains false.
+
 ## Platform Resume Intake amendment (2026-11-07)
 
 The current isolated candidate is on `codex/platform-resume-intake` (Holmes)

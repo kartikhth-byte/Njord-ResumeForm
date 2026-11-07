@@ -4,7 +4,9 @@ export async function dispatchOutbox({admin,organization,signNeedle,needleOrigin
   const base=new URL(needleOrigin)
   if((base.protocol!=='https:'&&!(allowLocal&&base.protocol==='http:'&&['localhost','127.0.0.1'].includes(base.hostname)))||base.username||base.password||base.pathname!=='/'||base.search||base.hash)throw Error('invalid_needle_origin')
   const checked=r=>{if(r.error)throw Error('outbox_unavailable');return r.data}
-  const events=checked(await admin.from('resume_index_events').select('id,version_id,attempts').eq('organization_id',organization).eq('status','pending').order('created_at').limit(limit))||[]
+  // Least-attempted first: a permanently failing batch must not monopolize
+  // every scheduled run. Created time/ID retain a stable order within a round.
+  const events=checked(await admin.from('resume_index_events').select('id,version_id,attempts').eq('organization_id',organization).eq('status','pending').order('attempts').order('created_at').order('id').limit(limit))||[]
   let delivered=0,failed=0
   for(const event of events){
     try{

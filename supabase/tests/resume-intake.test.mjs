@@ -63,4 +63,19 @@ pending=false
 const form=new FormData();form.set('file',uploaded,'synthetic.pdf')
 assert.equal((await resolver(new Request('https://holmes.example.invalid',{method:'POST',headers:{Authorization:'Bearer valid'},body:form}))).status,200)
 assert.equal(imports,1);assert.equal(uploads,0)
+// More than one batch of poison events must not starve a later healthy event.
+const backlog=Array.from({length:21},(_,i)=>({id:String(i).padStart(2,'0'),version_id:version,attempts:0,status:'pending',created_at:i}))
+const attempted=[]
+const fairAdmin={from(table){let orders=[],cap=20,patch=null,eventId=null;return {
+ select(){return this},eq(key,value){if(key==='id')eventId=value;return this},
+ order(key){orders.push(key);return this},limit(n){cap=n;return this},
+ single(){return Promise.resolve({data:values[table]})},update(value){patch=value;return this},
+ then(ok,no){if(patch)Object.assign(backlog.find(e=>e.id===eventId),patch)
+ return Promise.resolve({data:patch?[]:backlog.filter(e=>e.status==='pending').sort((a,b)=>{for(const key of orders){if(a[key]<b[key])return -1;if(a[key]>b[key])return 1}return 0}).slice(0,cap)}).then(ok,no)},
+ }}}
+const fair={...deps,admin:fairAdmin,fetcher:async(_url,init)=>{const id=JSON.parse(init.body).event_id;attempted.push(id);return new Response('{}',{status:id==='20'?200:409})}}
+assert.deepEqual(await dispatchOutbox(fair),{attempted:20,delivered:0,failed:20})
+assert.deepEqual(await dispatchOutbox(fair),{attempted:20,delivered:1,failed:19})
+assert.equal(attempted[20],'20')
+assert.equal(backlog[20].status,'delivered')
 console.log('Platform bridge/outbox: PASS (auth, Coordinator denial, server-only Drive refs, independent delivery failure/retry, evidence, disabled guard)')

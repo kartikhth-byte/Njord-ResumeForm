@@ -31,6 +31,9 @@ create function add_prospect_note(uuid,text,text) returns void language sql as $
 grant usage on schema public,auth to authenticated;
 `)
 await db.exec(fs.readFileSync(process.argv[2]+'/2026110604_candidate_resume_integration.sql','utf8'))
+// Restore the actual pre-platform browser grants/RLS, not a deny-all fixture.
+const baseline=fs.readFileSync(process.argv[2]+'/2026060302_prospect_schema.sql','utf8')
+await db.exec(baseline.slice(baseline.indexOf('alter table public.prospects enable row level security;'),baseline.indexOf('create table if not exists public.prospect_notes')))
 
 await db.exec(`update requirements set rank_id=gen_random_uuid(),vessel_type_id=gen_random_uuid();
 alter table requirements alter column id set default gen_random_uuid(),alter column version set default 1,alter column version set not null;
@@ -44,7 +47,7 @@ create function build_requirement_display_id(text,int) returns text language sql
 create function is_recruiter_profile(uuid) returns boolean language sql as $$select true$$;
 create function add_requirement_remark(uuid,text,text) returns void language sql as $$select$$;
 grant select,insert,update on requirements to authenticated;`)
-for(const file of ['2026110608_requirement_match_versions.sql','2026110609_company_ship_drafts.sql','2026110610_platform_resume_intake.sql','2026110611_append_only_extraction_attempts.sql','2026110612_requirement_creator_choice.sql','2026110613_guard_all_requirement_attachments.sql','2026110614_resume_lead_drafts.sql','2026110615_review_before_index_registration.sql','2026110616_allow_historical_ship_close.sql'])await db.exec(fs.readFileSync(process.argv[2]+'/'+file,'utf8'))
+for(const file of ['2026110608_requirement_match_versions.sql','2026110609_company_ship_drafts.sql','2026110610_platform_resume_intake.sql','2026110611_append_only_extraction_attempts.sql','2026110612_requirement_creator_choice.sql','2026110613_guard_all_requirement_attachments.sql','2026110614_resume_lead_drafts.sql','2026110615_review_before_index_registration.sql','2026110616_allow_historical_ship_close.sql','2026110617_reviewed_candidate_and_ship_boundaries.sql'])await db.exec(fs.readFileSync(process.argv[2]+'/'+file,'utf8'))
 await db.exec('create trigger prepare_requirement_row before insert or update on requirements for each row execute function prepare_requirement_row()')
 const perms='view_requirements,create_requirements,edit_requirements,create_prospects,view_prospects,edit_prospects,edit_junction_status'
 const rejects=(fn,message)=>assert.rejects(fn,e=>e.message.includes(message))
@@ -77,6 +80,10 @@ const ship2=(await db.query("insert into client_ships(name,company_id) values('S
 await rejects(()=>saveReq({...fields,ship_id:ship2},open.id,open.version),'correction_reason_required')
 open=await saveReq({...fields,ship_id:ship2},open.id,open.version,'Reviewed original ship was wrong')
 assert.equal((await db.query('select count(*)::int n from requirement_location_audit')).rows[0].n,1)
+const company2=(await db.query("insert into client_companies(name) values('Synthetic Second Company') returning id")).rows[0].id
+await rejects(()=>db.query('update client_ships set company_id=$1 where id=$2',[company2,ship2]),'referenced_ship_requires_audited_requirement_correction')
+await rejects(()=>db.query('update client_ships set id=$1 where id=$2',[id(911),ship2]),'immutable_ship_identity')
+await db.query('update client_ships set name=$1 where id=$2',['Synthetic renamed ship',ship2])
 await db.query('update client_companies set archived_at=now() where id=$1',[company])
 const closed=await saveReq({...fields,ship_id:ship2,status:'closed'},open.id,open.version)
 assert.equal(closed.status,'closed')
@@ -99,6 +106,11 @@ const evidence=(await db.query("insert into needle_resume_evidence(organization_
 await as()
 await rejects(()=>db.query('select * from resume_files'),'permission denied')
 await rejects(()=>db.query('select save_resume_candidate($1,$2)',[evidence,'{}']),'permission denied')
+await rejects(()=>db.query("insert into prospects(name,email,status,needle_resume_id,resume_evidence_id) values('Synthetic bypass','bypass@example.invalid','open',$1,$2)",[digest,evidence]),'platform_identity_review_required')
+await db.exec('reset role')
+assert.equal((await db.query('select count(*)::int n from resume_identity_reviews')).rows[0].n,0)
+assert.equal((await db.query('select count(*)::int n from prospect_resumes')).rows[0].n,0)
+await as()
 const review=(decision,fields={},link=null)=>db.query('select review_platform_resume($1,$2,$3,$4,$5) result',[registration.version.id,evidence,decision,JSON.stringify(fields),link]).then(r=>r.rows[0].result)
 assert.equal((await review('hold')).held,true)
 assert.equal((await db.query('select platform_resume_review_queue() result')).rows[0].result.length,1)
@@ -118,6 +130,9 @@ await db.query('select finish_platform_resume($1,$2,$3)',[second.file.id,lease,'
 await db.query("insert into needle_resume_registry(organization_id,resume_id,filename,status,original_available) values($1,$2,'same-name.pdf','pending',true)",[org,'c'.repeat(64)])
 const e2=(await db.query("insert into needle_resume_evidence(organization_id,resume_id,actor_id,source) values($1,$2,$3,'holmes_upload') returning id",[org,'c'.repeat(64),actor])).rows[0].id
 await as()
+await rejects(()=>db.query('update prospects set needle_resume_id=$1,resume_evidence_id=$2 where id=$3',['c'.repeat(64),e2,person.prospect_id]),'platform_identity_review_required')
+// Ordinary browser edits and the reviewed link path still work under real RLS.
+await db.query('update prospects set telephone=$1 where id=$2',['+919000000007',person.prospect_id])
 await db.query("select review_platform_resume($1,$2,'link',$3::jsonb,$4)",[second.version.id,e2,JSON.stringify({name:'Must not overwrite',email:'wrong@example.invalid'}),person.prospect_id])
 await db.exec('reset role')
 assert.equal((await db.query('select name from prospects where id=$1',[person.prospect_id])).rows[0].name,'Synthetic Platform Person')

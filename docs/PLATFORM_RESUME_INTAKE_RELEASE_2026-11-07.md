@@ -7,6 +7,14 @@ criteria are optional. Needle must precede bridge/frontend promotion. The
 earlier commit freeze does not certify this follow-up; refreeze and review the
 combined candidates before promotion.
 
+**Production-gate review follow-up:** the consolidated independent review of
+Holmes `cba25eb` / Needle `2d8119c0` found four issues, all closed in a focused
+independent follow-up: direct candidate/source writes bypassing review, ship
+reparenting, poison-event starvation, and uncertain mandatory matches. Include
+Holmes migration **0617** and the delivery/projection fixes in the new freeze.
+See `PRODUCTION_GATE_REVIEW_2026-11-07.md`. No promotion or production write is
+certified by this local review.
+
 **Staging qualified; not promoted.** This manifest supersedes the earlier
 `INTEGRATION_RELEASE_MANIFEST_2026-11-07.md` recipes for the amended design §11.
 Do not promote the old `2c99634` / `d20afe0a` pair alone. The two amended branches
@@ -39,6 +47,7 @@ This amendment adds the following, in order:
 | 2026110614_resume_lead_drafts | Phone/email leads outside prospects; reviewed conversion transaction |
 | 2026110615_review_before_index_registration | Commit registration only after new/link review; preserve delivered history |
 | 2026110616_allow_historical_ship_close | Permit historical closure with an archived ship/company; keep new opening/attachment gates |
+| 2026110617_reviewed_candidate_and_ship_boundaries | Reject direct browser candidate creation/source mutation; preserve reviewed transactions and ordinary edits; prevent referenced-ship reparenting |
 
 Needle adds `026_platform_resume_events.sql`: immutable original references,
 logical/event idempotency and explicit indexing queue, including existing hashes.
@@ -78,6 +87,9 @@ The scheduler secret belongs in a private header, never a URL/browser/Git/log.
 The outbox is durable, retries independent of candidate save, and records
 attempts/outcomes. Configure the scheduler before enabling intake. Monitor
 pending/delivery-failure counts; do not treat delivered as approved/indexed facts.
+Delivery selects the least-attempted pending events first, then creation time
+and ID. A permanently failing first batch cannot starve later registrations;
+failed events remain visible/pending and are never silently discarded.
 
 Keep Railway `NJORDHR_DRIVE_INTAKE_ENABLED=false` and both AI access flags
 operator-only. This release does not connect the selected NuExtract/v18 model,
