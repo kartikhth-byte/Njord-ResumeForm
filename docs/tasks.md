@@ -351,3 +351,11 @@ The source for the dormant production normalize-worksheet-template Function
 cannot be downloaded (404); preserve it and exclude it from this rollout.
 
 KT approved Resend's account-owner inbox for synthetic staging tests after confirming no sending domain is owned. The fresh invitation and submission notification arrived there; the temporary submission-recipient override is restored. Wider production mail still needs an approved sender. Progress now accepts a valid medical-history No; 69 Node tests, 16 validation-contract checks, lint/build and focused review pass. KT subsequently authorized removing the legacy test applications rather than reconciling them; the guarded cleanup above is complete. Production application code/schema promotion is still a KT step. See the exact manifest and integration record.
+
+# Requirement match modal — 2026-11-07 follow-up
+
+Implemented locally: in-requirement result rows, ratings, page-by-page original
+review and reviewed attachment; rank + vessel-type experience mandatory, other
+criteria optional. No AI Search redirect/action. Staging synthetic smoke and
+focused tests recorded in `REQUIREMENT_MATCH_MODAL_2026-11-07.md`. Pending:
+refreeze/review the amended pair, KT rollout and deployed operator-only smoke.

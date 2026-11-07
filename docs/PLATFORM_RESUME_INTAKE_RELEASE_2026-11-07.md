@@ -1,5 +1,12 @@
 # Platform Resume Intake release candidate
 
+**Local modal follow-up:** include the reviewed changes in
+`REQUIREMENT_MATCH_MODAL_2026-11-07.md` in the next freeze. Requirement matching
+now stays in a modal and requires confirmed rank + vessel experience; other
+criteria are optional. Needle must precede bridge/frontend promotion. The
+earlier commit freeze does not certify this follow-up; refreeze and review the
+combined candidates before promotion.
+
 **Staging qualified; not promoted.** This manifest supersedes the earlier
 `INTEGRATION_RELEASE_MANIFEST_2026-11-07.md` recipes for the amended design §11.
 Do not promote the old `2c99634` / `d20afe0a` pair alone. The two amended branches

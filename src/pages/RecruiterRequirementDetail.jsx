@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { canUseAiSearch } from '../lib/needle'
-import { needleIntegration } from '../services/needleIntegrationService'
+import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -69,11 +69,19 @@ export default function RecruiterRequirementDetail() {
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
   const [acting, setActing] = useState(false)
+  const [matching, setMatching] = useState(false)
+  const [matchesChanged, setMatchesChanged] = useState(false)
+  const matchButton = useRef(null)
+  const restoreMatchFocus = useRef(false)
   const [lookupMaps, setLookupMaps] = useState({
     countries: {},
     ranks: {},
     vessel_types: {},
   })
+
+  useEffect(() => {
+    if (!loading && restoreMatchFocus.current) { matchButton.current?.focus(); restoreMatchFocus.current = false }
+  }, [loading])
 
   useEffect(() => {
     let cancelled = false
@@ -362,6 +370,11 @@ export default function RecruiterRequirementDetail() {
 
   return (
     <div className="min-h-screen bg-raised">
+      {matching && <RequirementMatchDialog requirement={requirement} onChanged={() => setMatchesChanged(true)} onClose={() => {
+        setMatching(false)
+        if (matchesChanged) { restoreMatchFocus.current = true; setReloadToken(token => token + 1); setMatchesChanged(false) }
+        else matchButton.current?.focus()
+      }} />}
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -370,15 +383,7 @@ export default function RecruiterRequirementDetail() {
             title={requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {requirement.status === 'open' && requirement.location_reviewed_at && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={async () => {
-                  setActing(true); setActionError('')
-                  try {
-                    const result = await needleIntegration({ action: 'match', requirement_id: requirement.id, expected_version: requirement.version })
-                    if (result.warnings?.length && !window.confirm(`${result.warnings.join('\n')}\nOpen these results with that filter unapplied?`)) return
-                    navigate(`/recruiter/ai${result.path}?requirement=${requirement.id}`)
-                  } catch (failure) { setActionError(failure.message) }
-                  finally { setActing(false) }
-                }}>Match resumes</button>}
+                {requirement.status === 'open' && requirement.location_reviewed_at && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match resumes</button>}
 
                 {canExportPdf ? (
                   <button

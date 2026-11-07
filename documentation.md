@@ -466,3 +466,12 @@ pass (93 data objects / 7,377 rows); public DDL/data/CHECK restore also passes
 reconstruction, cluster globals and Storage file bytes. Live 375/640-pixel
 embed fitting and mobile menu/Escape focus checks pass; viewport restored.
 Current release details: `docs/WARM_KPI_KT_RELEASE_2026-11-06.md`.
+
+# Requirement match modal follow-up — 2026-11-07
+
+Local follow-up to the platform-intake candidates: requirement matches remain in
+a modal, with criterion ratings, paged original review and reviewed attachment
+locked to that requirement. Confirmed present rank AND vessel-type experience
+are mandatory; nationality and other criteria are optional. No Open in AI Search
+action. See `docs/REQUIREMENT_MATCH_MODAL_2026-11-07.md` for verification and the
+Needle → bridge → frontend rollout dependency. Not promoted; intake stays off.

@@ -19,6 +19,8 @@ export default function CandidateForm({
   canAttach = false,
   canSave = true,
   allowUpload = true,
+  lockedRequirement = false,
+  onBusyChange,
   initialForm = {},
   onSaved,
   onCancel,
@@ -31,6 +33,8 @@ export default function CandidateForm({
   const [error, setError] = useState('')
   const [reviewed,setReviewed]=useState(false)
   const ref = useRef(null)
+  useEffect(() => { onBusyChange?.(saving || uploading) }, [saving, uploading, onBusyChange])
+  useEffect(() => () => onBusyChange?.(false), [onBusyChange])
 
   useEffect(() => {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -114,7 +118,7 @@ export default function CandidateForm({
           />
           <TextField label="Lead source" value={form.leadSource} onChange={set('leadSource')} placeholder="Referral, walk-in, search..." />
         </div>}
-        {canAttach ? (
+        {canAttach && lockedRequirement ? <p className="rounded-control border border-line p-3 text-sm">Attach to requirement: <strong>{requirementOptions.find(row => row.value === form.requirementId)?.label}</strong></p> : canAttach ? (
           <SelectField
             label="Attach to requirement (optional)"
             value={form.requirementId}
@@ -151,7 +155,7 @@ export default function CandidateForm({
           {form.resume&&!existingFile&&<button type="button" disabled={!canSave||saving||uploading} className="workspace-action-button workspace-action-button--secondary" onClick={async()=>{
             setSaving(true);setError('');try{await saveResumeCandidate(form.resume,{}, {hold:true});setReviewed(false);setError('Held for review. No candidate or case was created.')}catch(error){setError(error.message)}finally{setSaving(false)}
           }}>Hold for review</button>}
-          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
+          <button type="button" disabled={saving || uploading} className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
             Cancel
           </button>
         </div>

@@ -29,7 +29,7 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
     } catch { return json({ error: 'Invalid request' }, 400) }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid request' }, 400)
     const action = body.action
-    if (!['prepare', 'upload', 'view', 'match', 'operator', 'status'].includes(action)) return json({ error: 'Unknown action' }, 400)
+    if (!['prepare', 'upload', 'view', 'match', 'match_results', 'match_original', 'match_preview', 'operator', 'status'].includes(action)) return json({ error: 'Unknown action' }, 400)
     if (action === 'operator' && !access.operator) return json({ error: 'Not authorized' }, 403)
     if (action !== 'operator' && !access.view) return json({ error: 'Not authorized' }, 403)
     if (!['view', 'status', 'operator'].includes(action) && (!access.edit || (access.coordinator && !access.operator) || (action !== 'upload' && !access.search))) return json({ error: 'Not authorized' }, 403)
@@ -47,7 +47,15 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
       ids = [body.resume_id]
     }
     let matchPayload
-    if (action === 'match') {
+    const matching = ['match', 'match_results', 'match_original', 'match_preview'].includes(action)
+    if (matching) {
+      if (body.offset !== undefined && (!Number.isSafeInteger(body.offset) || body.offset < 0)) return json({ error: 'Invalid results offset' }, 400)
+      if (action !== 'match' && (typeof body.stage_id !== 'string' || !body.stage_id)) return json({ error: 'Choose saved requirement results' }, 400)
+      if (action === 'match_original' || action === 'match_preview') {
+        if (!/^[a-f0-9]{64}$/.test(body.resume_id || '')) return json({ error: 'Resume not found' }, 404)
+        ids = [body.resume_id]
+      }
+      if (action === 'match_preview' && (!Number.isSafeInteger(body.page) || body.page < 1 || body.page > 100)) return json({ error: 'Invalid résumé page' }, 400)
       const requirement = checked(await client.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id,company_id,ship_id,location_reviewed_at,deleted_at,archived_at').eq('id', body.requirement_id).maybeSingle())
       if (!requirement || requirement.status !== 'open' || !requirement.location_reviewed_at || !requirement.company_id || !requirement.ship_id || requirement.deleted_at || requirement.archived_at) return json({ error: 'Choose an open requirement' }, 409)
       const [shipResult,companyResult]=await Promise.all([
@@ -63,23 +71,64 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
       const nationalities = checked(await client.from('requirement_nationalities').select('countries(name)').eq('requirement_id', requirement.id)) || []
       matchPayload = { requirement_id: requirement.id, requirement_version: requirement.version,
         title: requirement.req_id_display, rank: checked(rank)?.name || '', vessel_type: checked(vessel)?.name || '',
-        nationalities: nationalities.map(row => row.countries?.name).filter(Boolean) }
+        nationalities: nationalities.map(row => row.countries?.name).filter(Boolean),
+        offset: body.offset || 0, ...(action !== 'match' ? { stage_id: body.stage_id } : {}),
+        ...(['match_original','match_preview'].includes(action) ? { resume_id: body.resume_id } : {}),
+        ...(action === 'match_preview' ? { page: body.page } : {}) }
     }
-    const signed = await sign(user.id, { org: organization, role: ['view', 'status'].includes(action) ? 'viewer' : action === 'operator' ? 'admin' : 'user', resume_ids: ids }, action === 'status' ? 'view' : action)
-    const path = ['view', 'status'].includes(action) ? `resumes/${ids[0]}/${action === 'view' ? 'pdf' : 'status'}` : action
+    const signed = await sign(user.id, { org: organization, role: ['view', 'status'].includes(action) ? 'viewer' : action === 'operator' ? 'admin' : 'user', resume_ids: ids }, matching ? 'match' : action === 'status' ? 'view' : action)
+    const path = ['view', 'status'].includes(action) ? `resumes/${ids[0]}/${action === 'view' ? 'pdf' : 'status'}` : action.replaceAll('_', '-')
     const response = await fetcher(new URL(`/api/holmes/${path}`, base), {
       method: ['view', 'status'].includes(action) ? 'GET' : 'POST', redirect: 'error',
       headers: { Authorization: `Bearer ${signed}`, ...(['view', 'status'].includes(action) || upload ? {} : { 'Content-Type': 'application/json' }) },
       body: ['view', 'status'].includes(action) ? undefined : upload || JSON.stringify(matchPayload || (action === 'operator' ? { action: 'snapshot' } : { resume_ids: ids, stage_id: typeof body.stage_id === 'string' ? body.stage_id : null })),
       signal: AbortSignal.timeout(action === 'match' ? 120000 : 60000),
     })
-    if (!response.ok) return json({ error: response.status === 404 ? 'Resume or search not found' : 'Needle is unavailable. No candidate was saved.' }, response.status >= 500 ? 503 : response.status)
-    if (action === 'view') {
+    if (!response.ok) {
+      const detail = matching && response.status < 500 ? await response.json().catch(() => null) : null
+      const safeMatchErrors = new Set([
+        'Requirement rank is unmapped. Correct the requirement rank before matching.',
+        'Requirement vessel type is missing or unmapped. Correct it before matching.',
+        'Original exceeds the 10 MB preview limit',
+        'Original cannot be previewed; operator review required',
+        'Resume page not found', 'Original PDF unavailable',
+      ])
+      return json({ error: safeMatchErrors.has(detail?.error) ? detail.error : response.status === 404 ? 'Resume or search not found' : 'Needle is unavailable. No candidate was saved.' }, response.status >= 500 ? 503 : response.status)
+    }
+    if (action === 'view' || action === 'match_original') {
       if (!response.headers.get('content-type')?.startsWith('application/pdf')) return json({ error: 'Original is not a PDF' }, 415)
       return new Response(response.body, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="resume.pdf"', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } })
     }
     const payload = await response.json()
-    if (action === 'match' || action === 'operator') return json(payload)
+    if (action === 'match_preview') {
+      if (!Number.isSafeInteger(payload.page_count) || payload.page_count < 1 || payload.page_count > 100
+        || payload.page !== body.page || payload.page > payload.page_count || typeof payload.image !== 'string'
+        || payload.image.length > 12 * 1024 * 1024 || !payload.image.startsWith('iVBORw0KGgo') || !/^[A-Za-z0-9+/=]+$/.test(payload.image)) throw new Error('Invalid résumé preview')
+      return json({ page: payload.page, page_count: payload.page_count, image: payload.image })
+    }
+    if (matching) {
+      if (!Array.isArray(payload.rows) || payload.rows.length > 25 || typeof payload.stage_id !== 'string'
+          || !Number.isSafeInteger(payload.total) || payload.total < payload.rows.length
+          || payload.rows.some(row => !/^[a-f0-9]{64}$/.test(row.resume_id || ''))
+          || new Set(payload.rows.map(row => row.resume_id)).size !== payload.rows.length) throw new Error('Invalid requirement results')
+      const rows = await Promise.all(payload.rows.map(async row => {
+        const matches = checked(await client.rpc('find_resume_candidate_matches', { p_resume_id: row.resume_id })) || []
+        const person = matches.find(match => match.reason === 'resume')
+        return { resume_id: row.resume_id, full_name: row.full_name, present_rank: row.present_rank,
+          nationality: row.nationality, public_bucket: row.public_bucket, confirmed: row.confirmed,
+          criteria_count: row.criteria_count, verdicts: row.verdicts,
+          existing_candidate: person ? { id: person.id, name: person.name } : null }
+      }))
+      const people = [...new Set(rows.map(row => row.existing_candidate?.id).filter(Boolean))]
+      const cases = people.length ? checked(await client.from('recruitment_cases').select('id,prospect_id,requirement_id,status,requirements(req_id_display)').in('prospect_id', people)) || [] : []
+      return json({ stage_id: payload.stage_id, total: payload.total, offset: payload.offset,
+        // Retain the owned path for older deployed callers during the rolling
+        // release. The requirement modal does not display or navigate to it.
+        ...(action === 'match' ? { path: payload.path } : {}),
+        next_offset: payload.next_offset, warnings: payload.warnings || [], filters: payload.filters,
+        rows: rows.map(row => ({ ...row, cases: cases.filter(c => c.prospect_id === row.existing_candidate?.id) })) })
+    }
+    if (action === 'operator') return json(payload)
     if (action === 'status') {
       if (payload.resume_id !== ids[0]) throw new Error('Invalid status scope')
       checked(await admin.from('needle_resume_registry').update({ status: payload.status, engine_version: payload.engine_version, facts_revision: payload.facts_revision, verified_at: new Date().toISOString(), original_available: Boolean(payload.original_available) }).eq('organization_id', organization).eq('resume_id', ids[0]))
