@@ -25,8 +25,12 @@ Branches/worktrees:
 - Holmes `codex/platform-resume-intake`, `.local/worktrees/holmes-integration-completion`.
 - Needle `codex/needle-platform-intake`, `.local/worktrees/needle-integration-completion`.
 
-Remote baselines read back on 2026-11-07: Holmes main `a1e62c1f176770541ef70bc38692183148595923`,
+Remote baselines read back on 2026-11-07: Holmes main `747d4349740382b453a996a386f3f13db60a7133`,
 Needle railway-m1 `401ec6e0d472827ca014b2f32b9b2bfac0806725`.
+The already deployed sidebar hotfix is merged into this candidate unchanged.
+This changes the production baseline from the earlier `a1e62c1`; do not run an
+old push guard or overwrite the hotfix. The approved three Function sources at
+`e04c39e` are unchanged by this UI merge; deploy their approved source bytes.
 No push/deployment/production schema write was performed by this amendment.
 KT owns production promotion; never force-push either branch.
 

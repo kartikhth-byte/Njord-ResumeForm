@@ -1,5 +1,15 @@
 # Project Status
 
+## Production sidebar hotfix preserved (2026-11-07)
+
+Holmes production is `747d434` (hover/focus labels, including unfocused Escape
+dismissal), promoted and public assets verified. Its exact sidebar code is
+merged into this pending platform candidate so a later promotion preserves it.
+The hotfix passed independent review, lint/build and synthetic CUA hover,
+keyboard, expanded and mobile checks. No platform intake deployment or database
+write was included. The original Function approval still refers to unchanged
+source at `e04c39e`; hosting remains preparation-only until KT chooses it.
+
 ## Production release gate review (2026-11-07)
 
 The full pending Holmes/Needle release was independently reviewed. Four findings
@@ -30,7 +40,7 @@ Older completion records below certify the earlier scope only.
 
 ## Current integrated candidate (2026-11-07)
 
-Production is Holmes `a1e62c1` and Needle `401ec6e0`. KT promoted the warm/KPI
+Production is Holmes `747d434` and Needle `401ec6e0`. KT promoted the warm/KPI
 release; the earlier preparation notes below are historical. Production
 operator is `kartik.neuralnet@gmail.com`; staging has separate accounts and
 passwords. Drive intake remains off and AI access remains operator-only.
