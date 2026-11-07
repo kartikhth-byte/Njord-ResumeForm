@@ -42,6 +42,15 @@ transactions and the server intake flag remain authoritative. Existing review
 receipts are not revoked by the server flag; this is not a global database
 write freeze. No legacy uploader/save bypass is restored.
 
+## Independent review
+
+The matching/review-only implementation in Holmes `00c72d2` and Needle
+`7a0670c4` received a consolidated independent local review with no actionable
+blockers. Review confirmed held creation/uploads/match attachments and embedded
+single/bulk Add, while matching/originals/contacts/cases retain their paths.
+This is not production deployment approval. Private exact-source and test
+receipts accompany the release; any later source change needs reconciliation.
+
 ## Production gate and sequence
 
 1. Freeze and independently review the amended Holmes and Needle candidates,

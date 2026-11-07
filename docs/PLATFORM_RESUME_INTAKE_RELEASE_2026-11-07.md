@@ -7,10 +7,11 @@ held, the exact additive schema still needs a fresh backup/review/cutover, and
 KT still owns promotion. The connected intake order below remains the later
 manual-entry gate.
 
-**Uncommitted UI follow-up:** include `CREATION_MODALS_2026-11-07.md` and its
-modal wrapper/page changes in the next source freeze. The previous reviewed
-backend sources are unchanged; the full amended UI is not certified by the old
-freeze. Hosting remains deferred and production gates remain in force.
+**Creation-modal follow-up included:** `CREATION_MODALS_2026-11-07.md` and its
+modal wrapper/page changes are included in the amended candidate. The earlier
+backend sources remain unchanged. The combined matching/review-only follow-up
+passed independent local review; the old freeze is not a promotion recipe.
+Hosting remains deferred and production gates remain in force.
 
 **Local modal follow-up:** include the reviewed changes in
 `REQUIREMENT_MATCH_MODAL_2026-11-07.md` in the next freeze. Requirement matching
