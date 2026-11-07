@@ -13,11 +13,14 @@ export default function SidebarButton({ label, rail, children, onClick, ...props
   useEffect(() => {
     if (!position) return
     const hide = () => setPosition(null)
+    const onKey = (event) => { if (event.key === 'Escape') hide() }
     window.addEventListener('scroll', hide, true)
     window.addEventListener('resize', hide)
+    window.addEventListener('keydown', onKey, true)
     return () => {
       window.removeEventListener('scroll', hide, true)
       window.removeEventListener('resize', hide)
+      window.removeEventListener('keydown', onKey, true)
     }
   }, [position])
 
