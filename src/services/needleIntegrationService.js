@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { requireResumeIntake } from '../lib/resumeIntake'
 
 export { normalizeResumePhone, resumeCandidateFields, withRequirementDefaults } from '../utils/candidateResumeFields'
 export async function needleIntegration(body) {
@@ -13,6 +14,7 @@ export async function prepareResumes(resumeIds, stageId) {
   return (await platformIntake({ action: 'prepare', resume_ids: resumeIds, stage_id: stageId || null })).resumes
 }
 export async function platformIntake(body) {
+  if (!['view', 'status', 'review_original'].includes(body?.action)) requireResumeIntake()
   const {data,error}=await supabase.functions.invoke('resume-intake',{body})
   if(error||data?.error){const detail=error?.context instanceof Response?await error.context.clone().json().catch(()=>null):null;throw new Error(detail?.error||data?.error||'Platform Resume Intake unavailable')}
   return data
@@ -29,6 +31,7 @@ export async function candidateMatches(resumeId, fields) {
   return data || []
 }
 export async function saveResumeCandidate(resume, fields, { requirementId, requirementVersion, linkTo, confirmNew = false, hold = false, leadId, leadVersion } = {}) {
+  requireResumeIntake()
   if (!resume?.evidence_id || !resume?.resume_version_id) throw new Error('Choose a platform-registered résumé first.')
   const existing=resume.matches?.find(row=>row.reason==='resume')?.id
   const link=linkTo||existing||null

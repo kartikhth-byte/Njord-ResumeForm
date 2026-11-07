@@ -1,10 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
 import RequirementForm from '../components/recruiter/RequirementForm'
+import RecordFormDialog from '../components/recruiter/RecordFormDialog'
+import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
+import { canUseAiSearch } from '../lib/needle'
+import { requirementMatchBlocker } from '../utils/requirementMatch'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -38,13 +42,31 @@ const STATUS_FILTERS = [
 
 export default function RecruiterRequirementsPage() {
   const location = useLocation()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, isOperator, signOut } = useAuth()
   const { role, loading: permLoading, canExportData, hasPermission } = usePermissions()
   const canCreateRequirements = hasPermission('create_requirements') || hasPermission('edit_requirements')
   const canChooseRecruiter = role === 'Master Recruiter'
+  const canMatch = role !== 'Coordinator' && canUseAiSearch({ isOperator, role }) && hasPermission('create_prospects')
+  const [matchRequirement, setMatchRequirement] = useState(null)
+  const matchesChanged = useRef(false)
+  const matchButtons = useRef(new Map())
+  const restoreMatchFocus = useRef(null)
   const [showForm, setShowForm] = useState(false)
+  const [formBusy, setFormBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
+  const createButton = useRef(null)
+  const restoreCreateFocus = useRef(false)
+  useEffect(() => {
+    if (!tracker.loading && restoreCreateFocus.current) {
+      createButton.current?.focus()
+      restoreCreateFocus.current = false
+    }
+    if (!tracker.loading && restoreMatchFocus.current) {
+      matchButtons.current.get(restoreMatchFocus.current)?.focus()
+      restoreMatchFocus.current = null
+    }
+  }, [tracker.loading])
 
   // Filters can be preset from the URL (links from KPI and Dashboard counts).
   const initialParams = new URLSearchParams(location.search)
@@ -187,10 +209,13 @@ export default function RecruiterRequirementsPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              {canCreateRequirements && !showForm ? (
+              {canCreateRequirements ? (
                 <button
+                  ref={createButton}
                   type="button"
                   onClick={() => { setNotice(''); setShowForm(true) }}
+                  disabled={showForm}
+                  aria-haspopup="dialog"
                   className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
@@ -206,8 +231,10 @@ export default function RecruiterRequirementsPage() {
         ) : null}
 
         {showForm ? (
-          <div className="mt-6">
+          <RecordFormDialog title="New requirement" busy={formBusy} onClose={() => setShowForm(false)}>
             <RequirementForm
+              inDialog
+              onBusyChange={setFormBusy}
               ranks={tracker.data.ranks}
               vesselTypes={tracker.data.vesselTypes}
               recruiters={workingRecruiters(tracker.data.recruiters)}
@@ -215,9 +242,9 @@ export default function RecruiterRequirementsPage() {
               canChooseRecruiter={canChooseRecruiter}
               canSave={canCreateRequirements}
               onCancel={() => setShowForm(false)}
-              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+              onSaved={(message) => { restoreCreateFocus.current = true; setShowForm(false); setNotice(message); tracker.reload() }}
             />
-          </div>
+          </RecordFormDialog>
         ) : null}
 
         {exportError ? (
@@ -315,6 +342,7 @@ export default function RecruiterRequirementsPage() {
                 <thead>
                   <tr>
                     <th>Req ID</th>
+                    {canMatch && <th>Résumé matching</th>}
                     <th>Opened</th>
                     <th>Closed</th>
                     <th>Vessel</th>
@@ -331,6 +359,7 @@ export default function RecruiterRequirementsPage() {
                 <tbody>
                   {filteredRows.map((row) => {
                     const statusMeta = getStatusMeta(REQUIREMENT_STATUS_META, row.status)
+                    const matchBlocker = requirementMatchBlocker(row)
                     return (
                       <tr key={row.id}>
                         <td className="tracker-cell--primary tracker-cell--nowrap">
@@ -341,6 +370,14 @@ export default function RecruiterRequirementsPage() {
                             <span className="tracker-pill ml-2 bg-line text-fg-secondary">Archived</span>
                           ) : null}
                         </td>
+                        {canMatch && <td className="min-w-[12rem]">
+                          <button type="button" ref={element => { if (element) matchButtons.current.set(row.id, element); else matchButtons.current.delete(row.id) }}
+                            className="workspace-action-button workspace-action-button--secondary whitespace-nowrap disabled:opacity-60"
+                            disabled={Boolean(matchBlocker)} aria-haspopup="dialog" aria-label={`Match résumés for ${row.reqId}`}
+                            aria-describedby={matchBlocker ? `match-blocker-${row.id}` : undefined}
+                            onClick={() => { matchesChanged.current = false; setMatchRequirement(row) }}>Match résumés</button>
+                          {matchBlocker && <p id={`match-blocker-${row.id}`} className="mt-1 max-w-[16rem] text-xs text-fg-muted">{matchBlocker}</p>}
+                        </td>}
                         <td className="tracker-cell--nowrap">{formatDate(row.date_opened)}</td>
                         <td className="tracker-cell--nowrap tracker-cell--muted">{row.date_closed ? formatDate(row.date_closed) : '—'}</td>
                         <td>{row.vessel_name || '—'}</td>
@@ -381,6 +418,13 @@ export default function RecruiterRequirementsPage() {
         </>
         )}
       </main>
+      {matchRequirement && <RequirementMatchDialog requirement={matchRequirement}
+        onChanged={() => { matchesChanged.current = true }}
+        onClose={() => {
+          const id = matchRequirement.id
+          setMatchRequirement(null)
+          if (matchesChanged.current) { restoreMatchFocus.current = id; tracker.reload() }
+        }} />}
     </div>
   )
 }

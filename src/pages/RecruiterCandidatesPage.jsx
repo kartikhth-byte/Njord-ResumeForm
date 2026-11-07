@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -6,8 +6,10 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
 import ResumeLeadQueue from '../components/recruiter/ResumeLeadQueue'
 import ResumeIntakeQueue from '../components/recruiter/ResumeIntakeQueue'
+import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../lib/resumeIntake'
 import { candidateCaseMatches } from '../utils/platformIntake'
 import CandidateForm from '../components/recruiter/CandidateForm'
+import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import SegmentedControl from '../components/ui/SegmentedControl'
@@ -50,12 +52,21 @@ export default function RecruiterCandidatesPage() {
   const canCreateCandidates = hasPermission('create_prospects')
   const canAttachCandidates = hasPermission('edit_junction_status')
   const [showForm, setShowForm] = useState(false)
+  const [formBusy, setFormBusy] = useState(false)
   const [reviewResume,setReviewResume]=useState(null)
   const [leadForm,setLeadForm]=useState({})
   const [intakeRevision,setIntakeRevision]=useState(0)
   const [fleetFilter,setFleetFilter]=useState({company:'',ship:'',requirement:'',stage:''})
   const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
+  const createButton = useRef(null)
+  const restoreCreateFocus = useRef(false)
+  useEffect(() => {
+    if (!tracker.loading && restoreCreateFocus.current) {
+      createButton.current?.focus()
+      restoreCreateFocus.current = false
+    }
+  }, [tracker.loading])
 
   // Filters can be preset from the URL (links from KPI and Dashboard counts).
   const initialParams = new URLSearchParams(location.search)
@@ -194,10 +205,13 @@ export default function RecruiterCandidatesPage() {
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
-              {canCreateCandidates && !showForm ? (
+              {canCreateCandidates ? (
                 <button
+                  ref={createButton}
                   type="button"
                   onClick={() => { setNotice(''); setReviewResume(null);setLeadForm({}); setShowForm(true) }}
+                  disabled={showForm || !resumeIntakeEnabled()}
+                  aria-haspopup="dialog"
                   className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
@@ -212,10 +226,13 @@ export default function RecruiterCandidatesPage() {
           <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
         ) : null}
 
-        {canCreateCandidates&&<><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume=>{setLeadForm({});setReviewResume(resume);setShowForm(true)}}/><ResumeLeadQueue key={'leads'+intakeRevision} onContinue={form=>{setReviewResume(null);setLeadForm(form);setShowForm(true)}}/></>}
-        {showForm ? (
-          <div className="mt-6">
+        {canCreateCandidates && !resumeIntakeEnabled() && <p role="note" className="mt-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
+        {canCreateCandidates && resumeIntakeEnabled() && <><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume=>{setLeadForm({});setReviewResume(resume);setShowForm(true)}}/><ResumeLeadQueue key={'leads'+intakeRevision} onContinue={form=>{setReviewResume(null);setLeadForm(form);setShowForm(true)}}/></>}
+        {showForm && resumeIntakeEnabled() ? (
+          <RecordFormDialog title={reviewResume ? 'Review candidate' : leadForm.leadId ? 'Complete candidate' : 'New candidate'} busy={formBusy} onClose={() => setShowForm(false)}>
             <CandidateForm key={reviewResume?.resume_version_id||leadForm.leadId||'new'} initialForm={reviewResume?{resume:reviewResume}:leadForm}
+              inDialog
+              onBusyChange={setFormBusy}
               ranks={tracker.data.ranks}
               vesselTypes={tracker.data.vesselTypes}
               recruiters={workingRecruiters(tracker.data.recruiters)}
@@ -227,9 +244,9 @@ export default function RecruiterCandidatesPage() {
               canAttach={canAttachCandidates}
               canSave={canCreateCandidates}
               onCancel={() => setShowForm(false)}
-              onSaved={(message) => { setShowForm(false);setIntakeRevision(n=>n+1); setNotice(message); tracker.reload() }}
+              onSaved={(message) => { restoreCreateFocus.current = true; setShowForm(false);setIntakeRevision(n=>n+1); setNotice(message); tracker.reload() }}
             />
-          </div>
+          </RecordFormDialog>
         ) : null}
 
         {exportError ? (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import ResumeSuggestionReview from './ResumeSuggestionReview'
+import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
 import { candidateResumeStatus, openCandidateResume, uploadResume, saveResumeCandidate, normalizeResumePhone } from '../../services/needleIntegrationService'
 
 export default function CandidateResumePanel({ candidate, countries, permissions, onChanged }) {
@@ -45,13 +46,14 @@ export default function CandidateResumePanel({ candidate, countries, permissions
       {row.needle_resume_registry?.status === 'failed' && <p className="text-sm text-warning">Couldn’t read or qualify this résumé. The original is retained; complete the details manually while the operator reviews it.</p>}
       <p className="break-all text-xs text-fg-muted">Engine: {row.engine_version || 'Not recorded'} · Facts: {row.facts_revision || 'Not recorded'}{row.stage_id ? ` · Search stage: ${row.stage_id}` : ''}</p>
     </div>)}
-    {canEdit && permissions.includes('create_prospects') && <label className="block text-sm">Add résumé PDF (keeps earlier versions)
+    {canEdit && !resumeIntakeEnabled() && <p role="note" className="text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
+    {canEdit && resumeIntakeEnabled() && permissions.includes('create_prospects') && <label className="block text-sm">Add résumé PDF (keeps earlier versions)
       <input className="mt-2 block max-w-full" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => {
         const file = event.target.files?.[0]; if (!file) return
         perform(async () => { setPendingResume(null);setReviewed(false);const resume=await uploadResume(file);setPendingResume(resume) })
       }} />
     </label>}
-    {pendingResume&&<section className="space-y-3 rounded border border-line p-3" aria-label="Review new résumé version">
+    {pendingResume && resumeIntakeEnabled() && <section className="space-y-3 rounded border border-line p-3" aria-label="Review new résumé version">
       <ResumeSuggestionReview resume={pendingResume}/>
       <p className="text-sm">Link this original to {candidate.name}? Confirmed candidate fields will be retained.</p>
       <label className="flex gap-2 text-sm"><input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)}/>I reviewed the original and confirm it belongs to this candidate.</label>

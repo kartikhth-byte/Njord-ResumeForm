@@ -44,6 +44,14 @@ assert.equal((await handler(req({action:'prepare_version',resume_version_id:vers
 const disabled=resumeIntakeHandler({...deps,enabled:false})
 assert.equal((await disabled(req({action:'prepare_version',resume_version_id:version}))).status,503)
 assert.equal((await disabled(req({action:'status',resume_version_id:version,prospect_id:'linked'}))).status,200)
+// Matching/review can ship before an intake origin or scheduler exists. A
+// disabled writer must fail before touching those missing dependencies.
+const heldWithoutService=resumeIntakeHandler({...deps,enabled:false,intakeOrigin:undefined})
+const heldWrites=writes.length,heldCalls=calls.length
+for(const action of ['upload','prepare','prepare_version','retry_extract','retry_index']) {
+ assert.equal((await heldWithoutService(req({action,resume_ids:[hash],resume_version_id:version,prospect_id:'linked'}))).status,503)
+}
+assert.equal(writes.length,heldWrites);assert.equal(calls.length,heldCalls)
 pending=true;down=true
 assert.deepEqual(await dispatchOutbox({...deps,needleOrigin:deps.needleOrigin}),{attempted:1,delivered:0,failed:1})
 down=false

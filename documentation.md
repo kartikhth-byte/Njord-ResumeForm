@@ -1,5 +1,26 @@
 # Project Status
 
+## Matching/review first — accepted release split (2026-11-07)
+
+KT approved releasing matching and original review while intake hosting remains
+deferred. The Requirements row action opens the modal in place; New candidate,
+embedded Add (including bulk), match Attach, uploads and intake entry queues
+default off through `VITE_FEATURE_RESUME_INTAKE=off`. Existing candidates remain
+usable. See `docs/MATCHING_REVIEW_RELEASE_2026-11-07.md` for the amended schema,
+Function, backup, flag and live-smoke order. This local follow-up is not deployed.
+
+
+## Creation modals — local follow-up (2026-11-07)
+
+New requirement and New candidate now open accessible native modals. The UI-only
+patch is based on deployed `747d434`, with a preserving port in the pending
+platform checkout. Focus, pending-save dismissal, failure recovery, desktop and
+narrow layout were checked using synthetic data; both platform forms also open
+and cancel in the existing staging Master session. No production deployment or
+schema change occurred. See `docs/CREATION_MODALS_2026-11-07.md`; refreeze/review
+before promotion. Match resumes remains part of the unpromoted platform release.
+
+
 ## Production sidebar hotfix preserved (2026-11-07)
 
 Holmes production is `747d434` (hover/focus labels, including unfocused Escape

@@ -20,6 +20,8 @@ export default function RequirementForm({
   currentRecruiterId = '',
   canChooseRecruiter = false,
   canSave = true,
+  inDialog = false,
+  onBusyChange,
   onSaved,
   onCancel,
 }) {
@@ -30,9 +32,12 @@ export default function RequirementForm({
   const [error, setError] = useState('')
   const ref = useRef(null)
 
+  useEffect(() => { onBusyChange?.(saving) }, [saving, onBusyChange])
+  useEffect(() => () => onBusyChange?.(false), [onBusyChange])
+
   useEffect(() => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
+    if (!inDialog) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [inDialog])
 
   const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }))
 
@@ -52,8 +57,8 @@ export default function RequirementForm({
   }
 
   return (
-    <section ref={ref} className="recruiter-panel scroll-mt-6 p-5 sm:p-6">
-      <h2 className="mb-5 text-lg font-semibold text-fg">{form.id ? 'Edit requirement' : 'New requirement'}</h2>
+    <section ref={ref} className={inDialog ? 'p-5 sm:p-6' : 'recruiter-panel scroll-mt-6 p-5 sm:p-6'}>
+      {!inDialog && <h2 className="mb-5 text-lg font-semibold text-fg">{form.id ? 'Edit requirement' : 'New requirement'}</h2>}
       <p className="mb-4 text-sm text-fg-secondary">Drafts can wait for a ship. Only reviewed open requirements accept cases and résumé matching.</p>
       <form className="space-y-4" onSubmit={submit}>
         <div className="grid gap-4 md:grid-cols-2">
@@ -105,7 +110,7 @@ export default function RequirementForm({
           <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving}>
             Save
           </button>
-          <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
+          <button type="button" disabled={saving} className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
             Cancel
           </button>
         </div>

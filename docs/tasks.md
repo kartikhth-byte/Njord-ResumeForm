@@ -1,5 +1,15 @@
 # Pending Tasks
 
+## Matching/review-first release (2026-11-07)
+
+KT accepted a matching/review-only phase before intake hosting is chosen. Row
+matching and default-held entry are implemented locally; see
+`MATCHING_REVIEW_RELEASE_2026-11-07.md`. Remaining: exact-candidate review, fresh
+backups, ordered schema/approved Function cutover, KT promotion and operator-only
+deployed smoke. Hosting/Drive credentials/dispatcher and manual entry stay held;
+automatic Drive intake and NuExtract/v18 acceptance remain separate.
+
+
 ## Owner amendment: shared Resume Intake and requirement navigation (2026-11-07)
 
 KT added the updated design from the separate working copy

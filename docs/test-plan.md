@@ -1,5 +1,14 @@
 # Platform Test Plan
 
+## Matching/review-only phase (2026-11-07)
+
+Use `MATCHING_REVIEW_RELEASE_2026-11-07.md` for this phase. Check the row action,
+versioned modal/original paging, mandatory present-rank and vessel matches,
+optional missing nationality, held single/bulk Add and uploads, existing-candidate
+access and Coordinator denial. Fixture checks do not close the deployed HTTPS,
+Functions and Vercel gate. Manual/automatic intake remain off.
+
+
 ## Platform intake amendment gate (2026-11-07)
 
 Use the actual ordered SQL migrations 0604, 0608–0616 in

@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { prepareResumes, normalizeResumePhone, withRequirementDefaults } from '../../services/needleIntegrationService'
 import CandidateForm from './CandidateForm'
+import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
 
 // Bulk additions are independently reviewed. A failed item never rolls back a
 // successful item, and retrying the same evidence does not create another person.
@@ -15,6 +16,7 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
   const ref = useRef(null)
   useEffect(() => { ref.current?.focus() }, [])
   useEffect(() => {
+    if (!resumeIntakeEnabled()) { setState(prev => ({ ...prev, loading: false, error: RESUME_INTAKE_HOLD })); return }
     let active = true
     Promise.all([prepareResumes(resumeIds, stageId),
       supabase.from('ranks').select('id,name').order('name'),

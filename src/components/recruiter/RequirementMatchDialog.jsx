@@ -4,6 +4,7 @@ import { needleIntegration } from '../../services/needleIntegrationService'
 import { useAuth } from '../auth/AuthContext'
 import { attachedCase, criterionLabel, matchAssessment, matchLabels } from '../../utils/requirementMatch'
 import AddToHolmesDialog from './AddToHolmesDialog'
+import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
 
 function Criteria({ row }) {
   return <ul className="space-y-2 text-sm">{(row.verdicts || []).map((v, i) => <li key={`${v.family}-${i}`} className="rounded-control border border-line p-3">
@@ -65,15 +66,17 @@ export default function RequirementMatchDialog({ requirement, onClose, onChanged
 
   const data = state.data
   const attached = selected && (saved[selected.resume_id] || attachedCase(selected, requirement.id))
-  const canAttach = permissions.includes('edit_junction_status')
+  const intakeEnabled = resumeIntakeEnabled()
+  const canAttach = intakeEnabled && permissions.includes('edit_junction_status')
   return <dialog ref={dialog} aria-labelledby="requirement-match-title" className="m-auto h-[94dvh] max-h-[94dvh] w-[96vw] max-w-7xl overflow-hidden rounded-2xl border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/70" onCancel={event => { event.preventDefault(); if (!savingAttachment) onClose() }}>
     <div className="flex h-full min-w-0 flex-col">
       <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line p-4 sm:px-6">
-        <div className="min-w-0"><h2 id="requirement-match-title" className="text-xl font-semibold">Match résumés</h2><p className="mt-1 text-sm text-fg-secondary">{requirement.req_id_display} · Review and attach to this requirement</p>{savingAttachment && <p role="status" className="mt-1 text-sm text-warning">Saving attachment. Please wait…</p>}</div>
+        <div className="min-w-0"><h2 id="requirement-match-title" className="text-xl font-semibold">Match résumés</h2><p className="mt-1 text-sm text-fg-secondary">{requirement.req_id_display} · {intakeEnabled ? 'Review and attach to this requirement' : 'Review matched résumés'}</p>{savingAttachment && <p role="status" className="mt-1 text-sm text-warning">Saving attachment. Please wait…</p>}</div>
         <button disabled={savingAttachment} aria-label="Close match results" className="rounded-control p-2 hover:bg-raised focus-visible:outline focus-visible:outline-2" onClick={onClose}><X className="h-5 w-5" /></button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
         <p className="mb-4 text-sm text-fg-secondary">Only résumés with confirmed present rank and vessel-type experience matches are shown. Other criteria are optional: missing or different nationality does not remove a résumé. Ratings show confirmed criteria, not a probability of suitability.</p>
+        {!intakeEnabled && <p role="note" className="mb-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
         {state.loading && <p role="status" className="py-12 text-center">Matching résumés…</p>}
         {state.error && <div role="alert" className="mb-4 rounded-control border border-danger-line p-4"><p>{state.error}</p><button className="mt-2 underline" onClick={() => load(data?.offset || 0, data?.stage_id)}>Retry matching</button></div>}
         {!state.loading && !state.error && data && <>

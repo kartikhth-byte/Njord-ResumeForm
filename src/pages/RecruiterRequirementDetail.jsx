@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { canUseAiSearch } from '../lib/needle'
+import { requirementMatchBlocker } from '../utils/requirementMatch'
 import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -383,7 +384,7 @@ export default function RecruiterRequirementDetail() {
             title={requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {requirement.status === 'open' && requirement.location_reviewed_at && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match resumes</button>}
+                {!requirementMatchBlocker(requirement) && role !== 'Coordinator' && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match résumés</button>}
 
                 {canExportPdf ? (
                   <button

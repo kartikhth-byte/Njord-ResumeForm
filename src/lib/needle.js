@@ -8,6 +8,7 @@
 // once to /ai/auth/holmes.
 
 import { supabase } from './supabase'
+import { resumeIntakeEnabled } from './resumeIntake'
 
 export const NEEDLE_BASE = '/ai'
 // Remembers (per browser) that a Needle session was opened, so sign-out only
@@ -50,7 +51,7 @@ export function aiSearchEnabled() {
 // ("/search", "/search/<project>/<chat>", "/repository").
 export function needleFrameUrl(needlePath = '/search') {
   const path = needlePath.startsWith('/') ? needlePath : `/${needlePath}`
-  return `${NEEDLE_BASE}/?embed=holmes#${path}`
+  return `${NEEDLE_BASE}/?embed=holmes&intake=${resumeIntakeEnabled() ? 'enabled' : 'disabled'}#${path}`
 }
 
 // Exchange the Holmes session for a Needle session. Resolves to

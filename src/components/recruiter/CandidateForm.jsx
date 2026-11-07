@@ -21,6 +21,7 @@ export default function CandidateForm({
   allowUpload = true,
   lockedRequirement = false,
   onBusyChange,
+  inDialog = false,
   initialForm = {},
   onSaved,
   onCancel,
@@ -37,13 +38,13 @@ export default function CandidateForm({
   useEffect(() => () => onBusyChange?.(false), [onBusyChange])
 
   useEffect(() => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!inDialog) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     let cancelled = false
     supabase.from('countries').select('id, name').order('name').then(({ data }) => {
       if (!cancelled) setCountries(data || [])
     })
     return () => { cancelled = true }
-  }, [])
+  }, [inDialog])
 
   const existingFile = form.resume?.matches?.find(row => row.reason === 'resume')
   const set = (key) => (value) => { setReviewed(false); setForm((current) => ({ ...current,
@@ -81,8 +82,8 @@ export default function CandidateForm({
   const options = (rows, labelKey = 'name') => rows.map((item) => ({ value: item.id, label: item[labelKey] || item.email || item.id }))
 
   return (
-    <section ref={ref} className="recruiter-panel scroll-mt-6 p-5 sm:p-6">
-      <h2 className="mb-5 text-lg font-semibold text-fg">{existingFile ? 'Existing candidate' : 'Candidate details'}</h2>
+    <section ref={ref} className={inDialog ? 'p-5 sm:p-6' : 'recruiter-panel scroll-mt-6 p-5 sm:p-6'}>
+      {!inDialog && <h2 className="mb-5 text-lg font-semibold text-fg">{existingFile ? 'Existing candidate' : 'Candidate details'}</h2>}
       <form className="space-y-4" onSubmit={submit}>
         {!existingFile && <p className="text-sm text-fg-secondary">Start with a name, a phone number or email, and a résumé. Phone, email, date of birth and nationality are required before progressing past contacted.</p>}
         {allowUpload && <label className="block text-sm">Résumé PDF (required)

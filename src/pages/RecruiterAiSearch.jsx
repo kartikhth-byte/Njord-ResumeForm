@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import { canUseAiSearch, needleFrameUrl, startNeedleSession } from '../lib/needle'
+import { resumeIntakeEnabled } from '../lib/resumeIntake'
 
 // AI search: Needle's own screens embedded under Holmes's address
 // (docs/needle-in-holmes-design.md sections 4.1-4.2).
@@ -82,6 +83,7 @@ export default function RecruiterAiSearch() {
       }
 
       if (data.type === 'needle:add-to-holmes') {
+        if (!resumeIntakeEnabled()) return
         const ids = data.resume_ids
         if (Array.isArray(ids) && ids.length > 0 && ids.length <= 25 && new Set(ids).size === ids.length && ids.every(id => typeof id === 'string' && /^[a-f0-9]{64}$/.test(id))) {
           setSelection({ ids, stageId: typeof data.stage_id === 'string' ? data.stage_id : null })
