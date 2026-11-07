@@ -574,7 +574,9 @@ export default function RecruiterProspectDetail() {
 
               <div className="recruiter-panel overflow-hidden">
                 <div className="border-b border-line px-6 py-4">
-                  <h2 className="mt-1 text-lg font-semibold text-fg">Requirements</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-fg">Recruitment cases</h2>
+                  {junctions.filter(row=>['offered','offer_accepted','documents_pending','documents_verified','sent_to_principal'].includes(row.status)).length>1&&<p role="status" className="mt-2 text-sm text-warning">Competing offers across separate cases. Review the candidate’s preference; other cases remain open until explicitly updated.</p>}
+                  {junctions.some(row=>['offer_accepted','documents_pending','documents_verified','sent_to_principal','hired'].includes(row.status))&&<p className="mt-2 text-sm text-success">An offer has been accepted. Review the separate case before progressing another offer.</p>}
                 </div>
                 <div className="divide-y">
                   {junctions.length === 0 ? (

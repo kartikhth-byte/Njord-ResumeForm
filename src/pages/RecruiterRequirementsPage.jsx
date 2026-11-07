@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
 import RequirementForm from '../components/recruiter/RequirementForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react'
 
 const STATUS_FILTERS = [
+  {value:'draft',label:'Draft'},
   { value: 'open', label: 'Open' },
   { value: 'closed', label: 'Closed' },
   { value: 'cancelled', label: 'Cancelled' },
@@ -51,6 +53,7 @@ export default function RecruiterRequirementsPage() {
     return STATUS_FILTERS.some((option) => option.value === value) ? value : 'open'
   })
   const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
+  const [fleetFilter,setFleetFilter]=useState({company:'',ship:''})
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -65,6 +68,9 @@ export default function RecruiterRequirementsPage() {
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
+      if(fleetFilter.company && row.company_id!==fleetFilter.company)return false
+      if(fleetFilter.ship && row.ship_id!==fleetFilter.ship)return false
+      if(statusFilter==='draft' && (row.status!=='draft'||row.isArchived))return false
       if (statusFilter === 'open' && (row.status !== 'open' || row.isArchived)) return false
       if (statusFilter === 'closed' && (row.status !== 'closed' || row.isArchived)) return false
       if (statusFilter === 'cancelled' && (row.status !== 'cancelled' || row.isArchived)) return false
@@ -80,9 +86,10 @@ export default function RecruiterRequirementsPage() {
       }
       return true
     })
-  }, [rows, statusFilter, recruiterFilter, search, dateFrom, dateTo])
+  }, [rows, statusFilter, recruiterFilter, search, dateFrom, dateTo, fleetFilter])
 
   const statusCounts = useMemo(() => ({
+    draft: rows.filter(row=>row.status==='draft'&&!row.isArchived).length,
     open: rows.filter((row) => row.status === 'open' && !row.isArchived).length,
     closed: rows.filter((row) => row.status === 'closed' && !row.isArchived).length,
     cancelled: rows.filter((row) => row.status === 'cancelled' && !row.isArchived).length,
@@ -239,6 +246,7 @@ export default function RecruiterRequirementsPage() {
           <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} />
         </div>
 
+        <FleetRequirementFilter value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements}/>
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-full overflow-x-auto">

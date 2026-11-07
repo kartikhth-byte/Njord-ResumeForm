@@ -5,6 +5,8 @@
 // - only joined candidates count as success
 // - days open / days to close / on-time status derive from dates + target days
 
+import {caseStatusMeta,caseFunnelStage,CASE_TERMINAL_STATUSES} from './recruitmentCase.js'
+
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 
 export const FUNNEL_STAGES = [
@@ -220,9 +222,9 @@ export function buildRequirementTrackerRows({
     const isArchived = Boolean(requirement.archived_at || requirement.deleted_at)
     const isClosed = requirement.status === 'closed'
     const isCancelled = requirement.status === 'cancelled'
-    const openPositions = isClosed || isCancelled || isArchived ? 0 : Math.max(required - joined, 0)
+    const openPositions = requirement.status==='draft' || isClosed || isCancelled || isArchived ? 0 : Math.max(required - joined, 0)
 
-    const daysOpen = requirement.date_closed
+    const daysOpen = requirement.status==='draft' ? null : requirement.date_closed
       ? dayDiff(requirement.date_opened, requirement.date_closed)
       : dayDiff(requirement.date_opened, now)
     const daysToClose = requirement.date_closed
@@ -327,6 +329,9 @@ const JUNCTION_TERMINAL_MAP = {
 export function buildCandidateFunnelRows({
   prospects = [],
   junctions = [],
+  cases = [],
+  caseEvents = [],
+  casesAvailable = false,
   applications = [],
   requirements = [],
   ranks = [],
@@ -335,6 +340,8 @@ export function buildCandidateFunnelRows({
   notes = [],
   now = new Date(),
 }) {
+  const casesByProspect=cases.reduce((map,row)=>{(map[row.prospect_id]??=[]).push(row);return map},{})
+  const hireTimeByCase=caseEvents.reduce((map,e)=>{if(e.to_status==='hired'&&e.created_at&&(!map[e.case_id]||map[e.case_id]>e.created_at))map[e.case_id]=e.created_at;return map},{})
   const junctionsByProspect = junctions.reduce((acc, junction) => {
     if (!acc[junction.prospect_id]) acc[junction.prospect_id] = []
     acc[junction.prospect_id].push(junction)
@@ -411,20 +418,28 @@ export function buildCandidateFunnelRows({
     // merely created is not a contacted candidate.
     const contactedAt = prospect.first_contacted_at
       || (prospect.status !== 'open' ? prospect.created_at : null)
-    const joinedAt = joinedJunction?.joined_at || null
-    const hasJoined = stage === 'Joined'
+    const personCases=(casesByProspect[prospect.id]||[]).slice().sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))
+    const activeCases=personCases.filter(c=>!CASE_TERMINAL_STATUSES.includes(c.status))
+    const hiredCases=personCases.filter(c=>c.status==='hired')
+    const hireTimes=hiredCases.map(c=>hireTimeByCase[c.id]).filter(Boolean).sort()
+    const joinedAt = casesAvailable ? hireTimes[0]||null : joinedJunction?.joined_at || null
+    const hasJoined = casesAvailable ? hiredCases.length>0 : stage === 'Joined'
     const rawDaysToJoin = hasJoined && joinedAt && contactedAt ? dayDiff(contactedAt, joinedAt) : null
     const daysToJoin = rawDaysToJoin != null && rawDaysToJoin >= 0 ? rawDaysToJoin : null
     const isTerminal = ['Joined', 'Rejected', 'Withdrawn'].includes(stage)
-    const inActivePipeline = !isArchived && !isTerminal
+    const inActivePipeline = !isArchived && (casesAvailable ? activeCases.length>0 : !isTerminal)
     const cycleCompleted = hasJoined
 
-    const primaryJunction = joinedJunction || attached[0] || null
+    const casePrimary=activeCases[0]||hiredCases[0]||personCases[0]
+    if(casesAvailable)stage=casePrimary?caseFunnelStage(casePrimary.status):'Unattached'
+    const primaryJunction = casesAvailable ? casePrimary : joinedJunction || attached[0] || null
     const primaryRequirement = primaryJunction ? requirementById[primaryJunction.requirement_id] : null
 
+    const requirementCount=casesAvailable?new Set(personCases.map(c=>c.requirement_id)).size:attached.length
     return {
       ...prospect,
       stage,
+      caseStage:casesAvailable&&casePrimary?caseStatusMeta(casePrimary.status).label:null,
       isArchived,
       hasJoined,
       inActivePipeline,
@@ -433,10 +448,10 @@ export function buildCandidateFunnelRows({
       joinedAt,
       daysToJoin,
       daysSinceContact: dayDiff(contactedAt, now),
-      requirementCount: attached.length,
+      requirementCount,
       primaryRequirement,
       requirementLabel: primaryRequirement
-        ? `${primaryRequirement.req_id_display}${attached.length > 1 ? ` +${attached.length - 1}` : ''}`
+        ? `${primaryRequirement.req_id_display}${requirementCount>1 ? ` +${requirementCount-1}` : ''}`
         : 'Unassigned',
       rankName: lookupName(ranks, prospect.rank_applied_for_id),
       vesselTypeName: lookupName(vesselTypes, prospect.vessel_type_id),

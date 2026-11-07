@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { needleIntegration, openCandidateResume, uploadResume, saveResumeCandidate, normalizeResumePhone } from '../../services/needleIntegrationService'
+import ResumeSuggestionReview from './ResumeSuggestionReview'
+import { candidateResumeStatus, openCandidateResume, uploadResume, saveResumeCandidate, normalizeResumePhone } from '../../services/needleIntegrationService'
 
 export default function CandidateResumePanel({ candidate, countries, permissions, onChanged }) {
   const [resumes, setResumes] = useState([])
@@ -9,6 +10,8 @@ export default function CandidateResumePanel({ candidate, countries, permissions
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
+  const [pendingResume,setPendingResume]=useState(null)
+  const [reviewed,setReviewed]=useState(false)
   const canEdit = permissions.includes('edit_prospects')
   useEffect(() => {
     let active = true
@@ -19,7 +22,7 @@ export default function CandidateResumePanel({ candidate, countries, permissions
         if (failure) { setError('Résumé links unavailable'); return }
         // Refresh snapshots from Needle without sending its facts to this page.
         const rows = await Promise.all((data || []).map(async row => {
-          try { const status = await needleIntegration({ action: 'status', prospect_id: candidate.id, resume_id: row.resume_id }); return { ...row, needle_resume_registry: { ...row.needle_resume_registry, ...status } } }
+          try { const status = await candidateResumeStatus(candidate.id,row.resume_id); return { ...row, needle_resume_registry: { ...row.needle_resume_registry, ...status } } }
           catch { return { ...row, statusUnavailable: true } }
         }))
         if (active) setResumes(rows)
@@ -37,6 +40,7 @@ export default function CandidateResumePanel({ candidate, countries, permissions
     {!resumes.length && <p className="text-sm text-warning">Résumé missing. This older candidate remains visible; upload the résumé when available.</p>}
     {resumes.map(row => <div key={row.resume_id} className="rounded-lg border border-line p-3">
       <button className="underline" disabled={busy} onClick={() => perform(() => openCandidateResume(candidate.id, row.resume_id))}>View résumé</button>
+      {row.needle_resume_registry?.platform&&<p className="text-sm">Storage: {row.needle_resume_registry.storage_status} · Basic extraction: {row.needle_resume_registry.basic_extraction_status?.replaceAll('_',' ')} · Indexing: {row.needle_resume_registry.indexing_status?.replaceAll('_',' ')}</p>}
       <p className="mt-1 text-xs text-fg-secondary">{row.needle_resume_registry?.filename || 'Résumé'} · {row.statusUnavailable ? 'Status refresh unavailable' : row.needle_resume_registry?.review_required ? 'Needs operator review' : row.needle_resume_registry?.status || 'Status unavailable'} · {row.source === 'holmes_upload' ? 'Holmes upload' : 'Needle search'} · Linked {new Date(row.linked_at).toLocaleString()}</p>
       {row.needle_resume_registry?.status === 'failed' && <p className="text-sm text-warning">Couldn’t read or qualify this résumé. The original is retained; complete the details manually while the operator reviews it.</p>}
       <p className="break-all text-xs text-fg-muted">Engine: {row.engine_version || 'Not recorded'} · Facts: {row.facts_revision || 'Not recorded'}{row.stage_id ? ` · Search stage: ${row.stage_id}` : ''}</p>
@@ -44,9 +48,16 @@ export default function CandidateResumePanel({ candidate, countries, permissions
     {canEdit && permissions.includes('create_prospects') && <label className="block text-sm">Add résumé PDF (keeps earlier versions)
       <input className="mt-2 block max-w-full" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => {
         const file = event.target.files?.[0]; if (!file) return
-        perform(async () => { const resume = await uploadResume(file); await saveResumeCandidate(resume, {}, { linkTo: candidate.id }); setRevision(current => current + 1); onChanged?.() })
+        perform(async () => { setPendingResume(null);setReviewed(false);const resume=await uploadResume(file);setPendingResume(resume) })
       }} />
     </label>}
+    {pendingResume&&<section className="space-y-3 rounded border border-line p-3" aria-label="Review new résumé version">
+      <ResumeSuggestionReview resume={pendingResume}/>
+      <p className="text-sm">Link this original to {candidate.name}? Confirmed candidate fields will be retained.</p>
+      <label className="flex gap-2 text-sm"><input type="checkbox" checked={reviewed} onChange={e=>setReviewed(e.target.checked)}/>I reviewed the original and confirm it belongs to this candidate.</label>
+      <button className="workspace-action-button workspace-action-button--primary" disabled={busy||!reviewed} onClick={()=>perform(async()=>{await saveResumeCandidate(pendingResume,{}, {linkTo:candidate.id});setPendingResume(null);setReviewed(false);setRevision(n=>n+1);onChanged?.()})}>Link reviewed résumé</button>
+      <button className="ml-3 underline" disabled={busy} onClick={()=>{setPendingResume(null);setReviewed(false)}}>Leave in intake queue</button>
+    </section>}
     {canEdit && !editing && <button className="workspace-action-button workspace-action-button--secondary" onClick={() => { setFields({ name: candidate.name || '', email: candidate.email || '', telephone: candidate.telephone || '', dob: candidate.dob || '', nationality_id: candidate.nationality_id || '' }); setEditing(true) }}>Edit contact details</button>}
     {editing && <form className="space-y-3" onSubmit={event => {
       event.preventDefault(); perform(async () => {

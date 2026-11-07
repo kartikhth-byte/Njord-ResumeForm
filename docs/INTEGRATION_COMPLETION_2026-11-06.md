@@ -1,5 +1,18 @@
 # Needle / Holmes integrated completion candidate
 
+**Amendment update:** implementation and staging acceptance are now recorded in
+`PLATFORM_RESUME_INTAKE_SLICE_2026-11-07.md`. Use
+`PLATFORM_RESUME_INTAKE_RELEASE_2026-11-07.md` for the amended release;
+all recipes below are historical and must not be rerun for the new branches.
+
+**Post-freeze amendment (2026-11-07):** the local/staging acceptance below is
+for the scope committed as Needle `d20afe0a` / Holmes `2c99634`. KT subsequently
+added the platform-owned Resume Intake, company/ship/Draft and separate-case
+amendment from the separate Documents working copy. Its reconciliation,
+implementation and staging acceptance remain pending in `tasks.md`; this
+record does not certify that revised contract. Reconcile the release manifest
+before production promotion.
+
 Updated 2026-11-07. **Local/staging pilot acceptance complete; not promoted.**
 KT requested one integrated slice after the warm/KPI production pilot.
 Bases remain Holmes `a1e62c1f176770541ef70bc38692183148595923` and Needle

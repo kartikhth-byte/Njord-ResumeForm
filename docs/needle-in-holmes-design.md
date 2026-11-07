@@ -287,6 +287,43 @@ An independent review checked this design against `railway-m1` and the Holmes re
 - security list narrowed to what the hosted build exposes;
 - Operator as a platform flag, no role switcher; the Gemini key leaves with the old search.
 
-## 11. Pilot implementation record (2026-11-05)
+## Historical pilot implementation record (2026-11-05)
 
 KT selected an operator-only production rollout because no staging Needle exists. Use the production-based `codex/holmes-operator-pilot` and `codex/needle-operator-pilot` candidates, not the broader staging branches. The pilot keeps production navigation/theme and adds Operator → AI review links. Needle is explicitly bound to one organization with scoped pool memberships and tagged workspace roots. This does not qualify full multi-customer intake/review/storage behavior. Candidate-field relaxation and Add to Holmes still follow the accepted embed pilot. `docs/needle-embed-rollout.md` is the current execution procedure; prior local smoke does not prove Vercel forwarding.
+
+## 11. Record navigation and shared Resume Intake (agreed 2026-11-06)
+
+This section supersedes the older assumption that Needle receives a Holmes upload and owns its Drive write or person identity. Holmes is the first host for a platform-owned Resume Intake domain; it must not be implemented as a Needle-only table or as browser-to-Drive access. Needle remains the search/indexing consumer. This is for one manning-company organization now, with organization keys retained for later isolation.
+
+### Requirements and candidates
+
+- Keep an **All requirements** list and add an in-page **client company → ship** tree. The client company is the principal, not the Holmes tenant in `organizations`; ships belong to a client company. A requirement belongs to one client company and, once open, exactly one ship. Use stable IDs and searchable names; do not infer identities from the current free-text `customer_name` and `vessel_name` without review.
+- A recruiter may save a **Draft / ship pending** requirement. Drafts have no case opening, candidate attachment, matching, or candidate-facing publication. Opening requires a selected ship, rank, vessel type, required positions, target days and the existing authorization checks. A ship can be changed while draft; changes after recruitment opens require an audited correction, not a silent reassignment. Existing open rows are backfilled to reviewed company/ship records before enforcing the new constraint. Manual Close with unfilled positions remains available after confirmation; the last distinct case hire closes automatically.
+- Candidates remain independent of any one company or ship. Keep **All**, **Unattached**, and **In Process** views, then add filters for company, ship, requirement and case stage. Candidate detail shows each case separately. One candidate may be considered for multiple requirements, including through offer; warn on competing open offers and surface an accepted offer for recruiter review of the other cases. Do not silently close or merge those cases.
+
+### Intake contract and ordering
+
+1. Accept a PDF through an authenticated, role-checked platform endpoint with size/type limits, malware policy, and a private temporary processing area only. No persistent local copy, browser Drive credentials, public Drive URL, or service key in the client.
+2. Compute SHA-256 from bytes and look up a **shared registry** across Holmes uploads and Needle's existing corpus. A file hash identifies bytes, not a person; a matching hash reuses the existing version/ref, while a changed file is a new immutable version. Track `organization_id`, Drive file ID, content hash, source/external ID, uploader, time, filename, size, and status. A Drive write must use unique IDs, never overwrite a prior version by filename. Use idempotency and reconcile an orphaned Drive write or pending registry row after failure.
+3. Run a reusable **basic extractor** at upload: embedded PDF text first, OCR for scanned/image-only pages, then bounded field parsing for name, contacts, rank, sea service and other candidate-page fields. Return `contract_version`, `extractor_version`, `resume_version_id`, `status`, and per-field `{value, confidence, evidence, page, method}`. Preserve text/evidence privately; low-confidence or conflicting values stay suggestions. OCR failure leaves a stored resume and permits manual completion. Reuse this contract for future portal intake and imports; Needle's richer parser may supply later suggestions, but cannot overwrite confirmed Holmes fields.
+4. Compare identity evidence against Holmes candidates and provisional Needle records. A verified candidate account is strongest; email/phone/name/DOB are candidates for review, never an automatic merge. Show **link existing**, **new candidate**, or **hold for review**. A new file for a reviewed existing candidate becomes a new version. Audit the review and preserve provenance. Dedup responses must not reveal another organization's private candidate data.
+5. Only after the recruiter confirms the candidate link and field suggestions does Holmes create/update the candidate. A phone-only lead without a resume remains a draft outside the candidate pool. Existing candidates lacking a resume are grandfathered and flagged until backfilled. Candidate case creation remains a separate, open-requirement action.
+6. Emit an idempotent versioned `resume.registered` event to Needle. Its worker must explicitly queue processing even when the hash already exists in its own index; the current polling cycle is not a synchronous UI dependency. Track indexing state separately from Drive storage and basic extraction. Needle search may return a registered version, but Add to Holmes resolves through the platform registry and reviewed identity decision.
+
+Suggested registry boundaries: `resume_files` (content hash and immutable Drive location), `resume_versions` (candidate link, source and lifecycle), `resume_extractions` (versioned suggestions/evidence), and `resume_identity_reviews` (decision/actor/evidence). Keep the exact schema behind a server API so future portal and Needle consumers use the same contract. No second-organization visibility until tenant-safe registry, Drive, Needle corpus and candidate consent rules are tested end to end.
+
+### Review findings and rollout gates
+
+- Holmes currently has manual `CandidateForm` fields and no upload; do not weaken its required fields or claim every new candidate has a resume until the intake endpoint, Drive credentials, reviewed link flow and backfill are live together.
+- Needle's hosted `/api/agent/resume-upload` is not the required upload path: it uses Supabase Storage and is excluded by its hosted allowlist. Its current contact-based identity merge and same-name Drive replacement conflict with this contract and must be patched in Needle before connecting live candidates.
+- Needle already distinguishes text PDFs from scans with OCR. Reuse or benchmark that behavior; do not run two inconsistent person parsers without versioned evidence and comparison tests. Its default polling cadence is too slow to make search readiness part of candidate save.
+- Stage the rollout: (a) requirement open/case integrity and reviewed company/ship backfill, (b) platform registry + Drive + extractor contract tested in isolation, (c) Holmes candidate upload/review and Needle index adapter behind a flag, (d) staging end-to-end dedup/OCR/identity/versions and rollback, then production. Never repoint the one-customer app to Needle's current upload endpoint as an interim shortcut.
+
+
+### Amendment implementation checkpoint (2026-11-07)
+
+The isolated amendment now implements this contract, with staging-only schema
+and synthetic acceptance recorded in `PLATFORM_RESUME_INTAKE_SLICE_2026-11-07.md`.
+Existing production open rows still need reviewed company/ship mapping; no
+automatic inference or broad résumé backfill was performed. Production rollout,
+its dedicated Drive credentials/dispatcher, and final external review stay gated.

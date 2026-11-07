@@ -33,6 +33,7 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
     if (action === 'operator' && !access.operator) return json({ error: 'Not authorized' }, 403)
     if (action !== 'operator' && !access.view) return json({ error: 'Not authorized' }, 403)
     if (!['view', 'status', 'operator'].includes(action) && (!access.edit || (access.coordinator && !access.operator) || (action !== 'upload' && !access.search))) return json({ error: 'Not authorized' }, 403)
+    if (action === 'upload') return json({ error: 'Use platform Resume Intake for original uploads' }, 410)
     let ids = []
     if (action === 'prepare') {
       ids = body.resume_ids
@@ -47,8 +48,13 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
     }
     let matchPayload
     if (action === 'match') {
-      const requirement = checked(await client.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id,deleted_at,archived_at').eq('id', body.requirement_id).maybeSingle())
-      if (!requirement || requirement.status !== 'open' || requirement.deleted_at || requirement.archived_at) return json({ error: 'Choose an open requirement' }, 409)
+      const requirement = checked(await client.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id,company_id,ship_id,location_reviewed_at,deleted_at,archived_at').eq('id', body.requirement_id).maybeSingle())
+      if (!requirement || requirement.status !== 'open' || !requirement.location_reviewed_at || !requirement.company_id || !requirement.ship_id || requirement.deleted_at || requirement.archived_at) return json({ error: 'Choose an open requirement' }, 409)
+      const [shipResult,companyResult]=await Promise.all([
+        client.from('client_ships').select('id').eq('id',requirement.ship_id).eq('company_id',requirement.company_id).is('archived_at',null).maybeSingle(),
+        client.from('client_companies').select('id').eq('id',requirement.company_id).is('archived_at',null).maybeSingle(),
+      ])
+      if(!checked(shipResult)||!checked(companyResult))return json({error:'Company or ship requires review'},409)
       if (body.expected_version !== requirement.version) return json({ error: 'Requirement changed. Refresh and try again.' }, 409)
       const [rank, vessel] = await Promise.all([
         client.from('ranks').select('name,code').eq('id', requirement.rank_id).maybeSingle(),
@@ -77,6 +83,7 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
     if (action === 'status') {
       if (payload.resume_id !== ids[0]) throw new Error('Invalid status scope')
       checked(await admin.from('needle_resume_registry').update({ status: payload.status, engine_version: payload.engine_version, facts_revision: payload.facts_revision, verified_at: new Date().toISOString(), original_available: Boolean(payload.original_available) }).eq('organization_id', organization).eq('resume_id', ids[0]))
+      delete payload.storage_ref
       return json(payload)
     }
     const resumes = payload.resumes
@@ -93,7 +100,8 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
       // Use the caller's normal database permissions for identity previews.
       // Same-file matches must be available before requiring new-person fields.
       const matches = checked(await client.rpc('find_resume_candidate_matches', { p_resume_id: resume.resume_id })) || []
-      prepared.push({ ...resume, evidence_id: evidence.id, matches })
+      const { storage_ref: _privateOriginal, ...browserResume } = resume
+      prepared.push({ ...browserResume, evidence_id: evidence.id, matches })
     }
     return json({ resumes: prepared })
   }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ResumeDuplicateReview from './ResumeDuplicateReview'
-import { candidateMatches, resumeCandidateFields, uploadResume, withRequirementDefaults } from '../../services/needleIntegrationService'
+import ResumeSuggestionReview from './ResumeSuggestionReview'
+import { candidateMatches, normalizeResumePhone, resumeCandidateFields, uploadResume, withRequirementDefaults, saveResumeCandidate } from '../../services/needleIntegrationService'
 import { Plus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SelectField, TextAreaField, TextField, ToggleField } from './RecordFormFields'
@@ -28,6 +29,7 @@ export default function CandidateForm({
   const [matches, setMatches] = useState(() => initialForm.resume?.matches || [])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [reviewed,setReviewed]=useState(false)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -40,16 +42,26 @@ export default function CandidateForm({
   }, [])
 
   const existingFile = form.resume?.matches?.find(row => row.reason === 'resume')
-  const set = (key) => (value) => setForm((current) => ({ ...current,
+  const set = (key) => (value) => { setReviewed(false); setForm((current) => ({ ...current,
     ...(!['linkTo', 'confirmNew'].includes(key) ? { linkTo: '', confirmNew: false } : {}),
     ...(key === 'rankId' ? { rankFromRequirement: false } : {}),
-    ...(key === 'vesselTypeId' ? { vesselFromRequirement: false } : {}), [key]: value }))
+    ...(key === 'vesselTypeId' ? { vesselFromRequirement: false } : {}), [key]: value })) }
+
+  const applySuggestion=(key,value)=>{
+    const map={full_name:'name',email:'email',phone:'telephone',dob:'dob'}
+    if(map[key]){set(map[key])(value);setReviewed(false)}
+    if(key==='present_rank'){
+      const row=ranks.find(r=>r.name.toLowerCase()===value.toLowerCase())
+      if(row){set('rankId')(row.id);setReviewed(false)}else setError('Choose the matching rank manually; no rank was guessed.')
+    }
+  }
 
   const submit = async (event) => {
     event.preventDefault()
     setSaving(true)
     setError('')
     try {
+      if(!reviewed)throw new Error('Review the résumé and identity decision before saving.')
       const found = await candidateMatches(form.resume?.resume_id, existingFile || form.linkTo ? {} : resumeCandidateFields(form))
       setMatches(found)
       if (found.length && !existingFile && !form.linkTo && !form.confirmNew) return
@@ -72,14 +84,14 @@ export default function CandidateForm({
         {allowUpload && <label className="block text-sm">Résumé PDF (required)
           <input className="mt-2 block w-full" type="file" accept="application/pdf,.pdf" required={!form.resume} disabled={uploading || saving} onChange={async event => {
             const file = event.target.files?.[0]; if (!file) return
-            setUploading(true); setError(''); setMatches([])
+            setUploading(true); setError(''); setMatches([]);setReviewed(false)
             setForm(current => ({ ...current, resume: null, linkTo: '', confirmNew: false }))
             try { const resume = await uploadResume(file); setMatches(resume.matches || []); setForm(current => ({ ...current, resume, linkTo: '', confirmNew: false })) }
             catch (failure) { setError(failure.message) }
             finally { setUploading(false) }
           }} />
         </label>}
-        {form.resume && <p className="text-sm text-fg-secondary">PDF registered. {form.resume.status === 'pending' ? 'Extraction is pending; this does not approve facts.' : 'Existing approved facts are retained.'} {form.resume.intake_paused ? 'Automatic intake is currently paused.' : ''}</p>}
+        <ResumeSuggestionReview resume={form.resume} onApply={applySuggestion}/>
         {existingFile && <p className="rounded-control border border-line p-3 text-sm">This résumé already belongs to {existingFile.name}. <Link className="underline" to={`/recruiter/workspace/prospects/${existingFile.id}`}>Open existing candidate</Link>. Saving retains their details and can attach the selected requirement.</p>}
         {!existingFile && <div className="grid gap-4 md:grid-cols-2">
           <TextField label="Candidate name" required={!existingFile && !form.linkTo} value={form.name} onChange={set('name')} placeholder="Full name" />
@@ -106,7 +118,7 @@ export default function CandidateForm({
           <SelectField
             label="Attach to requirement (optional)"
             value={form.requirementId}
-            onChange={value => setForm(current => withRequirementDefaults(current, requirementOptions.find(row => row.value === value)))}
+            onChange={value => { setReviewed(false); setForm(current => withRequirementDefaults(current, requirementOptions.find(row => row.value === value))) }}
             options={requirementOptions}
             placeholder="Leave unattached for now"
           />
@@ -120,11 +132,25 @@ export default function CandidateForm({
         <TextAreaField label="Notes" value={form.notes} onChange={set('notes')} placeholder="Optional candidate notes" />
         <ResumeDuplicateReview matches={matches} value={form.linkTo || ''} onChange={set('linkTo')} confirmNew={Boolean(form.confirmNew)} onConfirmNew={set('confirmNew')} /></>}
         {error ? <p className="text-sm text-danger">{error}</p> : null}
+        {form.resume&&<label className="flex gap-2 text-sm"><input type="checkbox" checked={reviewed} onChange={event=>setReviewed(event.target.checked)}/>I reviewed the original résumé, the chosen fields and the identity decision.</label>}
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving || uploading || !form.resume}>
+          {!form.resume&&!form.leadId&&<button type="button" className="workspace-action-button workspace-action-button--secondary" disabled={!canSave||saving||uploading} onClick={async()=>{
+            setSaving(true);setError('');try{
+              const telephone=normalizeResumePhone(form.telephone)
+              if(form.telephone.trim()&&!telephone)throw Error('Enter a phone number with its country code.')
+              if(!telephone&&!form.email.trim())throw Error('Enter a phone number or email for the draft lead.')
+              const {data,error}=await supabase.rpc('save_resume_lead_draft',{p_fields:{name:form.name,email:form.email,telephone,notes:form.notes}})
+              if(error)throw error
+              onSaved?.('Draft lead saved outside the candidate pool.',{leadId:data})
+            }catch(e){setError(e.message)}finally{setSaving(false)}
+          }}>Save draft lead without a résumé</button>}
+          <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving || uploading || !form.resume || !reviewed}>
             <Plus className="h-4 w-4" />
             {existingFile ? form.requirementId ? 'Attach existing candidate' : 'Use existing candidate' : 'Save candidate'}
           </button>
+          {form.resume&&!existingFile&&<button type="button" disabled={!canSave||saving||uploading} className="workspace-action-button workspace-action-button--secondary" onClick={async()=>{
+            setSaving(true);setError('');try{await saveResumeCandidate(form.resume,{}, {hold:true});setReviewed(false);setError('Held for review. No candidate or case was created.')}catch(error){setError(error.message)}finally{setSaving(false)}
+          }}>Hold for review</button>}
           <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={onCancel}>
             Cancel
           </button>

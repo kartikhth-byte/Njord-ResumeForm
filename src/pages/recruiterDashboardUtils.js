@@ -75,6 +75,7 @@ export const PROSPECT_STATUS_META = {
 }
 
 export const REQUIREMENT_STATUS_META = {
+  draft: makeStatusMeta('Draft', 'bg-warning-soft text-warning'),
   open: makeStatusMeta('Open', 'bg-success-soft text-success'),
   closed: makeStatusMeta('Closed', 'bg-raised text-fg'),
   cancelled: makeStatusMeta('Cancelled', 'bg-danger-soft text-danger'),

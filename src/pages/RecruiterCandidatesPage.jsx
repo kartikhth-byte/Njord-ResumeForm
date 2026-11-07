@@ -3,6 +3,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
+import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
+import ResumeLeadQueue from '../components/recruiter/ResumeLeadQueue'
+import ResumeIntakeQueue from '../components/recruiter/ResumeIntakeQueue'
+import { candidateCaseMatches } from '../utils/platformIntake'
 import CandidateForm from '../components/recruiter/CandidateForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -30,7 +34,7 @@ import {
 const ACTIVE_STAGES = FUNNEL_STAGES.filter((stage) => !['Joined', 'Rejected', 'Withdrawn'].includes(stage))
 
 const VIEW_FILTERS = [
-  { value: 'active', label: 'Active pipeline' },
+  { value: 'active', label: 'In process' },
   { value: 'unattached', label: 'Unattached' },
   { value: 'joined', label: 'Joined' },
   { value: 'closed', label: 'Rejected / Withdrawn' },
@@ -46,6 +50,10 @@ export default function RecruiterCandidatesPage() {
   const canCreateCandidates = hasPermission('create_prospects')
   const canAttachCandidates = hasPermission('edit_junction_status')
   const [showForm, setShowForm] = useState(false)
+  const [reviewResume,setReviewResume]=useState(null)
+  const [leadForm,setLeadForm]=useState({})
+  const [intakeRevision,setIntakeRevision]=useState(0)
+  const [fleetFilter,setFleetFilter]=useState({company:'',ship:'',requirement:'',stage:''})
   const [notice, setNotice] = useState('')
   const tracker = useKpiTrackerData({ enabled: !permLoading })
 
@@ -71,11 +79,12 @@ export default function RecruiterCandidatesPage() {
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
+      if(!candidateCaseMatches(row.id,tracker.data.cases,tracker.data.requirements,fleetFilter))return false
       if (viewFilter === 'resume_missing' && (row.needle_resume_id || row.isArchived)) return false
       if (viewFilter === 'active' && !row.inActivePipeline) return false
       if (viewFilter === 'unattached' && !(row.requirementCount === 0 && !row.isArchived)) return false
       if (viewFilter === 'joined' && !(row.hasJoined && !row.isArchived)) return false
-      if (viewFilter === 'closed' && !(['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived)) return false
+      if (viewFilter === 'closed' && !(!row.inActivePipeline && row.requirementCount>0 && !row.hasJoined && !row.isArchived)) return false
       if (viewFilter === 'archived' && !row.isArchived) return false
       if (stageFilter && row.stage !== stageFilter) return false
       if (recruiterFilter && row.created_by_recruiter_id !== recruiterFilter) return false
@@ -90,13 +99,13 @@ export default function RecruiterCandidatesPage() {
       }
       return true
     })
-  }, [rows, viewFilter, stageFilter, recruiterFilter, search, dateFrom, dateTo])
+  }, [rows, viewFilter, stageFilter, recruiterFilter, search, dateFrom, dateTo, fleetFilter, tracker.data.cases, tracker.data.requirements])
 
   const viewCounts = useMemo(() => ({
     active: rows.filter((row) => row.inActivePipeline).length,
     unattached: rows.filter((row) => row.requirementCount === 0 && !row.isArchived).length,
     joined: rows.filter((row) => row.hasJoined && !row.isArchived).length,
-    closed: rows.filter((row) => ['Rejected', 'Withdrawn'].includes(row.stage) && !row.isArchived).length,
+    closed: rows.filter((row) => !row.inActivePipeline && row.requirementCount>0 && !row.hasJoined && !row.isArchived).length,
     archived: rows.filter((row) => row.isArchived).length,
     resume_missing: rows.filter(row => !row.needle_resume_id && !row.isArchived).length,
     all: rows.length,
@@ -188,7 +197,7 @@ export default function RecruiterCandidatesPage() {
               {canCreateCandidates && !showForm ? (
                 <button
                   type="button"
-                  onClick={() => { setNotice(''); setShowForm(true) }}
+                  onClick={() => { setNotice(''); setReviewResume(null);setLeadForm({}); setShowForm(true) }}
                   className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
@@ -203,21 +212,22 @@ export default function RecruiterCandidatesPage() {
           <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
         ) : null}
 
+        {canCreateCandidates&&<><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume=>{setLeadForm({});setReviewResume(resume);setShowForm(true)}}/><ResumeLeadQueue key={'leads'+intakeRevision} onContinue={form=>{setReviewResume(null);setLeadForm(form);setShowForm(true)}}/></>}
         {showForm ? (
           <div className="mt-6">
-            <CandidateForm
+            <CandidateForm key={reviewResume?.resume_version_id||leadForm.leadId||'new'} initialForm={reviewResume?{resume:reviewResume}:leadForm}
               ranks={tracker.data.ranks}
               vesselTypes={tracker.data.vesselTypes}
               recruiters={workingRecruiters(tracker.data.recruiters)}
               canChooseRecruiter={role === 'Master Recruiter'}
               requirementOptions={tracker.data.requirements
-                .filter((row) => row.status === 'open' && !row.archived_at && !row.deleted_at)
+                .filter((row) => row.status === 'open' && row.location_reviewed_at && row.ship_id && !row.archived_at && !row.deleted_at)
                 .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}`, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))}
               currentRecruiterId={profile?.id || user?.id || ''}
               canAttach={canAttachCandidates}
               canSave={canCreateCandidates}
               onCancel={() => setShowForm(false)}
-              onSaved={(message) => { setShowForm(false); setNotice(message); tracker.reload() }}
+              onSaved={(message) => { setShowForm(false);setIntakeRevision(n=>n+1); setNotice(message); tracker.reload() }}
             />
           </div>
         ) : null}
@@ -243,6 +253,7 @@ export default function RecruiterCandidatesPage() {
           </div>
         ) : (
         <>
+        <FleetRequirementFilter value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements} cases/>
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-full overflow-x-auto">
@@ -366,7 +377,7 @@ export default function RecruiterCandidatesPage() {
                       <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
                       <td>
                         <span className={`tracker-pill ${STAGE_BADGE_CLASSES[row.stage] || 'bg-raised text-fg-secondary'}`}>
-                          {row.stage}
+                          {row.caseStage||row.stage}
                         </span>
                         {row.isArchived ? (
                           <span className="tracker-pill ml-1.5 bg-line text-fg-secondary">Archived</span>
@@ -384,7 +395,7 @@ export default function RecruiterCandidatesPage() {
                         ) : row.cycleCompleted ? (
                           <span className="tracker-pill bg-success-soft text-success">Completed</span>
                         ) : (
-                          <span className="tracker-pill bg-raised text-fg-secondary">Closed</span>
+                          <span className="tracker-pill bg-raised text-fg-secondary">{row.requirementCount===0?'Unattached':'Closed'}</span>
                         )}
                       </td>
                       <td className="max-w-[16rem] tracker-cell--muted">

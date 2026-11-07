@@ -1,5 +1,22 @@
 # Project Status
 
+## Platform Resume Intake amendment (2026-11-07)
+
+The current isolated candidate is on `codex/platform-resume-intake` (Holmes)
+and `codex/needle-platform-intake` (Needle), based on committed `2c99634` and
+`d20afe0a`. It implements the revised design §11: reviewed company/ship/Draft,
+case-aware candidate views, platform-owned private Drive registry/extraction,
+explicit identity review, draft leads outside the pool, and reviewed-version
+index events. It retires Needle original upload and contact-based grouping.
+Holmes migrations 0609–0616 are staging-only. Automatic Drive intake remains off.
+No GPU/model call or production push/deployment occurred in this amendment.
+
+Current acceptance/release/rollback authority:
+`docs/PLATFORM_RESUME_INTAKE_SLICE_2026-11-07.md` and
+`docs/PLATFORM_RESUME_INTAKE_RELEASE_2026-11-07.md`.
+Older completion records below certify the earlier scope only.
+
+
 ## Current integrated candidate (2026-11-07)
 
 Production is Holmes `a1e62c1` and Needle `401ec6e0`. KT promoted the warm/KPI

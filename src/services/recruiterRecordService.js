@@ -23,7 +23,8 @@ export function emptyRequirementForm(currentRecruiterId = '') {
     rankId: '',
     positionsRequired: '1',
     targetDays: '30',
-    status: 'open',
+    status: 'draft',
+    companyId: '', shipId: '', version: null, correctionReason: '',
     customerName: '',
     loggedByRecruiterId: currentRecruiterId,
     notes: '',
@@ -33,6 +34,7 @@ export function emptyRequirementForm(currentRecruiterId = '') {
 export function requirementFormFromRow(requirement, currentRecruiterId = '') {
   return {
     id: requirement.id,
+    companyId: requirement.company_id || '', shipId: requirement.ship_id || '', version: requirement.version, correctionReason: '',
     dateOpened: requirement.date_opened || new Date().toISOString().slice(0, 10),
     vesselName: requirement.vessel_name || '',
     vesselTypeId: requirement.vessel_type_id || '',
@@ -47,59 +49,25 @@ export function requirementFormFromRow(requirement, currentRecruiterId = '') {
 }
 
 // Create or update a requirement. Returns { id, created }.
-export async function saveRequirement(form, currentRecruiterId) {
+export async function saveRequirement(form) {
   const payload = {
-    date_opened: form.dateOpened,
-    vessel_name: form.vesselName || null,
-    vessel_type_id: form.vesselTypeId,
-    rank_id: form.rankId,
-    positions_required: Number(form.positionsRequired),
-    target_days: Number(form.targetDays),
-    status: form.status,
-    customer_name: form.customerName || null,
+    company_id: form.companyId || null, ship_id: form.shipId || null,
+    vessel_name: form.vesselName || null, customer_name: form.customerName || null,
+    vessel_type_id: form.vesselTypeId || null, rank_id: form.rankId || null,
+    positions_required: form.positionsRequired || null, target_days: form.targetDays || null,
+    status: form.status, notes: form.notes || '',
   }
-
-  if (!payload.vessel_type_id || !payload.rank_id || !payload.positions_required || !payload.target_days) {
-    throw new Error('Please complete the required requirement fields.')
+  if (form.status !== 'draft' && (!form.companyId || !form.shipId || !form.rankId || !form.vesselTypeId || Number(form.positionsRequired)<1 || Number(form.targetDays)<1)) {
+    throw new Error('Opening requires a reviewed company, ship, rank, vessel type, positions and target days.')
   }
-
-  if (form.id) {
-    // Ownership fields are intentionally excluded on update: rewriting
-    // owner_recruiter_id from "Logged by" would undo an owner transfer.
-    const { error } = await supabase.from('requirements').update(payload).eq('id', form.id)
-    if (error) throw error
-    if (form.notes?.trim()) {
-      const { error: remarkError } = await supabase.rpc('add_requirement_remark', {
-        p_requirement_id: form.id,
-        p_body: form.notes.trim(),
-        p_visibility: 'internal',
-      })
-      if (remarkError) throw remarkError
-    }
-    return { id: form.id, created: false }
-  }
-
-  const { data, error } = await supabase
-    .from('requirements')
-    .insert({
-      ...payload,
-      owner_recruiter_id: form.loggedByRecruiterId || currentRecruiterId,
-      created_by_recruiter_id: form.loggedByRecruiterId || currentRecruiterId,
-      status: 'open',
-    })
-    .select('id, req_id_display')
-    .maybeSingle()
+  // Edits exclude ownership. New logged-by choices are Master-only on the server.
+  const { data, error } = await supabase.rpc('save_platform_requirement_for_recruiter', {
+    p_id: form.id || null, p_expected_version: form.version || null,
+    p_logged_by: form.id ? null : form.loggedByRecruiterId || null,
+    p_fields: payload, p_correction_reason: form.correctionReason || null,
+  })
   if (error) throw error
-
-  if (form.notes?.trim() && data?.id) {
-    const { error: remarkError } = await supabase.rpc('add_requirement_remark', {
-      p_requirement_id: data.id,
-      p_body: form.notes.trim(),
-      p_visibility: 'internal',
-    })
-    if (remarkError) throw remarkError
-  }
-  return { id: data?.id, created: true }
+  return { id: data?.id, created: !form.id }
 }
 
 // Cancelling needs a reason (the database rejects a cancel without one).
@@ -163,6 +131,7 @@ export async function createCandidate(form, currentRecruiterId, { canAttach = fa
   const result = await saveResumeCandidate(form.resume, existing ? {} : resumeCandidateFields({ ...form, addedByRecruiterId: form.addedByRecruiterId || currentRecruiterId }), {
     requirementId: canAttach ? form.requirementId : null,
     requirementVersion: form.requirementVersion,
+    leadId:form.leadId,leadVersion:form.leadVersion,
     linkTo: form.linkTo,
     confirmNew: form.confirmNew,
   })

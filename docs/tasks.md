@@ -1,5 +1,50 @@
 # Pending Tasks
 
+## Owner amendment: shared Resume Intake and requirement navigation (2026-11-07)
+
+KT added the updated design from the separate working copy
+`/Users/kartikraghavan/Documents/Njord-ResumeForm/docs/needle-in-holmes-design.md`
+§11 ("Record navigation and shared Resume Intake"). That section assigns the
+private Drive registry, immutable versioning, basic PDF/OCR extraction and
+reviewed identity links to **platform-owned Resume Intake**, first hosted in
+Holmes. Needle consumes registered versions for search/indexing. This supersedes
+the Needle-owned Drive-write assumption in the committed integration candidate.
+
+The frozen candidates are Needle `d20afe0a` and Holmes `2c99634`; neither
+contains this amendment or the separate working copy's patches. Do not describe
+their existing upload implementation as compliant with the revised ownership
+contract. Reconcile the design/source and revise the exact release manifest
+before promotion; do not automatically add an old migration to the deploy list.
+
+Amendment implementation (isolated staging; not production):
+
+- [x] Platform registry/API ownership, immutable originals/version evidence,
+  reviewed new/link/hold and retention of confirmed candidate fields.
+- [x] Case opening/lifecycle checks, including historical attachment RPCs;
+  preserve permission, organization, locking and idempotency checks.
+- [x] Separate case cards, competing/accepted-offer warnings, and actual
+  case-aware All/Unattached/In Process views plus company/ship/case filters.
+- [x] Reviewed company/ship records and navigation tree; Draft requirements;
+  audited post-opening ship corrections; no inferred legacy ID backfill.
+- [x] Private platform Drive uploader/import, hash reuse and orphan recovery;
+  mandatory ClamAV, private temporary processing, no browser Drive credentials.
+- [x] Versioned embedded-text/Tesseract basic suggestions and per-page evidence;
+  explicit partial/failed outcomes and append-only retries. No hosted model.
+- [x] Phone-only draft leads outside prospects; résumé review required to convert.
+- [x] Needle exact-document grouping and explicit version event queue. Held or
+  unreviewed uploads do not create candidates/cases or new indexing events.
+- [x] Synthetic staging schema/API/browser acceptance, normal Coordinator denial,
+  actual Drive read-back, real scanned OCR and scanner qualification. Details:
+  `PLATFORM_RESUME_INTAKE_SLICE_2026-11-07.md`.
+- [ ] Exact frozen candidate independent production review and KT promotion.
+- [ ] Reviewed mapping of existing production open requirements before use;
+  provision production platform service credentials/dispatcher and run deployed
+  HTTPS/Functions/Vercel smoke with operator-only access.
+- [ ] NuExtract/v18 hookup and automatic intake reopening remain separate gates.
+
+The separate Documents checkout was used as a read-only reference and remains
+untouched. Its production-pointing write-capable smoke was not run.
+
 ## Integrated completion candidate (2026-11-07)
 
 KT's requested single slice is under acceptance in the isolated

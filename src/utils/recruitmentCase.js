@@ -155,3 +155,17 @@ export function newIdempotencyKey(prefix = 'case') {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`
   return `${prefix}:${random}`
 }
+
+// Coarse KPI grouping only; UI and per-case filters retain the exact case stage.
+export function caseFunnelStage(status) {
+  if(['legacy','needs_triage','sourced','interested'].includes(status))return caseStatusMeta(status).label
+  if(status==='contacted')return 'Contacted'
+  if(status==='confirmed')return 'Screened'
+  if(status.startsWith('test_'))return 'Shortlisted'
+  if(status.startsWith('interview_'))return 'Interviewed'
+  if(['selected','offered','offer_accepted','offer_declined','documents_pending','documents_verified','sent_to_principal'].includes(status))return 'Approved'
+  if(status==='hired')return 'Joined'
+  if(status==='rejected')return 'Rejected'
+  if(['withdrawn','closed'].includes(status))return 'Withdrawn'
+  return 'Needs triage'
+}

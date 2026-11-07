@@ -95,7 +95,7 @@ export default function RecruiterRequirementDetail() {
         ] = await Promise.all([
           supabase
             .from('requirements')
-            .select('id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
+            .select('company_id, ship_id, location_reviewed_at, id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
             .eq('id', requirementId)
             .maybeSingle(),
           supabase
@@ -370,7 +370,7 @@ export default function RecruiterRequirementDetail() {
             title={requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {requirement.status === 'open' && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={async () => {
+                {requirement.status === 'open' && requirement.location_reviewed_at && !requirement.deleted_at && !requirement.archived_at && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={async () => {
                   setActing(true); setActionError('')
                   try {
                     const result = await needleIntegration({ action: 'match', requirement_id: requirement.id, expected_version: requirement.version })
@@ -469,7 +469,7 @@ export default function RecruiterRequirementDetail() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Open date</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{formatDate(requirement.date_opened)}</p>
+                    <p className="mt-1 text-base font-semibold text-fg">{requirement.status==='draft'?'Not opened':formatDate(requirement.date_opened)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-fg-muted">Target days</p>
@@ -504,7 +504,7 @@ export default function RecruiterRequirementDetail() {
 
               <RecruitmentCasePanel
                 requirementId={requirement.id}
-                requirementOpen={requirement.status === 'open' && !requirement.archived_at && !requirement.deleted_at}
+                requirementOpen={requirement.status === 'open' && Boolean(requirement.location_reviewed_at) && !requirement.archived_at && !requirement.deleted_at}
                 linkedProspects={linkedProspects}
                 permissions={permissions}
                 onCaseChanged={() => setReloadToken((token) => token + 1)}

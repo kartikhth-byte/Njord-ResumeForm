@@ -1,5 +1,29 @@
 # Integrated Needle / Holmes release manifest
 
+**Amendment update:** implementation and staging acceptance are now recorded in
+`PLATFORM_RESUME_INTAKE_SLICE_2026-11-07.md`. Use
+`PLATFORM_RESUME_INTAKE_RELEASE_2026-11-07.md` for the amended release;
+all recipes below are historical and must not be rerun for the new branches.
+
+## Post-freeze owner amendment — reconcile before promotion
+
+Needle `d20afe0a` and Holmes `2c99634` are committed locally. Their reviewed
+scope predates KT's updated platform-owned Resume Intake contract and the
+separate working copy's requirement/case patches. The commit recipes below
+record the original freeze; do not rerun them or treat their old readiness
+statement as acceptance of the amendment.
+
+The current next-work list is the "Owner amendment" section of `tasks.md`.
+Before promoting an amendment-compliant release, reconcile platform ownership
+of the private Drive registry/versioning/basic extraction/reviewed identities,
+company/ship and Draft schema, local case-opening and competing-offer patches,
+and Needle dedup/event-driven indexing. Preserve current permission/source
+integrity fixes when porting. Retest and re-review; replace this exact manifest
+with the resulting frozen commits/migrations/Functions. Do not append the
+separate working copy's 0228 migration or repoint live uploads without review.
+Existing local/staging evidence below remains evidence for the earlier scope.
+Production writes and write-capable smoke are not authorized by this list edit.
+
 2026-11-07. **Not promoted. Local/staging pilot acceptance and consolidated
 independent code review passed, including the 0608 follow-up. KT source freeze
 and production gates remain.** This supersedes earlier warm and

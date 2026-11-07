@@ -20,7 +20,7 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, o
       supabase.from('ranks').select('id,name').order('name'),
       supabase.from('vessel_types').select('id,name').order('name'),
       supabase.from('countries').select('id,name').order('name'),
-      supabase.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id').eq('status', 'open').is('deleted_at', null).is('archived_at', null),
+      supabase.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id').eq('status', 'open').not('location_reviewed_at','is',null).is('deleted_at', null).is('archived_at', null),
     ]).then(([resumes, ranks, vessels, countries, requirements]) => {
       if ([ranks, vessels, countries, requirements].some(result => result.error)) throw new Error('Candidate options unavailable')
       if (active) setState({ loading: false, error: '', resumes, ranks: ranks.data || [], vessels: vessels.data || [], countries: countries.data || [], requirements: requirements.data || [] })

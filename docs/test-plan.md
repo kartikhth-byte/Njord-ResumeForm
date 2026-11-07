@@ -1,5 +1,22 @@
 # Platform Test Plan
 
+## Platform intake amendment gate (2026-11-07)
+
+Use the actual ordered SQL migrations 0604, 0608–0616 in
+`supabase/tests/platform_resume_intake.test.mjs` (PGlite). Check Draft/open,
+legacy/direct attachment denial, audit/version conflicts, private registry RLS,
+immutable extraction attempts, new/link/hold and review-before-outbox. Run
+`node supabase/tests/resume-intake.test.mjs`, Python intake tests and platform
+case/KPI tests. Browser acceptance uses existing normal staging Master and
+Coordinator sessions, actual private synthetic Drive files, local Tesseract and
+real ClamAV; no admin-generated user session or password is required.
+
+Do not run write-capable suites against the separate production-configured
+Documents checkout. The CLI Playwright suite is not used as browser evidence
+in this run; the recorded CUA checks and exact limitations are authoritative.
+A local adapter does not qualify deployed Edge CORS or Vercel forwarding.
+
+
 ## Integrated completion acceptance — 2026-11-07
 
 Use `INTEGRATION_COMPLETION_2026-11-06.md` for current source, receipts and
