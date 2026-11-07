@@ -1,5 +1,16 @@
 # Project Status
 
+## Collapsed sidebar hover labels (2026-11-07)
+
+Isolated UI hotfix on `codex/sidebar-hover-labels`, based on production
+`a1e62c1`. Collapsed navigation, home, expand and account icons show visible
+portal tooltips on hover and keyboard focus; Escape, blur, scrolling and resize
+dismiss them. Expanded/mobile labels and existing permissions/navigation remain.
+Local synthetic CUA smoke passes all 12 AI-rail icon labels, keyboard/Escape,
+expanded layout and mobile drawer; lint/build pass. No login, database, intake
+or Function changes. KT promotion is still required. Carry this hotfix into the
+pending platform release before its promotion so the labels are preserved.
+
 ## Current Needle integration checkpoint (2026-11-06)
 
 Warm/KPI release preparation: KT accepted CMA Excel/print output. Final review

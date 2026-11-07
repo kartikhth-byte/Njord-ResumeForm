@@ -20,6 +20,7 @@ import {
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAuth } from '../auth/AuthContext'
 import { canUseAiSearch } from '../../lib/needle'
+import SidebarButton from './SidebarButton'
 
 // Left sidebar shell for recruiter pages. Replaces the old topbar + tab row.
 // Pages still render <RecruiterTopbar />, which now renders this. The page's root
@@ -156,18 +157,17 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     const Icon = item.icon
     const active = isActive(item)
     return (
-      <button
+      <SidebarButton
         key={item.key}
-        type="button"
+        label={item.label}
+        rail={rail}
         onClick={() => navigate(item.path)}
         className={`recruiter-sidebar__item ${active ? 'is-active' : ''}`}
         aria-current={active ? 'page' : undefined}
-        title={rail ? item.label : undefined}
-        aria-label={rail ? item.label : undefined}
       >
         <Icon className="h-[18px] w-[18px] flex-none" aria-hidden="true" />
         {!rail ? <span className="truncate">{item.label}</span> : null}
-      </button>
+      </SidebarButton>
     )
   }
 
@@ -196,15 +196,15 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
         aria-label="Main"
       >
         <div className="recruiter-sidebar__brand">
-          <button
-            type="button"
+          <SidebarButton
+            label="Holmes home"
+            rail={rail}
             onClick={() => navigate('/recruiter/dashboard')}
             className="flex min-w-0 items-center gap-2.5 rounded-control"
-            aria-label="Holmes home"
           >
             <span className="recruiter-sidebar__mark" aria-hidden="true">H</span>
             {!rail ? <span className="recruiter-sidebar__wordmark">Holmes</span> : null}
-          </button>
+          </SidebarButton>
           {!rail ? (
             <button
               type="button"
@@ -219,15 +219,14 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
         </div>
 
         {rail && !isAiSearch ? (
-          <button
-            type="button"
+          <SidebarButton
+            label="Expand sidebar"
+            rail={rail}
             className="recruiter-sidebar__icon-button self-center"
             onClick={toggleCollapsed}
-            aria-label="Expand sidebar"
-            title="Expand sidebar"
           >
             <PanelLeft className="h-[18px] w-[18px]" aria-hidden="true" />
-          </button>
+          </SidebarButton>
         ) : null}
 
         <nav className="recruiter-sidebar__nav" aria-label="Sections">
@@ -248,14 +247,13 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
             : null}
 
           <div className="relative" ref={menuRef}>
-            <button
-              type="button"
+            <SidebarButton
+              label="Account"
+              rail={rail}
               onClick={() => setMenuOpen((prev) => !prev)}
               className="recruiter-sidebar__item recruiter-sidebar__account"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Account"
-              title={rail ? displayName : undefined}
             >
               <span className="recruiter-sidebar__avatar" aria-hidden="true">
                 {displayName.charAt(0).toUpperCase()}
@@ -269,7 +267,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
                   <ChevronsUpDown className="h-4 w-4 flex-none text-fg-muted" aria-hidden="true" />
                 </>
               ) : null}
-            </button>
+            </SidebarButton>
 
             {menuOpen ? (
               <div role="menu" className="recruiter-sidebar__menu">

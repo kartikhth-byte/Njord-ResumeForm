@@ -1993,6 +1993,23 @@ html[data-shell='sidebar'] .applicant-shell.recruiter-panel-shell {
   color: rgb(var(--fg-muted));
 }
 
+.recruiter-sidebar__tooltip {
+  position: fixed;
+  z-index: 100;
+  transform: translateY(-50%);
+  max-width: min(240px, calc(100vw - 88px));
+  padding: 7px 11px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 8px;
+  background: rgb(var(--surface));
+  color: rgb(var(--fg));
+  box-shadow: var(--shadow-overlay);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
 .recruiter-sidebar__item:hover {
   background: rgb(var(--surface));
   color: rgb(var(--fg));
