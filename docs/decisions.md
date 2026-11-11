@@ -1,5 +1,18 @@
 # Decisions Log
 
+## Candidate tabs and fleet grouping (2026-11-11)
+
+Use two page tabs and an inline Add/Edit form. The user explicitly chose
+Company → Ship → Candidates; requirements are row links with individual stages,
+not another group level. Deduplicate people within a ship, retain the same profile
+across ships, and keep case history separate from active attachments.
+
+Reuse `resume_lead_drafts` for basic records without CVs rather than weakening
+reviewed-prospect identity rules. A permission-checked RPC returns only safe basic
+fields for directory display; existing note RLS is unchanged. Draft edits use
+optimistic versions. Database triggers enforce available-original CV links for
+new case/junction attachments, including callers bypassing the UI.
+
 ## Existing résumé use without new intake (2026-11-10)
 
 The user approved separating existing-source review/attachment from new upload

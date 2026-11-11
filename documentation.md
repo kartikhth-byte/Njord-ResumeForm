@@ -1,5 +1,22 @@
 # Project Status
 
+## Candidates directory — staging verified (2026-11-11)
+
+Candidates now has inline Add/Edit and Unattached/Attached tabs. Attached rows use
+**Company → Ship → Candidates**, one person per ship, with requirement links and
+stages in a Requirements column. Basic details can be saved without a CV using
+the existing draft store; attachment requires an available reviewed CV. Uploads
+remain held. New migration `2026111101` adds safe draft reads, versioned edits and
+server-side CV attachment guards. It is **applied to staging only**; normal Master
+and Coordinator smoke passed. Independent review is clear; production approval and
+live smoke remain pending. See
+`docs/CANDIDATES_UI_2026-11-11.md` for checks and release gates.
+
+The previous Companies & ships/existing-source release is deployed: Holmes
+`b573bd8f`, Needle `49e30cf8`; its final production smoke is recorded in
+`docs/COMPANIES_SHIPS_UI_2026-11-10.md`. Older local-only status entries below are
+historical snapshots.
+
 ## Existing résumé attachment — local follow-up (2026-11-10)
 
 Requirements now link to a filtered Candidates page by attached count, rather than

@@ -1,5 +1,20 @@
 # Pending Tasks
 
+## Candidates directory — 2026-11-11
+
+- [x] Inline basic Add/Edit, optional gated CV flow, duplicate warning and stale-save handling.
+- [x] Unattached/Attached tabs; Company → Ship → Candidates with per-row requirement stages.
+- [x] Active/history, fleet/case filters, unique counts and reload/profile navigation.
+- [x] Safe draft read/edit RPCs and CV attachment database guards prepared locally.
+- [x] Local synthetic browser, desktop/mobile and isolated SQL verification.
+- [x] Apply `2026111101` to staging; verify normal Master/Coordinator sessions and existing CV attachment.
+- [x] Independent release review and fixes; fresh backup/isolated public restore verification.
+- [ ] Exact production schema/frontend approval, promotion and live smoke.
+- [ ] New CV upload activation remains part of the separate intake hosting work.
+
+Previous Companies & ships/existing-source release and production smoke are
+complete; older unchecked release items below are historical snapshots.
+
 ## Existing-source attachment follow-up (2026-11-10)
 
 - [x] Requirements count-to-Candidates navigation; candidate row company/ship/rank/stage links.

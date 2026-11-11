@@ -30,6 +30,7 @@ export function createFleetFixture({role = 'Master Recruiter', operator = role =
     else if (table==='requirements') result=requirements
     else if (table==='prospects') result=prospects
     else if (table==='recruitment_cases') result=cases
+    else if (table==='list_candidate_drafts') result=[]
     else if (table==='save_client_fleet_record') {
       state.calls.push({table,body})
       if (state.failNext) {const message=state.failNext;state.failNext='';return {status:409,body:{message}}}
@@ -65,7 +66,7 @@ export function createFleetFixture({role = 'Master Recruiter', operator = role =
     else if (table==='needle-integration') {
       state.calls.push({table,body})
       const hash='a'.repeat(64),linked=prospects.find(p=>p.id===state.links[hash])
-      if(body.action==='review_existing')return state.respond(new URL('/rest/v1/rpc/review_existing_resume',url),method,body)
+      if(body.action==='review_existing'){const response=state.respond(new URL('/rest/v1/rpc/review_existing_resume',url),method,body);return response.status>=400?{...response,body:{error:response.body.message}}:response}
       if(body.action==='prepare')result={resumes:[{resume_id:hash,review_source:'existing_resume',evidence_id:'synthetic-evidence',filename:'synthetic.pdf',prefill:{full_name:'Synthetic Match',email:'new@example.invalid'},matches:linked?[{id:linked.id,name:linked.name,reason:'resume'}]:[]}]}
       else if(body.action==='match_preview')result={page:1,page_count:1,image:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6XvIAAAAASUVORK5CYII='}
       else result={stage_id:'synthetic-stage',offset:0,total:state.emptyMatch?0:1,next_offset:null,rows:state.emptyMatch?[]:[{resume_id:hash,full_name:'Synthetic Match',present_rank:'master',public_bucket:'confirmed_match',existing_candidate:linked?{id:linked.id,name:linked.name}:null,cases:linked?cases.filter(c=>c.prospect_id===linked.id):[],verdicts:[{family:'present_rank',verdict:'PASS',required:true},{family:'experience_ship_type',verdict:'PASS',required:true}]}]}

@@ -1,5 +1,23 @@
 # Holmes - Platform PRD
 
+## Candidates directory (2026-11-11)
+
+- Add candidate is an inline basic-details form above two tabs: Unattached and Attached.
+- Saving without a CV is allowed. Name and either email or international phone
+  are required. CV-less records remain drafts until reviewed résumé conversion;
+  they cannot be attached to a requirement.
+- Attached hierarchy is Company → Ship → Candidates. A candidate appears once
+  per ship, with all matching requirements and their stages in one column. The
+  same person under different ships links to the same profile.
+- Unattached means no active case on an open requirement. Completed/closed case
+  history remains available through the Attached history selector. Counts are
+  unique people, not cases or rendered rows.
+- Search and filters persist through reload and profile Back navigation; company,
+  ship, requirement and case-stage filters must match the same attachment.
+- Role permissions apply to Add/Edit/Attach. Coordinators may read basic draft
+  details without gaining access to private recruiter notes. Optional CV upload
+  follows the existing intake availability gate.
+
 ## Requirements and Candidates separation (2026-11-10)
 
 Requirements lists requirements grouped by company and ship, with matching and

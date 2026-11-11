@@ -3,11 +3,11 @@ import useClientFleet from '../../hooks/useClientFleet'
 import { SelectField } from './RecordFormFields'
 import { CASE_STATUS_META, caseStatusMeta } from '../../utils/recruitmentCase'
 
-export default function FleetRequirementFilter({value,onChange,requirements=[],cases=false}) {
+export default function FleetRequirementFilter({value,onChange,requirements=[],cases=false,title}) {
   const fleet=useClientFleet()
   const options=rows=>rows.map(r=>({value:r.id,label:r.name||r.req_id_display}))
   return <section aria-label="Company and ship navigation" className="recruiter-panel mt-6 space-y-3 p-5">
-    <h2 className="font-semibold">Company → Ship → Requirement{cases?' → Case stage':''}</h2>
+    <h2 className="font-semibold">{title || `Company → Ship → Requirement${cases ? ' → Case stage' : ''}`}</h2>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <SelectField label="Company" value={value.company} onChange={company=>onChange({...value,company,ship:'',requirement:''})} options={options(fleet.companies)} placeholder="All companies"/>
       <SelectField label="Ship" value={value.ship} onChange={ship=>onChange({...value,ship,requirement:''})} options={options(fleet.ships.filter(r=>!value.company||r.company_id===value.company))} placeholder="All ships"/>

@@ -1,5 +1,27 @@
 # Platform Test Plan
 
+## Candidates directory regression (2026-11-11)
+
+Run `candidate-directory.spec.js`, `fleet-directory.spec.js` and
+`kpi-case-parity.spec.js` on the synthetic-only Vite server with their synthetic
+environment flags and `--no-deps`. Cover basic save/edit/reload, duplicate and
+stale saves, CV-missing denial, fresh CV recheck on attachment, history, one
+candidate per ship/multiple requirements, same-case filtering, profile Back,
+Coordinator read-only controls and 390px layout. Screenshots must disable
+animations so shell transitions do not obscure content.
+
+Run the candidateDirectory, requirementGroups, recruitmentCase,
+recruitmentCaseKpi and kpiTracker Node tests, plus the isolated PGlite
+`platform_resume_intake.test.mjs` fixture. The SQL fixture applies `2026111101`
+and checks draft note preservation, versions, org/role/anonymous restrictions,
+converted drafts and actual case/junction CV guards. Mocks do not replace
+normal-session staging or production release smoke.
+
+2026-11-11: all 25 synthetic browser checks, 40 focused/adjacent Node checks,
+PGlite migration chain, lint and build passed. Normal staging Master/Coordinator
+checks passed with the synthetic Needle bridge; see `CANDIDATES_UI_2026-11-11.md`
+for scope, fixture cleanup, review fixes and the remaining production gate.
+
 ## Existing-source attachment regression (2026-11-10)
 
 Run the fleet-directory and KPI synthetic browser suites with uploads off; verify
