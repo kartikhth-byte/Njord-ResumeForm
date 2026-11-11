@@ -1,5 +1,36 @@
 # Platform Test Plan
 
+## Existing-source attachment regression (2026-11-10)
+
+Run the fleet-directory and KPI synthetic browser suites with uploads off; verify
+Review writes nothing, Attach requires identity confirmation, duplicate choice is
+explicit, saves return to result rows, existing identity fields remain unchanged,
+and a candidate linked to two requirements appears once with both links. Verify
+count navigation filters Candidates and no candidate list appears in Requirements.
+Run `supabase/tests/needle-integration.test.mjs`, `requirement-match.test.mjs` and
+PGlite `platform_resume_intake.test.mjs <absolute migrations directory>`. That
+fixture includes new 1002 plus the real reviewed-source boundary migrations.
+Verify actor/org/role denial, exact response set, original/facts readiness, stale
+revision/evidence/requirement, missing contact, closed requirement rollback,
+repeat saves, existing canonical delegation and no new index/storage records.
+Live deployed-role/source smoke is still a release gate, not claimed by mocks.
+
+
+## Company directory and grouped requirements (2026-11-10)
+
+Use the synthetic `fleet-directory.spec.js` plus adjacent `kpi-case-parity.spec.js`
+with `--no-deps`, fake Supabase configuration and their explicit synthetic flags.
+Check inline Add/Edit/Cancel, duplicate/failure/stale handling, company/ship
+identity, separate read-only roles, current versus saved names, full-width
+company/ship/requirement alignment, independent collapse/filter reveal, Draft
+and legacy visibility, modal matching scope/focus and held attachments. Check
+390px and desktop screenshots. Run the actual new migration in the isolated
+`supabase/tests/client_fleet_directory.test.mjs`; do not substitute HTTP mocks
+for its authorization/version/organization tests. Staging/deployed acceptance
+remains separate. Exact commands and release boundaries:
+`COMPANIES_SHIPS_UI_2026-11-10.md`.
+
+
 ## Matching/review-only phase (2026-11-07)
 
 Use `MATCHING_REVIEW_RELEASE_2026-11-07.md` for this phase. Check the row action,

@@ -11,7 +11,7 @@ export async function needleIntegration(body) {
   return data
 }
 export async function prepareResumes(resumeIds, stageId) {
-  return (await platformIntake({ action: 'prepare', resume_ids: resumeIds, stage_id: stageId || null })).resumes
+  return (await needleIntegration({ action: 'prepare', resume_ids: resumeIds, stage_id: stageId || null })).resumes
 }
 export async function platformIntake(body) {
   if (!['view', 'status', 'review_original'].includes(body?.action)) requireResumeIntake()
@@ -31,6 +31,31 @@ export async function candidateMatches(resumeId, fields) {
   return data || []
 }
 export async function saveResumeCandidate(resume, fields, { requirementId, requirementVersion, linkTo, confirmNew = false, hold = false, leadId, leadVersion } = {}) {
+  if (resume?.review_source === 'existing_resume') {
+    if (!resume.evidence_id || hold || leadId) throw new Error('Review an existing résumé before attaching it.')
+    const link = linkTo || resume.matches?.find(row => row.reason === 'resume')?.id || null
+    let data, error
+    try { data = await needleIntegration({ action: 'review_existing',
+      p_evidence: resume.evidence_id, p_decision: link ? 'link' : 'new', p_fields: fields,
+      p_link: link, p_confirm_new: confirmNew, p_requirement: requirementId || null,
+      p_requirement_version: requirementVersion ?? null,
+    }) } catch (failure) { error = failure }
+    if (error) {
+      const messages = {
+        version_conflict: 'The requirement changed. Close matching and refresh before attaching.',
+        requirement_not_open: 'This requirement is no longer open. Close matching and refresh.',
+        open_requirement_required: 'This requirement is no longer open. Close matching and refresh.',
+        resume_review_expired_refresh_matching: 'This review has expired. Close matching and open it again.',
+        resume_source_changed_refresh_matching: 'The résumé changed or is unavailable. Close matching and open it again.',
+        possible_duplicate_requires_review: 'A possible duplicate was found. Review the candidate choices before saving.',
+        existing_candidate_requires_explicit_link: 'This candidate already exists. Select their profile before attaching.',
+        linked_candidate_requires_restore: 'This résumé belongs to an archived candidate. Restore their profile before attaching.',
+        fresh_source_verification_required: 'Source verification expired. Try attaching again.',
+      }
+      throw new Error(messages[error.message] || error.message || 'Could not attach candidate.')
+    }
+    return data
+  }
   requireResumeIntake()
   if (!resume?.evidence_id || !resume?.resume_version_id) throw new Error('Choose a platform-registered résumé first.')
   const existing=resume.matches?.find(row=>row.reason==='resume')?.id

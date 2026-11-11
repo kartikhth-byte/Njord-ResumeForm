@@ -142,5 +142,103 @@ await as('view_prospects')
 await rejects(()=>db.query('select platform_resume_review_queue()'),'permission_denied')
 await rejects(()=>review('new',{}),'permission_denied')
 await rejects(()=>db.query("select save_resume_lead_draft('{\"telephone\":\"+919000009999\"}')"),'permission_denied')
+// Existing corpus attachment is available independently of platform intake.
+await db.exec('reset role')
+await db.exec(fs.readFileSync(process.argv[2]+'/2026111002_review_existing_resume.sql','utf8'))
+await as()
+const existingReq=await saveReq(fields)
+const existingEvidence=async(hash,owner=actor,organization=org)=>{
+ await db.exec('reset role')
+ await db.query("insert into needle_resume_registry(organization_id,resume_id,filename,status,original_available,facts_revision) values($1,$2,'existing.pdf','ready',true,'rev1')",[organization,hash])
+ const ev=(await db.query("insert into needle_resume_evidence(organization_id,resume_id,actor_id,source,facts_revision) values($1,$2,$3,'needle_search','rev1') returning id",[organization,hash,owner])).rows[0].id
+ await as(); return ev
+}
+let lastReceipt
+const existingReview=async(ev,fields={},opts={})=>{
+ const args={p_evidence:ev,p_decision:opts.decision||'new',p_fields:fields,p_link:opts.link||null,
+ p_confirm_new:opts.confirm||false,p_requirement:opts.req===null?null:existingReq.id,
+ p_requirement_version:opts.version===undefined?existingReq.version:opts.version}
+ let receipt=opts.receipt
+ if(receipt===undefined){
+  const context=(await db.query("select current_setting('test.uid') uid,current_setting('test.permissions') perms")).rows[0]
+  await db.exec('reset role')
+  receipt=(await db.query(`insert into existing_resume_save_receipts(evidence_id,actor_id,organization_id,resume_id,facts_revision,reviewed_request,verified_at)
+  select id,actor_id,organization_id,resume_id,facts_revision,$2::jsonb,now() from needle_resume_evidence where id=$1 returning id`,[ev,JSON.stringify(args)])).rows[0].id
+  await as(context.perms,context.uid)
+ }
+ lastReceipt=receipt
+ return db.query('select review_existing_resume($1,$2,$3::jsonb,$4,$5,$6,$7,$8) result',[
+ args.p_evidence,args.p_decision,JSON.stringify(fields),args.p_link,args.p_confirm_new,args.p_requirement,args.p_requirement_version,receipt,
+ ]).then(r=>r.rows[0].result)
+}
+const ev=await existingEvidence('d'.repeat(64))
+await rejects(()=>existingReview(ev,{name:'Synthetic Existing Source',email:'existing@example.invalid'},{version:999}),'version_conflict')
+// Failed transaction leaves the receipt unconsumed, but it cannot authorize a different request.
+const failedReceipt=lastReceipt
+await rejects(()=>existingReview(ev,{name:'Tampered',email:'tampered@example.invalid'},{receipt:failedReceipt}),'fresh_source_verification_required')
+await rejects(()=>existingReview(ev,{}, {receipt:null}),'fresh_source_verification_required')
+await rejects(()=>db.query('insert into existing_resume_save_receipts(evidence_id) values($1)',[ev]),'permission denied')
+await rejects(()=>db.query('select * from existing_resume_save_receipts'),'permission denied')
+const saved=await existingReview(ev,{name:'Synthetic Existing Source',email:'existing@example.invalid'})
+const usedReceipt=lastReceipt
+await rejects(()=>existingReview(ev,{name:'Synthetic Existing Source',email:'existing@example.invalid'},{receipt:usedReceipt}),'fresh_source_verification_required')
+await db.exec('reset role')
+assert.equal((await db.query('select consumed_at is null unused from existing_resume_save_receipts where id=$1',[failedReceipt])).rows[0].unused,true)
+await db.query("update existing_resume_save_receipts set verified_at=now()-interval '2 minutes' where id=$1",[failedReceipt])
+await as()
+await rejects(()=>existingReview(ev,{name:'Synthetic Existing Source',email:'existing@example.invalid'},{receipt:failedReceipt,version:999}),'fresh_source_verification_required')
+assert.equal(saved.created,true)
+assert.equal((await existingReview(ev,{})).prospect_id,saved.prospect_id)
+await db.exec('reset role')
+assert.equal((await db.query('select count(*)::int n from recruitment_cases where prospect_id=$1',[saved.prospect_id])).rows[0].n,1)
+assert.equal((await db.query('select count(*)::int n from resume_files')).rows[0].n,2)
+assert.equal((await db.query('select count(*)::int n from resume_index_events')).rows[0].n,2)
+await as()
+await rejects(()=>existingReview(ev,{}, {version:null}),'requirement_version_required')
+await rejects(()=>existingReview(ev,{}, {decision:'hold'}),'identity_review_required')
+await rejects(()=>existingReview(ev,{}, {decision:'link'}),'identity_review_required')
+await as('view_prospects')
+await rejects(()=>existingReview(ev,{}),'permission_denied')
+await as(perms,other)
+await rejects(()=>existingReview(ev,{}),'verified_resume_required')
+const foreignEv=await existingEvidence('e'.repeat(64),actor,foreign)
+await rejects(()=>existingReview(foreignEv,{}),'verified_resume_required')
+const duplicateEv=await existingEvidence('f'.repeat(64))
+await rejects(()=>existingReview(duplicateEv,{name:'Duplicate',email:'existing@example.invalid'}),'explicit_link')
+assert.equal((await existingReview(duplicateEv,{name:'Do not overwrite'}, {decision:'link',link:saved.prospect_id})).prospect_id,saved.prospect_id)
+await db.exec('reset role')
+assert.equal((await db.query('select name from prospects where id=$1',[saved.prospect_id])).rows[0].name,'Synthetic Existing Source')
+await db.query("update needle_resume_registry set facts_revision='rev2' where resume_id=$1",['f'.repeat(64)])
+await as();await rejects(()=>existingReview(duplicateEv,{}),'resume_source_changed')
+await db.exec('reset role');await db.query("update needle_resume_evidence set created_at=now()-interval '25 hours' where id=$1",[ev]);await as()
+await rejects(()=>existingReview(ev,{}),'resume_review_expired')
+await db.exec('reset role');await db.query('update needle_resume_registry set original_available=false where resume_id=$1',[digest]);await as()
+await rejects(()=>existingReview(evidence,{}, {receipt:null}),'verified_resume_required') // upload evidence is never accepted
+await rejects(()=>db.query('select save_resume_candidate($1,$2)',[ev,'{}']),'permission denied')
+await rejects(()=>db.query('select * from existing_resume_identity_reviews'),'permission denied')
+await db.exec('reset role')
+assert.equal((await db.query("select has_function_privilege('anon','review_existing_resume(uuid,text,jsonb,uuid,boolean,uuid,integer,uuid)','execute') allowed")).rows[0].allowed,false)
+// Failed creation/closed requirements are atomic; absent originals cannot be reviewed.
+const missingEv=await existingEvidence('1'.repeat(64))
+await rejects(()=>existingReview(missingEv,{name:'No contact'}),'phone_or_email_required')
+await db.exec('reset role')
+await db.query('update needle_resume_registry set original_available=false where resume_id=$1',['1'.repeat(64)])
+await as();await rejects(()=>existingReview(missingEv,{name:'Source missing',email:'missing@example.invalid'}),'resume_source_changed')
+const closedEv=await existingEvidence('2'.repeat(64))
+await as();await saveReq({...fields,status:'closed'},existingReq.id,existingReq.version)
+await rejects(()=>existingReview(closedEv,{name:'Closed case',email:'closed@example.invalid'}),'open_requirement_required')
+await db.exec('reset role')
+assert.equal((await db.query("select count(*)::int n from prospects where email in ('closed@example.invalid','missing@example.invalid')")).rows[0].n,0)
+// Canonical sources still enter the platform review transaction; no identity split.
+await db.query("update needle_resume_registry set status='ready',original_available=true,facts_revision='rev1' where resume_id=$1",[digest])
+const canonicalEvidence=(await db.query("insert into needle_resume_evidence(organization_id,resume_id,actor_id,source,facts_revision) values($1,$2,$3,'needle_search','rev1') returning id",[org,digest,actor])).rows[0].id
+const platformReviews=(await db.query('select count(*)::int n from resume_identity_reviews')).rows[0].n
+await as()
+await rejects(()=>db.query("select review_platform_resume($1,$2,'link','{}'::jsonb,$3)",[registration.version.id,canonicalEvidence,person.prospect_id]),'fresh_source_verification_required')
+await rejects(()=>db.query("select review_platform_resume_after_source_verification($1,$2,'link','{}'::jsonb,$3)",[registration.version.id,canonicalEvidence,person.prospect_id]),'permission denied')
+assert.equal((await existingReview(canonicalEvidence,{}, {decision:'link',link:person.prospect_id,req:null})).prospect_id,person.prospect_id)
+await db.exec('reset role')
+assert.equal((await db.query('select count(*)::int n from resume_identity_reviews')).rows[0].n,platformReviews+1)
+assert.equal((await db.query('select count(*)::int n from resume_index_events')).rows[0].n,2)
 await db.close()
 console.log('Platform SQL: PASS (Draft/open gates, audited correction, stale writes, RLS, immutable registry, reviewed identity, no overwrite, replay)')

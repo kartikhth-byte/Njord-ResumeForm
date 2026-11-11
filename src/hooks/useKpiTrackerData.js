@@ -10,7 +10,9 @@ const APPLICATION_COLUMNS = 'id, prospect_id, user_id, applied_rank, status, sub
 async function loadCaseRows(table, columns, orderColumn) {
   const rows = []
   for (let start = 0; ; start += 1000) {
-    const result = await supabase.from(table).select(columns).order(orderColumn, { ascending: false }).range(start, start + 999)
+    let query = supabase.from(table).select(columns).order(orderColumn, { ascending: false })
+    if (orderColumn !== 'id') query = query.order('id')
+    const result = await query.range(start, start + 999)
     if (result.error) return result
     rows.push(...(result.data || []))
     if ((result.data || []).length < 1000) return { data: rows, error: null }
@@ -90,7 +92,7 @@ export default function useKpiTrackerData({ enabled = true } = {}) {
             `)
             .eq('user_type', 'recruiter')
             .order('full_name'),
-          supabase.from('requirements').select(REQUIREMENT_COLUMNS).order('date_opened', { ascending: false }),
+          loadCaseRows('requirements', REQUIREMENT_COLUMNS, 'date_opened'),
           loadCaseRows('prospects', PROSPECT_COLUMNS, 'id'),
           supabase.from('prospect_requirements').select(JUNCTION_COLUMNS).order('updated_at', { ascending: false }),
           supabase.from('applications').select(APPLICATION_COLUMNS).order('updated_at', { ascending: false }),

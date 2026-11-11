@@ -1,5 +1,16 @@
 # Holmes - Platform PRD
 
+## Requirements and Candidates separation (2026-11-10)
+
+Requirements lists requirements grouped by company and ship, with matching and
+an attached-candidate count linking to Candidates. Candidate lists belong on the
+Candidates page; each row shows its attached requirements and their company,
+ship, rank and recruitment stage. A search match alone creates no profile or case.
+Reviewed Attach reuses an existing identity, asks about possible duplicates, or
+creates a candidate using the already stored résumé. Existing-source attachment
+is independent of new uploads and automatic intake.
+
+
 ## Product Summary
 
 Holmes is the recruiter workflow automation part of an owner-operated maritime recruitment platform. The candidate portal will own candidate-maintained profiles and job discovery; Needle will power candidate job search and recruiter candidate/requirement matching. Holmes handles the requirement-to-hire workflow and the detailed post-interview form used for Excel worksheets sent to the principal.
@@ -137,3 +148,12 @@ The current applicant workflow is built around a 19-section form, covering:
 - bootstrap setup works through the backend and is repaired for the UI path
 - recruiter password reset is available
 - recruiter/admin and applicant baseline flows are automated
+
+## Company and ship navigation (approved 2026-11-10)
+
+The dedicated Companies & ships page owns inline company/ship creation and
+spelling corrections. Requirements are displayed Company → Ship → Requirement,
+with full-width aligned rows, independent collapse and row-level résumé matching.
+Requirement forms select directory records; they do not create them inline.
+Current role, historical-ID, Draft and release details are recorded in
+`COMPANIES_SHIPS_UI_2026-11-10.md`.

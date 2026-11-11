@@ -28,6 +28,7 @@ import RecruiterSettings from './pages/RecruiterSettings'
 import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
+import RecruiterCompaniesPage from './pages/RecruiterCompaniesPage'
 import RecruiterCandidatesPage from './pages/RecruiterCandidatesPage'
 import RecruiterAiSearch from './pages/RecruiterAiSearch'
 import OperatorConsole from './pages/OperatorConsole'
@@ -242,6 +243,8 @@ function App() {
                 <RecruiterKpiPage />
               </RecruiterRoute>
             } />
+
+            <Route path="/recruiter/companies" element={<RecruiterRoute><RecruiterCompaniesPage /></RecruiterRoute>} />
 
             <Route path="/recruiter/requirements" element={
               <RecruiterRoute>

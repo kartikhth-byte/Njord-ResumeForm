@@ -450,6 +450,13 @@ export function buildCandidateFunnelRows({
       daysSinceContact: dayDiff(contactedAt, now),
       requirementCount,
       primaryRequirement,
+      attachedRequirements: (casesAvailable ? [...activeCases, ...personCases] : attached)
+        .filter((item, index, all) => all.findIndex(other => other.requirement_id === item.requirement_id) === index)
+        .map(item => ({
+        id: item.id, requirementId: item.requirement_id,
+        requirement: requirementById[item.requirement_id],
+        stage: casesAvailable ? caseStatusMeta(item.status).label : (item.status || 'Attached'),
+      })),
       requirementLabel: primaryRequirement
         ? `${primaryRequirement.req_id_display}${requirementCount>1 ? ` +${requirementCount-1}` : ''}`
         : 'Unassigned',

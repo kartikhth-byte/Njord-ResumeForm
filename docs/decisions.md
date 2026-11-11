@@ -1,5 +1,16 @@
 # Decisions Log
 
+## Existing résumé use without new intake (2026-11-10)
+
+The user approved separating existing-source review/attachment from new upload
+hosting. Existing Needle/Drive sources may create/link a Holmes candidate through
+actor-bound verified evidence and explicit identity review without importing the
+file into the unfinished platform intake service. Canonical platform versions
+retain their existing review transaction. This is a supported existing-corpus
+path, not a resumption of Needle uploads or automatic intake. Requirements shows
+an attached count only; Candidates owns the per-person requirement links.
+
+
 ## 2026-11-05 - All Hosted Needle Features In Holmes; Add To Holmes; Match Resumes
 
 Decision:
@@ -202,3 +213,13 @@ Decision:
 Why:
 - `profiles.user_type = recruiter` includes Coordinators and is not an editor authorization check
 
+
+## 2026-11-10 — Separate company directory and grouped requirements
+
+Company/ship maintenance belongs on **Companies & ships**, with inline add/edit
+rows and ships indented under collapsible companies. Requirements use full-width,
+left-aligned company/ship/requirement rows distinguished by icon and background;
+only groups with filtered requirements appear. Requirement creation and matching
+retain their existing modals. Directory maintenance is Master/authorized-operator
+only; recruiters select stable IDs. Renames retain historical snapshots and
+cannot transfer ships between companies. See `COMPANIES_SHIPS_UI_2026-11-10.md`.

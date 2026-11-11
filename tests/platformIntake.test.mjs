@@ -20,3 +20,9 @@ test('case-only candidate is attached and in process; an unattached person is no
  assert.equal(rows[1].requirementCount,0);assert.equal(rows[1].inActivePipeline,false)
  assert.equal(rows[2].stage,'Needs triage');assert.equal(rows[2].inActivePipeline,true)
 })
+
+test('candidate rows expose every attached requirement with its own stage',()=>{
+ const [row]=buildCandidateFunnelRows({prospects:[{id:'p',name:'Synthetic'}],requirements:[{id:'r1',req_id_display:'ONE',company_id:'c1',ship_id:'s1'},{id:'r2',req_id_display:'TWO',company_id:'c2',ship_id:'s2'}],cases:[{id:'a',prospect_id:'p',requirement_id:'r1',status:'sourced'},{id:'b',prospect_id:'p',requirement_id:'r2',status:'offered'},{id:'old',prospect_id:'p',requirement_id:'r1',status:'closed'}],casesAvailable:true})
+ assert.equal(row.attachedRequirements.length,2)
+ assert.deepEqual(row.attachedRequirements.map(link=>[link.requirement.req_id_display,link.stage]),[['ONE','Sourced'],['TWO','Offered']])
+})

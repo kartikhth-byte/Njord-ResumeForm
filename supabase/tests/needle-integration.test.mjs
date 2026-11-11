@@ -14,7 +14,7 @@ const query=(table)=>({
  insert(row){writes.push([table,row]);return {select(){return this},single(){return Promise.resolve({data:{id:'evidence-uuid'}})}}}
 })
 const admin={auth:{getUser:async token=>({data:{user:token==='valid'?{id:'actor'}:null}})},from:query}
-let upstream=()=>new Response(JSON.stringify({resumes:[{resume_id:hash,filename:'synthetic.pdf',status:'ready',original_available:true,prefill:{full_name:'Synthetic'}}]}),{headers:{'Content-Type':'application/json'}})
+let upstream=()=>new Response(JSON.stringify({resumes:[{resume_id:hash,filename:'synthetic.pdf',status:'ready',facts_revision:'synthetic-revision',original_available:true,prefill:{full_name:'Synthetic'}}]}),{headers:{'Content-Type':'application/json'}})
 const handler=integrationHandler({admin,requester:()=>({from:query,rpc:async(name,args)=>{rpcCalls.push({name,args});return {data:sameFile}}}),authorize:async()=>access,
  origin:'https://needle.example.invalid',organization:org,
  sign:async(user,claims,purpose)=>{calls.push({user,claims,purpose});return 'signed'},
@@ -34,6 +34,7 @@ const good=await handler(req({action:'prepare',resume_ids:[hash],prefill:{full_n
 assert.equal(good.status,200)
 const prepared=(await good.json()).resumes[0]
 assert.equal(prepared.prefill.full_name,'Synthetic')
+assert.equal(prepared.review_source,'existing_resume')
 assert.deepEqual(prepared.matches,sameFile)
 assert.deepEqual(rpcCalls,[{name:'find_resume_candidate_matches',args:{p_resume_id:hash}}])
 assert.equal(writes.length,2)
@@ -53,4 +54,21 @@ access={view:true,edit:true,search:true,coordinator:false}
 const before=writes.length
 assert.equal((await handler(req({action:'prepare',resume_ids:[hash]}))).status,503)
 assert.equal(writes.length,before)
+for (const row of [
+ {resume_id:hash,status:'pending',original_available:true,facts_revision:'r1'},
+ {resume_id:hash,status:'ready',original_available:false,facts_revision:'r1'},
+ {resume_id:hash,status:'ready',original_available:true},
+]) {
+ upstream=()=>new Response(JSON.stringify({resumes:[row]}))
+ assert.equal((await handler(req({action:'prepare',resume_ids:[hash]}))).status,409)
+ assert.equal(writes.length,before)
+}
+for (const resumes of [[],[{resume_id:'b'.repeat(64)}],[{resume_id:hash},{resume_id:hash}]]) {
+ upstream=()=>new Response(JSON.stringify({resumes}))
+ await assert.rejects(()=>handler(req({action:'prepare',resume_ids:[hash]})),/Invalid Needle response/)
+ assert.equal(writes.length,before)
+}
+upstream=()=>new Response(JSON.stringify({resumes:[{resume_id:hash,status:'ready',original_available:true,facts_revision:'r1',storage_ref:{drive_file_id:'private'}}]}))
+const safe=(await (await handler(req({action:'prepare',resume_ids:[hash]}))).json()).resumes[0]
+assert.equal('storage_ref' in safe,false)
 console.log('Needle integration bridge: PASS (normal auth, Coordinator denial, bounded IDs, server-only prefill, linked-only PDF and upstream failure)')

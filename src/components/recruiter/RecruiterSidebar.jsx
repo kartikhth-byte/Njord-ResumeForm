@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
+  Building2,
   CalendarDays,
   ChevronsUpDown,
   ClipboardList,
@@ -47,7 +48,7 @@ function writeCollapsed(value) {
 export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { canViewAnalytics, canManageSettings } = usePermissions()
+  const { canViewAnalytics, canManageSettings, canViewRequirements } = usePermissions()
   const { isOperator } = useAuth()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -66,6 +67,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     {
       label: 'Recruit',
       items: [
+        canViewRequirements() && { key: 'companies', label: 'Companies & ships', icon: Building2, path: '/recruiter/companies' },
         { key: 'requirements', label: 'Requirements', icon: ClipboardList, path: '/recruiter/requirements', match: ['/recruiter/requirements', '/recruiter/workspace/requirements'] },
         { key: 'candidates', label: 'Candidates', icon: Users, path: '/recruiter/candidates', match: ['/recruiter/candidates', '/recruiter/workspace/prospects', '/recruiter/prospects'] },
         { key: 'applications', label: 'Applications', icon: Inbox, path: '/recruiter/applications', match: ['/recruiter/applications', '/application/view'] },

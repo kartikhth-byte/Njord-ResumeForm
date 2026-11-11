@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
+import RequirementGroups from '../components/recruiter/RequirementGroups'
+import useClientFleet from '../hooks/useClientFleet'
 import RequirementForm from '../components/recruiter/RequirementForm'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
 import { canUseAiSearch } from '../lib/needle'
-import { requirementMatchBlocker } from '../utils/requirementMatch'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
@@ -16,10 +16,8 @@ import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
   buildRequirementTrackerRows,
-  ON_TIME_BADGE_CLASSES,
   workingRecruiters,
 } from '../utils/kpiTracker'
-import { getStatusMeta, REQUIREMENT_STATUS_META, formatDate } from './recruiterDashboardUtils'
 import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   AlertTriangle,
@@ -75,7 +73,7 @@ export default function RecruiterRequirementsPage() {
     return STATUS_FILTERS.some((option) => option.value === value) ? value : 'open'
   })
   const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
-  const [fleetFilter,setFleetFilter]=useState({company:'',ship:''})
+  const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -90,8 +88,6 @@ export default function RecruiterRequirementsPage() {
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     return rows.filter((row) => {
-      if(fleetFilter.company && row.company_id!==fleetFilter.company)return false
-      if(fleetFilter.ship && row.ship_id!==fleetFilter.ship)return false
       if(statusFilter==='draft' && (row.status!=='draft'||row.isArchived))return false
       if (statusFilter === 'open' && (row.status !== 'open' || row.isArchived)) return false
       if (statusFilter === 'closed' && (row.status !== 'closed' || row.isArchived)) return false
@@ -101,14 +97,14 @@ export default function RecruiterRequirementsPage() {
       if (dateFrom && (!row.date_opened || row.date_opened < dateFrom)) return false
       if (dateTo && (!row.date_opened || row.date_opened > dateTo)) return false
       if (query) {
-        const haystack = [row.reqId, row.vessel_name, row.customer_name, row.rankName, row.vesselTypeName, row.recruiterName]
+        const haystack = [row.reqId, row.vessel_name, row.customer_name, row.rankName, row.vesselTypeName, row.recruiterName, fleet.companies.find(item => item.id === row.company_id)?.name, fleet.ships.find(item => item.id === row.ship_id)?.name]
           .join(' ')
           .toLowerCase()
         if (!haystack.includes(query)) return false
       }
       return true
     })
-  }, [rows, statusFilter, recruiterFilter, search, dateFrom, dateTo, fleetFilter])
+  }, [rows, statusFilter, recruiterFilter, search, dateFrom, dateTo, fleet.companies, fleet.ships])
 
   const statusCounts = useMemo(() => ({
     draft: rows.filter(row=>row.status==='draft'&&!row.isArchived).length,
@@ -203,7 +199,7 @@ export default function RecruiterRequirementsPage() {
               ) : null}
               <button
                 type="button"
-                onClick={tracker.reload}
+                onClick={() => { tracker.reload(); fleet.reload() }}
                 className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
               >
                 <RefreshCcw className="h-4 w-4" />
@@ -219,7 +215,7 @@ export default function RecruiterRequirementsPage() {
                   className="inline-flex items-center gap-2 rounded-control bg-accent-fill px-4 py-2.5 text-sm font-medium text-on-accent transition hover:bg-accent-fill-hover disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
-                  New requirement
+                  Add requirement
                 </button>
               ) : null}
             </div>
@@ -259,7 +255,7 @@ export default function RecruiterRequirementsPage() {
             <p className="mt-1">{tracker.error}</p>
             <button
               type="button"
-              onClick={tracker.reload}
+              onClick={() => { tracker.reload(); fleet.reload() }}
               className="mt-4 inline-flex items-center gap-2 rounded-control border border-danger-line bg-surface px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger-soft"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -273,7 +269,7 @@ export default function RecruiterRequirementsPage() {
           <StatCard label="Overdue" value={overdueCount} icon={AlertTriangle} tone={overdueCount > 0 ? 'warning' : 'default'} />
         </div>
 
-        <FleetRequirementFilter value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements}/>
+        {fleet.error && <p role="alert" className="mt-4 text-sm text-warning">Directory names could not refresh. Saved requirement names are shown; use Refresh to retry.</p>}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-full overflow-x-auto">
@@ -337,78 +333,12 @@ export default function RecruiterRequirementsPage() {
               title="No requirements match"
             />
           ) : (
-            <div className="tracker-table-wrap max-h-[38rem] overflow-y-auto">
-              <table className="tracker-table">
-                <thead>
-                  <tr>
-                    <th>Req ID</th>
-                    {canMatch && <th>Résumé matching</th>}
-                    <th>Opened</th>
-                    <th>Closed</th>
-                    <th>Vessel</th>
-                    <th>Type</th>
-                    <th>Rank</th>
-                    <th className="tracker-cell--num">Filled</th>
-                    <th>Status</th>
-                    <th className="tracker-cell--num">Days open</th>
-                    <th>On-time</th>
-                    <th>Recruiter</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row) => {
-                    const statusMeta = getStatusMeta(REQUIREMENT_STATUS_META, row.status)
-                    const matchBlocker = requirementMatchBlocker(row)
-                    return (
-                      <tr key={row.id}>
-                        <td className="tracker-cell--primary tracker-cell--nowrap">
-                          <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
-                            {row.reqId}
-                          </Link>
-                          {row.isArchived ? (
-                            <span className="tracker-pill ml-2 bg-line text-fg-secondary">Archived</span>
-                          ) : null}
-                        </td>
-                        {canMatch && <td className="min-w-[12rem]">
-                          <button type="button" ref={element => { if (element) matchButtons.current.set(row.id, element); else matchButtons.current.delete(row.id) }}
-                            className="workspace-action-button workspace-action-button--secondary whitespace-nowrap disabled:opacity-60"
-                            disabled={Boolean(matchBlocker)} aria-haspopup="dialog" aria-label={`Match résumés for ${row.reqId}`}
-                            aria-describedby={matchBlocker ? `match-blocker-${row.id}` : undefined}
-                            onClick={() => { matchesChanged.current = false; setMatchRequirement(row) }}>Match résumés</button>
-                          {matchBlocker && <p id={`match-blocker-${row.id}`} className="mt-1 max-w-[16rem] text-xs text-fg-muted">{matchBlocker}</p>}
-                        </td>}
-                        <td className="tracker-cell--nowrap">{formatDate(row.date_opened)}</td>
-                        <td className="tracker-cell--nowrap tracker-cell--muted">{row.date_closed ? formatDate(row.date_closed) : '—'}</td>
-                        <td>{row.vessel_name || '—'}</td>
-                        <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>
-                        <td className="tracker-cell--nowrap">{row.rankName}</td>
-                        <td className="tracker-cell--num tracker-cell--nowrap">
-                          <span className={row.openPositions > 0 ? 'font-semibold text-fg' : 'font-semibold text-success'}>{row.joinedCount}</span>
-                          <span className="text-fg-muted"> / {row.positions_required}</span>
-                        </td>
-                        <td>
-                          <span className={`tracker-pill ${statusMeta.className}`}>{statusMeta.label}</span>
-                        </td>
-                        <td className="tracker-cell--num tracker-cell--nowrap">
-                          {row.daysOpen ?? '—'}
-                          {row.targetDays ? <span className="text-fg-muted"> / {row.targetDays}</span> : null}
-                        </td>
-                        <td>
-                          <span className={`tracker-pill ${ON_TIME_BADGE_CLASSES[row.onTimeStatus] || ON_TIME_BADGE_CLASSES['—']}`}>
-                            {row.onTimeStatus}
-                          </span>
-                        </td>
-                        <td className="tracker-cell--nowrap">{row.recruiterName}</td>
-                        <td className="max-w-[16rem] tracker-cell--muted">
-                          <span className="line-clamp-2">{row.latestRemark || row.closure_reason || '—'}</span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <RequirementGroups
+              key={JSON.stringify([statusFilter, recruiterFilter, search, dateFrom, dateTo])}
+              rows={filteredRows} fleet={fleet} data={tracker.data} canMatch={canMatch}
+              matchButtons={matchButtons} from={`${location.pathname}${location.search}`}
+              onMatch={row => { matchesChanged.current = false; setMatchRequirement(row) }}
+            />
           )}
 
           <p className="mt-4 text-xs text-fg-muted">

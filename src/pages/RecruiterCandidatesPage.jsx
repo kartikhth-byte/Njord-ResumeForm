@@ -4,6 +4,7 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import FleetRequirementFilter from '../components/recruiter/FleetRequirementFilter'
+import useClientFleet from '../hooks/useClientFleet'
 import ResumeLeadQueue from '../components/recruiter/ResumeLeadQueue'
 import ResumeIntakeQueue from '../components/recruiter/ResumeIntakeQueue'
 import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../lib/resumeIntake'
@@ -56,8 +57,9 @@ export default function RecruiterCandidatesPage() {
   const [reviewResume,setReviewResume]=useState(null)
   const [leadForm,setLeadForm]=useState({})
   const [intakeRevision,setIntakeRevision]=useState(0)
-  const [fleetFilter,setFleetFilter]=useState({company:'',ship:'',requirement:'',stage:''})
+  const [fleetFilter,setFleetFilter]=useState(() => ({company:'',ship:'',requirement:new URLSearchParams(location.search).get('requirement') || '',stage:''}))
   const [notice, setNotice] = useState('')
+  const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
   const tracker = useKpiTrackerData({ enabled: !permLoading })
   const createButton = useRef(null)
   const restoreCreateFocus = useRef(false)
@@ -103,14 +105,14 @@ export default function RecruiterCandidatesPage() {
       if (dateFrom && (!contactedDay || contactedDay < dateFrom)) return false
       if (dateTo && (!contactedDay || contactedDay > dateTo)) return false
       if (query) {
-        const haystack = [row.name, row.email, row.rankName, row.vesselTypeName, row.requirementLabel, row.recruiterName]
+        const haystack = [row.name, row.email, row.rankName, row.vesselTypeName, row.requirementLabel, row.recruiterName, ...(row.attachedRequirements || []).flatMap(link => [link.requirement?.req_id_display, link.requirement?.customer_name, link.requirement?.vessel_name, fleet.companies.find(c => c.id === link.requirement?.company_id)?.name, fleet.ships.find(s => s.id === link.requirement?.ship_id)?.name])]
           .join(' ')
           .toLowerCase()
         if (!haystack.includes(query)) return false
       }
       return true
     })
-  }, [rows, viewFilter, stageFilter, recruiterFilter, search, dateFrom, dateTo, fleetFilter, tracker.data.cases, tracker.data.requirements])
+  }, [rows, viewFilter, stageFilter, recruiterFilter, search, dateFrom, dateTo, fleetFilter, tracker.data.cases, tracker.data.requirements, fleet.companies, fleet.ships])
 
   const viewCounts = useMemo(() => ({
     active: rows.filter((row) => row.inActivePipeline).length,
@@ -354,7 +356,7 @@ export default function RecruiterCandidatesPage() {
                     <th>Candidate</th>
                     <th>Contacted</th>
                     <th>Recruiter</th>
-                    <th>Requirement</th>
+                    <th>Attached requirements</th>
                     <th>Rank</th>
                     <th>Vessel type</th>
                     <th>Stage</th>
@@ -379,16 +381,11 @@ export default function RecruiterCandidatesPage() {
                       <td className="tracker-cell--nowrap">{formatDate(row.contactedAt)}</td>
                       <td className="tracker-cell--nowrap">{row.recruiterName}</td>
                       <td className="tracker-cell--nowrap">
-                        {row.primaryRequirement ? (
-                          <Link
-                            to={`/recruiter/workspace/requirements/${row.primaryRequirement.id}`} state={{ from: `${location.pathname}${location.search}` }}
-                            className="text-accent-text hover:underline"
-                          >
-                            {row.requirementLabel}
-                          </Link>
-                        ) : (
-                          <span className="tracker-cell--muted">Unattached</span>
-                        )}
+                        {row.attachedRequirements?.length ? <ul className="space-y-3">{row.attachedRequirements.map(link => <li key={link.id}>
+                          <Link to={`/recruiter/workspace/requirements/${link.requirementId}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">{link.requirement?.req_id_display || 'View requirement'}</Link>
+                          <p className="mt-1 text-xs text-fg-secondary">{fleet.companies.find(c => c.id === link.requirement?.company_id)?.name || link.requirement?.customer_name || 'Company not set'} · {fleet.ships.find(s => s.id === link.requirement?.ship_id)?.name || link.requirement?.vessel_name || 'Ship not set'}</p>
+                          <p className="mt-1 text-xs">{tracker.data.ranks.find(r => r.id === link.requirement?.rank_id)?.name || 'Rank not set'} · {link.stage}</p>
+                        </li>)}</ul> : <span className="tracker-cell--muted">Unattached</span>}
                       </td>
                       <td className="tracker-cell--nowrap">{row.rankName}</td>
                       <td className="tracker-cell--nowrap">{row.vesselTypeName}</td>

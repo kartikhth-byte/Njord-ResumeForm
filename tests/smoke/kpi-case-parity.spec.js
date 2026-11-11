@@ -116,7 +116,7 @@ test.describe('KPI case parity (synthetic only)', () => {
     test(`${path} shares the distinct hired total`, async ({ page }) => {
       await fixture(page)
       await page.goto(path)
-      await expect(page.getByRole('row').filter({ hasText: 'SYN-KPI-1' })).toContainText('2 / 3')
+      await expect(path === '/recruiter/requirements' ? page.getByRole('article', { name: 'SYN-KPI-1', exact: true }) : page.getByRole('row').filter({ hasText: 'SYN-KPI-1' })).toContainText('2 / 3')
       await expectDesktopInset(page)
     })
   }

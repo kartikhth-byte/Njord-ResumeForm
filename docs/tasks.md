@@ -1,5 +1,28 @@
 # Pending Tasks
 
+## Existing-source attachment follow-up (2026-11-10)
+
+- [x] Requirements count-to-Candidates navigation; candidate row company/ship/rank/stage links.
+- [x] Reviewed existing-source new/link attachment independent of upload hold.
+- [x] Normal duplicate/stale/permission guards; private audit and canonical-version delegation.
+- [x] Local synthetic browser and SQL smoke, lint/build.
+- [ ] Commit/review the combined Companies & ships candidate with migration 1002.
+- [ ] Staging normal-session + actual-original smoke; approved production migration,
+  `needle-integration` redeployment and frontend promotion. Nothing deployed here.
+
+
+## Companies & ships UI — local implementation (2026-11-10)
+
+The approved dedicated directory and company → ship → requirement layout are
+implemented in isolated `codex/companies-ships-ui-20261110`. Directory Add/Edit
+uses inline rows; requirements retain the creation/matching modals. See
+`docs/COMPANIES_SHIPS_UI_2026-11-10.md` (relative to repository root) for behavior,
+role boundaries, validation and release/rollback steps. Migration `2026111001`
+is prepared for ship type and version-checked directory writes; it is not
+applied. Staging validation, exact release review and production promotion
+remain. Intake stays off. Earlier release checkpoints below are historical.
+
+
 ## Completed production matching/review slice (2026-11-07)
 
 Needle `a4599657` is independently reviewed and active on engine/worker; Holmes

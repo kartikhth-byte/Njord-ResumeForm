@@ -3,6 +3,11 @@ import {openIntakeOriginal} from '../../services/needleIntegrationService'
 export default function ResumeSuggestionReview({resume,onApply}) {
   const [error,setError]=useState('')
   if(!resume)return null
+  // Existing searchable sources have a scoped original preview in the matching
+  // dialog, not a platform intake version or basic-extraction status.
+  if(resume.review_source==='existing_resume') return <section className="rounded-control border border-line p-4 text-sm" aria-label="Résumé details review">
+    <p>Check the details below against the original résumé before attaching. Saving will not overwrite an existing candidate’s details.</p>
+  </section>
   return <section className="space-y-3 rounded-control border border-line p-4" aria-label="Extraction suggestions">
     <h3 className="font-semibold">Review résumé suggestions</h3>
     <button type="button" className="underline text-sm" onClick={async()=>{setError('');try{await openIntakeOriginal(resume.resume_version_id)}catch(e){setError(e.message)}}}>View stored original</button>

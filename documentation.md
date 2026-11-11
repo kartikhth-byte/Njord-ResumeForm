@@ -1,5 +1,29 @@
 # Project Status
 
+## Existing résumé attachment — local follow-up (2026-11-10)
+
+Requirements now link to a filtered Candidates page by attached count, rather than
+expanding candidate rows. Candidate rows list all distinct attached requirements
+with company/ship/rank and stage. Reviewed existing-source attachment uses the
+scoped Needle evidence bridge and new `review_existing_resume` RPC, independent
+of new uploads. Identity review, duplicates and stale/open requirement guards
+remain enforced. Migration `2026111002` and Function/frontend changes are local,
+uncommitted and undeployed. Combined release details and verification are in
+`docs/COMPANIES_SHIPS_UI_2026-11-10.md`.
+
+
+## Companies & ships UI — local implementation (2026-11-10)
+
+The approved dedicated directory and company → ship → requirement layout are
+implemented in isolated `codex/companies-ships-ui-20261110`. Directory Add/Edit
+uses inline rows; requirements retain the creation/matching modals. See
+`docs/COMPANIES_SHIPS_UI_2026-11-10.md` (relative to repository root) for behavior,
+role boundaries, validation and release/rollback steps. Migration `2026111001`
+is prepared for ship type and version-checked directory writes; it is not
+applied. Staging validation, exact release review and production promotion
+remain. Intake stays off. Earlier release checkpoints below are historical.
+
+
 ## Production matching/review accepted — 2026-11-07
 
 Holmes `b28d6c5` plus independently reviewed Needle `a4599657` pass the production

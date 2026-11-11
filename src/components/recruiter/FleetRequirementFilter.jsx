@@ -16,7 +16,7 @@ export default function FleetRequirementFilter({value,onChange,requirements=[],c
     </div>
     {!cases&&<details className="rounded border border-line p-3 text-sm"><summary className="cursor-pointer font-medium">Browse company and ship tree</summary>
       <ul className="mt-3 space-y-2">{fleet.companies.map(company=><li key={company.id}><details><summary className="cursor-pointer break-words">{company.name}</summary><ul className="ml-4 mt-2 space-y-2">{fleet.ships.filter(ship=>ship.company_id===company.id).map(ship=><li key={ship.id}><details><summary className="cursor-pointer break-words">{ship.name}</summary><ul className="ml-4 mt-2 space-y-1">{requirements.filter(r=>r.ship_id===ship.id&&!r.deleted_at).map(r=><li key={r.id}><Link className="underline" to={`/recruiter/workspace/requirements/${r.id}`}>{r.req_id_display} · {r.status}</Link></li>)}</ul></details></li>)}</ul></details></li>)}</ul>
-      {!fleet.companies.length&&<p className="mt-2">Register reviewed companies and ships in the requirement form.</p>}
+      {!fleet.companies.length&&<p className="mt-2">Add companies and ships on the Companies & ships page.</p>}
     </details>}
     {fleet.error&&<p role="alert" className="text-danger">{fleet.error}</p>}
     <p className="text-xs text-fg-muted">Legacy unreviewed company and vessel labels remain in the All view. They are never automatically assigned to a ship.</p>

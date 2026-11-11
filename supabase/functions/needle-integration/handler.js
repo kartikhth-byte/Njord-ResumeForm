@@ -1,5 +1,5 @@
 // Server-to-server bridge. Never accept candidate facts or a Needle origin
-// from the caller. Service-role writes are limited to verified resume evidence.
+// from the caller. Service-role writes are limited to verified resume evidence and private save receipts.
 export function integrationHandler({ admin, requester, authorize, sign, origin, organization, fetcher = fetch }) {
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
   const checked = result => { if (result.error) throw new Error('Database operation failed'); return result.data }
@@ -29,11 +29,54 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
     } catch { return json({ error: 'Invalid request' }, 400) }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid request' }, 400)
     const action = body.action
-    if (!['prepare', 'upload', 'view', 'match', 'match_results', 'match_original', 'match_preview', 'operator', 'status'].includes(action)) return json({ error: 'Unknown action' }, 400)
+    if (!['review_existing', 'prepare', 'upload', 'view', 'match', 'match_results', 'match_original', 'match_preview', 'operator', 'status'].includes(action)) return json({ error: 'Unknown action' }, 400)
     if (action === 'operator' && !access.operator) return json({ error: 'Not authorized' }, 403)
     if (action !== 'operator' && !access.view) return json({ error: 'Not authorized' }, 403)
     if (!['view', 'status', 'operator'].includes(action) && (!access.edit || (access.coordinator && !access.operator) || (action !== 'upload' && !access.search))) return json({ error: 'Not authorized' }, 403)
     if (action === 'upload') return json({ error: 'Use platform Resume Intake for original uploads' }, 410)
+    if (action === 'review_existing') {
+      const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value)
+      if (!uuid(body.p_evidence) || !['new', 'link'].includes(body.p_decision)
+        || !body.p_fields || typeof body.p_fields !== 'object' || Array.isArray(body.p_fields)
+        || JSON.stringify(body.p_fields).length > 65536
+        || (body.p_link != null && !uuid(body.p_link)) || (body.p_requirement != null && !uuid(body.p_requirement))
+        || (body.p_requirement != null && !Number.isSafeInteger(body.p_requirement_version))
+        || typeof body.p_confirm_new !== 'boolean') return json({error:'Invalid identity review'},400)
+      const evidence = checked(await admin.from('needle_resume_evidence').select('*')
+        .eq('id',body.p_evidence).eq('actor_id',user.id).eq('organization_id',organization).eq('source','needle_search').maybeSingle())
+      if (!evidence || !/^[a-f0-9]{64}$/.test(evidence.resume_id || '')) return json({error:'Review this résumé again before attaching.'},409)
+      const signedReview = await sign(user.id,{org:organization,role:'user',resume_ids:[evidence.resume_id]},'prepare')
+      const verifiedResponse = await fetcher(new URL('/api/holmes/verify-review',base), {
+        method:'POST',redirect:'error',headers:{Authorization:`Bearer ${signedReview}`,'Content-Type':'application/json'},
+        body:JSON.stringify({resume_id:evidence.resume_id,facts_revision:evidence.facts_revision}),signal:AbortSignal.timeout(60000),
+      })
+      if (!verifiedResponse.ok) return json({error:verifiedResponse.status===409
+        ? 'The résumé changed or its original is unavailable. Close matching and review it again.'
+        : 'Could not verify the résumé. No candidate was saved. Try again.'},verifiedResponse.status===409?409:503)
+      const verified = await verifiedResponse.json()
+      const age = Date.now()-Date.parse(verified.verified_at)
+      if (verified.resume_id!==evidence.resume_id || verified.facts_revision!==evidence.facts_revision
+        || verified.original_verified!==true || !Number.isFinite(age) || age < -5000 || age > 30000) {
+        return json({error:'Could not verify the reviewed résumé. No candidate was saved.'},409)
+      }
+      const reviewed = {p_evidence:body.p_evidence,p_decision:body.p_decision,p_fields:body.p_fields,
+        p_link:body.p_link??null,p_confirm_new:body.p_confirm_new,p_requirement:body.p_requirement??null,
+        p_requirement_version:body.p_requirement_version??null}
+      const receipt = checked(await admin.from('existing_resume_save_receipts').insert({
+        evidence_id:evidence.id,actor_id:user.id,organization_id:organization,resume_id:evidence.resume_id,
+        facts_revision:evidence.facts_revision,reviewed_request:reviewed,verified_at:verified.verified_at,
+      }).select('id').single())
+      // Keep the caller's permissions and all identity/case checks in the DB.
+      const saved = await client.rpc('review_existing_resume',{...reviewed,p_receipt:receipt.id})
+      if (saved.error) {
+        const safe = new Set(['version_conflict','open_requirement_required','requirement_not_open','possible_duplicate',
+          'possible_duplicate_requires_review','existing_candidate_requires_explicit_link','linked_candidate_requires_restore',
+          'phone_or_email_required','valid_email_required','permission_denied','resume_source_changed_refresh_matching',
+          'resume_review_expired_refresh_matching','fresh_source_verification_required'])
+        return json({error:safe.has(saved.error.message)?saved.error.message:'Could not save the reviewed candidate. Refresh matching and try again.'},409)
+      }
+      return json(saved.data)
+    }
     let ids = []
     if (action === 'prepare') {
       ids = body.resume_ids
@@ -136,7 +179,13 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
       return json(payload)
     }
     const resumes = payload.resumes
-    if (!Array.isArray(resumes) || !resumes.length || resumes.length > 25) throw new Error('Invalid Needle response')
+    if (!Array.isArray(resumes) || resumes.length !== ids.length || new Set(resumes.map(row => row.resume_id)).size !== ids.length
+      || resumes.some(row => !ids.includes(row.resume_id))) throw new Error('Invalid Needle response')
+    // Existing-corpus review never imports a file or accepts facts from the browser.
+    // Validate the complete batch before issuing evidence for any row.
+    if (resumes.some(row => row.status !== 'ready' || row.original_available !== true || typeof row.facts_revision !== 'string' || !row.facts_revision.trim())) {
+      return json({ error: 'Résumé facts or original are unavailable. Refresh matching or ask an operator to review the source.' }, 409)
+    }
     const prepared = []
     for (const resume of resumes) {
       if (!/^[a-f0-9]{64}$/.test(resume.resume_id || '') || !resume.original_available || (action === 'prepare' && !ids.includes(resume.resume_id))) throw new Error('Invalid Needle resume evidence')
@@ -150,7 +199,7 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
       // Same-file matches must be available before requiring new-person fields.
       const matches = checked(await client.rpc('find_resume_candidate_matches', { p_resume_id: resume.resume_id })) || []
       const { storage_ref: _privateOriginal, ...browserResume } = resume
-      prepared.push({ ...browserResume, evidence_id: evidence.id, matches })
+      prepared.push({ ...browserResume, review_source: 'existing_resume', evidence_id: evidence.id, matches })
     }
     return json({ resumes: prepared })
   }

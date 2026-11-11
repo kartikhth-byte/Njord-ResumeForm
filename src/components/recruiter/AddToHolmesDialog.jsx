@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { prepareResumes, normalizeResumePhone, withRequirementDefaults } from '../../services/needleIntegrationService'
 import CandidateForm from './CandidateForm'
-import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
 
 // Bulk additions are independently reviewed. A failed item never rolls back a
 // successful item, and retrying the same evidence does not create another person.
@@ -16,7 +15,6 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
   const ref = useRef(null)
   useEffect(() => { ref.current?.focus() }, [])
   useEffect(() => {
-    if (!resumeIntakeEnabled()) { setState(prev => ({ ...prev, loading: false, error: RESUME_INTAKE_HOLD })); return }
     let active = true
     Promise.all([prepareResumes(resumeIds, stageId),
       supabase.from('ranks').select('id,name').order('name'),
@@ -42,7 +40,7 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
   }, requirementOptions.find(row => row.value === requirementId)) : {}
   return <div className={inline ? 'min-w-0' : 'fixed inset-0 z-50 overflow-y-auto bg-black/70 p-3 sm:p-8'} role={inline ? undefined : 'dialog'} aria-modal={inline ? undefined : 'true'} aria-labelledby="add-holmes-title" onKeyDown={event => {
     if (inline) return
-    if (event.key === 'Escape') onClose()
+    if (event.key === 'Escape' && !busy) onClose()
     if (event.key === 'Tab') {
       const nodes = [...ref.current.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')]
       if (event.shiftKey && document.activeElement === nodes[0]) { event.preventDefault(); nodes.at(-1)?.focus() }
@@ -56,10 +54,10 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
       {state.error && <p role="alert" className="text-danger">{state.error}</p>}
       {resume && <>
         {!inline && <a className="mb-3 inline-block underline" href={`/ai/api/workspace/candidates/${resume.resume_id}/pdf`} target="_blank" rel="noreferrer">Open original résumé for review</a>}
-        <nav className="mb-4 flex flex-wrap gap-2" aria-label="Selected résumés">{state.resumes.map((row, i) => <button key={row.resume_id} className="rounded border border-line px-3 py-1" aria-current={i === index ? 'step' : undefined} onClick={() => setIndex(i)}>{i + 1}{saved[row.resume_id] ? ' ✓' : ''}</button>)}</nav>
+        <nav className="mb-4 flex flex-wrap gap-2" aria-label="Selected résumés">{state.resumes.map((row, i) => <button key={row.resume_id} className="rounded border border-line px-3 py-1" aria-current={i === index ? 'step' : undefined} disabled={busy} onClick={() => setIndex(i)}>{i + 1}{saved[row.resume_id] ? ' ✓' : ''}</button>)}</nav>
         {saved[resume.resume_id] ? <p role="status">Saved. <Link className="underline" to={`/recruiter/workspace/prospects/${saved[resume.resume_id]}`}>Open candidate</Link></p> : <>
           {prefill.phone && !initial.telephone && <p className="mb-3 text-sm text-warning">Source phone: {prefill.phone}. Enter its country code explicitly, or save using email.</p>}
-          <CandidateForm key={resume.resume_id} initialForm={initial} allowUpload={false} ranks={state.ranks} vesselTypes={state.vessels}
+          <CandidateForm key={resume.resume_id} initialForm={initial} allowUpload={false} inDialog={inline} ranks={state.ranks} vesselTypes={state.vessels}
             currentRecruiterId={user.id} canChooseRecruiter={false} canSave={permissions.includes('create_prospects') || role === 'Master Recruiter' || role === 'Recruiter'}
             canAttach={permissions.includes('edit_junction_status')} lockedRequirement={inline} onBusyChange={onBusyChange} requirementOptions={requirementOptions}
             onSaved={(_message, result) => { setSaved(prev => ({ ...prev, [resume.resume_id]: result.id })); onSaved?.(resume.resume_id, result.id); if (index < state.resumes.length - 1) setIndex(index + 1) }} onCancel={onClose} />
