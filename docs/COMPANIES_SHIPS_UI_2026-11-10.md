@@ -1,5 +1,29 @@
 # Companies & ships and grouped requirements — 2026-11-10
 
+## Production release — 2026-11-11
+
+KT approved the exact pair: Holmes `b573bd8f3fc48334a25819a198796fe3e2410b5d`
+and Needle `49e30cf8cb7832614131a163e4ef0766636523ee`. Both are deployed.
+Production migrations 2026111001/1002 applied with candidate/case counts unchanged;
+`needle-integration` version 3 is ACTIVE with reviewed handler authentication.
+Vercel deployment `2fiEc96kAgp5nZETr2ZWErhCH8AY` passed for the exact Holmes SHA.
+
+Normal staging Master/Coordinator checks passed, including existing candidate
+reuse, reviewed attachment and persisted company/ship/requirement links. Live
+operator company/ship add/edit/reload, grouped requirement create, row matching
+(124 matches; required rank + vessel), pagination, PDF pages 1/2 and zoom pass.
+Production Coordinator can read/navigate but has no add/edit/match/attach controls.
+Synthetic requirement `2026-Nov-002` was closed; its directory/history is retained.
+Both deployed attachment authentication boundaries reject anonymous calls.
+
+**Still pending:** live attachment save/reload with an approved synthetic stored
+résumé. None exists among the 1,629 current production facts; fixture approval
+was requested. No real candidate was attached. Staging Needle fixtures are local
+and synthetic, not production Drive acceptance. New intake remains disabled.
+Backups/restore limits and service IDs are in Needle's release inventory; private
+receipts/screenshots reside in `.local/fleet-release-20261111/` under NjordHR.
+The preparation sections below are historical.
+
 ## Scope and status
 
 Implemented locally on `codex/companies-ships-ui-20261110`, isolated worktree
