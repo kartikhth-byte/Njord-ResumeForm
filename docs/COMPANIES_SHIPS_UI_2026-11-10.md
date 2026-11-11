@@ -16,10 +16,20 @@ Production Coordinator can read/navigate but has no add/edit/match/attach contro
 Synthetic requirement `2026-Nov-002` was closed; its directory/history is retained.
 Both deployed attachment authentication boundaries reject anonymous calls.
 
-**Still pending:** live attachment save/reload with an approved synthetic stored
-résumé. None exists among the 1,629 current production facts; fixture approval
-was requested. No real candidate was attached. Staging Needle fixtures are local
-and synthetic, not production Drive acceptance. New intake remains disabled.
+**Live attachment passed:** KT approved one synthetic PDF/test-facts fixture.
+The production original renders in matching; reviewed attachment creates exactly
+one candidate and consumes one fresh verification receipt (0.696 seconds from
+verification to commit). The result shows Already attached. Profile and Candidates
+row retain the requirement link after reload; Coordinator sees the row read-only.
+The fixture adds one source (1,630 total; 125 matching this requirement). The
+synthetic requirement was closed again, with candidate/case history retained.
+No real person was attached and no invitations were sent. New intake remains off.
+
+Smoke observations: first matching fetch failed, then Retry succeeded. The
+synthetic folder needed placement under existing private production storage to
+inherit the engine reader access. No permissions were changed. View résumé from
+the saved profile was also visually verified in native Chrome using the normal
+Coordinator session: one readable page with all synthetic source text visible.
 Backups/restore limits and service IDs are in Needle's release inventory; private
 receipts/screenshots reside in `.local/fleet-release-20261111/` under NjordHR.
 The preparation sections below are historical.
