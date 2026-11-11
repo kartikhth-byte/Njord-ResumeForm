@@ -2,9 +2,9 @@
 
 ## Status
 
-Reviewed implementation based on Holmes `0d278e0` (production app `b573bd8f`).
-Migration `2026111101` is applied to staging only. No
-production schema, service, data, credentials or intake settings changed.
+Released Holmes `1a8f6caf24143f3ba84dddcf7fccb660e305c45c` to main/Vercel
+after exact user approval. Migration `2026111101` applied to staging and production.
+Needle, Functions, credentials, hosting and intake settings were unchanged.
 
 ## Behavior
 
@@ -41,7 +41,7 @@ was closed after attachment; candidate and case history were retained.
 
 Staging used real Holmes authentication/database/handlers with the existing local
 synthetic Needle facts/PDF bridge. This does not certify production Drive access.
-The previous production source release is unchanged; deployed smoke remains a gate.
+Production smoke below separately verified the deployed handlers and Drive original.
 
 Fresh production backup `20261111T111230Z` completed: 108 data objects / 7,615 rows;
 scratch payload restore verified. Extension-compatible public DDL/data/CHECK restore
@@ -49,11 +49,33 @@ passed: 65 tables / 688 rows, exact snapshot counts. Managed-schema reconstructi
 post-data/cluster globals and Storage file bytes are outside this restore claim.
 Private receipts and synthetic screenshots remain under ignored `.local/` paths.
 
-Pending: exact production approval for this frontend commit and migration
-`2026111101_candidate_directory.sql`, then main/Vercel promotion and live smoke.
+Production approval, migration, main/Vercel promotion and live smoke are complete.
 No Needle or Edge Function change is required. New intake remains off, so optional
 CV upload remains unavailable. Existing reviewed source attachment is supported.
 
 Rollback frontend to the prior candidate keeps existing profiles/cases and draft
 records intact; the additive functions/guards remain safe. Removing the new CV
 guards is a separate reviewed database change, not an automatic rollback.
+
+## Production smoke — completed 2026-11-11
+
+- Vercel production deployment `AxCPpxiAqMGi714BQVMFZFoGpihp` reports success for
+  exact approved `1a8f6ca`; migration applied with candidate/case counts unchanged.
+- Normal operator session created a labelled synthetic CV-less draft, corrected
+  its name inline, and verified version 2 after reload. Attach stayed disabled.
+- Normal Coordinator session saw the new draft without Add/Edit/Attach/Export.
+- Existing reviewed synthetic CV attached to new synthetic `2026-Nov-003` through
+  the deployed dialog. Candidate moved from Unattached to Attached; reload retained
+  one case and one person row. Duplicate requirement selection was excluded.
+- Company → Ship → Candidates displayed both requirement links in one row with
+  Active and history selected. Profile navigation/Back preserved URL filters.
+- Coordinator saw the attachment read-only and opened the original private Drive
+  PDF, visually readable in Chrome. No new PDF or real candidate was created.
+- Backend readback verified exactly one new case and one version-2 basic draft.
+  Synthetic `2026-Nov-003` was then closed; candidate/case history retained.
+- No emails, invitations, paid model calls or intake activation. Optional upload
+  remains held, as approved. Runtime code was not changed during the smoke.
+
+Private release and fixture receipts, screenshots and cleanup proof are retained
+in `.local/candidate-directory-20261111/`. This record is a documentation-only
+follow-up; the deployed application remains the exact approved `1a8f6ca`.

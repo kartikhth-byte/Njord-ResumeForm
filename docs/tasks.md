@@ -9,7 +9,7 @@
 - [x] Local synthetic browser, desktop/mobile and isolated SQL verification.
 - [x] Apply `2026111101` to staging; verify normal Master/Coordinator sessions and existing CV attachment.
 - [x] Independent release review and fixes; fresh backup/isolated public restore verification.
-- [ ] Exact production schema/frontend approval, promotion and live smoke.
+- [x] Exact production schema/frontend approval, promotion and live smoke (`1a8f6ca`, migration `2026111101`).
 - [ ] New CV upload activation remains part of the separate intake hosting work.
 
 Previous Companies & ships/existing-source release and production smoke are
