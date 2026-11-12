@@ -104,8 +104,8 @@ export default function useKpiTrackerData({ enabled = true } = {}) {
             .gte('scheduled_date', new Date().toISOString().slice(0, 10))
             .order('scheduled_date', { ascending: true })
             .limit(30),
-          loadCaseRows('recruitment_cases', 'id, prospect_id, requirement_id, status, source, created_at, updated_at, version', 'updated_at'),
-          loadCaseRows('recruitment_case_events', 'id, case_id, event_type, to_status, payload, created_at', 'created_at'),
+          loadCaseRows('recruitment_cases', 'id, prospect_id, requirement_id, application_id, cycle, status, source, created_at, updated_at, version', 'updated_at'),
+          loadCaseRows('recruitment_case_events', 'id, case_id, event_type, from_status, to_status, actor_id, payload, created_at', 'created_at'),
         ])
 
         if (cancelled) return

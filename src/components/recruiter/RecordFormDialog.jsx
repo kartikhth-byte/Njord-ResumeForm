@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 // A native modal keeps the tracker inert and traps focus, including long forms.
-export default function RecordFormDialog({ title, busy = false, onClose, children }) {
+export default function RecordFormDialog({ title, busy = false, onClose, children, sidePanel = false }) {
   const ref = useRef(null)
   const titleId = useId()
 
@@ -41,10 +41,10 @@ export default function RecordFormDialog({ title, busy = false, onClose, childre
       tabIndex={-1}
       aria-labelledby={titleId}
       aria-busy={busy}
-      className="m-auto max-h-[94dvh] w-[96vw] max-w-4xl overflow-hidden rounded-2xl border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/70"
+      className={`${sidePanel ? 'ml-auto mr-0 my-0 h-dvh max-h-dvh max-w-3xl' : 'm-auto max-h-[94dvh] max-w-4xl rounded-2xl'} w-[96vw] overflow-hidden border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-black/70`}
       onCancel={(event) => { event.preventDefault(); if (!busy) onClose() }}
     >
-      <div className="flex max-h-[94dvh] min-w-0 flex-col">
+      <div className={`flex ${sidePanel ? 'h-dvh max-h-dvh' : 'max-h-[94dvh]'} min-w-0 flex-col`}>
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 id={titleId} className="text-lg font-semibold">{title}</h2>

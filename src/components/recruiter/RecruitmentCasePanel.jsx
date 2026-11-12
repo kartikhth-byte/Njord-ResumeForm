@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronDown, ChevronUp, GitBranch, Loader2, Plus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { moveWorkspaceCase, attestWorkspacePrincipalSend } from '../../services/recruitmentWorkService'
 import EmptyState from '../ui/EmptyState'
 import {
   newIdempotencyKey,
@@ -55,9 +56,10 @@ function assessmentDetails(event) {
 // step by step through the agreed flow. All rules are enforced by the
 // database functions; this panel only offers the moves they allow.
 // Renders nothing where the case tables are not deployed yet.
-export default function RecruitmentCasePanel({ requirementId, requirementOpen = false, linkedProspects = [], permissions = [], onCaseChanged }) {
+export default function RecruitmentCasePanel({ requirementId, requirementOpen = false, linkedProspects = [], permissions = [], onCaseChanged, selectedCaseId, performerId, occurredAt, onBusyChange }) {
   const location = useLocation()
   const canMove = permissions.includes('edit_junction_status')
+  const canProgress = canMove && (!selectedCaseId || requirementOpen)
   const canExit = canMove || permissions.includes('withdraw_junctions')
   // Opening a case is a workflow change: same gate as moving one, so the
   // "read only" label holds for Coordinators.
@@ -68,6 +70,7 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
   const [submittedForms, setSubmittedForms] = useState([])
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState('')
+  useEffect(() => { onBusyChange?.(Boolean(busy)); return () => onBusyChange?.(false) }, [busy, onBusyChange])
   const [actionError, setActionError] = useState({})
   const [openHistory, setOpenHistory] = useState({})
   const [showClosed, setShowClosed] = useState(false)
@@ -104,8 +107,9 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
     return acc
   }, {}), [state.events])
 
-  const activeCases = state.cases.filter((row) => !isCaseTerminal(row.status))
-  const closedCases = state.cases.filter((row) => isCaseTerminal(row.status))
+  const visibleCases = state.cases.filter(row => !selectedCaseId || row.id === selectedCaseId)
+  const activeCases = visibleCases.filter((row) => !isCaseTerminal(row.status))
+  const closedCases = visibleCases.filter((row) => isCaseTerminal(row.status))
   const prospectsWithoutCase = linkedProspects.filter((prospect) => !activeCases.some((row) => row.prospect_id === prospect.id))
 
   if (state.loading) {
@@ -134,7 +138,7 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
 
   const move = (row, toStatus, reason = null, assessment = {}) => run(
     `${row.id}:${toStatus}`,
-    () => transitionRecruitmentCase({ caseId: row.id, toStatus, reason, assessment, expectedVersion: row.version }),
+    () => performerId ? moveWorkspaceCase(row, toStatus, reason, assessment, performerId, assessment.occurred_at || occurredAt) : transitionRecruitmentCase({ caseId: row.id, toStatus, reason, assessment, expectedVersion: row.version }),
     row.id,
   )
 
@@ -163,10 +167,10 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
       <div className="flex gap-3"><button disabled={Boolean(busy) || !form.applicationId} className="workspace-action-button workspace-action-button--primary">Link submitted form</button><button type="button" onClick={() => setForm(null)} className="underline">Cancel</button></div>
     </form>
     if (form.mode === 'principal') return <form className="mt-4 space-y-3 rounded-control border border-line bg-raised p-4" onSubmit={event => {
-      event.preventDefault(); run(`${row.id}:principal`, () => attestPrincipalSend(row, form), row.id)
+      event.preventDefault(); run(`${row.id}:principal`, () => performerId ? attestWorkspacePrincipalSend(row, form, performerId) : attestPrincipalSend(row, form), row.id)
     }}>
       <h3 className="font-semibold">Record worksheet sent to principal</h3>
-      <p className="text-sm text-fg-secondary">Send the reviewed worksheet yourself first, then record the details here. Saving this form sends no email.</p>
+      <p className="text-sm text-fg-secondary">Send the reviewed worksheet yourself first, then record the details here. Select yourself under Performed by for this personal attestation. Saving this form sends no email.</p>
       {[['recipient','Recipient','text'],['channel','Channel (email, portal or other)','text'],['worksheetVersion','Worksheet version / export filename','text'],['sentAt','Sent at','datetime-local']].map(([key,label,type]) => <label key={key} className="block text-sm">{label}<input required type={type} maxLength={key === 'recipient' ? 320 : key === 'channel' ? 100 : 200} className="mt-1 w-full rounded border border-line bg-surface p-2" value={form[key]} onChange={event => setForm(current => ({ ...current, [key]: event.target.value }))} /></label>)}
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" required checked={form.confirmed} onChange={event => setForm(current => ({ ...current, confirmed: event.target.checked }))} />I sent this worksheet to this recipient after reviewing it.</label>
       <div className="flex gap-3"><button disabled={Boolean(busy)} className="workspace-action-button workspace-action-button--primary">Record send</button><button type="button" onClick={() => setForm(null)} className="underline">Cancel</button></div>
@@ -297,8 +301,8 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
                 Place on new flow
               </button>
             ) : null}
-            {canMove && row.status === 'documents_verified' && <button disabled={Boolean(busy)} className="workspace-action-button workspace-action-button--primary" onClick={() => setForm({ caseId: row.id, mode: 'principal', recipient: '', channel: 'Email', worksheetVersion: '', sentAt: '', confirmed: false, idempotencyKey: newIdempotencyKey('principal-send') })}>Record sent to principal</button>}
-            {canMove ? nextActions.map((toStatus, index) => (
+            {canProgress && row.status === 'documents_verified' && <button disabled={Boolean(busy)} className="workspace-action-button workspace-action-button--primary" onClick={() => setForm({ caseId: row.id, mode: 'principal', recipient: '', channel: 'Email', worksheetVersion: '', sentAt: '', confirmed: false, idempotencyKey: newIdempotencyKey('principal-send') })}>Record sent to principal</button>}
+            {canProgress ? nextActions.map((toStatus, index) => (
               <button
                 key={toStatus}
                 type="button"
@@ -307,7 +311,7 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
                 className={`workspace-action-button ${index === 0 ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
               >
                 {busy === `${row.id}:${toStatus}` ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {caseActionLabel(toStatus)}
+                {selectedCaseId && toStatus === 'hired' ? 'Confirm joined' : caseActionLabel(toStatus)}
               </button>
             )) : null}
             {canExit ? (
@@ -362,13 +366,13 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
       </div>
       {state.error ? <p className="px-6 pt-4 text-sm text-danger">{state.error}</p> : null}
       <div className="divide-y divide-line">
-        {activeCases.length === 0 && !showClosed ? (
+        {activeCases.length === 0 && !showClosed && !selectedCaseId ? (
           <div className="p-6">
             <EmptyState icon={GitBranch} title="No active cases" />
           </div>
         ) : null}
         {activeCases.map(renderCase)}
-        {showClosed ? closedCases.map(renderCase) : null}
+        {showClosed || selectedCaseId ? closedCases.map(renderCase) : null}
       </div>
       {canOpen && prospectsWithoutCase.length > 0 ? (
         <div className="border-t border-line px-6 py-4">

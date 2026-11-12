@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import CandidateResumePanel from '../components/recruiter/CandidateResumePanel'
 import StatusBadge from '../components/StatusBadge'
@@ -618,6 +618,7 @@ export default function RecruiterProspectDetail() {
                                     </button>
                                   ) : junction.requirement_id}
                                 </h3>
+                                {junction.isCase && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${junction.id}`}>Open recruitment</Link>}
                                 {junction.isCase ? <span className={`rounded-full px-3 py-1 text-xs font-semibold ${caseStatusMeta(junction.status).tone}`}>{caseStatusMeta(junction.status).label} · Cycle {junction.cycle}</span> : <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />}
                               </div>
                               <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">

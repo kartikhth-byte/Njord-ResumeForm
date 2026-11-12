@@ -125,13 +125,35 @@ test.describe('Candidate directory synthetic smoke',()=>{
   await expect(page.getByRole('button',{name:/^Edit /})).toHaveCount(0)
   await expect(page.getByRole('button',{name:'Attach to requirement'})).toHaveCount(0)
  })
+ test('desktop columns align with long names, missing CVs and optional requirement links',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000})
+  const state=await fixture(page,{role:'Coordinator',operator:false})
+  state.prospects[1].name='Long synthetic candidate name for column alignment verification'
+  state.prospects[1].email='long.synthetic.contact.with.no.spaces@example.invalid'
+  state.prospects[2].needle_resume_id=null
+  for(const query of ['', '?view=all']) {
+   await page.goto('/recruiter/candidates'+query)
+   await expect(page.getByRole('article',{name:'Robin Patel'})).toBeVisible()
+   const columns=await page.getByRole('article').evaluateAll(rows=>rows.map(row=>Array.from(row.children,cell=>({x:cell.getBoundingClientRect().x,width:cell.getBoundingClientRect().width}))))
+   expect(columns.length).toBeGreaterThan(2)
+   for(const row of columns.slice(1)) {
+    expect(row.length).toBe(columns[0].length)
+    row.forEach((cell,i)=>{
+     expect(Math.abs(cell.x-columns[0][i].x)).toBeLessThan(1)
+     expect(Math.abs(cell.width-columns[0][i].width)).toBeLessThan(1)
+    })
+   }
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+   if(!query)await page.screenshot({path:'test-results/candidates-aligned-coordinator.png',fullPage:true,animations:'disabled'})
+  }
+ })
  test('mobile groups and inline form fit viewport',async({page})=>{
   await page.setViewportSize({width:390,height:844})
   await fixture(page)
   await page.goto('/recruiter/candidates?tab=attached')
   await expect(page.getByRole('article',{name:'Alex Morgan'})).toHaveCount(2)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
-  await page.screenshot({path:'test-results/candidates-mobile.png',fullPage:true})
+  await page.screenshot({path:'test-results/candidates-mobile.png',fullPage:true,animations:'disabled'})
   await page.getByRole('button',{name:'Add candidate',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Candidate name'})).toBeVisible()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

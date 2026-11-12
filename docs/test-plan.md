@@ -1,5 +1,9 @@
 # Platform Test Plan
 
+## Recruitment workspace (2026-11-12)
+
+Run `tests/recruitmentWorkspace.test.mjs`, case/KPI/directory adjacent Node suites, `supabase/tests/recruitment_workspace.test.mjs` with PGlite and the absolute migrations directory, and `recruitment-workspace.spec.js` plus candidate/fleet/KPI synthetic browser suites. Cover takeover preserving independent task ownership, stale writes, immutable actor/performer attribution, denied roles/org/anon, parallel tasks, reload, exact-case links, KPI attribution, closed-case/requirement guards and mobile side panel. Normal signed-in staging checks remain a separate gate.
+
 ## Candidates directory regression (2026-11-11)
 
 Run `candidate-directory.spec.js`, `fleet-directory.spec.js` and

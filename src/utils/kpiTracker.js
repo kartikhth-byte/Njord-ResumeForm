@@ -453,7 +453,7 @@ export function buildCandidateFunnelRows({
       attachedRequirements: (casesAvailable ? [...activeCases, ...personCases] : attached)
         .filter((item, index, all) => all.findIndex(other => other.requirement_id === item.requirement_id) === index)
         .map(item => ({
-        id: item.id, requirementId: item.requirement_id, status: item.status,
+        id: item.id, isCase: casesAvailable, requirementId: item.requirement_id, status: item.status,
         requirement: requirementById[item.requirement_id],
         stage: casesAvailable ? caseStatusMeta(item.status).label : (item.status || 'Attached'),
       })),

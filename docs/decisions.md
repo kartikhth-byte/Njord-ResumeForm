@@ -1,5 +1,13 @@
 # Decisions Log
 
+## Recruitment fleet grouping (2026-11-12)
+
+Company → Ship → recruitment rows is the default layout, consistent with Candidates and Requirements. Requirements remain a column, without another group level. Company and ship headers use distinct icons/backgrounds; tables stay full width with shared column widths. Group by immutable fleet IDs, retain unmapped records visibly, and expand matches when filters change.
+
+## Shared task ownership and KPI attribution (2026-11-12)
+
+The owner approved extending existing stages/history, with row takeover and independent task ownership. Any authorized recruiter may claim work for themselves; assigning others is a Master Recruiter action. Handover never transfers historical activity credit. Keep team joining outcomes without inventing an individual placement-credit policy. Preserve existing workflow gates and single-organization scope. See `RECRUITMENT_WORKSPACE_2026-11-12.md`.
+
 ## Candidate tabs and fleet grouping (2026-11-11)
 
 Use two page tabs and an inline Add/Edit form. The user explicitly chose

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { canUseAiSearch } from '../lib/needle'
 import { requirementMatchBlocker } from '../utils/requirementMatch'
 import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
@@ -10,7 +10,6 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import MoreMenu from '../components/ui/MoreMenu'
-import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
 import { isCaseTableMissing } from '../utils/recruitmentCase'
 import RequirementForm from '../components/recruiter/RequirementForm'
 import {
@@ -508,13 +507,7 @@ export default function RecruiterRequirementDetail() {
                 </div>
               </div>
 
-              <RecruitmentCasePanel
-                requirementId={requirement.id}
-                requirementOpen={requirement.status === 'open' && Boolean(requirement.location_reviewed_at) && !requirement.archived_at && !requirement.deleted_at}
-                linkedProspects={linkedProspects}
-                permissions={permissions}
-                onCaseChanged={() => setReloadToken((token) => token + 1)}
-              />
+              <div className="recruiter-panel p-5"><Link className="text-accent-text underline" to={`/recruiter/recruitment?requirement=${requirement.id}`}>Open recruitment workspace</Link></div>
 
               {requirementCases === null ? <div className="recruiter-panel overflow-hidden">
                 <div className="border-b border-line px-6 py-4">

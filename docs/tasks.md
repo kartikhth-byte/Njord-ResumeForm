@@ -1,5 +1,24 @@
 # Pending Tasks
 
+## Deferred: customer onboarding and connection audit (2026-11-12)
+
+Recorded for later; do not implement or configure providers during the Recruitment
+release. The cross-product scope is maintained in the NjordHR repository's
+`docs/NjordHR_Canonical_Backlog_2026-08-21.md`, section **Deferred — customer
+onboarding and connection audit (2026-11-12)**.
+
+Audit all Holmes/Needle connections before designing organisation setup. Include
+email, Drive, Calendar/Meet/Teams and platform services; separate platform-managed,
+organisation and personal-recruiter configuration. Future resumable onboarding
+and editable settings cover organisation type, single-owner Fleet versus
+multi-company grouping, mail/storage/calendar connections, team roles and readiness.
+Connecting an account must not automatically send invitations. Existing company
+relationships remain intact. Current workspace release remains the next task.
+
+## Recruitment workspace release (2026-11-12)
+
+Staging Master/Coordinator UI checks, authenticated Recruiter database checks, independent review, final regression checks and production backup/payload restore verification are complete. Synthetic case and requirement cleanup is complete. Commit the reviewed candidate, obtain exact migration/frontend promotion approval and run live synthetic smoke. Includes the candidate-alignment patch. Migration 2026111201 and frontend are not production-approved by the implementation request. See the workspace release record for the full-schema restore limitation.
+
 ## Candidates directory — 2026-11-11
 
 - [x] Inline basic Add/Edit, optional gated CV flow, duplicate warning and stale-save handling.

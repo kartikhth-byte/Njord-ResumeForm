@@ -161,7 +161,7 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     const candidate=page.getByRole('article',{name:'Synthetic Match',exact:true})
     await expect(candidate).toContainText('SYN-R2')
     await expect(candidate).not.toContainText('SYN-R1')
-    await expect(candidate).toContainText('Sourced')
+    await expect(candidate.getByText('New',{exact:true})).toBeVisible()
     await page.getByRole('combobox',{name:'Requirement',exact:true}).selectOption('')
     await expect(candidate).toHaveCount(2)
     await expect(candidate.getByRole('link',{name:'SYN-R1',exact:true})).toBeVisible()

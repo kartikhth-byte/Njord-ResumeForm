@@ -1,5 +1,9 @@
 # Holmes - Platform PRD
 
+## Recruitment workspace (2026-11-12)
+
+Recruitment owns per-candidate/requirement task work and stage actions. Candidates owns profile/CV/attachment; requirement details link to Recruitment. Broad stages are display groups of existing case statuses. Task assignment and due dates are independent of row ownership. Signed-in actor is immutable; actual performer may be recorded separately. KPI distinguishes current workload, performer activity and original-creator sourcing cohorts.
+
 ## Candidates directory (2026-11-11)
 
 - Add candidate is an inline basic-details form above two tabs: Unattached and Attached.

@@ -70,6 +70,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
         canViewRequirements() && { key: 'companies', label: 'Companies & ships', icon: Building2, path: '/recruiter/companies' },
         { key: 'requirements', label: 'Requirements', icon: ClipboardList, path: '/recruiter/requirements', match: ['/recruiter/requirements', '/recruiter/workspace/requirements'] },
         { key: 'candidates', label: 'Candidates', icon: Users, path: '/recruiter/candidates', match: ['/recruiter/candidates', '/recruiter/workspace/prospects', '/recruiter/prospects'] },
+        canViewRequirements() && { key: 'recruitment', label: 'Recruitment', icon: ClipboardList, path: '/recruiter/recruitment' },
         { key: 'applications', label: 'Applications', icon: Inbox, path: '/recruiter/applications', match: ['/recruiter/applications', '/application/view'] },
         showAiSearch && { key: 'ai', label: 'AI search', icon: Search, path: '/recruiter/ai/search', match: ['/recruiter/ai'] },
       ],

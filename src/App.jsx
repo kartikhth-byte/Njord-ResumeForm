@@ -29,6 +29,7 @@ import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
 import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
 import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
 import RecruiterCompaniesPage from './pages/RecruiterCompaniesPage'
+import RecruitmentWorkspacePage from './pages/RecruitmentWorkspacePage'
 import RecruiterCandidatesPage from './pages/RecruiterCandidatesPage'
 import RecruiterAiSearch from './pages/RecruiterAiSearch'
 import OperatorConsole from './pages/OperatorConsole'
@@ -252,6 +253,7 @@ function App() {
               </RecruiterRoute>
             } />
 
+            <Route path="/recruiter/recruitment" element={<RecruiterRoute><RecruitmentWorkspacePage /></RecruiterRoute>} />
             <Route path="/recruiter/candidates" element={
               <RecruiterRoute>
                 <RecruiterCandidatesPage />

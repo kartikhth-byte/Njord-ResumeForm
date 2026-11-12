@@ -1,5 +1,9 @@
 # Project Status
 
+## Recruitment workspace — staging verified, release pending (2026-11-12)
+
+Added the dedicated workspace, case/task ownership and performer-based KPI activity. Recruitment defaults to collapsible Company → Ship → recruitment rows, with requirements in a column, filtered counts and automatic expansion when filters change. Existing case stages remain authoritative. Additive migration 2026111201 is staging-tested; independent review, 45 Node tests and 31 synthetic browser checks pass. Normal Master/Coordinator UI and authenticated Recruiter database checks passed. Production approval is pending. See `docs/RECRUITMENT_WORKSPACE_2026-11-12.md` for contract, verification and release state.
+
 ## Candidates directory — deployed and smoke verified (2026-11-11)
 
 Candidates now has inline Add/Edit and Unattached/Attached tabs. Attached rows use

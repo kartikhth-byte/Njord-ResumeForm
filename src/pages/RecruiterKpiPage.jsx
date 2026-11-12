@@ -1,3 +1,5 @@
+import useRecruitmentWork from '../hooks/useRecruitmentWork'
+import { workScorecard } from '../utils/recruitmentWorkspace'
 import { useMemo, useState } from 'react'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -68,6 +70,7 @@ export default function RecruiterKpiPage() {
   const { role, loading: permLoading, canExportData, canViewAnalytics } = usePermissions()
   const hasKpiAccess = canViewAnalytics()
   const tracker = useKpiTrackerData({ enabled: !permLoading && hasKpiAccess })
+  const work = useRecruitmentWork(!permLoading && hasKpiAccess)
   const [recruiterFilter, setRecruiterFilter] = useState('')
   const [period, setPeriod] = useState('month')
   const [kpiTab, setKpiTab] = useState('overview')
@@ -105,6 +108,7 @@ export default function RecruiterKpiPage() {
     period,
   }), [scopedRequirements, scopedCandidates, tracker.data.applications, tracker.data.recruiters, recruiterFilter, period])
 
+  const taskScorecard = workScorecard({cases:tracker.data.cases,events:tracker.data.caseEvents,assignments:work.assignments,credits:work.credits,recruiters:workingRecruiters(tracker.data.recruiters).filter(r=>!recruiterFilter||r.id===recruiterFilter),periodStart:metrics.periodStart})
   const periodLabel = KPI_PERIODS.find((option) => option.value === period)?.label || 'All time'
   const periodFrom = metrics.periodStart ? localDayString(metrics.periodStart) : ''
   const caseKpi = useMemo(() => buildRecruitmentCaseKpi({
@@ -228,7 +232,7 @@ export default function RecruiterKpiPage() {
           ]),
         },
         {
-          title: 'Recruiter scorecard',
+          title: 'Candidate sourcing cohorts',
           headers: ['Recruiter', 'Contacted today', 'Touched', 'Joined', `Conversion, ${periodLabel.toLowerCase()}`, 'Pipeline', 'Handling'],
           rows: metrics.scorecard.map((row) => [
             row.name, String(row.contactedToday), String(row.totalTouched), String(row.joined),
@@ -238,6 +242,12 @@ export default function RecruiterKpiPage() {
       ],
       footerNote: 'When recruitment cases are available, filled positions use distinct hired candidates and assessments use case events. Contact and legacy funnel figures use tracker data.',
     })
+  })
+
+  const generateTaskCsv = () => runReport(async () => {
+    if(work.loading || work.error) throw new Error('Task reporting is unavailable. Refresh and try again.')
+    await logRecruiterExport({reportType:'recruiter_productivity_report',exportFormat:'csv',rowIds:taskScorecard.map(r=>r.id),rowCount:taskScorecard.length,filters:{recruiterFilter,period,basis:'task_performer'}})
+    await downloadCsvReport({filename:'recruiter-task-activity',columns:[['Recruiter','name'],['Assigned rows (current)','rows'],['Pending tasks (current)','pending'],['Overdue tasks (current)','overdue'],['Contacts','contacts'],['Completed tests','tests'],['Completed interviews','interviews'],['Document checks','documents']].map(([label,key])=>({label,value:r=>r[key]})),rows:taskScorecard})
   })
 
   const generateProductivityCsv = () => runReport(async () => {
@@ -520,14 +530,20 @@ export default function RecruiterKpiPage() {
           <StatCard label="Avg client response" value={clientResponseDays == null ? '—' : formatDays(clientResponseDays)} icon={Hourglass} tone="warning" />
         </div>
 
-        {/* Recruiter scorecard */}
+        <section className="recruiter-panel p-5" aria-label="Recruiter work and activity">
+          <h2 className="text-lg font-semibold">Recruiter work and activity</h2>{canExportData()&&<button className="underline" disabled={exporting||work.loading||!!work.error} onClick={generateTaskCsv}>Export task activity CSV</button>}
+          <p className="text-sm text-fg-muted">Current assignments and overdue work. Completed activity: {periodLabel.toLowerCase()}. Handovers do not transfer previous activity.</p>
+          {work.error ? <p role="alert">Task reporting is unavailable: {work.error}</p> : work.loading ? <p>Loading task reporting…</p> : <div className="tracker-table-wrap"><table className="tracker-table min-w-[750px]"><thead><tr>{['Recruiter','Assigned rows','Pending tasks','Overdue tasks','Contacts','Tests completed','Interviews completed','Document checks'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{taskScorecard.map(r=><tr key={r.id}>{['name','rows','pending','overdue','contacts','tests','interviews','documents'].map(k=><td key={k}>{r[k]}</td>)}</tr>)}</tbody></table></div>}
+          <p className="text-xs text-fg-muted mt-3">Tests and interviews count completed attempts, including failed outcomes; no-shows and waivers are not completions. Older events identify the recorder where the performer was not captured. Joined totals remain team outcomes.</p>
+        </section>
+        {/* Original sourcing-cohort report remains separate from work attribution. */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-5 flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-card bg-raised text-fg-secondary">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-fg">Recruiter scorecard</h2>
+              <h2 className="text-lg font-semibold text-fg">Candidate sourcing cohorts</h2>
               <p className="mt-1 text-sm text-fg-secondary">{periodLabel}</p>
             </div>
           </div>
@@ -551,7 +567,7 @@ export default function RecruiterKpiPage() {
                     <th className="tracker-cell--num">On-time closure</th>
                     <th className="tracker-cell--num">Avg days to join</th>
                     <th className="tracker-cell--num">Active pipeline</th>
-                    <th className="tracker-cell--num">Handling</th>
+                    <th className="tracker-cell--num">Handling applications</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -576,7 +592,7 @@ export default function RecruiterKpiPage() {
               </table>
             </div>
           )}
-          <p className="mt-4 text-xs text-fg-muted">Targets: 15–25 contacts per recruiter per day, 8–12% conversion.</p>
+          <p className="mt-4 text-xs text-fg-muted">These cohorts follow the original candidate creator, not the person completing each task. They are not individual task-performance credit.</p>
         </section>
         </>
         ) : null}
@@ -643,7 +659,7 @@ export default function RecruiterKpiPage() {
               action: exportSummary,
             },
             {
-              title: 'Recruiter productivity report (CSV)',
+              title: 'Candidate sourcing cohorts (CSV)',
               description: 'Contacts, joins and conversion per recruiter.',
               action: generateProductivityCsv,
             },
