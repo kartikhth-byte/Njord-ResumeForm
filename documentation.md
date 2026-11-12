@@ -1,6 +1,6 @@
 # Project Status
 
-## AI Search auto-hiding sidebar — ready for release (2026-11-12)
+## AI Search auto-hiding sidebar — deployed and verified (2026-11-12)
 
 The Holmes icon rail is replaced by a left-edge hover drawer over a full-viewport
 AI frame. A bottom-left menu button supports keyboard/touch; hidden links are
@@ -10,7 +10,13 @@ cases and eight adjacent Applications cases pass; final focused rerun, lint and
 build pass. Independent review reports no material findings. Normal staging
 shell/navigation passes; its embedded `/ai/` currently returns 404, so full frame
 interactions were verified with a synthetic document. No model calls or data
-changes. Not deployed; exact production approval and hosted smoke pending.
+changes. Approved commit `2aeff721d7cb9851c2446f6f4ea6a51843fb25f8` is deployed
+on Holmes main/Vercel (primary deployment `7732755114`, success at
+2026-11-12 08:57:48 UTC). Hosted Needle loads normally: live menu click/keyboard
+opening, Escape/focus return, frame-click dismissal, Applications navigation and
+return, and reload with the drawer hidden passed. Live checks used the narrow
+in-app viewport; desktop hover and exact frame bounds are covered by synthetic
+browser checks. No search was submitted, no model call or record mutation made.
 
 ## Applications directory — deployed and verified (2026-11-12)
 

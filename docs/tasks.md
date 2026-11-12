@@ -7,7 +7,10 @@
 - [x] Seven focused browser cases plus eight adjacent Applications cases; lint
   and build. Normal staging shell navigation passes; its local Needle frame
   returns 404, so embedded-frame interactions use a synthetic fixture.
-- [ ] Exact UI release approval, promotion and read-only hosted smoke.
+- [x] Exact approval and production promotion at `2aeff72` (Vercel `7732755114`).
+  Hosted Needle loads; live click/keyboard menu, Escape/focus, frame dismissal,
+  Applications navigation and reload pass. Desktop hover remains synthetic
+  coverage; no searches or record writes during live smoke.
 
 ## Applications directory (2026-11-12)
 
