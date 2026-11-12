@@ -232,14 +232,7 @@ serve(async (req) => {
 
     if ((recentRequestCount ?? 0) >= MAGIC_LINK_REQUEST_LIMIT) {
       const { data: matchingProspects } = await supabaseClient
-        .from('prospects')
-        .select('id, organization_id')
-        .eq('email_normalized', normalizedEmail)
-        .eq('status', 'approved')
-        .is('archived_at', null)
-        .is('deleted_at', null)
-        .eq('bounce_flag', false)
-        .limit(2)
+        .rpc('eligible_form_invite_prospects', { p_email: normalizedEmail })
       const matchingProspect = matchingProspects?.length === 1 ? matchingProspects[0] : null
 
       const { data: requestRow, error: requestError } = await supabaseClient
@@ -281,14 +274,7 @@ serve(async (req) => {
     }
 
     const { data: matchingProspects, error: prospectError } = await supabaseClient
-      .from('prospects')
-      .select('id, name, email, organization_id')
-      .eq('email_normalized', normalizedEmail)
-      .eq('status', 'approved')
-      .is('archived_at', null)
-      .is('deleted_at', null)
-      .eq('bounce_flag', false)
-      .limit(2)
+      .rpc('eligible_form_invite_prospects', { p_email: normalizedEmail })
 
     if (prospectError) {
       throw prospectError

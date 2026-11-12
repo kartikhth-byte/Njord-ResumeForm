@@ -132,7 +132,8 @@ serve(async (req) => {
 
     actorRole = (roleRows || []).map((row) => row.roles?.name).filter(Boolean)[0] || null
 
-    const reserveResult = await supabaseClient.rpc('reserve_prospect_invite', {
+    const reserveResult = await supabaseClient.rpc('reserve_case_form_invite', {
+      p_case_id: caseId,
       p_prospect_id: prospectId,
       p_actor_user_id: user.id,
       p_actor_role_at_event: actorRole,
@@ -179,7 +180,11 @@ serve(async (req) => {
       .select('id, organization_id, email_normalized, status, archived_at, deleted_at, bounce_flag')
       .eq('id', prospectId)
       .single()
-    if (invitedProspectError || !invitedProspect || invitedProspect.status !== 'approved'
+    const { data: inviteEligible, error: eligibilityError } = await supabaseClient.rpc('case_form_invite_eligible', {
+      p_case: caseId, p_prospect: prospectId, p_require_invited: false,
+    })
+    if (eligibilityError) throw eligibilityError
+    if (invitedProspectError || !invitedProspect || inviteEligible !== true
       || invitedProspect.archived_at || invitedProspect.deleted_at || invitedProspect.bounce_flag
       || invitedProspect.email_normalized !== prospectEmail.trim().toLowerCase()
       || invitedProspect.organization_id !== inviteCase.organization_id) {
@@ -301,11 +306,11 @@ serve(async (req) => {
         to: [recipientEmail],
         subject: 'Invitation to continue your Holmes profile',
         html,
-        tags: {
-          category: 'prospect_invite',
-          prospect_id: prospectId,
-          actor_user_id: user.id,
-        },
+        tags: [
+          { name: 'category', value: 'prospect_invite' },
+          { name: 'prospect_id', value: prospectId },
+          { name: 'actor_user_id', value: user.id },
+        ],
       }),
     })
 

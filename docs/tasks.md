@@ -43,7 +43,10 @@
   Normal reviewed-CV candidate has passed interview but legacy prospect approval
   is still required. Reconcile the invite/reissue/claim/draft/submission gates with
   case eligibility and identity safeguards; add a creation-to-invitation regression.
-  Existing fixture starts already approved. Separate backend review/release needed.
+  Existing fixture starts already approved. Local repair and creation-to-submission
+  regression are complete; real staging rollback, Edge tests and independent review
+  pass. Migration 1203 and both invitation Functions await exact production approval.
+  See `APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`.
   Resume and then close the retained synthetic requirement/case after verification.
 
 

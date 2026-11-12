@@ -1,5 +1,14 @@
 # Project Status
 
+## Invitation eligibility repair — reviewed local candidate (2026-11-12)
+
+The live email blocker is patched across reservation, reissue, claim, draft and
+submission using reviewed identity plus case eligibility. Resend tags are corrected.
+Actual reviewed-CV-to-submission SQL regression and staging rollback pass; six
+Edge handler tests and 16 adjacent Node checks pass. Independent review is clear.
+See `docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`. Migration 1203 and both
+invitation Functions need exact production approval; real email remains untested.
+
 ## Application detail review — deployed; email smoke blocked (2026-11-12)
 
 Submitted-form detail now focuses on form contents, documents and review findings.

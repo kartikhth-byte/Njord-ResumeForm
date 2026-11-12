@@ -1,5 +1,18 @@
 # Platform Test Plan
 
+## Reviewed candidate invitation eligibility (2026-11-12)
+
+Run `supabase/tests/case_form_invite_eligibility.test.mjs` in the existing PGlite
+runtime with the migrations directory. It applies the real review and current case
+RPCs; never pre-approve the created candidate. Run
+`node --test supabase/tests/invitation-functions.test.mjs` on Node 24 to execute
+the actual Edge handlers offline; no provider calls. Include the existing invitation
+binding SQL/browser suite and adjacent case/KPI/application tests. Stage the
+migration and synthetic review-to-submission flow in a rolled-back transaction
+before exact production approval. Real provider delivery and emailed-link sign-in
+remain separate live checks.
+
+
 ## Requirement-bound applications (2026-11-12)
 
 Run `supabase/tests/application_invitation_binding.test.mjs` in the PGlite runtime
