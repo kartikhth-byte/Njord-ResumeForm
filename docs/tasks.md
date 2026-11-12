@@ -7,8 +7,22 @@
 - [x] Owner visually confirmed the synthetic CV; automated blob inspection blocked.
 - [x] Fresh-link guidance, explicit medical Yes/No and consistent physical/uniform validation implemented locally.
 - [x] Independent release review, 44 regression cases, focused visual checks, lint and build.
-- [ ] Exact approval, UI promotion and live smoke.
+- [x] Exact approval and UI promotion `c6499bd2` (Vercel `7746949878`, success).
+- [x] Read-only production navigation, submitted application and recruitment checks.
+- [ ] Repeat applicant draft-specific live checks when an applicant session is available; the 44 pre-release regression checks passed.
 - [ ] Separately verify webhook ingestion for the new Resend account.
+
+## Five-page smoke findings (2026-11-13)
+
+- [x] Live fleet → requirement → match → reviewed attachment → Candidates → Recruitment, task completion/reload and linked-page Back paths.
+- [x] Fresh AI search, explicit results opening, tray-only age refinement, no-match response, count answer persistence, Repository and Review queue navigation.
+- [x] Close this smoke's synthetic case and requirement; retain labelled test records/history.
+- [x] Correct stale smoke assertion: enabled AI Search permits Recruiter matching while fleet editing remains Master-only; Coordinator remains read-only.
+- [ ] Fix duration refinement losing/ignoring the selected rank and rejecting explicit rank-duration wording.
+- [ ] Diagnose company-history follow-up returning the generic answer-verification failure.
+- [ ] Live Coordinator session recheck: preserved Chrome tab could not be accessed; synthetic Coordinator checks passed.
+
+Coverage and boundaries: `docs/FIVE_PAGE_SMOKE_2026-11-13.md`.
 
 ## Requirement-bound applications (2026-11-12)
 

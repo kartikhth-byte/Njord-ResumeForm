@@ -216,7 +216,7 @@ of webhook ingestion for the newly connected Resend account. Screenshots and
 redacted query receipts remain in the ignored task directory.
 
 
-### Applicant smoke follow-up — 2026-11-13 (not deployed)
+### Applicant smoke follow-up — 2026-11-13 (deployed)
 
 Owner visually confirmed the one-page synthetic résumé in the opened PDF tab.
 This closes the rendering check with human evidence; automated blob inspection
@@ -241,5 +241,9 @@ Final verification: 44 focused/adjacent browser and validation cases, lint and
 build pass. Five focused browser cases also pass on the final screenshot capture;
 settled medical, uniform and link-recovery layouts were visually inspected.
 Independent review found no material issues and separately checked validation edge
-cases. New release requires exact production approval; no database,
+cases. The owner subsequently approved exact commit `c6499bd2f58083583e53823d8f835906be83e4cb`;
+main promotion and primary Vercel deployment `7746949878` succeeded. Live
+submitted-application viewing, Back, recruitment and related page checks passed.
+Editable applicant fields and expired-link recovery retain pre-release synthetic
+coverage; no applicant session was changed during this smoke. No database,
 Function, Needle, provider setting or intake change is part of this patch.

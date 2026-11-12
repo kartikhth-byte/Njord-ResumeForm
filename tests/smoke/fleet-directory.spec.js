@@ -220,7 +220,12 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await expect(page.getByRole('button',{name:/Add company|Add ship|Edit company|Edit ship/})).toHaveCount(0)
     await page.goto('/recruiter/requirements')
     await expect(page.getByRole('article',{name:'SYN-R1'})).toBeVisible()
-    await expect(page.getByRole('button',{name:/Match résumés/})).toHaveCount(0)
+    // Recruiters may match when AI Search is enabled; fleet editing stays Master-only.
+    if (role === 'Coordinator' || await page.getByRole('button', {name:'AI search', exact:true}).count() === 0) {
+      await expect(page.getByRole('button',{name:/Match résumés/})).toHaveCount(0)
+    } else {
+      await expect(page.getByRole('button',{name:'Match résumés for SYN-R1',exact:true})).toBeEnabled()
+    }
     if(role==='Coordinator') await expect(page.getByRole('button',{name:'Add requirement',exact:true})).toHaveCount(0)
     expect(state.calls).toHaveLength(0)
   })

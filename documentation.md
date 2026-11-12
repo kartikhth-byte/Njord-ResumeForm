@@ -1,6 +1,18 @@
 # Project Status
 
-## Applicant smoke follow-up — local fixes awaiting release (2026-11-13)
+## Five-page smoke and applicant release (2026-11-13)
+
+Approved applicant UI commit `c6499bd2f58083583e53823d8f835906be83e4cb`
+is on main/Vercel (primary deployment `7746949878`, success). Five-page smoke
+verified live fleet creation/editing, requirement matching (125 results), reviewed
+synthetic attachment, candidate CV guards, recruitment ownership/task persistence,
+and linked profile/application navigation. Synthetic case and vacancy are closed.
+AI Search fresh matching, tray-only refinement (98 results), no-match handling,
+saved-answer reload, Repository and Review queue were exercised. Duration
+refinement and company-history follow-up failed; see
+`docs/FIVE_PAGE_SMOKE_2026-11-13.md`. This is not an all-clear for AI Search.
+
+## Applicant smoke follow-up — deployed (2026-11-13)
 
 The real invitation → sign-in → saved draft/reload → submission smoke passed.
 Recruitment completion, Applications grouping, viewing and Back navigation passed;
