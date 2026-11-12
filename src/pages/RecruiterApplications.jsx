@@ -1,21 +1,22 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
-import StatusBadge from '../components/StatusBadge'
 import { formatDisplayValue } from '../utils/formatUtils'
-import SequentialStatusControl from '../components/SequentialStatusControl'
+import InterviewSchedulingModal from '../components/InterviewSchedulingModal'
 import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
-import ConfidenceBadge from '../components/ConfidenceBadge'
 import PageHeader from '../components/ui/PageHeader'
 import { buildApplicationCompliance } from '../utils/applicationCompliance'
-import { applicationStatusLabel, CLOSED_APPLICATION_STATUSES } from '../constants/applicationStatus'
+import { applicationStatusLabel } from '../constants/applicationStatus'
+import { loadApplicationDirectory } from '../services/applicationDirectoryService'
+import { applicationPlacements, filterApplicationPlacements, groupApplicationPlacements, matchesLegacyApplicationStatus, readApplicationFilters } from '../utils/applicationDirectory'
+import { workStage } from '../utils/recruitmentWorkspace'
 
-import { Search, Loader2, SlidersHorizontal } from 'lucide-react'
+import { Building2, Ship, Loader2, SlidersHorizontal, RefreshCw } from 'lucide-react'
 
 function normalizeCertificateGrade(value) {
   return (value || '').toString().trim().toLowerCase()
@@ -50,7 +51,7 @@ const COMPLIANCE_STYLES = {
 }
 
 function complianceLabel(status) {
-  return status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Unknown'
+  return ({red: 'Action needed', amber: 'Check details', green: 'Checks clear'})[status] || 'Not checked'
 }
 
 function ComplianceBadge({ status }) {
@@ -59,52 +60,6 @@ function ComplianceBadge({ status }) {
       {complianceLabel(status)}
     </span>
   )
-}
-
-// Pipeline stages for the chips above the list. "Active" is everything
-// not closed; "Closed" loads hired, rejected and withdrawn.
-const STAGES = [
-  { id: 'all', label: 'Active', statuses: null },
-  { id: 'review', label: 'Review', statuses: ['submitted', 'new', 'under_review'] },
-  { id: 'test', label: 'Test', statuses: ['test_scheduled', 'test_completed', 'test_passed', 'test_failed'] },
-  { id: 'interview', label: 'Interview', statuses: ['interview_scheduled', 'interview_completed', 'interview_passed', 'second_interview_scheduled', 'second_interview_completed'] },
-  { id: 'offer', label: 'Offer', statuses: ['offered', 'offer_accepted', 'documents_pending'] },
-  { id: 'closed', label: 'Closed', statuses: CLOSED_APPLICATION_STATUSES },
-]
-
-function stageForFilter(filter) {
-  return STAGES.find((stage) => stage.id === filter) ||
-    STAGES.find((stage) => stage.statuses?.includes(filter)) ||
-    STAGES[0]
-}
-
-function matchesStatusFilter(status, filter) {
-  if (!filter || filter === 'all') return !CLOSED_APPLICATION_STATUSES.includes(status)
-  const stage = STAGES.find((entry) => entry.id === filter)
-  if (stage) return stage.statuses.includes(status)
-  return status === filter
-}
-
-const ACTIVE_APPLICATION_STATUSES = [
-  'submitted',
-  'new',
-  'under_review',
-  'test_scheduled',
-  'test_completed',
-  'test_passed',
-  'test_failed',
-  'interview_scheduled',
-  'interview_completed',
-  'interview_passed',
-  'second_interview_scheduled',
-  'second_interview_completed',
-  'offered',
-  'offer_accepted',
-  'documents_pending'
-]
-
-function applyRecruiterVisibilityFilter(query) {
-  return query.not('submitted_at', 'is', null)
 }
 
 export default function RecruiterApplications() {
@@ -117,53 +72,41 @@ export default function RecruiterApplications() {
   const [applications, setApplications] = useState([])
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)
 
-  // Restore the interview modal after Teams OAuth returns to the applications workspace.
-useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search)
-  const teamsConnected = urlParams.get('teams_connected')
-  const applicationId = localStorage.getItem('reopen_interview_modal')
-  
-  if (teamsConnected === 'true' && applicationId) {
-    // Wait until applications are actually loaded
-    if (applications.length === 0) {
-      return
-    }
-    
-    const app = applications.find(a => a.id === applicationId)
-
-    if (app) {
-      // Clean up
-      localStorage.removeItem('reopen_interview_modal')
-      window.history.replaceState({}, '', '/recruiter/applications')
-      
-      // Tell SequentialStatusControl to auto-open
-      setAutoOpenInterviewForApp(app.id)
-    } else {
-      localStorage.removeItem('reopen_interview_modal')
-      window.history.replaceState({}, '', '/recruiter/applications')
-    }
-  }
-}, [applications])
-
-  const [statusCounts, setStatusCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [complianceFilter, setComplianceFilter] = useState('all')
-  const [filters, setFilters] = useState({})
+  const [loadError, setLoadError] = useState('')
+  const [context, setContext] = useState({ cases: [], requirements: [], companies: [], ships: [] })
+  const appliedFilterKey = searchParams.get('filters') || ''
+  const appliedFilters = readApplicationFilters(appliedFilterKey)
+  const [filters, setFilters] = useState(() => readApplicationFilters(appliedFilterKey))
+  useEffect(() => { setFilters(readApplicationFilters(appliedFilterKey)) }, [appliedFilterKey])
   const [showFilters, setShowFilters] = useState(false)
-
-  // ?status= holds a stage id ("review", "closed", ...) or a single status.
-  const statusFilter = searchParams.get('status') || 'all'
-  const scope = stageForFilter(statusFilter).id === 'closed' ? 'closed' : 'active'
-
-  const updateStatusFilter = (next) => {
-    const params = new URLSearchParams(searchParams)
-    params.delete('tab')
-    if (!next || next === 'all') params.delete('status')
-    else params.set('status', next)
-    setSearchParams(params, { replace: true })
+  const request = useRef(0)
+  const pendingParams = useRef(searchParams)
+  useLayoutEffect(() => { pendingParams.current = searchParams }, [searchParams])
+  const setParam = (key, value) => {
+    const next = new URLSearchParams(pendingParams.current)
+    value ? next.set(key, value) : next.delete(key)
+    if (key === 'company') { next.delete('ship'); next.delete('requirement') }
+    if (key === 'ship') next.delete('requirement')
+    pendingParams.current = next
+    setSearchParams(next, { replace: true })
   }
+  const searchTerm = searchParams.get('q') || ''
+  const complianceFilter = searchParams.get('checks') || 'all'
+  const tab = ['linked', 'unlinked'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'all'
+  const statusFilter = searchParams.get('status') || ''
+
+  // Preserve an in-flight Teams return from the older application workflow.
+  // Normal list rows now open Recruitment for stage/task work.
+  useEffect(() => {
+    if (loading || loadError || searchParams.get('teams_connected') !== 'true') return
+    const id = localStorage.getItem('reopen_interview_modal')
+    const app = applications.find(a => a.id === id)
+    if (canEditApplications && app?.status === 'test_passed') setAutoOpenInterviewForApp(app)
+    localStorage.removeItem('reopen_interview_modal')
+    setParam('teams_connected', '')
+  }, [loading, loadError, applications, searchParams, canEditApplications])
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
@@ -197,12 +140,12 @@ useEffect(() => {
   
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
-      loadApplications(filters)
-      loadStatusCounts()
+      loadApplications(readApplicationFilters(appliedFilterKey))
     }
-  }, [permLoading, scope])
+    return () => { request.current += 1 }
+  }, [permLoading, user?.id, appliedFilterKey])
 
-  useEffect(() => { setCurrentPage(1) }, [statusFilter, searchTerm, filters, complianceFilter])
+  useEffect(() => { setCurrentPage(1) }, [searchParams, applications])
 
   const calculateExperience = (seaService) => {
     if (!seaService || seaService.length === 0) return 0
@@ -256,6 +199,8 @@ useEffect(() => {
   }
 
   const loadApplications = async (appliedFilters = {}, { background = false } = {}) => {
+    const current = ++request.current
+    setLoadError('')
     try {
       if (background) {
         setBackgroundRefreshing(true)
@@ -263,60 +208,9 @@ useEffect(() => {
         setLoading(true)
       }
 
-      let query = supabase
-        .from('applications')
-        .select(`
-          id,
-          user_id,
-          applied_rank,
-          status,
-          created_at,
-          updated_at,
-          reference_number,
-          public_token,
-          submitted_at,
-          test_attempt_number,
-          test_max_attempts,
-          handling_recruiter_id,
-          contract_end_date,
-          prospect_id,
-          application_data (
-            data
-          )
-        `)
-
-      query = applyRecruiterVisibilityFilter(query)
-
-      query = query.in('status', scope === 'closed' ? CLOSED_APPLICATION_STATUSES : ACTIVE_APPLICATION_STATUSES)
-
-      if (appliedFilters.position) {
-        query = query.eq('applied_rank', appliedFilters.position)
-      }
-
-      if (appliedFilters.dateRange?.from) {
-        query = query.gte('created_at', appliedFilters.dateRange.from)
-      }
-
-      if (appliedFilters.dateRange?.to) {
-        query = query.lte('created_at', appliedFilters.dateRange.to + 'T23:59:59')
-      }
-
-      const { data: appsData, error: appsError } = await query.order('created_at', { ascending: false })
-
-      if (appsError) throw appsError
-
-      if (!appsData || appsData.length === 0) {
-        setApplications([])
-        return
-      }
-
-      const applicantIds = [...new Set(appsData.map(app => app.user_id))]
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', applicantIds)
-
-      if (profilesError) throw profilesError
+      const snapshot = await loadApplicationDirectory(supabase, appliedFilters)
+      if (current !== request.current) return
+      const { applications: appsData, profiles: profilesData } = snapshot
 
       let formattedData = appsData.map(app => {
         const profile = profilesData.find(p => p.id === app.user_id)
@@ -406,31 +300,16 @@ useEffect(() => {
         })
       }
 
+      if (current !== request.current) return
       setApplications(formattedData)
+      setContext(snapshot)
     } catch (error) {
-      console.error('Error loading applications:', error)
+      if (current === request.current) setLoadError(error.message || 'Could not load applications.')
     } finally {
-      if (background) {
+      if (current === request.current) {
         setBackgroundRefreshing(false)
-      } else {
         setLoading(false)
       }
-    }
-  }
-
-  const loadStatusCounts = async () => {
-    try {
-      const { data, error } = await applyRecruiterVisibilityFilter(
-        supabase.from('applications').select('status')
-      )
-      if (error) throw error
-      const counts = {}
-      for (const row of data || []) {
-        counts[row.status] = (counts[row.status] || 0) + 1
-      }
-      setStatusCounts(counts)
-    } catch (error) {
-      console.error('Error loading status counts:', error)
     }
   }
 
@@ -449,38 +328,11 @@ const updateContractEndDate = async (applicationId, value) => {
   }
 }
 
-const handleStatusChange = async (applicationId, newStatus) => {
-  const appToUpdate = applications.find(a => a.id === applicationId)
-  if (!appToUpdate) return
-
-  try {
-    const { error } = await supabase
-      .from('applications')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', applicationId)
-
-    if (error) throw error
-
-    // Update local state
-    setApplications(prev =>
-      prev.map(app =>
-        app.id === applicationId ? { ...app, status: newStatus } : app
-      )
-    )
-
-    // Refresh the counts and the list so the row moves to its new stage.
-    await Promise.all([
-      loadStatusCounts(),
-      loadApplications(filters, { background: true })
-    ])
-  } catch (error) {
-    console.error('Error updating status:', error)
-    alert('Failed to update status')
-  }
-}
-
   const handleApplyFilters = (filtersToApply = null) => {
-    loadApplications(filtersToApply || filters)
+    const next = filtersToApply || filters
+    const key = Object.keys(next).length ? JSON.stringify(next) : ''
+    if (key === appliedFilterKey) loadApplications(next)
+    else setParam('filters', key)
   }
 
   if (permLoading) {
@@ -499,288 +351,67 @@ const handleStatusChange = async (applicationId, newStatus) => {
     )
   }
 
-  const term = searchTerm.trim().toLowerCase()
-  const listed = applications.filter((app) => {
-    if (!matchesStatusFilter(app.status, statusFilter)) return false
-    if (complianceFilter !== 'all' && app.compliance_status !== complianceFilter) return false
-    if (!term) return true
-    return [app.full_name, app.email, app.reference_number, app.desired_rank, app.vessel_type, app.nationality]
-      .some((value) => value?.toLowerCase().includes(term))
-  })
+  const placements = applicationPlacements(applications.filter(a => matchesLegacyApplicationStatus(a.status, statusFilter)), context)
+  const filtered = filterApplicationPlacements(placements, { q: searchTerm, checks: complianceFilter, company: searchParams.get('company') || '', ship: searchParams.get('ship') || '', requirement: searchParams.get('requirement') || '' })
+  const count = rows => new Set(rows.map(r => r.application.id)).size
+  const tabCounts = { all: count(filtered), linked: count(filtered.filter(r => r.links.length)), unlinked: count(filtered.filter(r => !r.links.length)) }
+  const listed = filtered.filter(r => tab === 'all' || (tab === 'linked' ? r.links.length : !r.links.length))
+  const uniqueIds = [...new Set(listed.map(r => r.application.id))]
+  const totalPages = Math.max(1, Math.ceil(uniqueIds.length / itemsPerPage))
+  const page = Math.min(currentPage, totalPages)
+  const idsOnPage = new Set(uniqueIds.slice((page - 1) * itemsPerPage, page * itemsPerPage))
+  const groups = groupApplicationPlacements(listed.filter(r => idsOnPage.has(r.application.id)))
+  const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length
+  const field = 'h-11 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm'
+  const label = 'flex min-w-0 flex-col gap-1.5 text-sm'
+  const button = 'workspace-action-button workspace-action-button--secondary'
+  const options = (rows, key, name) => [...new Map(rows.filter(r => r[key]).map(r => [r[key], r[name]])).entries()].sort((a,b) => a[1].localeCompare(b[1]))
+  const companyOptions = options(placements, 'companyId', 'companyName')
+  const shipScope = placements.filter(r => !searchParams.get('company') || r.companyId === searchParams.get('company'))
+  const shipOptions = options(shipScope, 'shipId', 'shipName')
+  const requirementScope = shipScope.filter(r => !searchParams.get('ship') || r.shipId === searchParams.get('ship')).flatMap(r => r.links)
+  const requirementOptions = options(requirementScope, 'requirement_id', 'requirementName')
+  const table = rows => <div className="overflow-x-auto"><table className="tracker-table table-fixed min-w-[960px] w-full">
+    <colgroup>{[23,21,15,12,14,15].map((width,i) => <col key={i} style={{width: `${width}%`}} />)}</colgroup>
+    <thead><tr>{['Candidate / application','Requirement','Applied for','Submitted','Document checks','Actions'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+    <tbody className="[&_td]:break-words">{rows.map(({ id, application: app, links }) => <tr key={id}>
+      <td><p className="font-medium">{app.full_name}</p><p className="text-xs text-fg-muted">{app.reference_number || 'No reference'}</p>{notesByProspect[app.prospect_id] && <details className="mt-2 text-xs text-fg-muted"><summary className="cursor-pointer">Latest note</summary><p>{notesByProspect[app.prospect_id]}</p></details>}</td>
+      <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-fg-muted">Not linked</span>}</td>
+      <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
+      <td>{new Date(app.submitted_at).toLocaleDateString()}</td>
+      <td><ComplianceBadge status={app.compliance_status} /><p className="mt-1 text-xs text-fg-muted">Based on submitted form</p></td>
+      <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`)}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
+        {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
+        {links.length > 1 && <span className="text-xs text-fg-muted">Choose a requirement to open recruitment.</span>}
+        {canEditApplications && app.status === 'hired' && <label className="w-full min-w-0 text-xs text-fg-muted">Contract ends<input aria-label={`Contract ends for ${app.reference_number}`} type="date" className={`${field} mt-1`} value={app.contract_end_date || ''} onChange={event => updateContractEndDate(app.id,event.target.value)} /></label>}
+      </div></td>
+    </tr>)}</tbody>
+  </table></div>
 
-  const complianceCounts = applications
-    .filter((app) => matchesStatusFilter(app.status, statusFilter))
-    .reduce((counts, app) => {
-      if (Object.prototype.hasOwnProperty.call(counts, app.compliance_status)) counts[app.compliance_status] += 1
-      return counts
-    }, { red: 0, amber: 0, green: 0 })
-
-  const displayed = listed
-  const pageRows = displayed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const totalPages = Math.ceil(displayed.length / itemsPerPage)
-
-  const stageCount = (stage) => {
-    if (stage.statuses) return stage.statuses.reduce((sum, status) => sum + (statusCounts[status] || 0), 0)
-    return Object.entries(statusCounts)
-      .filter(([status]) => !CLOSED_APPLICATION_STATUSES.includes(status))
-      .reduce((sum, [, count]) => sum + count, 0)
-  }
-  const activeStage = stageForFilter(statusFilter)
-  const subStatuses = activeStage.statuses
-    ? activeStage.statuses.filter((status) => (statusCounts[status] || 0) > 0)
-    : []
-  const activeFilterCount = Object.values(filters).filter(Boolean).length
-
-  const ApplicationTable = ({ apps, showRelevance = false, analyzingWithLLM = false }) => {
-  return (
-    <div className="tracker-table-wrap overflow-y-visible">
-      <table className="tracker-table">
-        <thead>
-          <tr>
-            <th className="tracker-cell--sticky-1">Reference</th>
-            <th className="tracker-cell--sticky-2">Name</th>
-            <th>Status</th>
-            <th>Compliance</th>
-            <th>Present rank</th>
-            <th>Applied rank</th>
-            <th>Vessel type</th>
-            <th>Submitted</th>
-            {showRelevance ? (
-              <>
-                <th>Relevance</th>
-                <th>AI match</th>
-              </>
-            ) : null}
-            <th>Actions</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {apps.length === 0 ? (
-            <tr>
-              <td colSpan={showRelevance ? 12 : 10} className="px-6 py-12 text-center text-fg-muted">
-                No applications found
-              </td>
-            </tr>
-          ) : (
-            apps.map((app) => (
-              <tr key={app.id}>
-                <td className="tracker-cell--sticky-1 tracker-cell--nowrap">
-                  <span className="font-mono text-xs font-medium text-accent-text">{app.reference_number}</span>
-                </td>
-                <td className="tracker-cell--sticky-2 tracker-cell--primary tracker-cell--nowrap">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/application/view/${app.public_token}`)}
-                    className="block max-w-[13rem] truncate text-left hover:text-accent-text"
-                    title={app.full_name}
-                  >
-                    {app.full_name}
-                  </button>
-                </td>
-                <td className="tracker-cell--nowrap"><StatusBadge status={app.status} /></td>
-                <td className="tracker-cell--nowrap"><ComplianceBadge status={app.compliance_status} /></td>
-                <td className="tracker-cell--nowrap">{formatDisplayValue(app.last_rank) || '—'}</td>
-                <td className="tracker-cell--nowrap">{formatDisplayValue(app.desired_rank) || '—'}</td>
-                <td className="tracker-cell--nowrap">{formatDisplayValue(app.vessel_type) || '—'}</td>
-                <td className="tracker-cell--nowrap tracker-cell--muted">
-                  {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}
-                </td>
-                {showRelevance ? (
-                  <>
-                    <td className="tracker-cell--nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-20 overflow-hidden rounded-full bg-line">
-                          <div className="h-2 rounded-full bg-accent-fill" style={{ width: `${app.similarity * 100}%` }} />
-                        </div>
-                        <span className="text-xs font-medium text-fg-secondary">{(app.similarity * 100).toFixed(0)}%</span>
-                      </div>
-                    </td>
-                    <td className="tracker-cell--nowrap">
-                      {analyzingWithLLM && !app.llmAnalysis ? (
-                        <div className="flex items-center gap-2 text-progress">
-                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-progress"></div>
-                          <span className="text-xs font-medium">Analyzing...</span>
-                        </div>
-                      ) : app.llmAnalysis ? (
-                        <ConfidenceBadge llmAnalysis={app.llmAnalysis} compact={true} />
-                      ) : (
-                        <span className="text-xs text-fg-muted">—</span>
-                      )}
-                    </td>
-                  </>
-                ) : null}
-                <td className="tracker-cell--nowrap">
-                  <div className="flex items-center gap-1.5">
-                    {canEditApplications ? (
-                      <SequentialStatusControl
-                        applicationId={app.id}
-                        currentStatus={app.status}
-                        onStatusChange={(newStatus) => handleStatusChange(app.id, newStatus)}
-                        application={app}
-                        autoOpenInterview={autoOpenInterviewForApp === app.id}
-                        onAutoOpenComplete={() => setAutoOpenInterviewForApp(null)}
-                      />
-                    ) : null}
-                    {canEditApplications && app.status === 'hired' ? (
-                      <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-fg-muted" title="Contract end date — drives the crew-coming-available alert on the KPI dashboard">
-                        Contract ends
-                        <input
-                          type="date"
-                          value={app.contract_end_date || ''}
-                          onChange={(event) => updateContractEndDate(app.id, event.target.value)}
-                          className="rounded-lg border border-line px-2 py-1 text-xs outline-none focus:border-accent"
-                        />
-                      </label>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="max-w-[14rem] tracker-cell--muted">
-                  <span className="line-clamp-2">{(app.prospect_id && notesByProspect[app.prospect_id]) || '—'}</span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+  return <div className="recruiter-shell">
+    <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
+    <div className="w-full min-w-0 space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
+      <p className="text-sm text-fg-muted">Review submitted forms. Open recruitment to manage stages and tasks.</p>
+      <div role="group" aria-label="Application view" className="flex flex-wrap gap-2">{[['all','All submitted'],['linked','Linked'],['unlinked','Not linked']].map(([id,title]) => <button key={id} className={button} aria-pressed={tab===id} onClick={() => setParam('tab',id==='all'?'':id)}>{title} ({loading || loadError ? '—' : tabCounts[id]})</button>)}</div>
+      <section aria-label="Application filters" className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
+        <label className={label}>Company<select aria-label="Company" className={field} value={searchParams.get('company') || ''} onChange={e => setParam('company',e.target.value)}><option value="">All</option>{searchParams.get('company') && !companyOptions.some(([id]) => id === searchParams.get('company')) && <option value={searchParams.get('company')}>Unavailable selection</option>}{companyOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <label className={label}>Ship<select aria-label="Ship" className={field} value={searchParams.get('ship') || ''} onChange={e => setParam('ship',e.target.value)}><option value="">All</option>{searchParams.get('ship') && !shipOptions.some(([id]) => id === searchParams.get('ship')) && <option value={searchParams.get('ship')}>Unavailable selection</option>}{shipOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <label className={label}>Requirement<select aria-label="Requirement" className={field} value={searchParams.get('requirement') || ''} onChange={e => setParam('requirement',e.target.value)}><option value="">All</option>{searchParams.get('requirement') && !requirementOptions.some(([id]) => id === searchParams.get('requirement')) && <option value={searchParams.get('requirement')}>Unavailable selection</option>}{requirementOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <label className={label}>Document checks<select aria-label="Document checks" className={field} value={complianceFilter} onChange={e => setParam('checks',e.target.value==='all'?'':e.target.value)}><option value="all">All</option>{['red','amber','green'].map(value => <option key={value} value={value}>{complianceLabel(value)}</option>)}</select></label>
+      </section>
+      {statusFilter && <p className="text-sm text-fg-muted">Saved status filter: {applicationStatusLabel(statusFilter)} <button className="underline text-accent-text" onClick={() => setParam('status','')}>Clear status filter</button></p>}
+      {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
+      {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
+        <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}{listed.length > uniqueIds.length ? ' Forms linked to multiple ships appear under each ship.' : ''}</p>
+        {!listed.length ? <p className="recruiter-panel p-6">No submitted applications match these filters.</p> : <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" className="space-y-5">{groups.map(company => <details key={company.id} open className="overflow-hidden rounded-xl border border-line">
+          <summary className="cursor-pointer bg-accent-soft px-4 py-3 font-semibold text-accent-text"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.unlinked ? 'Not linked to recruitment' : `Company · ${company.name}`}<span className="ml-3 text-xs font-normal">{company.count} on this page</span></summary>
+          {company.ships.map(ship => company.unlinked ? <div key={ship.id}>{table(ship.rows)}</div> : <details key={ship.id} open className="border-t border-line"><summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />Ship · {ship.name}<span className="ml-3 text-xs font-normal">{ship.rows.length} on this page</span></summary>{table(ship.rows)}</details>)}
+        </details>)}</section>}
+        {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} itemsPerPage={itemsPerPage} totalItems={uniqueIds.length} />}
+      </>}
+      {autoOpenInterviewForApp && canEditApplications && <InterviewSchedulingModal application={autoOpenInterviewForApp} onCancel={() => setAutoOpenInterviewForApp(null)} onScheduled={() => {setAutoOpenInterviewForApp(null);loadApplications(appliedFilters,{background:true})}} />}
     </div>
-  )
-}
-
-  return (
-    <div className="recruiter-shell">
-      <RecruiterTopbar
-        user={user}
-        profile={profile}
-        role={role}
-        signOut={signOut}
-      />
-
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-        <PageHeader
-          title="Applications"
-          actions={(
-            <div className="flex flex-wrap items-center gap-2">
-              {backgroundRefreshing ? <Loader2 className="h-4 w-4 animate-spin text-fg-muted" aria-label="Updating" /> : null}
-              <button
-                type="button"
-                onClick={() => setShowFilters((open) => !open)}
-                aria-pressed={showFilters}
-                className={`workspace-action-button ${showFilters ? 'workspace-action-button--primary' : 'workspace-action-button--secondary'}`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
-              </button>
-            </div>
-          )}
-        />
-
-        {showFilters ? (
-          <ApplicationFilters
-            onFilterChange={setFilters}
-            onApplyFilters={handleApplyFilters}
-            activeFilters={filters}
-          />
-        ) : null}
-
-        <div className="recruiter-panel overflow-hidden">
-            <div className="space-y-3 border-b border-line px-5 py-4 md:px-6">
-              <div role="group" aria-label="Pipeline stage" className="flex flex-wrap gap-2">
-                {STAGES.map((stage) => {
-                  const active = activeStage.id === stage.id
-                  return (
-                    <button
-                      key={stage.id}
-                      type="button"
-                      onClick={() => updateStatusFilter(stage.id)}
-                      aria-pressed={active}
-                      className={`flex min-w-[6.5rem] flex-col items-start gap-0.5 rounded-card border px-3.5 py-2.5 text-left transition ${
-                        active ? 'border-accent-fill bg-accent-soft' : 'border-line bg-surface hover:border-line-strong'
-                      }`}
-                    >
-                      <span className="text-xl font-semibold leading-tight text-fg">{stageCount(stage)}</span>
-                      <span className="text-xs text-fg-secondary">{stage.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {subStatuses.length > 1 ? (
-                <div role="group" aria-label={`${activeStage.label} statuses`} className="flex flex-wrap gap-2">
-                  {subStatuses.map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => updateStatusFilter(statusFilter === status ? activeStage.id : status)}
-                      aria-pressed={statusFilter === status}
-                      className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
-                        statusFilter === status
-                          ? 'border-accent/40 bg-accent-soft text-accent-text'
-                          : 'border-line bg-surface text-fg-secondary hover:bg-raised'
-                      }`}
-                    >
-                      {applicationStatusLabel(status)}
-                      <span className="text-fg">{statusCounts[status] || 0}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-fg-secondary">{listed.length} shown</span>
-                  {['red', 'amber', 'green'].map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setComplianceFilter((current) => (current === status ? 'all' : status))}
-                      aria-pressed={complianceFilter === status}
-                      title={`Show only ${status}`}
-                      className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${COMPLIANCE_STYLES[status]} ${
-                        complianceFilter === status ? 'ring-2 ring-accent/40' : complianceFilter === 'all' ? '' : 'opacity-50'
-                      }`}
-                    >
-                      {complianceLabel(status)}
-                      <span>{complianceCounts[status]}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="relative w-full md:w-80">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Name, email or reference"
-                    className="w-full rounded-card border border-line-input bg-surface py-2.5 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-accent"
-                  />
-                </div>
-              </div>
-            </div>
-
-
-          <div className="space-y-6 p-5 md:p-6">
-            {loading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
-              </div>
-            ) : (
-              <>
-                <ApplicationTable apps={pageRows} />
-                {displayed.length > itemsPerPage ? (
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    totalItems={displayed.length}
-                  />
-                ) : null}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  </div>
 }

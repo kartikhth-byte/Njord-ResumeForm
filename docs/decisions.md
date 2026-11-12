@@ -1,5 +1,13 @@
 # Decisions Log
 
+## Applications review directory (2026-11-12)
+
+User approved Company → Ship → Applications, a requirement column and an Open
+recruitment action for stage/task work. Forms with no explicit case link remain
+visible in Not linked. Submitted forms include terminal cases; no inferred
+requirement from candidate identity alone and no new reviewed/unreviewed state.
+
+
 ## Recruitment fleet grouping (2026-11-12)
 
 Company → Ship → recruitment rows is the default layout, consistent with Candidates and Requirements. Requirements remain a column, without another group level. Company and ship headers use distinct icons/backgrounds; tables stay full width with shared column widths. Group by immutable fleet IDs, retain unmapped records visibly, and expand matches when filters change.

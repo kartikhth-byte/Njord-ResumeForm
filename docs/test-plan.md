@@ -1,5 +1,17 @@
 # Platform Test Plan
 
+## Applications directory (2026-11-12)
+
+Run `tests/applicationDirectory.test.mjs` plus application progress/case/workspace/
+candidate adjacent suites. Run `applications-directory.spec.js` and adjacent
+`recruitment-workspace.spec.js` on the synthetic server with
+`HOLMES_FLEET_SYNTHETIC_SMOKE=1` and `--no-deps`. Cover exact and multiple case
+links, same-placement filters, missing metadata, submitted-only scope, pagination
+past the API cap, read failures, rapid refresh/filter overlap, saved status/filter
+URLs, Coordinator controls, Teams return and desktop/mobile layout. Follow with
+read-only normal staging and approved production smoke.
+
+
 ## Recruitment workspace (2026-11-12)
 
 Run `tests/recruitmentWorkspace.test.mjs`, case/KPI/directory adjacent Node suites, `supabase/tests/recruitment_workspace.test.mjs` with PGlite and the absolute migrations directory, and `recruitment-workspace.spec.js` plus candidate/fleet/KPI synthetic browser suites. Cover takeover preserving independent task ownership, stale writes, immutable actor/performer attribution, denied roles/org/anon, parallel tasks, reload, exact-case links, KPI attribution, closed-case/requirement guards and mobile side panel. Normal signed-in staging checks remain a separate gate.

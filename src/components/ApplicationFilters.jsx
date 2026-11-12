@@ -56,7 +56,7 @@ const LABELS = {
   dateRange: 'Date'
 }
 
-export default function ApplicationFilters({ onFilterChange, onApplyFilters, activeFilters = {} }) {
+export default function ApplicationFilters({ onFilterChange, onApplyFilters, activeFilters = {}, dateLabel = 'Date range', applyLabel = 'Search' }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const fieldClass = 'h-11 w-full rounded-card border border-line-input bg-surface px-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30'
 
@@ -117,28 +117,28 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
               className="workspace-action-button workspace-action-button--primary"
             >
               <Filter className="h-4 w-4" />
-              Search
+              {applyLabel}
             </button>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <select value={activeFilters.position || ''} onChange={event => updateFilter('position', event.target.value)} className={fieldClass}>
+          <select aria-label="Rank" value={activeFilters.position || ''} onChange={event => updateFilter('position', event.target.value)} className={fieldClass}>
             <option value="">Rank</option>
             {RANK_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
 
-          <select value={activeFilters.vesselType || ''} onChange={event => updateFilter('vesselType', event.target.value)} className={fieldClass}>
+          <select aria-label="Vessel type" value={activeFilters.vesselType || ''} onChange={event => updateFilter('vesselType', event.target.value)} className={fieldClass}>
             <option value="">Vessel Type</option>
             {VESSEL_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
 
-          <select value={activeFilters.nationality || ''} onChange={event => updateFilter('nationality', event.target.value)} className={fieldClass}>
+          <select aria-label="Nationality" value={activeFilters.nationality || ''} onChange={event => updateFilter('nationality', event.target.value)} className={fieldClass}>
             <option value="">Nationality</option>
             {COMMON_NATIONALITIES.map(option => <option key={option} value={option}>{option}</option>)}
           </select>
 
-          <select value={activeFilters.experienceRange || ''} onChange={event => updateFilter('experienceRange', event.target.value)} className={fieldClass}>
+          <select aria-label="Experience" value={activeFilters.experienceRange || ''} onChange={event => updateFilter('experienceRange', event.target.value)} className={fieldClass}>
             <option value="">Experience</option>
             {EXPERIENCE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
@@ -159,27 +159,27 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
       <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="recruiter-panel recruiter-panel--muted p-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <select value={activeFilters.certificateGrade || ''} onChange={event => updateFilter('certificateGrade', event.target.value)} className={fieldClass}>
+            <select aria-label="Certificate" value={activeFilters.certificateGrade || ''} onChange={event => updateFilter('certificateGrade', event.target.value)} className={fieldClass}>
               <option value="">Certificate</option>
               {CERTIFICATE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
 
-            <select value={activeFilters.visaType || ''} onChange={event => updateFilter('visaType', event.target.value)} className={fieldClass}>
+            <select aria-label="Visa type" value={activeFilters.visaType || ''} onChange={event => updateFilter('visaType', event.target.value)} className={fieldClass}>
               <option value="">Visa Type</option>
               {VISA_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
 
-            <select value={activeFilters.flagState || ''} onChange={event => updateFilter('flagState', event.target.value)} className={fieldClass}>
+            <select aria-label="Flag state" value={activeFilters.flagState || ''} onChange={event => updateFilter('flagState', event.target.value)} className={fieldClass}>
               <option value="">Flag State</option>
               {FLAG_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
             </select>
 
-            <select value={activeFilters.availability || ''} onChange={event => updateFilter('availability', event.target.value)} className={fieldClass}>
+            <select aria-label="Availability" value={activeFilters.availability || ''} onChange={event => updateFilter('availability', event.target.value)} className={fieldClass}>
               <option value="">Availability</option>
               {AVAILABILITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
 
-            <select value={activeFilters.ageRange || ''} onChange={event => updateFilter('ageRange', event.target.value)} className={fieldClass}>
+            <select aria-label="Age range" value={activeFilters.ageRange || ''} onChange={event => updateFilter('ageRange', event.target.value)} className={fieldClass}>
               <option value="">Age Range</option>
               {AGE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
@@ -187,17 +187,19 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
             <div className="rounded-control border border-line-input bg-surface px-4 py-3">
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-fg-secondary">
                 <Calendar className="h-4 w-4 text-fg-muted" />
-                Date range
+                {dateLabel}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="date"
+                  aria-label={`${dateLabel} from`}
                   value={activeFilters.dateRange?.from || ''}
                   onChange={event => updateFilter('dateRange', { ...activeFilters.dateRange, from: event.target.value })}
                   className="rounded-control border border-line-input px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
                 <input
                   type="date"
+                  aria-label={`${dateLabel} to`}
                   value={activeFilters.dateRange?.to || ''}
                   onChange={event => updateFilter('dateRange', { ...activeFilters.dateRange, to: event.target.value })}
                   className="rounded-control border border-line-input px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"

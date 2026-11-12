@@ -1,5 +1,14 @@
 # Pending Tasks
 
+## Applications directory (2026-11-12)
+
+- [x] Approved company/ship grouping, exact requirement links, submitted-form
+  views, aligned filters and explicit unlinked/error states.
+- [x] Focused tests, normal staging Master read-only checks and independent review.
+- [ ] Final verification record, exact release approval, promotion and live smoke.
+- [ ] Review the application detail page separately; legacy controls there remain.
+
+
 ## Recruitment document actions (2026-11-12)
 
 - [x] Separate CV/profile/application actions, scoped submitted-form selection,
