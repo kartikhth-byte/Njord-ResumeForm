@@ -135,7 +135,7 @@ Runtime source was unchanged during smoke. Frontend rollback target is
 data and the database requirement-progress protection. No Needle, Function,
 subscription, region or hosting change was made.
 
-## UI walkthrough corrections — prepared locally, awaiting promotion
+## UI walkthrough corrections — deployed and verified
 
 - Consistent filter label spacing and control heights, including Needs attention.
   Attention help states its existing unassigned-row/overdue-task meaning.
@@ -152,6 +152,16 @@ subscription, region or hosting change was made.
   pass. Desktop/mobile screenshots were inspected. Independent review found no
   material issues. Existing build warnings concern bundle size and browser data.
 
-This is a frontend-only follow-up to deployed `c89a0c2`; no migration, Function,
-Needle, hosting, subscription or intake change. Exact promotion approval and live
-read-only smoke remain pending. The production release above remains the live baseline.
+After exact approval, `b3d49c0ddb368d76ec0c9bf8b9d9085ad33256b1` was promoted to
+main/Vercel. Primary Production deployment `7730925049` completed successfully.
+The primary domain serves the approved changes. Normal Recruiter and Coordinator
+sessions verified the new labels, aligned desktop controls, individual task lines,
+and read-only Coordinator controls. Search plus Needs attention returned the
+expected synthetic row and persisted after reload. The old Joining preparation
+URL selects Pre-joining and retains its result. No production records were changed;
+negative outcome styling was verified with synthetic local browser fixtures.
+The temporary Chrome verification tab was closed, preserving the user's tab.
+Private visual proof: `.local/recruitment-release-20261112/production-ui-b3d49c0.png`.
+
+This frontend-only follow-up has no migration, Function, Needle, hosting,
+subscription or intake change. Rollback frontend is `c89a0c2`.

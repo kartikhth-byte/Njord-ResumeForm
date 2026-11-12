@@ -1,11 +1,12 @@
 # Project Status
 
-## Recruitment UI corrections — prepared locally (2026-11-12)
+## Recruitment UI corrections — deployed and verified (2026-11-12)
 
 Filter alignment/help, shorter search placeholder, Pre-joining stage label and
 readable per-task status lines are ready. Six synthetic browser checks, 15
-adjacent tests, lint/build and independent review pass. Exact production promotion
-and live smoke remain pending; no database or workflow changes. See the latest
+adjacent tests, lint/build and independent review pass. Exact approved commit
+`b3d49c0` is deployed; Recruiter/Coordinator read-only live smoke passed, including
+filter persistence and saved stage links. No database or workflow changes. See the latest
 section of `docs/RECRUITMENT_WORKSPACE_2026-11-12.md`.
 
 ## Recruitment workspace — deployed and smoke verified (2026-11-12)
