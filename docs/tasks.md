@@ -13,11 +13,23 @@ organisation and personal-recruiter configuration. Future resumable onboarding
 and editable settings cover organisation type, single-owner Fleet versus
 multi-company grouping, mail/storage/calendar connections, team roles and readiness.
 Connecting an account must not automatically send invitations. Existing company
-relationships remain intact. Current workspace release remains the next task.
+relationships remain intact. The workspace release is complete; onboarding remains deferred.
 
-## Recruitment workspace release (2026-11-12)
+## Recruitment workspace release — complete (2026-11-12)
 
-Staging Master/Coordinator UI checks, authenticated Recruiter database checks, independent review, final regression checks and production backup/payload restore verification are complete. Synthetic case and requirement cleanup is complete. Commit the reviewed candidate, obtain exact migration/frontend promotion approval and run live synthetic smoke. Includes the candidate-alignment patch. Migration 2026111201 and frontend are not production-approved by the implementation request. See the workspace release record for the full-schema restore limitation.
+- [x] Staging Master/Coordinator UI, authenticated Recruiter database checks,
+  independent review and final regression checks.
+- [x] Production backup and isolated data-payload restore/count verification;
+  full managed-schema restore remains unverified, as disclosed at approval.
+- [x] Exact approval, production migration `2026111201`, and frontend promotion
+  of `c89a0c2c6fdb1767b4b10f7c9eab2b08e170739a`.
+- [x] Production Recruiter/Coordinator smoke: grouping, takeover, task completion,
+  due dates, reload, read-only access, KPI performer credits and Candidates alignment.
+- [x] Rollback-only production database role/handover checks; synthetic case and
+  requirement Closed with history retained. No intake activation.
+
+Next: owner walkthrough of the deployed Recruitment workspace, then select the
+next UI to review. See `RECRUITMENT_WORKSPACE_2026-11-12.md` for release evidence.
 
 ## Candidates directory — 2026-11-11
 

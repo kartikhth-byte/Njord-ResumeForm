@@ -2,9 +2,10 @@
 
 ## Scope
 
-Implementation of the 2026-11-12 owner-approved discussion. Production release is
-not included in the implementation approval. Current production remains the
-Candidates release; migration 2026111201 must precede frontend promotion.
+Implementation of the 2026-11-12 owner-approved discussion. After exact release
+approval, migration 2026111201 was applied to production, then Holmes commit
+`c89a0c2c6fdb1767b4b10f7c9eab2b08e170739a` was promoted to main/Vercel.
+Production deployment and synthetic live smoke are complete.
 
 - Recruitment page: one row per candidate/requirement/cycle; URL-backed search,
   company/ship/requirement/recruiter filters, My work, overdue/unassigned attention,
@@ -71,7 +72,8 @@ Final source checks on 2026-11-12:
   task display preferred recording time over occurrence time. All were fixed;
   follow-up review found no remaining material issues.
 
-Migration 2026111201 is applied only to staging `dwslhetniuzpyuspuomy`.
+Before production approval, migration 2026111201 was verified on staging
+`dwslhetniuzpyuspuomy`.
 Normal signed-in Master and Coordinator sessions verified grouping, filters,
 row assignment/takeover, independent interview assignment/due date, contact
 completion, reload, and Coordinator read-only controls. The completed contact
@@ -98,8 +100,37 @@ restore was not verified because the scratch environment lacks managed-service
 dependencies. Private receipts and screenshots are retained outside Git. This is
 not a claim of a full disaster-recovery restore rehearsal.
 
-Production release remains pending exact approval for this committed candidate
-and Holmes migration 2026111201, followed by frontend promotion and live synthetic
-smoke. Frontend rollback preserves additive task/history data; the requirement
-progress guard remains a database protection. No Needle, Function, subscription,
-region, hosting or intake activation change is part of this release.
+## Production release and live smoke — 2026-11-12
+
+- Exact approved commit `c89a0c2c6fdb1767b4b10f7c9eab2b08e170739a` is deployed.
+  GitHub Production deployment `7728166005` reports success; the primary domain
+  serves the new Recruitment workspace. Migration 2026111201 is recorded on
+  production `btbqdviuqcpauojmorvx`; candidate/case counts were unchanged by it.
+- Normal signed-in Recruiter and Coordinator sessions verified company/ship
+  grouping, requirement-scoped navigation, row takeover, independent task
+  ownership, contact completion, interview due-date saving and reload.
+- Required contact details correctly blocked progression until the synthetic
+  fixture was completed. No real candidate was changed.
+- Contact/confirmation credits record the selected recruiter as performer and
+  the signed-in operator as recorder. KPI shows activity credit independently
+  from current row ownership. Assignment, task state and credits survived reload.
+- Coordinator sees task details and KPI but no assignment, takeover or stage
+  mutation controls. A separate authenticated database check, rolled back in
+  full, verified Recruiter self-takeover, denial of assigning another recruiter,
+  Coordinator read/write boundaries and unchanged performer credits after
+  handover. This is not a normal browser session for that second Recruiter.
+- The production Candidates directory uses aligned shared columns; Coordinator
+  has no Add/Edit/Attach controls. Production Master browser checks were not
+  repeated; normal staging Master checks and database authorization tests cover
+  those paths.
+- The existing labelled synthetic case and requirement `2026-Nov-003` are both
+  Closed, with history and credits retained. Final UI readback confirmed the
+  requirement closure. No new candidate, case or PDF was created. No emails,
+  invitations, assessment scheduling, model calls or intake activation occurred.
+
+Private deployment, role-check, cleanup receipts and production screenshots are
+retained under `.local/recruitment-release-20261112/` in the NjordHR workspace.
+Runtime source was unchanged during smoke. Frontend rollback target is
+`1a8f6caf24143f3ba84dddcf7fccb660e305c45c`; rollback preserves additive task/history
+data and the database requirement-progress protection. No Needle, Function,
+subscription, region or hosting change was made.
