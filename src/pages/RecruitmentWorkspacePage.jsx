@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Building2, Ship, CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -10,7 +10,7 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import { assignRecruitmentWork } from '../services/recruitmentWorkService'
-import { openCandidateResume } from '../services/needleIntegrationService'
+import RecruitmentResourceActions from '../components/recruiter/RecruitmentResourceActions'
 import { WORK_STAGES, workStage, taskProgress, nextWork, groupRecruitmentRows } from '../utils/recruitmentWorkspace'
 import { isCaseTerminal } from '../utils/recruitmentCase'
 const button='workspace-action-button workspace-action-button--secondary'
@@ -117,7 +117,8 @@ export default function RecruitmentWorkspacePage() {
   </section>}
   {params.get('case')&&!tracker.loading&&!selected&&<p role="alert">This recruitment record is unavailable.</p>}
   {selected&&<RecordFormDialog sidePanel title={`${selected.candidate?.name||'Candidate'} · ${selected.requirement?.req_id_display||'Recruitment'}`} busy={busy||caseBusy} onClose={()=>{set('case','');setEdit(null)}}>
-   <div className="p-5 space-y-4"><div className="flex flex-wrap gap-4"><strong>{workStage(selected.status)}</strong><Link className="underline" to={`/recruiter/workspace/prospects/${selected.prospect_id}`}>Candidate profile and application</Link>{selected.candidate?.needle_resume_id&&<button className="underline" onClick={()=>openCandidateResume(selected.prospect_id,selected.candidate.needle_resume_id).catch(e=>setError(e.message))}>View CV</button>}</div>
+   <div className="p-5 space-y-4"><strong className="block">{workStage(selected.status)}</strong>
+   <RecruitmentResourceActions key={`${selected.id}:${selected.application_id||''}`} candidate={selected.candidate} prospectId={selected.prospect_id} applicationId={selected.application_id} permissions={permissions}/>
    {error&&<p role="alert" className="text-danger">{error}</p>}
    <p>Assigned recruiter: {name(selected.owner?.assignee_id)}</p>
    {canMove&&!isCaseTerminal(selected.status)&&<div className="flex gap-3"><button className={button} disabled={busy} onClick={()=>take(selected,'case',selected.owner)}>Take over row</button>{role==='Master Recruiter'&&<button className={button} onClick={()=>beginEdit('case',selected.owner)}>Assign row</button>}</div>}

@@ -1,5 +1,15 @@
 # Pending Tasks
 
+## Recruitment document actions (2026-11-12)
+
+- [x] Separate CV/profile/application actions, scoped submitted-form selection,
+  explicit missing/error states and Progress & history label.
+- [x] Nine synthetic browser checks, 15 adjacent tests, lint/build and independent
+  review. Staging CV action opened a new PDF tab without an error; blob rendering
+  inspection was blocked by browser policy. No staging records changed.
+- [ ] Exact frontend release approval, promotion and read-only production smoke.
+
+
 ## Deferred: customer onboarding and connection audit (2026-11-12)
 
 Recorded for later; do not implement or configure providers during the Recruitment

@@ -6,9 +6,17 @@ async function fixture(page,options={}) {
  const state=createCandidateDirectoryFixture(options),base=state.respond
  state.cases.forEach(c=>{c.version=1;c.cycle=1})
  state.assignments=[];state.history=[];state.events=[];state.credits=[]
+ state.applications=[];state.applicationReads=[];state.applicationReadFails=false
  state.respond=(url,method,body)=>{
   const table=url.pathname.split('/').pop()
-  if(table==='profiles'&&url.searchParams.get('id')?.startsWith('in.')){const r=base(url,method,body);return {...r,body:Array.isArray(r.body)?r.body:[r.body]}}
+  if(table==='role_permissions'&&options.viewApplications){const r=base(url,method,body);return {...r,body:[...r.body,{permissions:{name:'view_applications'}}]}}
+  if(table==='applications'){
+   const tokens=url.searchParams.get('select')?.includes('public_token')
+   if(tokens){state.applicationReads.push(Object.fromEntries(url.searchParams));if(state.applicationReadFails)return {status:503,body:{message:'Synthetic unavailable'}}}
+   return {status:200,body:state.applications.filter(a=>(!url.searchParams.get('prospect_id')?.startsWith('eq.')||a.prospect_id===url.searchParams.get('prospect_id').slice(3))&&(!url.searchParams.has('id')||a.id===url.searchParams.get('id').slice(3))&&(!url.searchParams.has('submitted_at')||a.submitted_at))}
+  }
+  if(table==='needle-integration'&&body?.action==='view'){state.calls.push({table,body});return {status:503,body:{message:'Synthetic CV unavailable'}}}
+  if(table==='profiles' &&url.searchParams.get('id')?.startsWith('in.')){const r=base(url,method,body);return {...r,body:Array.isArray(r.body)?r.body:[r.body]}}
   if(table==='prospects'&&url.searchParams.get('id')?.startsWith('in.'))return {status:200,body:state.prospects}
   if(table==='recruitment_work_assignments')return {status:200,body:state.assignments}
   if(table==='recruitment_work_history')return {status:200,body:state.history}
@@ -148,6 +156,63 @@ test.describe('Recruitment workspace',()=>{
   await page.reload()
   await expect(cells).toHaveText(['Synthetic recruiter','1','1','1','1','1','0','0'])
   await page.screenshot({path:'test-results/recruitment-kpi.png',fullPage:true,animations:'disabled'})
+ })
+ test('document actions use the exact linked submitted form and retain Coordinator read-only access',async({page})=>{
+  const state=await fixture(page,{role:'Coordinator',operator:false,viewApplications:true})
+  state.cases[0].application_id='app-linked'
+  state.applications=[{id:'app-linked',prospect_id:'p1',public_token:'synthetic-linked',reference_number:'FORM-1',submitted_at:'2026-11-01'},
+   {id:'app-newer',prospect_id:'p1',public_token:'synthetic-newer',submitted_at:'2026-11-12'},
+   {id:'app-other',prospect_id:'p2',public_token:'synthetic-other',submitted_at:'2026-11-12'}]
+  await page.goto('/recruiter/recruitment?case=case1')
+  const panel=page.getByRole('dialog'),resources=panel.getByRole('region',{name:'Candidate documents'})
+  await expect(panel.getByRole('heading',{name:'Progress & history',exact:true})).toBeVisible()
+  await expect(panel.getByRole('heading',{name:'Recruitment cases',exact:true})).toHaveCount(0)
+  await expect(resources.getByRole('link',{name:'Candidate profile',exact:true})).toHaveAttribute('href','/recruiter/workspace/prospects/p1')
+  await expect(resources.getByRole('link',{name:'View application',exact:true})).toHaveAttribute('href','/application/view/synthetic-linked')
+  expect(state.applicationReads.at(-1)).toMatchObject({prospect_id:'eq.p1',id:'eq.app-linked',submitted_at:'not.is.null'})
+  await expect(panel.getByRole('button',{name:/Take over|Start task|Mark contacted/})).toHaveCount(0)
+  await resources.getByRole('button',{name:'View CV',exact:true}).click()
+  await expect(resources.getByRole('alert')).toContainText('Could not open the CV')
+  expect(state.calls.find(c=>c.body?.action==='view').body).toMatchObject({prospect_id:'p1',resume_id:'a'.repeat(64)})
+  await page.reload()
+  await expect(resources.getByRole('link',{name:'View application',exact:true})).toBeVisible()
+  await page.screenshot({path:'test-results/recruitment-resources-desktop.png',fullPage:true,animations:'disabled'})
+  await page.setViewportSize({width:390,height:844})
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:'test-results/recruitment-resources-mobile.png',fullPage:true,animations:'disabled'})
+ })
+ test('missing resources, load failure and multiple submitted forms are explicit',async({page})=>{
+  const state=await fixture(page,{viewApplications:true})
+  state.prospects[0].needle_resume_id=null
+  state.applicationReadFails=true
+  await page.goto('/recruiter/recruitment?case=case1')
+  const resources=page.getByRole('region',{name:'Candidate documents'})
+  await expect(resources.getByText('No CV linked',{exact:true})).toBeVisible()
+  await expect(resources.getByRole('alert')).toHaveText('Could not load applications.')
+  await expect(resources.getByText('No submitted application available')).toHaveCount(0)
+  state.applicationReadFails=false
+  await resources.getByRole('button',{name:'Retry applications'}).click()
+  await expect(resources.getByText('No submitted application available')).toBeVisible()
+  state.applications=[{id:'app1',prospect_id:'p1',public_token:'synthetic-one',reference_number:'FORM-1',submitted_at:'2026-11-01'},
+   {id:'app2',prospect_id:'p1',public_token:'synthetic-two',reference_number:'FORM-2',submitted_at:'2026-11-02'},
+   {id:'draft',prospect_id:'p1',public_token:'synthetic-draft',submitted_at:null}]
+  await page.reload()
+  await expect(resources.getByRole('button',{name:'View application'})).toBeDisabled()
+  await expect(resources.getByLabel('Submitted application').locator('option')).toHaveCount(3)
+  await resources.getByLabel('Submitted application').selectOption('app2')
+  await expect(resources.getByRole('link',{name:'View application'})).toHaveAttribute('href','/application/view/synthetic-two')
+  await expect(resources).toContainText('not linked to this recruitment')
+  // A stale case link must not silently fall back to another available form.
+  state.cases[0].application_id='unavailable-link'
+  await page.reload()
+  await expect(resources.getByText('Linked application unavailable')).toBeVisible()
+  await expect(resources.getByRole('link',{name:'View application'})).toHaveCount(0)
+ })
+ test('application tokens are not requested without application view permission',async({page})=>{
+  const state=await fixture(page,{role:'Coordinator',operator:false})
+  await page.goto('/recruiter/recruitment?case=case1')
+  await expect(page.getByRole('region',{name:'Candidate documents'}).getByText('Application access unavailable')).toBeVisible()
+  expect(state.applicationReads).toHaveLength(0)
  })
  test('candidate link opens the exact recruitment case',async({page})=>{
   await fixture(page)

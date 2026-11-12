@@ -352,13 +352,13 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
     <div className="recruiter-panel overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
         <div>
-          <h2 className="text-lg font-semibold text-fg">Recruitment cases</h2>
+          <h2 className="text-lg font-semibold text-fg">{selectedCaseId ? 'Progress & history' : 'Recruitment cases'}</h2>
           <p className="mt-1 text-sm text-fg-secondary">
             {activeCases.length} active{closedCases.length ? ` · ${closedCases.length} closed` : ''}
             {!canMove && !canExit ? ' · read only' : ''}
           </p>
         </div>
-        {closedCases.length > 0 ? (
+        {closedCases.length > 0 && !selectedCaseId ? (
           <button type="button" onClick={() => setShowClosed((value) => !value)} className="text-sm font-medium text-accent-text hover:underline">
             {showClosed ? 'Hide closed' : 'Show closed'}
           </button>

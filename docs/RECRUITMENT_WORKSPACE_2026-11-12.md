@@ -165,3 +165,34 @@ Private visual proof: `.local/recruitment-release-20261112/production-ui-b3d49c0
 
 This frontend-only follow-up has no migration, Function, Needle, hosting,
 subscription or intake change. Rollback frontend is `c89a0c2`.
+
+
+## Candidate document actions — ready for release approval
+
+The single-case panel offers View CV, Candidate profile and View application at
+the top. Missing links, missing submitted forms, restricted access and fetch
+errors are explicit. CV opening uses the existing authenticated service, with
+busy/error recovery. The profile Back state preserves the case/filter URL.
+
+Application reads require view_applications and are scoped to the prospect. A
+case-linked application must match both IDs and be submitted; an unavailable
+linked form never falls back to another form. Without a case link, one submitted
+form is available directly; multiple forms require explicit selection. These are
+labelled as not linked to this recruitment, and viewing does not attach them.
+No tokens are requested without application view permission.
+
+The nested selected-case heading is Progress & history. Its ineffective closed
+case toggle is removed; the shared multi-case view retains its existing heading
+and toggle. Task, stage, KPI and permission rules are unchanged.
+
+Verification: nine synthetic browser checks, 15 adjacent Node tests, lint and
+build pass. Desktop/mobile screenshots inspected. Independent review found no
+material issues. Read-only staging Master smoke used the existing closed
+synthetic case: CV action opened a PDF blob tab without an error, missing
+application state and Progress & history displayed correctly. Browser policy
+blocked observing blob URLs, so PDF rendering was not reverified; no workaround
+was attempted. No staging or production records changed.
+
+Production remains on b3d49c0. This frontend-only candidate requires exact release
+approval and read-only production smoke. No database, Function, Needle, hosting
+or intake change.
