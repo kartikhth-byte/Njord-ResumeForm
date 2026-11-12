@@ -87,3 +87,12 @@ with the current case workflow while retaining identity review, organization,
 archive/deletion/bounce, open-requirement and applicant-ownership protections. Add
 an integration regression starting from the actual reviewed-CV candidate creation
 path; do not bypass the failure by manually approving this synthetic record.
+
+### Follow-up status
+
+The separate repair `b10b7f6` is now deployed with migration 1203 and both email
+Functions. It resolves the legacy approval mismatch without changing candidate
+status. Normal UI sending reaches Resend; delivery is blocked by its unverified
+sender policy. The provider-owner address has recruiter roles and was not reused
+for the applicant smoke. See `APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`
+for production evidence and the remaining real-email handoff.

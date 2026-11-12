@@ -89,3 +89,34 @@ is needed, restore the prior Functions first; legacy eligibility safely blocks n
 open candidates. The additive migration can remain while investigating; it writes
 no backfill data. Reverting changed SQL functions requires a reviewed rollback
 using their pre-migration definitions, not deleting applicant records.
+
+## Approved production release and live smoke
+
+Owner approved exact `b10b7f6f6a56487c8c13fd6ca9026c0344469513`. Migration 1203
+was applied before sender v9 and applicant-link v12; the same commit is deployed
+on main/Vercel (primary deployment `7738798225`, success). Both Functions retain
+`verify_jwt=false` and reviewed handler authentication; downloaded source and all
+shared assets match the approved commit.
+
+Fresh full dump and isolated COPY-payload restore verified 111 tables and 7,705
+rows. Full managed-schema restoration is not verified. Initial parallel dump failed
+on a temporary CLI login rejection; a fresh single-worker retry passed. Migration
+left candidate/case counts unchanged. Production private/service RPC grants and
+exact synthetic-case eligibility pass; candidate status remains `open`. The actual
+reviewed-CV creation → case progression → invitation reservation → claim → draft/
+retry → submission/reissue check passed in a fully rolled-back production transaction.
+
+The normal signed-in UI send now passes eligibility and reaches Resend. Provider
+HTTP 403 rejects the controlled applicant inbox because the current sender is
+restricted to the provider-owner address until a sending domain is verified.
+Failure invalidated the claim and released its reservation. An approved alternative
+provider-owner inbox was checked before any change and has recruiter roles, so it
+was not used. No recipient or account role was changed. Recipient details and proof
+remain in ignored private receipts.
+
+Remaining: configure an authorized verified sender, then retry the distinct applicant
+inbox through real receipt, normal emailed-link sign-in, form save/reload/submission
+and exact-case task verification. The synthetic requirement/case are retained open
+for this check. Provider acceptance, delivery, browser sign-in and submission are
+not claimed; the rollback-only database test is separate. No Needle, intake, hosting,
+subscription or sender-configuration change was made during this release.

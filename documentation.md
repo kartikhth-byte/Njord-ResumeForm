@@ -1,13 +1,23 @@
 # Project Status
 
-## Invitation eligibility repair — reviewed local candidate (2026-11-12)
+## Invitation eligibility repair — deployed; delivery blocked (2026-11-12)
 
-The live email blocker is patched across reservation, reissue, claim, draft and
-submission using reviewed identity plus case eligibility. Resend tags are corrected.
-Actual reviewed-CV-to-submission SQL regression and staging rollback pass; six
-Edge handler tests and 16 adjacent Node checks pass. Independent review is clear.
-See `docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`. Migration 1203 and both
-invitation Functions need exact production approval; real email remains untested.
+Approved commit `b10b7f6f6a56487c8c13fd6ca9026c0344469513` is on main/Vercel
+(primary deployment `7738798225`, success). Migration 1203, invite sender v9 and
+applicant-link Function v12 are live with unchanged gateway authentication settings.
+Downloaded Function sources match the approved commit. Fresh backup and isolated
+payload restore passed (111 tables, 7,705 rows); full managed-schema restoration is
+not verified. Production service-only permissions and a rolled-back actual
+reviewed-CV → progression → invitation → claim → draft/retry → submission/reissue
+check pass. No global candidate approval was added.
+
+Normal UI invitation now reaches Resend, which rejects the controlled applicant
+inbox under its unverified-sender restriction. The failed claim was invalidated
+and reservation released. The allowed provider-owner inbox has recruiter roles;
+it was not used, and no recipient/account change was made. Real receipt, emailed
+sign-in and browser submission remain pending a verified sender and distinct
+applicant identity. Synthetic case/requirement remain open for resumption. See
+`docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`.
 
 ## Application detail review — deployed; email smoke blocked (2026-11-12)
 
@@ -17,10 +27,9 @@ controls. Section navigation, Back/reload and role guards are covered. See
 `docs/APPLICATION_DETAIL_REVIEW_2026-11-12.md`. Approved `f3b015ed` is deployed
 on main/Vercel (`7736259856`, success). Live form/sections/missing-resource states,
 reload and Back to the filtered list pass. Exact links/CV and role variations have
-staging/synthetic coverage. The separate real invitation attempt failed before
-email: case interview passed, but the legacy prospect approval gate rejects it.
-Align invitation/claim/form eligibility in a separately reviewed backend release;
-do not manually alter the test record to conceal this workflow gap.
+staging/synthetic coverage. The original invitation eligibility blocker is fixed
+in the release above; the remaining real-email blocker is provider sender
+configuration. No manual prospect approval was used.
 
 ## Requirement-bound applications — deployed and verified (2026-11-12)
 

@@ -12,6 +12,13 @@ migration and synthetic review-to-submission flow in a rolled-back transaction
 before exact production approval. Real provider delivery and emailed-link sign-in
 remain separate live checks.
 
+Production release `b10b7f6`: deployed source, private/service permissions and the
+rolled-back full reviewed-CV flow pass. Normal UI send reaches the provider but is
+rejected by the unverified-sender policy. Verify recipient identity is distinct from
+recruiter accounts before a real email test; do not repurpose a recruiter login.
+Failed live send was invalidated and reservation released. Resume email/sign-in/
+form/submission only after sender configuration is authorized and ready.
+
 
 ## Requirement-bound applications (2026-11-12)
 
