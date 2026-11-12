@@ -7,7 +7,9 @@
 - [x] Nine synthetic browser checks, 15 adjacent tests, lint/build and independent
   review. Staging CV action opened a new PDF tab without an error; blob rendering
   inspection was blocked by browser policy. No staging records changed.
-- [ ] Exact frontend release approval, promotion and read-only production smoke.
+- [x] Exact frontend release approval and promotion at `c9ed55d`; read-only
+  production application/profile navigation, Back context, missing-CV state and
+  reload smoke passed.
 
 
 ## Deferred: customer onboarding and connection audit (2026-11-12)

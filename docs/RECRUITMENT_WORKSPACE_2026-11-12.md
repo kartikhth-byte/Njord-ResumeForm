@@ -167,7 +167,7 @@ This frontend-only follow-up has no migration, Function, Needle, hosting,
 subscription or intake change. Rollback frontend is `c89a0c2`.
 
 
-## Candidate document actions — ready for release approval
+## Candidate document actions — deployed and verified
 
 The single-case panel offers View CV, Candidate profile and View application at
 the top. Missing links, missing submitted forms, restricted access and fetch
@@ -193,6 +193,14 @@ application state and Progress & history displayed correctly. Browser policy
 blocked observing blob URLs, so PDF rendering was not reverified; no workaround
 was attempted. No staging or production records changed.
 
-Production remains on b3d49c0. This frontend-only candidate requires exact release
-approval and read-only production smoke. No database, Function, Needle, hosting
-or intake change.
+After exact approval, `c9ed55d100c99c62cc793b1fcac0a2f7fa0c20ef` was promoted
+to main/Vercel. Primary Production deployment `7731791067` succeeded. Normal
+Recruiter read-only live smoke confirmed the missing-CV state, correct submitted
+application and candidate profile opening, Back returning to the same case/stage,
+reload and Progress & history. Coordinator access and multiple-form/negative
+states were covered by synthetic browser checks, not repeated with a live
+Coordinator session in this slice. PDF rendering limitation above remains.
+Private receipt and screenshot are under `.local/recruitment-release-20261112/`
+in the parent Needle workspace (`document-actions-c9ed55d.private.json` and
+`production-resources-c9ed55d.png`). No database, Function, Needle, hosting or
+intake change. Frontend rollback is b3d49c0.

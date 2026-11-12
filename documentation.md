@@ -1,6 +1,6 @@
 # Project Status
 
-## Recruitment document actions — ready for approval (2026-11-12)
+## Recruitment document actions — deployed and verified (2026-11-12)
 
 The case panel now offers separate CV, candidate profile and submitted application
 actions, explicit unavailable/error states and a Progress & history section. Exact
@@ -8,7 +8,9 @@ case-linked applications take precedence; unlinked forms are labelled and multip
 forms require selection. Nine synthetic browser checks, 15 adjacent tests, lint,
 build and independent review pass. Staging opened the existing synthetic CV in a
 PDF tab; browser policy blocked inspection of its blob URL, so rendering was not
-reverified. No data writes or backend changes. Production promotion remains pending.
+reverified. No data writes or backend changes. Approved commit `c9ed55d` is deployed;
+live smoke passed for application/profile opening, Back context, missing-CV state
+and reload.
 
 
 ## Recruitment UI corrections — deployed and verified (2026-11-12)
