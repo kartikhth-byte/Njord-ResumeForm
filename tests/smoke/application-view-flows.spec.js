@@ -27,8 +27,7 @@ test.describe('submitted application view flows', () => {
       await viewButton.click()
       await page.waitForURL(/\/application\/view\/.+$/, { timeout: 15000 })
 
-      await expect(page.getByText('Application Summary').first()).toBeVisible()
-      await expect(page.getByText('Application Status')).toBeVisible()
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
       await expect(page.getByText('Decision Actions')).toHaveCount(0)
       await expect(page.getByText('Candidate Review')).toHaveCount(0)
     })
@@ -37,7 +36,7 @@ test.describe('submitted application view flows', () => {
   test.describe('recruiter view', () => {
     test.skip(!recruiterEmail || !recruiterPassword, 'Recruiter credentials not configured for automated smoke tests.')
 
-    test('applications workspace view application keeps recruiter review controls visible', async ({ page }) => {
+    test('applications workspace view application shows form review without hiring controls', async ({ page }) => {
       await page.goto('/recruiter/applications')
 
       if (!page.url().includes('/recruiter/applications')) {
@@ -53,15 +52,16 @@ test.describe('submitted application view flows', () => {
         await page.goto('/recruiter/applications')
       }
 
-      const viewButton = page.locator('button[title="View application"]').first()
+      const viewButton = page.getByRole('button', { name: 'View application', exact: true }).first()
       const hasViewButton = await viewButton.isVisible().catch(() => false)
       test.skip(!hasViewButton, 'No recruiter application row is visible in this environment.')
 
       await viewButton.click()
       await page.waitForURL(/\/application\/view\/.+$/, { timeout: 15000 })
 
-      await expect(page.getByText('Candidate Review')).toBeVisible()
-      await expect(page.getByText('Decision Actions')).toBeVisible()
+      await expect(page.getByRole('region', { name: 'Review findings' })).toBeVisible()
+      await expect(page.getByRole('navigation', { name: 'Form sections' })).toBeVisible()
+      await expect(page.getByRole('button', { name: /Schedule|Reopen|Mark as/ })).toHaveCount(0)
       await expect(page.getByText('Application Status')).toHaveCount(0)
     })
   })

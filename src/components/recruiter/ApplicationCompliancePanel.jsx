@@ -25,7 +25,7 @@ function ComplianceStatusPill({ status }) {
   }
 
   return (
-    <span className={`inline-flex rounded-control px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
+    <span className={`inline-flex self-start rounded-control px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
       {status ? status[0].toUpperCase() + status.slice(1) : ''}
     </span>
   )
@@ -79,11 +79,11 @@ export default function ApplicationCompliancePanel({
             })}
           </div>
         </div>
-      ) : (
+      ) : compliance.summary.red === 0 && compliance.summary.amber === 0 ? (
         <div className="mt-6 rounded-card border border-success-line bg-success-soft p-4">
           <p className="text-sm font-medium text-success">No review flags.</p>
         </div>
-      )}
+      ) : null}
 
       {compliance.metadata?.vesselApplicabilityReasons?.length > 0 ? (
         <div className="mt-6 rounded-card border border-accent/40 bg-accent-soft p-4">

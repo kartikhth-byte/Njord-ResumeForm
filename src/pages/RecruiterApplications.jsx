@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
@@ -64,6 +64,7 @@ function ComplianceBadge({ status }) {
 
 export default function RecruiterApplications() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, profile, signOut } = useAuth()
   const { canViewApplications, canManageApplications, loading: permLoading, role } = usePermissions()
@@ -381,7 +382,7 @@ const updateContractEndDate = async (applicationId, value) => {
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
       <td>{new Date(app.submitted_at).toLocaleDateString()}</td>
       <td><ComplianceBadge status={app.compliance_status} /><p className="mt-1 text-xs text-fg-muted">Based on submitted form</p></td>
-      <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`)}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
+      <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`, { state: { from: location.pathname + location.search } })}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
         {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
         {!links.length && <span className="text-xs text-fg-muted">Ask a recruiter to verify the original invitation and correct this link.</span>}
         {links.length > 1 && <span className="text-xs text-fg-muted">Choose a requirement to open recruitment.</span>}

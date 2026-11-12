@@ -1,5 +1,14 @@
 # Project Status
 
+## Application detail review — local candidate (2026-11-12)
+
+Submitted-form detail now focuses on form contents, documents and review findings.
+CV access and exact-case Open recruitment links replace legacy scheduling/status
+controls. Section navigation, Back/reload and role guards are covered. See
+`docs/APPLICATION_DETAIL_REVIEW_2026-11-12.md`. This candidate is not deployed;
+production remains on the requirement-bound release below. A separately authorized
+real synthetic invitation smoke is in progress.
+
 ## Requirement-bound applications — deployed and verified (2026-11-12)
 
 The owner clarified that the application form belongs to requirement-linked hiring.

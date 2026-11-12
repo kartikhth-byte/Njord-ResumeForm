@@ -771,7 +771,7 @@ export default function RecruiterProspectDetail() {
                         <button
                           key={application.id}
                           type="button"
-                          onClick={() => navigate(`/application/view/${application.public_token}`)}
+                          onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })}
                           className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left transition hover:border-accent hover:bg-surface"
                         >
                           <div className="flex items-start justify-between gap-4">

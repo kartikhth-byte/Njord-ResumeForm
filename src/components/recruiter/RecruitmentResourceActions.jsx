@@ -75,7 +75,7 @@ export default function RecruitmentResourceActions({ candidate, prospectId, appl
                   </select>
                 </label>}
                 {selected?.public_token
-                  ? <Link className={action} to={`/application/view/${selected.public_token}`}>View application</Link>
+                  ? <Link className={action} to={`/application/view/${selected.public_token}`} state={{ from: location.pathname + location.search }}>View application</Link>
                   : selected ? <span className="text-sm text-fg-muted">Application unavailable</span> : <button type="button" className={action} disabled>View application</button>}
               </>}
     </div>

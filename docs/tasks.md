@@ -35,7 +35,10 @@
 - [x] Final verification record, exact release approval, promotion and read-only
   live smoke at `59ff459` (Vercel `7732373637`). Production has no linked forms;
   linked grouping/navigation coverage is staging and synthetic.
-- [ ] Review the application detail page separately; legacy controls there remain.
+- [x] Application detail: remove legacy hiring controls, add exact recruitment/CV
+  links, review sections, safe Back navigation and permission/race guards.
+- [ ] Final detail release approval/promotion and live smoke; separate real
+  invitation email → sign-in → form → submission check in progress.
 
 
 ## Recruitment document actions (2026-11-12)

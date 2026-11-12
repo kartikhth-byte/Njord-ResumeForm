@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Children, isValidElement, useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
@@ -11,14 +11,13 @@ import { TECHNICAL_SKILL_ROWS, formatPhone, formatSkillValue } from '../utils/te
 import { downloadGeneratedWorksheet, getWorksheetExportReadiness, listWorksheetCustomers } from '../services/worksheetConfigService'
 import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeCheck, BriefcaseBusiness, CalendarDays, FileSpreadsheet, Download, X } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import RejectionHistory from '../components/recruiter/RejectionHistory'
-import ReopenApplicationButton from '../components/recruiter/ReopenApplicationButton'
 import ApplicationCompliancePanel from '../components/recruiter/ApplicationCompliancePanel'
-import SequentialStatusControl from '../components/SequentialStatusControl'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
 import StatCard from '../components/ui/StatCard'
 import { buildApplicationCompliance, buildRequirementComplianceOverlay } from '../utils/applicationCompliance'
+import { loadApplicationReviewContext } from '../services/applicationReviewService'
+import { openCandidateResume } from '../services/needleIntegrationService'
 import { useTheme } from '../hooks/useThemeForRoute'
 
 // Add this style tag to hide browser print headers/footers
@@ -45,12 +44,17 @@ if (typeof document !== 'undefined') {
 export default function ViewApplication() {
   const { publicToken } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const emailAccessToken = searchParams.get('access')
   const { user, userType, profile, signOut, loading: authLoading, authorizationLoading } = useAuth()
   useTheme(userType === 'recruiter' ? 'dark' : 'light')
-  const { canExportData, canManageApplications, role } = usePermissions()
-  const canEditApplications = canManageApplications()
+  const { canExportData, canViewApplications, canViewProspects, canViewRequirements, role } = usePermissions()
+  const canReadApplication = canViewApplications()
+  const canReadCandidate = canViewProspects()
+  const canReadRecruitment = canReadCandidate && canViewRequirements()
+  const requestIdentity = `${user?.id || 'anonymous'}:${userType || ''}:${publicToken}:${emailAccessToken || ''}`
+  const [loadedFor, setLoadedFor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [application, setApplication] = useState(null)
   const [applicationData, setApplicationData] = useState(null)
@@ -63,14 +67,25 @@ export default function ViewApplication() {
   const [worksheetError, setWorksheetError] = useState('')
   const [worksheetGenerating, setWorksheetGenerating] = useState(false)
   const [worksheetSuccess, setWorksheetSuccess] = useState('')
-  const [linkedRequirement, setLinkedRequirement] = useState(null)
-  const [linkedRequirementNationalities, setLinkedRequirementNationalities] = useState([])
+  const [reviewContext, setReviewContext] = useState(null)
+  const [contextError, setContextError] = useState('')
+  const [contextLoading, setContextLoading] = useState(false)
+  const [cvBusy, setCvBusy] = useState(false)
+  const [cvError, setCvError] = useState('')
+  const loadSequence = useRef(0)
+  const selectedCaseId = searchParams.get('case') || ''
+  const selectedCase = reviewContext?.cases.find(row => row.id === selectedCaseId)
+    || (reviewContext?.cases.length === 1 ? reviewContext.cases[0] : null)
+  const linkedRequirement = reviewContext?.requirements.find(row => row.id === selectedCase?.requirement_id)
+  const linkedRequirementNationalities = (reviewContext?.nationalities || [])
+    .filter(row => row.requirement_id === linkedRequirement?.id).map(row => row.countries).filter(Boolean)
   const worksheetModalCloseTimeoutRef = useRef(null)
 
   useEffect(() => {
-    if (authLoading || (user && authorizationLoading && !userType)) return
+    if (authLoading || (user && authorizationLoading)) return
     loadApplication()
-  }, [publicToken, emailAccessToken, user?.id, userType, authLoading, authorizationLoading])
+    return () => { loadSequence.current += 1 }
+  }, [publicToken, emailAccessToken, user?.id, userType, authLoading, authorizationLoading, canReadApplication, canReadCandidate, canReadRecruitment])
 
   const worksheetAllowed = userType === 'recruiter' && canExportData() && Boolean(application?.submitted_at)
 
@@ -115,12 +130,25 @@ export default function ViewApplication() {
   }, [])
 
   const loadApplication = async () => {
+    const sequence = ++loadSequence.current
+    const current = () => sequence === loadSequence.current
     try {
       setLoading(true)
+      setLoadedFor(requestIdentity)
+      setApplication(null)
+      setApplicationData(null)
       setError(null)
+      setReviewContext(null)
+      setContextError('')
+      setCvError('')
+      setContextLoading(false)
 
       const isAuthenticatedRecruiter = userType === 'recruiter'
       const isAuthenticatedApplicant = userType === 'applicant' && Boolean(user?.id)
+      if (isAuthenticatedRecruiter && !canReadApplication) {
+        setError('Your account cannot view applications')
+        return
+      }
 
       if (!isAuthenticatedRecruiter && !isAuthenticatedApplicant) {
         // Emailed review link: the token is checked server-side (get_application_for_review);
@@ -133,13 +161,12 @@ export default function ViewApplication() {
           p_public_token: publicToken,
           p_access_token: emailAccessToken,
         })
+        if (!current()) return
         if (reviewError || !review?.application) {
           setError('Application not found, expired, or not yet submitted')
           return
         }
         setApplication(review.application)
-        setLinkedRequirement(null)
-        setLinkedRequirementNationalities([])
         setApplicationData(review.data || {})
         return
       }
@@ -156,14 +183,13 @@ export default function ViewApplication() {
 
       const { data: app, error: appError } = await appQuery.single()
 
-      if (appError) {
+      if (!current()) return
+      if (appError || !app) {
         setError('Application not found, expired, or not yet submitted')
         return
       }
 
       setApplication(app)
-      setLinkedRequirement(null)
-      setLinkedRequirementNationalities([])
 
       const { data: appData, error: dataError } = await supabase
         .from('application_data')
@@ -171,6 +197,7 @@ export default function ViewApplication() {
         .eq('application_id', app.id)
         .single()
 
+      if (!current()) return
       if (dataError) {
         setError('Application data not found')
         return
@@ -178,61 +205,26 @@ export default function ViewApplication() {
 
       setApplicationData(appData?.data || {})
 
-      if (isAuthenticatedRecruiter && app.prospect_id) {
-        const { data: prospectRow, error: prospectError } = await supabase
-          .from('prospects')
-          .select('id, name, status, nationality_id, rank_applied_for_id, vessel_type_id, email, telephone, lead_source, bounce_flag, first_contacted_at, invited_at, claimed_at')
-          .eq('id', app.prospect_id)
-          .maybeSingle()
-
-        if (prospectError) {
-          console.error('Failed to load linked prospect:', prospectError)
-        } else if (prospectRow) {
-          const { data: junctionRow, error: junctionError } = await supabase
-            .from('prospect_requirements')
-            .select('requirement_id, status, updated_at')
-            .eq('prospect_id', prospectRow.id)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (junctionError) {
-            console.error('Failed to load linked junction:', junctionError)
-          } else if (junctionRow?.requirement_id) {
-            const { data: requirementRow, error: requirementError } = await supabase
-              .from('requirements')
-              .select('id, req_id_display, customer_name, rank_id, vessel_type_id')
-              .eq('id', junctionRow.requirement_id)
-              .maybeSingle()
-
-            if (requirementError) {
-              console.error('Failed to load linked requirement:', requirementError)
-            } else if (requirementRow) {
-              setLinkedRequirement(requirementRow)
-
-              const { data: nationalityRows, error: nationalityError } = await supabase
-                .from('requirement_nationalities')
-                .select('country_id, countries(id, code, name)')
-                .eq('requirement_id', requirementRow.id)
-              if (nationalityError) {
-                console.error('Failed to load linked requirement nationalities:', nationalityError)
-              } else {
-                setLinkedRequirementNationalities((nationalityRows || []).map((row) => row.countries).filter(Boolean))
-              }
-            }
-          }
+      if (isAuthenticatedRecruiter) {
+        setLoading(false)
+        setContextLoading(true)
+        try {
+          const context = await loadApplicationReviewContext(supabase, app, {
+            canReadCandidate, canReadRecruitment,
+          })
+          if (current()) setReviewContext(context)
+        } catch {
+          if (current()) setContextError('Could not load the CV and recruitment links. The submitted form is still available.')
+        } finally {
+          if (current()) setContextLoading(false)
         }
       }
     } catch (error) {
       console.error('Error loading application:', error)
-      setError('Failed to load application')
+      if (current()) setError('Failed to load application')
     } finally {
-      setLoading(false)
+      if (current()) setLoading(false)
     }
-  }
-
-  const refreshApplication = async () => {
-    await loadApplication()
   }
 
   const handlePrint = () => {
@@ -245,7 +237,9 @@ export default function ViewApplication() {
       return
     }
 
-    navigate(-1)
+    const from = location.state?.from
+    navigate(typeof from === 'string' && /^\/recruiter\/(applications|recruitment|workspace\/prospects)([/?#]|$)/.test(from)
+      ? from : isRecruiterView ? '/recruiter/applications' : '/')
   }
 
   // Helper to parse JSON strings safely
@@ -279,7 +273,7 @@ export default function ViewApplication() {
     }
   }, [photoStoragePath, user])
 
-  if (loading) {
+  if (loading || authLoading || (user && authorizationLoading) || loadedFor !== requestIdentity) {
     return (
       <div className="min-h-screen bg-raised flex items-center justify-center">
         <div className="text-center">
@@ -317,16 +311,6 @@ export default function ViewApplication() {
     .trim()
   const isApplicantView = userType === 'applicant'
   const isRecruiterView = userType === 'recruiter'
-  // The status control and its modals read the candidate's name and email from
-  // the form data, in the same shape the Applications list passes.
-  const section2ForControl = applicationData?.section2 || {}
-  const controlApplication = {
-    ...application,
-    application_data: { data: applicationData || {} },
-    full_name: [section2ForControl.firstName, section2ForControl.middleName, section2ForControl.surname].filter(Boolean).join(' ').trim(),
-    email: section2ForControl.email || '',
-    desired_rank: applicationData?.section1?.appliedForRank || application?.applied_rank || '',
-  }
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryRows = [
     { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
@@ -379,7 +363,7 @@ export default function ViewApplication() {
           onDismissSubmitted={() => {
             const next = new URLSearchParams(searchParams)
             next.delete('submitted')
-            setSearchParams(next, { replace: true })
+            setSearchParams(next, { replace: true, state: location.state })
           }}
         />
       </div>
@@ -409,9 +393,6 @@ export default function ViewApplication() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {isRecruiterView && canEditApplications && (application.status === 'rejected' || application.status === 'withdrawn') && (
-                <ReopenApplicationButton application={application} onReopened={refreshApplication} />
-              )}
               {worksheetAllowed && (
                 <button
                   type="button"
@@ -537,7 +518,7 @@ export default function ViewApplication() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-8 print:p-8 sm:px-6 lg:px-8">
-        {isRecruiterView && <RejectionHistory application={application} />}
+
         
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="space-y-6 print:hidden">
@@ -578,7 +559,7 @@ export default function ViewApplication() {
                 </div>
               </div>
 
-              <div className="mt-5 space-y-2">
+              <div className="mt-5 space-y-2 break-words">
                 <div className="flex items-center gap-3 text-sm text-fg-secondary">
                   <Mail className="h-4 w-4 text-fg-muted" />
                   <span>{applicationData?.section2?.email || 'No email provided'}</span>
@@ -595,19 +576,46 @@ export default function ViewApplication() {
                 ) : null}
               </div>
 
-              {isRecruiterView && canEditApplications ? (
-                <div className="mt-5">
-                  <div>
-                    <SequentialStatusControl
-                      emphasis
-                      applicationId={application.id}
-                      currentStatus={application.status}
-                      onStatusChange={refreshApplication}
-                      application={controlApplication}
-                    />
-                  </div>
-                </div>
-              ) : null}
+              {isRecruiterView && <section aria-label="Application resources" className="mt-5 space-y-3">
+                {contextLoading ? <p role="status">Loading CV and recruitment links…</p> : contextError ? (
+                  <div role="alert"><p>{contextError}</p><button className="text-accent-text underline" onClick={loadApplication}>Retry links</button></div>
+                ) : <>
+                  {canReadCandidate && (reviewContext?.candidate?.needle_resume_id ? <button
+                    className="workspace-action-button workspace-action-button--secondary mr-2" disabled={cvBusy}
+                    onClick={async () => {
+                      setCvBusy(true); setCvError('')
+                      try { await openCandidateResume(application.prospect_id, reviewContext.candidate.needle_resume_id) }
+                      catch { setCvError('Could not open the CV. Please try again.') }
+                      finally { setCvBusy(false) }
+                    }}>{cvBusy ? 'Opening CV…' : 'View CV'}</button> : <p className="text-sm text-fg-muted">No CV linked.</p>)}
+                  {cvError && <p role="alert" className="text-sm text-danger">{cvError}</p>}
+                  {canReadRecruitment && <>
+                    {reviewContext?.cases.length > 1 && <label className="block text-sm">Linked recruitment
+                      <select className="mt-1 w-full rounded-control border border-line bg-surface p-2" value={selectedCaseId}
+                        onChange={event => { const next = new URLSearchParams(searchParams); next.set('case', event.target.value); setSearchParams(next, { replace: true, state: location.state }) }}>
+                        <option value="">Select a recruitment case</option>
+                        {reviewContext.cases.map(row => <option key={row.id} value={row.id}>{reviewContext.requirements.find(req => req.id === row.requirement_id)?.req_id_display || 'Requirement unavailable'} · Cycle {row.cycle || 1}</option>)}
+                      </select>
+                    </label>}
+                    {selectedCase ? <Link className="workspace-action-button workspace-action-button--secondary"
+                      to={`/recruiter/recruitment?case=${encodeURIComponent(selectedCase.id)}`}>Open recruitment</Link>
+                      : reviewContext?.cases.length === 0 ? <p className="text-sm text-fg-muted">No verified recruitment link. Ask a recruiter to correct this record.</p> : null}
+                    <p className="text-xs text-fg-muted">Scheduling and task updates are in Recruitment.</p>
+                  </>}
+                </>}
+              </section>}
+
+              <nav aria-label="Form sections" className="mt-5 border-t border-line pt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm print:hidden">
+                {[
+                  ...(isRecruiterView ? [['review-findings', 'Review findings']] : []),
+                  ['availability-position-applied-for', 'Position'],
+                  ['personal-contact-details', 'Personal details'],
+                  ['passport-details', 'Documents'],
+                  ['medical-fitness-vaccinations', 'Medical'],
+                  ...(applicationData?.section16?.seaService?.length ? [['sea-service-experience', 'Sea service']] : []),
+                  ['declaration-consent', 'Declaration'],
+                ].map(([id, label]) => <a className="text-accent-text underline" key={id} href={`#${id}`} onClick={event => { event.preventDefault(); document.getElementById(id)?.scrollIntoView({ block: 'start' }) }}>{label}</a>)}
+              </nav>
 
               <dl className="mt-5 divide-y divide-line border-t border-line text-sm">
                 {summaryRows.map((row) => (
@@ -620,7 +628,7 @@ export default function ViewApplication() {
             </div>
           </aside>
 
-          <div className="flex flex-col gap-6">
+          <div className="min-w-0 flex flex-col gap-6">
             <div className="recruiter-panel hidden p-6 print:block print:shadow-none print:border">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -657,12 +665,15 @@ export default function ViewApplication() {
 
             <div className="space-y-6">
           {isRecruiterView && compliance ? (
+            <section id="review-findings" aria-label="Review findings" className="scroll-mt-6">
+            {selectedCase && !linkedRequirement && <p role="status" className="text-sm text-fg-muted">Linked requirement details are unavailable. Findings below cover the submitted form only.</p>}
             <ApplicationCompliancePanel
               compliance={requirementCompliance || compliance}
               title={requirementCompliance
-                ? `Compliance against ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'the linked requirement'}`
-                : 'Compliance'}
+                ? `Review findings · ${requirementCompliance.metadata?.requirementSummary?.requirementDisplayId || 'linked requirement'}`
+                : 'Review findings'}
             />
+            </section>
           ) : null}
 
           {/* Section 1: Availability & Position */}
@@ -1137,10 +1148,10 @@ function ViewSection({ title, children }) {
     (child) => !(isValidElement(child) && child.type === ViewRow && isEmptyValue(child.props.value))
   )
   return (
-    <div className="recruiter-panel p-6 print:shadow-none print:border print:break-inside-avoid">
+    <section id={title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={title} className="scroll-mt-6 recruiter-panel min-w-0 overflow-x-auto p-4 sm:p-6 print:shadow-none print:border print:break-inside-avoid">
       <h3 className={`text-base font-semibold text-fg ${visibleChildren.length ? 'mb-3 border-b border-line pb-3' : ''}`}>{title}</h3>
       {visibleChildren.length ? visibleChildren : <p className="text-sm text-fg-muted">Nothing provided.</p>}
-    </div>
+    </section>
   )
 }
 
@@ -1149,7 +1160,7 @@ function ViewRow({ label, value }) {
   return (
     <div className="flex flex-col gap-1 border-b border-line py-2 last:border-b-0 md:flex-row">
       <span className="w-full text-sm text-fg-secondary md:w-1/3">{label}</span>
-      <span className="w-full text-sm text-fg md:w-2/3">{value}</span>
+      <span className="w-full min-w-0 break-words text-sm text-fg md:w-2/3">{value}</span>
     </div>
   )
 }
