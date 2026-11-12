@@ -1,6 +1,19 @@
 # Project Status
 
-## Invitation eligibility repair — deployed; delivery blocked (2026-11-12)
+## Applicant smoke follow-up — local fixes awaiting release (2026-11-13)
+
+The real invitation → sign-in → saved draft/reload → submission smoke passed.
+Recruitment completion, Applications grouping, viewing and Back navigation passed;
+the synthetic case and requirement were closed. The owner visually confirmed the
+synthetic PDF renders; automated blob inspection remains policy-blocked.
+
+Follow-up fixes add fresh-link recovery guidance, explicit medical Yes/No answers,
+and shared field/completion validation for medical history and physical/uniform
+details. No submitted records are rewritten. Local verification and exact release
+status are tracked in `docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`.
+Resend webhook ingestion is a separate pending check.
+
+## Invitation eligibility repair — deployed (2026-11-12)
 
 Approved commit `b10b7f6f6a56487c8c13fd6ca9026c0344469513` is on main/Vercel
 (primary deployment `7738798225`, success). Migration 1203, invite sender v9 and
@@ -11,15 +24,12 @@ not verified. Production service-only permissions and a rolled-back actual
 reviewed-CV → progression → invitation → claim → draft/retry → submission/reissue
 check pass. No global candidate approval was added.
 
-Normal UI invitation now reaches Resend, which rejects the controlled applicant
-inbox under its unverified-sender restriction. The failed claim was invalidated
-and reservation released. The allowed provider-owner inbox has recruiter roles;
-it was not used, and no recipient/account change was made. Real receipt, emailed
-sign-in and browser submission remain pending a verified sender and distinct
-applicant identity. Synthetic case/requirement remain open for resumption. See
-`docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md`.
+The original provider sender restriction was resolved with the owner-approved
+verified sending domain and restricted key. Delivery and the full applicant flow
+subsequently passed; see the current follow-up above and
+`docs/APPLICATION_INVITATION_ELIGIBILITY_2026-11-12.md` for the chronology.
 
-## Application detail review — deployed; email smoke blocked (2026-11-12)
+## Application detail review — deployed (2026-11-12)
 
 Submitted-form detail now focuses on form contents, documents and review findings.
 CV access and exact-case Open recruitment links replace legacy scheduling/status
@@ -27,9 +37,9 @@ controls. Section navigation, Back/reload and role guards are covered. See
 `docs/APPLICATION_DETAIL_REVIEW_2026-11-12.md`. Approved `f3b015ed` is deployed
 on main/Vercel (`7736259856`, success). Live form/sections/missing-resource states,
 reload and Back to the filtered list pass. Exact links/CV and role variations have
-staging/synthetic coverage. The original invitation eligibility blocker is fixed
-in the release above; the remaining real-email blocker is provider sender
-configuration. No manual prospect approval was used.
+staging/synthetic coverage and the subsequent real applicant smoke passed.
+Invitation eligibility and provider sender configuration were resolved as recorded
+above. No manual prospect approval was used.
 
 ## Requirement-bound applications — deployed and verified (2026-11-12)
 

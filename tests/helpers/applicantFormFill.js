@@ -292,7 +292,7 @@ async function fillSelects(panel) {
 }
 
 async function fillTextInputs(panel) {
-  const inputs = panel.locator('input:not([type=hidden]):not([type=file]):not([type=checkbox])')
+  const inputs = panel.locator('input:not([type=hidden]):not([type=file]):not([type=checkbox]):not([type=radio])')
   const count = await inputs.count()
 
   for (let index = 0; index < count; index += 1) {
@@ -397,6 +397,9 @@ export async function fillCurrentSection(page, options = {}) {
 
   await addRecordIfNeeded(panel)
   await ensureSectionSpecificRecord(page, panel)
+  // Choose an explicit synthetic answer; an unanswered radio is not No.
+  const medicalYes = panel.locator('input[name="signedOffMedical"][value="yes"]')
+  if (await medicalYes.isVisible().catch(() => false)) await medicalYes.check()
   if (!skipFileInputs) {
     await fillFileInputs(panel)
   }
@@ -430,10 +433,11 @@ export async function captureCurrentSectionFieldState(page) {
     const readOnly = await field.evaluate((el) => Boolean(el.readOnly)).catch(() => false)
     if (readOnly) continue
 
-    if (type === 'checkbox') {
+    if (type === 'checkbox' || type === 'radio') {
       fieldStates.push({
         name,
-        kind: 'checkbox',
+        kind: type,
+        value: type === 'radio' ? await field.inputValue() : undefined,
         checked: await field.isChecked().catch(() => false),
       })
       continue
@@ -451,10 +455,13 @@ export async function captureCurrentSectionFieldState(page) {
 
 export async function expectCurrentSectionFieldState(page, fieldStates) {
   for (const fieldState of fieldStates) {
-    const locator = page.locator(`[name="${fieldState.name}"]`).first()
+    const selector = fieldState.kind === 'radio'
+      ? `[name="${fieldState.name}"][value="${fieldState.value}"]`
+      : `[name="${fieldState.name}"]`
+    const locator = page.locator(selector).first()
     await expect(locator).toBeVisible()
 
-    if (fieldState.kind === 'checkbox') {
+    if (fieldState.kind === 'checkbox' || fieldState.kind === 'radio') {
       await expect(locator).toHaveJSProperty('checked', fieldState.checked)
       continue
     }
@@ -491,6 +498,11 @@ export async function expectVisibleRequiredFieldsFilled(page, fieldStates) {
   for (const fieldState of fieldStates) {
     const locator = page.locator(`[name="${fieldState.name}"]`).first()
     await expect(locator).toBeVisible()
+
+    if (fieldState.type === 'radio') {
+      await expect(page.locator(`[name="${fieldState.name}"]:checked`)).toHaveCount(1)
+      continue
+    }
 
     if (fieldState.type === 'checkbox') {
       await expect(locator).toHaveJSProperty('checked', true)

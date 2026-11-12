@@ -1,5 +1,15 @@
 # Pending Tasks
 
+## Applicant smoke follow-up (2026-11-13)
+
+- [x] Real invitation, applicant sign-in, draft save/reload and synthetic submission.
+- [x] Recruitment completion, submitted-form viewing/Back and Applications grouping.
+- [x] Owner visually confirmed the synthetic CV; automated blob inspection blocked.
+- [x] Fresh-link guidance, explicit medical Yes/No and consistent physical/uniform validation implemented locally.
+- [x] Independent release review, 44 regression cases, focused visual checks, lint and build.
+- [ ] Exact approval, UI promotion and live smoke.
+- [ ] Separately verify webhook ingestion for the new Resend account.
+
 ## Requirement-bound applications (2026-11-12)
 
 - [x] Remove three directory tabs; retain missing-link records as correction exceptions.

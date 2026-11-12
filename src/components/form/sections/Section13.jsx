@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
+import { validateSection13Field as validateField } from '../../../utils/sectionValidation'
 
 const HEIGHT_UNIT_OPTIONS = [
   { value: 'cm', label: 'cm' },
@@ -65,26 +66,6 @@ shoeSizeUnit: data.shoeSizeUnit || '',
     }
   }, [data])
 
-  // Validation function
-  const validateField = (name, value) => {
-    switch (name) {
-      case 'height':
-        return !value ? 'Height is required' : ''
-      case 'weight':
-        return !value ? 'Weight is required' : ''
-      case 'shoeSize':
-        return !value ? 'Shoe size is required' : ''
-      case 'boilerSuitSize':
-        return !value ? 'Boiler suit size is required' : ''
-      case 'uniformShirtSize':
-        return !value ? 'Uniform shirt size is required' : ''
-      case 'uniformTrouserSize':
-        return !value ? 'Uniform trouser size is required' : ''
-      default:
-        return ''
-    }
-  }
-
   const handleChange = (e) => {
     const { name, value } = e.target
     
@@ -136,7 +117,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                 <div className="col-span-2">
                   <input
                     type="number"
-                    name="height"
+                    name="height" aria-label="Height"
                     value={formData.height}
                     onChange={handleChange}
                     onBlur={() => handleBlur('height')}
@@ -151,7 +132,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                   />
                 </div>
                 <FormSelect
-                  name="heightUnit"
+                  name="heightUnit" aria-label="Height unit"
                   value={formData.heightUnit}
                   onChange={handleChange}
                   options={HEIGHT_UNIT_OPTIONS}
@@ -172,7 +153,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                 <div className="col-span-2">
                   <input
                     type="number"
-                    name="weight"
+                    name="weight" aria-label="Weight"
                     value={formData.weight}
                     onChange={handleChange}
                     onBlur={() => handleBlur('weight')}
@@ -187,7 +168,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
                   />
                 </div>
                 <FormSelect
-                  name="weightUnit"
+                  name="weightUnit" aria-label="Weight unit"
                   value={formData.weightUnit}
                   onChange={handleChange}
                   options={WEIGHT_UNIT_OPTIONS}
@@ -213,7 +194,7 @@ shoeSizeUnit: data.shoeSizeUnit || '',
     </label>
     <input
       type="text"
-      name="shoeSize"
+      name="shoeSize" aria-label="Shoe size"
       value={formData.shoeSize}
       onChange={handleChange}
       onBlur={() => handleBlur('shoeSize')}
@@ -231,10 +212,12 @@ shoeSizeUnit: data.shoeSizeUnit || '',
 
   <FormSelect
     label="Sizing System"
-    name="shoeSizeUnit"
+    name="shoeSizeUnit" aria-label="Sizing system"
     required
     value={formData.shoeSizeUnit}
     onChange={handleChange}
+    onBlur={() => handleBlur('shoeSizeUnit')}
+    error={touched.shoeSizeUnit ? errors.shoeSizeUnit : ''}
     options={SHOE_SIZE_UNIT_OPTIONS}
     placeholder="Select system"
   />

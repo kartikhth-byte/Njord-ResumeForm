@@ -6,6 +6,8 @@ import {
 } from '../../src/utils/sectionValidation.js'
 import {
   calculateDraftProgress,
+  getBlockingSections,
+  getSectionStatus,
   hasMeaningfulDraftData,
   isDraftSectionComplete,
 } from '../../src/utils/applicationProgress.js'
@@ -98,6 +100,8 @@ const validSections = {
   section13: {
     height: '178',
     weight: '78',
+    shoeSize: '42', shoeSizeUnit: 'EU', boilerSuitSize: 'L',
+    uniformShirtSize: '40', uniformTrouserSize: '32',
   },
   section14: {
     courses: [
@@ -357,4 +361,39 @@ test.describe('applicant validation contract', () => {
     expect(validation.errors).toContain('Signature date is required')
     expect(validation.errors).toContain('Place of signing is required')
   })
+})
+
+
+test('explicit No is complete; unanswered medical history is not', () => {
+  for (const answer of [undefined, null, '', 'false']) {
+    expect(getSectionStatus(11, { medicalHistory: { signedOffMedical: answer } })).toBe('incomplete')
+  }
+  expect(getSectionStatus(11, JSON.parse(JSON.stringify(validSections.section11)))).toBe('complete')
+})
+
+test('medical field feedback agrees with progress and submission', () => {
+  for (const [field, value] of [['vesselName', '   '], ['description', 'short'], ['dateOfOccurrence', '2026-02-30'], ['dateOfOccurrence', '2099-01-01']]) {
+    const history = { signedOffMedical: true, vesselName: 'Synthetic vessel', description: 'Synthetic medical incident', dateOfOccurrence: '2020-01-01', [field]: value }
+    const error = validateFieldInSection(11, field, value, history)
+    expect(error).not.toBe('')
+    expect(validateSection(11, { medicalHistory: history }).errors).toContain(error)
+    expect(getBlockingSections({ ...validSections, section11: { medicalHistory: history } })).toContain(11)
+  }
+})
+
+test('all displayed uniform requirements block completion and submission consistently', () => {
+  for (const field of Object.keys(validSections.section13)) {
+    for (const value of ['', '   ']) {
+      const section13 = { ...validSections.section13, [field]: value }
+      const error = validateFieldInSection(13, field, value, section13)
+      expect(error).not.toBe('')
+      expect(validateSection(13, section13).errors).toContain(error)
+      expect(getSectionStatus(13, section13)).toBe('incomplete')
+      expect(getBlockingSections({ ...validSections, section13 })).toContain(13)
+    }
+  }
+  for (const value of ['NaN', 'Infinity', '-1', '0']) {
+    expect(validateSection(13, { ...validSections.section13, height: value }).isValid).toBe(false)
+  }
+  expect(getBlockingSections(validSections)).toEqual([])
 })

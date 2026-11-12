@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Loader2 } from 'lucide-react'
@@ -129,7 +129,9 @@ export default function AuthCallback() {
       <div className="public-shell flex min-h-screen items-center justify-center px-4">
         <div className="public-card max-w-md text-center">
           <h1 className="text-2xl font-semibold text-fg">Link unavailable</h1>
-          <p className="mt-3 text-fg-secondary">This sign-in link could not be used. Ask your recruiter for a new invitation.</p>
+          <p className="mt-3 text-fg-secondary">This link may have expired or already been used. Request a fresh link using your invited email address, then open it on the device you want to use.</p>
+          <Link className="mt-5 inline-block text-accent-text underline" to="/applicant/login">Request a new sign-in link</Link>
+          <p className="mt-3 text-sm text-fg-muted">Your saved draft is kept. If you cannot request a link, contact your recruiter.</p>
         </div>
       </div>
     )

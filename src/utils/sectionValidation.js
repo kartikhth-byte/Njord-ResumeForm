@@ -278,47 +278,44 @@ export const validateSection10 = (data) => {
  * If signedOffMedical is true, additional fields are required
  * Data structure: { medicalHistory: { signedOffMedical, vesselName, dateOfOccurrence, description } }
  */
-export const validateSection11 = (data) => {
-  const errors = []
-  
-  // Check if medicalHistory object exists
-  if (!data.medicalHistory) {
-    errors.push('Medical history declaration is required')
-    return { isValid: false, errors }
+export const validateSection11Field = (fieldName, value, medicalHistory = {}) => {
+  if (fieldName === 'signedOffMedical') {
+    return typeof value === 'boolean' ? '' : 'Medical history declaration is required'
   }
-  
-  if (typeof data.medicalHistory.signedOffMedical !== 'boolean') {
-    errors.push('Medical history declaration is required')
-    return { isValid: false, errors }
+  if (medicalHistory.signedOffMedical !== true) return ''
+  const text = String(value ?? '').trim()
+  if (fieldName === 'vesselName') return text ? '' : 'Vessel name is required'
+  if (fieldName === 'description') {
+    if (!text) return 'Description is required'
+    return text.length < 10 ? 'Please provide a more detailed description (at least 10 characters)' : ''
   }
-  
-  // If signed off medical, check required fields
-  if (data.medicalHistory.signedOffMedical === true) {
-    if (!data.medicalHistory.vesselName) errors.push('Vessel name is required')
-    if (!data.medicalHistory.dateOfOccurrence) errors.push('Date of occurrence is required')
-    if (!data.medicalHistory.description) errors.push('Description is required')
+  if (fieldName === 'dateOfOccurrence') {
+    if (!text) return 'Date of occurrence is required'
+    const date = new Date(`${text}T00:00:00Z`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || !Number.isFinite(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== text || Number(text.slice(0, 4)) < 1900 ||
+        text > new Date().toISOString().slice(0, 10)) return 'Please enter a valid date that is not in the future'
   }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
+  return ''
 }
 
-/**
- * Validates Section 13: Physical & Uniform Details
- * Required fields: height, weight, etc.
- */
+export const validateSection11 = (data) => {
+  const history = data.medicalHistory || {}
+  const errors = ['signedOffMedical', 'vesselName', 'dateOfOccurrence', 'description']
+    .map(field => validateSection11Field(field, history[field], history)).filter(Boolean)
+  return { isValid: errors.length === 0, errors }
+}
+
+// Shared by field feedback, progress and submission validation.
+export const SECTION13_REQUIRED_FIELDS = [
+  'height', 'weight', 'shoeSize', 'shoeSizeUnit', 'boilerSuitSize',
+  'uniformShirtSize', 'uniformTrouserSize',
+]
+
 export const validateSection13 = (data) => {
-  const errors = []
-  
-  if (!data.height) errors.push('Height is required')
-  if (!data.weight) errors.push('Weight is required')
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
+  const errors = SECTION13_REQUIRED_FIELDS
+    .map(field => validateSection13Field(field, data[field], data)).filter(Boolean)
+  return { isValid: errors.length === 0, errors }
 }
 
 /**
@@ -650,15 +647,16 @@ export const validateSection4Field = (fieldName, value, formData = {}) => {
 /**
  * Validate individual field in Section 13 (Physical & Uniform)
  */
-export const validateSection13Field = (fieldName, value, formData = {}) => {
+export const validateSection13Field = (fieldName, value) => {
+  value = String(value ?? '').trim()
   switch (fieldName) {
     case 'height':
       if (!value) return 'Height is required'
-      if (Number(value) <= 0) return 'Please enter a valid height'
+      if (!Number.isFinite(Number(value)) || Number(value) <= 0) return 'Please enter a valid height'
       return ''
     case 'weight':
       if (!value) return 'Weight is required'
-      if (Number(value) <= 0) return 'Please enter a valid weight'
+      if (!Number.isFinite(Number(value)) || Number(value) <= 0) return 'Please enter a valid weight'
       return ''
     case 'shoeSize':
       return !value ? 'Shoe size is required' : ''
@@ -684,6 +682,7 @@ export const getFieldValidator = (sectionNumber) => {
     case 2: return validateSection2Field
     case 3: return validateSection3Field
     case 4: return validateSection4Field
+    case 11: return validateSection11Field
     case 13: return validateSection13Field
     default: return () => ''
   }

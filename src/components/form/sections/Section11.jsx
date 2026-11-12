@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react'
 import FormInput from '../shared/FormInput'
 import FormDatePicker from '../shared/FormDatePicker'
 import FormTextArea from '../shared/FormTextArea'
-import FormCheckbox from '../shared/FormCheckbox'
+import { validateSection11Field } from '../../../utils/sectionValidation'
 
 export default function Section11({ data = {}, onUpdate }) {
   // Fix: Read from data.medicalHistory to match what we're saving
   const medicalHistory = data.medicalHistory || {}
   
   const [formData, setFormData] = useState({
-    signedOffMedical: medicalHistory.signedOffMedical || false,
+    signedOffMedical: medicalHistory.signedOffMedical ?? null,
     vesselName: medicalHistory.vesselName || '',
     dateOfOccurrence: medicalHistory.dateOfOccurrence || '',
     description: medicalHistory.description || '',
@@ -23,7 +23,7 @@ export default function Section11({ data = {}, onUpdate }) {
     if (data && data.medicalHistory) {
       const medicalHistory = data.medicalHistory
       setFormData({
-        signedOffMedical: medicalHistory.signedOffMedical || false,
+        signedOffMedical: medicalHistory.signedOffMedical ?? null,
         vesselName: medicalHistory.vesselName || '',
         dateOfOccurrence: medicalHistory.dateOfOccurrence || '',
         description: medicalHistory.description || '',
@@ -31,85 +31,28 @@ export default function Section11({ data = {}, onUpdate }) {
     }
   }, [data])
 
-  // Helper function to validate year in date
-  const validateYear = (dateString) => {
-    if (!dateString) return null
-    const year = dateString.split('-')[0]
-    if (year.length !== 4) return 'Year must be 4 digits'
-    const yearNum = parseInt(year, 10)
-    if (yearNum < 1900 || yearNum > 2100) return 'Year must be between 1900 and 2100'
-    return null
-  }
-
-  // Validation function
-  const validateField = (name, value) => {
-    // Only validate if checkbox is checked
-    if (!formData.signedOffMedical) return ''
-    
-    switch (name) {
-      case 'vesselName':
-        if (formData.signedOffMedical && !value) {
-          return 'Vessel name is required when medical history is reported'
-        }
-        return ''
-      case 'dateOfOccurrence':
-        if (formData.signedOffMedical && !value) {
-          return 'Date of occurrence is required when medical history is reported'
-        }
-        if (value) {
-          const yearError = validateYear(value)
-          if (yearError) return yearError
-        }
-        return ''
-      case 'description':
-        if (formData.signedOffMedical && !value) {
-          return 'Description is required when medical history is reported'
-        }
-        if (formData.signedOffMedical && value && value.trim().length < 10) {
-          return 'Please provide a more detailed description (at least 10 characters)'
-        }
-        return ''
-      default:
-        return ''
-    }
-  }
+  const validateField = (name, value, values = formData) => validateSection11Field(name, value, values)
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    const fieldValue = type === 'checkbox' ? checked : value
+    const { name, value } = e.target
+    const fieldValue = name === 'signedOffMedical' ? value === 'yes' : value
     
     let newFormData = {
       ...formData,
       [name]: fieldValue
     }
 
-    // Clear fields if checkbox is unchecked
-    if (name === 'signedOffMedical' && !checked) {
-      newFormData = {
-        ...newFormData,
-        vesselName: '',
-        dateOfOccurrence: '',
-        description: '',
+    if (name === 'signedOffMedical') {
+      if (fieldValue === false) {
+        newFormData = { ...newFormData, vesselName: '', dateOfOccurrence: '', description: '' }
       }
-      // Clear all errors when unchecked
       setErrors({})
-    } else if (name === 'signedOffMedical' && checked) {
-      // When checkbox is checked, validate all conditional fields
-      const vesselError = validateField('vesselName', newFormData.vesselName)
-      const dateError = validateField('dateOfOccurrence', newFormData.dateOfOccurrence)
-      const descError = validateField('description', newFormData.description)
-      setErrors({
-        vesselName: vesselError,
-        dateOfOccurrence: dateError,
-        description: descError
-      })
+      setTouched({ signedOffMedical: true })
     } else {
-      // Validate individual field
       setTouched(prev => ({ ...prev, [name]: true }))
-      const error = validateField(name, fieldValue)
-      setErrors(prev => ({ ...prev, [name]: error }))
+      setErrors(prev => ({ ...prev, [name]: validateField(name, fieldValue, newFormData) }))
     }
-    
+
     setFormData(newFormData)
     onUpdate({ section11: { medicalHistory: newFormData } })
   }
@@ -131,17 +74,23 @@ export default function Section11({ data = {}, onUpdate }) {
       <div className="space-y-5">
         {/* Main Question */}
         <div className="applicant-section-card applicant-section-card--muted">
-          <FormCheckbox
-            label="Have you ever been signed off from a vessel due to medical reasons?"
-            name="signedOffMedical"
-            checked={formData.signedOffMedical}
-            onChange={handleChange}
-            helpText="This includes illness, injury, or any medical condition that required you to leave the vessel before the end of your contract."
-          />
+          <fieldset aria-describedby="medical-history-help">
+            <legend className="font-medium">Have you ever been signed off from a vessel due to medical reasons? <span className="text-danger">*</span></legend>
+            <p id="medical-history-help" className="mt-2 text-sm text-fg-secondary">This includes illness, injury, or any medical condition that required you to leave the vessel before the end of your contract. Select Yes or No.</p>
+            <div className="mt-3 flex gap-6">
+              {[['yes', true, 'Yes'], ['no', false, 'No']].map(([value, answer, label]) => (
+                <label key={value} className="flex items-center gap-2">
+                  <input type="radio" name="signedOffMedical" value={value} required
+                    checked={formData.signedOffMedical === answer} onChange={handleChange} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         {/* Conditional Fields */}
-        {formData.signedOffMedical && (
+        {formData.signedOffMedical === true && (
           <div className="space-y-5 pl-4 border-l-4 border-accent">
             <FormInput
               label="Vessel Name"
