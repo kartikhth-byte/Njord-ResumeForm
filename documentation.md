@@ -1,13 +1,17 @@
 # Project Status
 
-## Application detail review — local candidate (2026-11-12)
+## Application detail review — deployed; email smoke blocked (2026-11-12)
 
 Submitted-form detail now focuses on form contents, documents and review findings.
 CV access and exact-case Open recruitment links replace legacy scheduling/status
 controls. Section navigation, Back/reload and role guards are covered. See
-`docs/APPLICATION_DETAIL_REVIEW_2026-11-12.md`. This candidate is not deployed;
-production remains on the requirement-bound release below. A separately authorized
-real synthetic invitation smoke is in progress.
+`docs/APPLICATION_DETAIL_REVIEW_2026-11-12.md`. Approved `f3b015ed` is deployed
+on main/Vercel (`7736259856`, success). Live form/sections/missing-resource states,
+reload and Back to the filtered list pass. Exact links/CV and role variations have
+staging/synthetic coverage. The separate real invitation attempt failed before
+email: case interview passed, but the legacy prospect approval gate rejects it.
+Align invitation/claim/form eligibility in a separately reviewed backend release;
+do not manually alter the test record to conceal this workflow gap.
 
 ## Requirement-bound applications — deployed and verified (2026-11-12)
 

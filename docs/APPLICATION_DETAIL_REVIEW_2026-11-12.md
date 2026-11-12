@@ -48,11 +48,42 @@ Owner authorized a real invitation flow to a controlled inbox. Only the existing
 clearly labelled synthetic CV candidate and a new synthetic requirement are used.
 The recipient, record IDs and screenshots stay in ignored private records. This
 check exercises the already deployed requirement-bound invitation implementation;
-it does not authorize deploying this new detail-page candidate.
+its result is separate from the approved detail-page deployment.
 
-## Release gate
+## Production release and read-only smoke
 
-Frontend-only candidate: no database migration, Edge Function, Needle, hosting or
-intake change. Obtain exact production approval after final review/commit, then
-promote to main/Vercel and perform read-only live detail smoke. Email test completion
-and any user sign-in handoff must be reported separately from deployment status.
+Owner approved exact commit `f3b015edc9d0b20aaf87b803801a3fa300a10052`.
+It was promoted to Holmes main/Vercel; production deployment `7736259856`
+reports success. No database, Function, Needle, hosting or intake changes.
+
+Normal signed-in production smoke passed: submitted form/review findings/full
+sections load; missing CV and missing exact recruitment link are explicit; legacy
+hiring controls are absent. Documents section navigation followed by reload and
+Back preserves the original Applications search (`q=REF-553102`). The existing
+historical form remains unlinked; exact linked-case/CV and role variants were
+verified in staging/synthetic tests, not claimed as new live coverage.
+
+## Real invitation test — blocked before email
+
+Using the normal production UI, the synthetic CV candidate was attached to a new
+synthetic requirement, contacted, confirmed, test-waived with a synthetic reason,
+and advanced through a synthetic scheduled/passed interview. The owner-authorized
+invitation attempt returned **Only approved prospects can be invited**. No email
+was sent, and email receipt/sign-in/form/submission remain unverified. The open
+synthetic requirement/case are retained to resume this exact test; record IDs and
+recipient are in the ignored private receipt.
+
+Root cause: the UI offers a form invitation based on the selected case's passed
+interview, while `reserve_prospect_invite` still requires the separate legacy
+`prospects.status = approved`. Case progression does not update that legacy state.
+The email Function and downstream claim/start/submission checks also retain the
+legacy requirement. Changing only the button or reservation would not resolve
+this consistently. The existing SQL fixture pre-seeds approved prospects, which
+explains why it did not catch the normal reviewed-CV-to-invitation path.
+
+Follow-up requires a separate reviewed backend correction and exact production
+approval. Align eligibility across invitation, reissue, claim, draft and submission
+with the current case workflow while retaining identity review, organization,
+archive/deletion/bounce, open-requirement and applicant-ownership protections. Add
+an integration regression starting from the actual reviewed-CV candidate creation
+path; do not bypass the failure by manually approving this synthetic record.

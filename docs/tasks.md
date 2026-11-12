@@ -37,8 +37,14 @@
   linked grouping/navigation coverage is staging and synthetic.
 - [x] Application detail: remove legacy hiring controls, add exact recruitment/CV
   links, review sections, safe Back navigation and permission/race guards.
-- [ ] Final detail release approval/promotion and live smoke; separate real
-  invitation email → sign-in → form → submission check in progress.
+- [x] Exact detail release approval/promotion at `f3b015ed` (Vercel `7736259856`)
+  and read-only live form/section/reload/filtered-Back smoke.
+- [ ] Real invitation email → sign-in → form → submission: blocked before sending.
+  Normal reviewed-CV candidate has passed interview but legacy prospect approval
+  is still required. Reconcile the invite/reissue/claim/draft/submission gates with
+  case eligibility and identity safeguards; add a creation-to-invitation regression.
+  Existing fixture starts already approved. Separate backend review/release needed.
+  Resume and then close the retained synthetic requirement/case after verification.
 
 
 ## Recruitment document actions (2026-11-12)
