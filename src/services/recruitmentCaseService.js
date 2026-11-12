@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { isCaseTableMissing, newIdempotencyKey } from '../utils/recruitmentCase'
 
-const CASE_COLUMNS = 'id, prospect_id, requirement_id, application_id, cycle, status, source, legacy_status, form_invited_at, created_by, created_at, updated_at, version'
+const CASE_COLUMNS = 'id, prospect_id, requirement_id, application_id, application:applications!recruitment_cases_application_id_fkey(submitted_at), cycle, status, source, legacy_status, form_invited_at, created_by, created_at, updated_at, version'
 const EVENT_COLUMNS = 'id, case_id, event_type, from_status, to_status, reason, payload, actor_id, created_at'
 
 // Cases (all cycles) and their events for one requirement.

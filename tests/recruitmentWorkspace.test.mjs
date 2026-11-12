@@ -32,3 +32,17 @@ test('closed work and no-shows do not inflate pending or completed work',()=>{
  const rows=workScorecard({cases:[{...c,status:'closed'}],events:[e('1','test_no_show')],assignments:[{case_id:'c',task_key:'test',assignee_id:'a',due_at:'2020-01-01'}],recruiters:[{id:'a'}]})
  assert.equal(rows[0].tests,0);assert.equal(rows[0].pending,0);assert.equal(rows[0].overdue,0)
 })
+
+test('an invited draft is in progress, and only a submitted form completes the task',()=>{
+ const event={...e('form','interview_passed'),event_type:'source_added',payload:{action:'invited_application_started'}}
+ const row={...c,application_id:'form',application:{submitted_at:null}}
+ let task=taskProgress(row,[event]).find(t=>t.key==='application')
+ assert.equal(task.done,false);assert.equal(task.status,'In progress');assert.equal(task.outcome,'Draft in progress')
+ task=taskProgress({...row,application:{submitted_at:date}},[event]).find(t=>t.key==='application')
+ assert.equal(task.done,true);assert.equal(task.outcome,'Submitted')
+ const invite={...event,event_type:'form_invited',payload:{}}
+ assert.equal(taskProgress(c,[invite]).find(t=>t.key==='application').done,false)
+ const workload={cases:[row],events:[event],assignments:[{case_id:'c',task_key:'application',assignee_id:'a'}],recruiters:[{id:'a'}]}
+ assert.equal(workScorecard(workload)[0].pending,1)
+ assert.equal(workScorecard({...workload,cases:[{...row,application:{submitted_at:date}}]})[0].pending,0)
+})

@@ -7,7 +7,7 @@ const action = 'workspace-action-button workspace-action-button--secondary'
 
 // Keep original viewing on the existing authenticated CV path. Application
 // tokens are fetched only for this candidate and only with view permission.
-export default function RecruitmentResourceActions({ candidate, prospectId, applicationId, permissions }) {
+export default function RecruitmentResourceActions({ candidate, prospectId, applicationId, applicationPending = false, permissions }) {
   const location = useLocation()
   const canViewApplication = permissions.includes('view_applications')
   const canViewProfile = permissions.includes('view_prospects')
@@ -66,7 +66,7 @@ export default function RecruitmentResourceActions({ candidate, prospectId, appl
       {!canViewApplication ? <span className="text-sm text-fg-muted">Application access unavailable</span>
         : forms.loading ? <span role="status" className="text-sm text-fg-muted">Loading applications…</span>
           : forms.error ? <><span role="alert" className="text-sm text-danger">{forms.error}</span><button type="button" className={action} onClick={() => setRetry(value => value + 1)}>Retry applications</button></>
-            : !forms.rows.length ? <span className="text-sm text-fg-muted">{applicationId ? 'Linked application unavailable' : 'No submitted application available'}</span>
+            : !forms.rows.length ? <span className="text-sm text-fg-muted">{applicationId ? (applicationPending ? 'Application not yet submitted' : 'Linked application unavailable') : 'No submitted application available'}</span>
               : <>
                 {forms.rows.length > 1 && <label className="flex flex-col gap-1 text-sm">Submitted application
                   <select className="rounded-control border border-line bg-surface p-2" value={selectedId} onChange={event => setSelectedId(event.target.value)}>

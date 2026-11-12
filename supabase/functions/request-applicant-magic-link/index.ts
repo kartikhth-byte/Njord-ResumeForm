@@ -297,22 +297,29 @@ serve(async (req) => {
     // An email shared by two organizations needs the prospect-specific
     // recruiter invitation. Never guess which prospect should be claimed.
     let prospect = matchingProspects?.length === 1 ? matchingProspects[0] : null
+    let invitedCaseId: string | null = null
     if (prospect) {
       const { data: invitedCase, error: caseError } = await supabaseClient
         .from('recruitment_cases')
-        .select('id')
+        .select('id, requirements!inner(status, archived_at, deleted_at)')
         .eq('prospect_id', prospect.id)
         .eq('organization_id', prospect.organization_id)
         .not('form_invited_at', 'is', null)
         .in('status', FORM_INVITE_ELIGIBLE_STAGES)
-        .limit(1)
+        .eq('requirements.status', 'open')
+        .is('requirements.archived_at', null)
+        .is('requirements.deleted_at', null)
+        .limit(2)
       if (caseError) throw caseError
       if (!invitedCase?.length) prospect = null
+      // A generic sign-in with multiple invitations opens explicit selection.
+      if (invitedCase?.length === 1) invitedCaseId = invitedCase[0].id
     }
 
     const { data: requestRow, error: requestError } = await supabaseClient
       .from('applicant_magic_link_requests')
       .insert({
+        case_id: invitedCaseId,
         prospect_id: prospect?.id ?? null,
         organization_id: prospect?.organization_id ?? null,
         email,

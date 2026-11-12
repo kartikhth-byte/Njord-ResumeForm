@@ -7,7 +7,7 @@ import { CheckCircle, Copy } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
 import PageHeader from '../components/ui/PageHeader'
 import ApplicantSidebar from '../components/applicant/ApplicantSidebar'
-import { clearActiveDraftId, isActiveDraftExplicit, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
+import { clearActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { calculateApplicationProgress, firstIncompleteSection, hasMeaningfulDraftData } from '../utils/applicationProgress'
 import StatusBadge from '../components/StatusBadge'
 
@@ -29,7 +29,8 @@ export default function Dashboard() {
   const [copiedRef, setCopiedRef] = useState(null)
   const [isCreatingApplication, setIsCreatingApplication] = useState(false)
   const [claims, setClaims] = useState([])
-  const [selectedProspectId, setSelectedProspectId] = useState('')
+  const [selectedCaseId, setSelectedCaseId] = useState('')
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     if (user) {
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const fetchApplications = async () => {
     try {
       setLoading(true)
+      setLoadError('')
 
       const { data: applicantClaims, error: claimsError } = await supabase.rpc('get_applicant_claims')
       if (claimsError) throw claimsError
@@ -47,15 +49,15 @@ export default function Dashboard() {
       setClaims(availableClaims)
       let lastClaimedId = null
       try {
-        lastClaimedId = window.sessionStorage.getItem('njord-applicant-prospect-id')
+        lastClaimedId = window.sessionStorage.getItem('njord-applicant-case-id')
       } catch {
-        // A private browser may block storage; the first eligible claim still works.
+        // Multiple invitations require a selection when storage is unavailable.
       }
-      setSelectedProspectId((current) => {
-        const preferred = availableClaims.find((claim) => claim.prospect_id === lastClaimedId)
-          || availableClaims.find((claim) => claim.prospect_id === current)
-          || availableClaims[0]
-        return preferred?.prospect_id || ''
+      setSelectedCaseId((current) => {
+        const preferred = availableClaims.find((claim) => claim.case_id === lastClaimedId)
+          || availableClaims.find((claim) => claim.case_id === current)
+          || (availableClaims.length === 1 ? availableClaims[0] : null)
+        return preferred?.case_id || ''
       })
 
       const { data, error } = await supabase
@@ -84,30 +86,6 @@ export default function Dashboard() {
         if (dataError) throw dataError
 
         const draftData = appData?.data || {}
-        const explicitDraft = isActiveDraftExplicit()
-        const isStaleEmptyDraft =
-          submitted.length > 0 &&
-          !hasMeaningfulDraftData(draftData) &&
-          !explicitDraft
-
-        if (isStaleEmptyDraft) {
-          await supabase
-            .from('application_data')
-            .delete()
-            .eq('application_id', inProgress.id)
-
-          await supabase
-            .from('applications')
-            .delete()
-            .eq('id', inProgress.id)
-
-          clearActiveDraftId()
-          setDraftApplication(null)
-          setApplicationData(null)
-          setApplications(submitted)
-          return
-        }
-
         setDraftApplication(inProgress)
         setApplications(submitted)
         setApplicationData(draftData)
@@ -124,6 +102,7 @@ export default function Dashboard() {
       clearActiveDraftId()
     } catch (error) {
       console.error('Error fetching applications:', error)
+      setLoadError('Could not load your applications and invitations. Please retry.')
     } finally {
       setLoading(false)
     }
@@ -157,10 +136,10 @@ export default function Dashboard() {
         }
       }
 
-      if (!selectedProspectId) throw new Error('A recruiter invitation is required to start an application.')
+      if (!selectedCaseId) throw new Error('Select the requirement from your recruiter invitation.')
 
-      const { data: newAppId, error: appError } = await supabase.rpc('start_claimed_application', {
-        p_prospect_id: selectedProspectId,
+      const { data: newAppId, error: appError } = await supabase.rpc('start_claimed_application_for_case', {
+        p_case_id: selectedCaseId,
         p_initial_data: previousData,
       })
 
@@ -253,7 +232,7 @@ export default function Dashboard() {
               !draftApplication && !hasActivePipelineApplication && claims.length > 0 ? (
                 <button
                   onClick={createApplicationDraft}
-                  disabled={isCreatingApplication}
+                  disabled={isCreatingApplication || !selectedCaseId || !!loadError}
                   className="applicant-action applicant-action--primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {applications.length > 0 ? 'New application' : 'Start application'}
@@ -262,24 +241,30 @@ export default function Dashboard() {
             }
           />
 
-          {!draftApplication && !hasActivePipelineApplication && claims.length === 0 ? (
+          {loadError && <div role="alert" className="applicant-panel p-4">{loadError} <button className="underline" onClick={fetchApplications}>Retry</button></div>}
+          {!loadError && !draftApplication && !hasActivePipelineApplication && claims.length === 0 ? (
             <p className="text-sm text-fg-secondary">A recruiter invitation is required before you can start an application.</p>
           ) : null}
           {!draftApplication && !hasActivePipelineApplication && claims.length > 1 ? (
             <label className="block text-sm text-fg-secondary">
-              Recruiting organization
+              Invited requirement
               <select
                 className="mt-2 block rounded-lg border border-line bg-surface px-3 py-2 text-fg"
-                value={selectedProspectId}
-                onChange={(event) => setSelectedProspectId(event.target.value)}
+                value={selectedCaseId}
+                onChange={(event) => setSelectedCaseId(event.target.value)}
               >
+                <option value="">Select requirement…</option>
                 {claims.map((claim) => (
-                  <option key={claim.prospect_id} value={claim.prospect_id}>{claim.organization_name}</option>
+                  <option key={claim.case_id} value={claim.case_id}>{claim.requirement_reference || "Requirement"} · {claim.organization_name}</option>
                 ))}
               </select>
             </label>
           ) : null}
 
+          {!loadError && draftApplication && !claims.some(claim => claim.application_id === draftApplication.id) && (
+            <p role="alert" className="applicant-panel p-4 text-sm">This draft has no active, invited recruitment link. Contact your recruiter before submitting. If this is an old draft you no longer need, you can discard it and start again from a current invitation.</p>
+          )}
+          {!draftApplication && claims.length === 1 && <p className="text-sm text-fg-secondary">Requirement: {claims[0].requirement_reference} · {claims[0].organization_name}</p>}
           {draftApplication && (
             <div className="applicant-panel p-6">
               <div className="mb-3 flex items-center justify-between gap-4">
@@ -289,6 +274,7 @@ export default function Dashboard() {
               <div className="h-3 w-full rounded-full bg-line">
                 <div className="h-3 rounded-full bg-accent-fill transition-all duration-300" style={{ width: `${progress}%` }} />
               </div>
+              {claims.filter(claim => claim.application_id === draftApplication.id).map(claim => <p key={claim.case_id} className="mt-3 text-sm text-fg-secondary">Requirement: {claim.requirement_reference} · {claim.organization_name}</p>)}
               <p className="mt-3 text-sm text-fg-secondary">Last saved: {new Date(draftApplication.updated_at).toLocaleString()}</p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">

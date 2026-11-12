@@ -1,5 +1,24 @@
 # Project Status
 
+## Requirement-bound applications — implemented, release pending (2026-11-12)
+
+The owner clarified that the application form belongs to requirement-linked hiring.
+Applications is one submitted-form list grouped Company → Ship, with a requirement
+column; All submitted/Linked/Not linked tabs are removed. Existing missing links
+remain visible as correction exceptions, without inferred relationships.
+
+Migration `2026111202_application_invitation_binding.sql` binds draft creation to
+the exact invited case and enforces that link at submission. Multiple invitations
+require explicit selection; old-client ambiguity fails safely. Reissued magic links
+retain an unambiguous case. Earlier unlinked drafts are preserved with guidance;
+they are never silently adopted or deleted. Recruitment task completion uses actual
+submission evidence, not draft linkage; completion time is the submitted timestamp.
+
+See `docs/APPLICATION_INVITATION_BINDING_2026-11-12.md` for verification and release
+order. This supersedes the initial Applications directory design below. Production
+migration, Function deployment, frontend promotion and live smoke are pending exact
+release approval.
+
 ## AI Search auto-hiding sidebar — deployed and verified (2026-11-12)
 
 The Holmes icon rail is replaced by a left-edge hover drawer over a full-viewport

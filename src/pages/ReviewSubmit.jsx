@@ -260,6 +260,10 @@ const handleConfirmSubmit = async () => {
 
   } catch (error) {
     console.error('Error submitting application:', error)
+    if (error?.message?.includes('application_recruitment_link_required')) {
+      alert('This form needs an active recruitment link before it can be submitted. Your draft is saved. Please contact your recruiter, or return to your dashboard to review your invitations.')
+      return
+    }
     if (isSingleActiveApplicationError(error)) {
       alert('You already have another active application in the recruitment pipeline. A new submission can only proceed after the current process is completed.')
       return

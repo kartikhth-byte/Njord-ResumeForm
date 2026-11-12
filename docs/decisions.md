@@ -8,13 +8,20 @@ unless keyboard focus or the account menu is active. A compact bottom-left menu
 button supports keyboard/touch access without reserving a header or column.
 Ordinary recruiter pages retain their saved expanded/collapsed preference.
 
-## Applications review directory (2026-11-12)
+## Applications belong to requirement-linked hiring (2026-11-12)
 
-User approved Company → Ship → Applications, a requirement column and an Open
-recruitment action for stage/task work. Forms with no explicit case link remain
-visible in Not linked. Submitted forms include terminal cases; no inferred
-requirement from candidate identity alone and no new reviewed/unreviewed state.
+The owner corrected the initial directory design: a candidate is attached to a
+requirement before hiring starts, and receives the long form during that process.
+Use one Company → Ship → Applications list with a requirement column. Remove the
+All submitted/Linked/Not linked tabs. Keep historical missing links visible as data
+correction exceptions. Never infer a case from candidate identity alone.
 
+Carry the exact case through invitation, claim and atomic draft creation. Multiple
+eligible invitations require selection; submission requires an active, invited case
+and open requirement. The existing case.application_id remains link authority.
+Earlier forms are not backfilled or silently adopted. Draft linkage does not complete
+the application task; submitted_at is completion evidence. No new recruitment stage
+or recruiter KPI credit is created for an applicant submitting their form.
 
 ## Recruitment fleet grouping (2026-11-12)
 

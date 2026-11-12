@@ -1,5 +1,17 @@
 # Pending Tasks
 
+## Requirement-bound applications (2026-11-12)
+
+- [x] Remove three directory tabs; retain missing-link records as correction exceptions.
+- [x] Bind invited drafts to an exact case, preserve claim/reissue context, reject
+  ambiguous starts and submissions without eligible links; preserve historical forms.
+- [x] Update Recruitment task progress/assignment checks to use submission evidence.
+- [x] Focused SQL and browser tests, adjacent tests and independent source review.
+- [x] Rollback-only staging migration and authenticated draft/retry/submission check.
+- [ ] Exact production approval, fresh backup, migration 1202, reissue Function and
+  frontend release, then live smoke. No production change in this implementation.
+
+
 ## AI Search auto-hiding sidebar (2026-11-12)
 
 - [x] Full-viewport AI frame, hover overlay, keyboard/touch launcher, focus-safe

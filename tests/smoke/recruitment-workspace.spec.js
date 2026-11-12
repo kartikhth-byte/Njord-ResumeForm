@@ -22,7 +22,7 @@ async function fixture(page,options={}) {
   if(table==='recruitment_work_history')return {status:200,body:state.history}
   if(table==='recruitment_task_credits')return {status:200,body:state.credits}
   if(table==='recruitment_case_events')return {status:200,body:state.events}
-  if(table==='recruitment_cases')return {status:200,body:state.cases.filter(c=>!url.searchParams.has('requirement_id')||c.requirement_id===url.searchParams.get('requirement_id').replace('eq.',''))}
+  if(table==='recruitment_cases')return {status:200,body:state.cases.filter(c=>!url.searchParams.has('requirement_id')||c.requirement_id===url.searchParams.get('requirement_id').replace('eq.','')).map(c=>({...c,application:state.applications.find(a=>a.id===c.application_id)||null}))}
   if(table==='recruitment_assign_work'){
    state.calls.push({table,body})
    if(state.failNext){state.failNext=false;return {status:409,body:{message:'version_conflict'}}}
@@ -94,6 +94,7 @@ test.describe('Recruitment workspace',()=>{
   const state=await fixture(page)
   const row=state.cases.find(c=>c.id==='case1')
   row.status='documents_verified';row.application_id='synthetic-application'
+  state.applications=[{id:row.application_id,prospect_id:row.prospect_id,submitted_at:'2026-11-01'}]
   state.events=['confirmed','test_failed','interview_scheduled','documents_verified'].map((status,i)=>({id:`visual-${i}`,case_id:row.id,event_type:'transition',from_status:'confirmed',to_status:status,created_at:`2026-11-12T09:0${i}:00Z`,payload:{}}))
   await page.goto('/recruiter/recruitment?stage=Joining%20preparation')
   await expect(page.getByRole('button',{name:/^Pre-joining/})).toHaveAttribute('aria-pressed','true')
@@ -103,7 +104,7 @@ test.describe('Recruitment workspace',()=>{
   await expect(progress.getByText('— Confirmed',{exact:true})).toHaveClass(/text-success/)
   await expect(progress.getByText('— Test failed',{exact:true})).toHaveClass(/text-danger/)
   await expect(progress.getByText('— Interview scheduled',{exact:true})).toHaveClass(/text-warning/)
-  await expect(progress.getByText('— Completed',{exact:true})).toHaveClass(/text-success/)
+  await expect(progress.getByText('— Submitted',{exact:true})).toHaveClass(/text-success/)
   await expect(progress.getByText('— Not started',{exact:true}).first()).toHaveClass(/text-fg-muted/)
   await page.reload()
   await expect(progress).toContainText('Documents verified')
@@ -207,6 +208,24 @@ test.describe('Recruitment workspace',()=>{
   await page.reload()
   await expect(resources.getByText('Linked application unavailable')).toBeVisible()
   await expect(resources.getByRole('link',{name:'View application'})).toHaveCount(0)
+ })
+ test('a linked draft stays in progress until submission and reload',async({page})=>{
+  const state=await fixture(page,{viewApplications:true})
+  const row=state.cases[0];row.application_id='draft';row.status='interview_passed'
+  state.applications=[{id:'draft',prospect_id:row.prospect_id,submitted_at:null,public_token:null}]
+  state.events=[{id:'draft-start',case_id:row.id,event_type:'source_added',from_status:'interview_passed',to_status:'interview_passed',actor_id:'applicant',created_at:'2026-11-01',payload:{action:'invited_application_started'}}]
+  await page.goto(`/recruiter/recruitment?case=${row.id}`)
+  const panel=page.getByRole('dialog'),task=panel.getByRole('region',{name:'Application form',exact:true})
+  await expect(task).toContainText('In progress')
+  await expect(panel.getByText('Application not yet submitted',{exact:true})).toBeVisible()
+  await expect(task.getByRole('button',{name:'Start task',exact:true})).toBeVisible()
+  state.applications[0].submitted_at='2026-11-12';state.applications[0].public_token='synthetic-submitted'
+  await page.reload()
+  await expect(task).toContainText('Completed')
+  await expect(task).toContainText('Form submitted')
+  await expect(task).not.toContainText('Performed by')
+  await expect(task.getByRole('button',{name:'Start task',exact:true})).toHaveCount(0)
+  await expect(panel.getByRole('link',{name:'View application',exact:true})).toHaveAttribute('href','/application/view/synthetic-submitted')
  })
  test('application tokens are not requested without application view permission',async({page})=>{
   const state=await fixture(page,{role:'Coordinator',operator:false})

@@ -23,12 +23,12 @@ const completed = new Set(['confirmed','test_passed','test_failed','test_waived'
 export function taskProgress(row,events=[],assignments=[]) {
  const ordered=events.filter(e=>e.case_id===row.id).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))
  return Object.entries(TASKS).map(([key,label])=>{
-  const history=ordered.filter(e=>e.from_status!=='legacy'&&((['transition','principal_send_attested'].includes(e.event_type)&&taskForStatus(e.to_status)===key) || (key==='application'&&(e.event_type==='form_invited'||e.payload?.action==='application_linked'))))
+  const history=ordered.filter(e=>e.from_status!=='legacy'&&((['transition','principal_send_attested'].includes(e.event_type)&&taskForStatus(e.to_status)===key) || (key==='application'&&(e.event_type==='form_invited'||['application_linked','invited_application_started'].includes(e.payload?.action)))))
   const last=history.at(-1),assignment=assignments.find(a=>a.case_id===row.id&&a.task_key===key)
-  const done=Boolean(last&&completed.has(last.to_status)) || (key==='application'&&Boolean(row.application_id))
+  const done=key==='application' ? Boolean(row.application_id&&row.application?.submitted_at) : Boolean(last&&completed.has(last.to_status))
   const scheduled=last?.to_status?.endsWith('_scheduled')
-  const status=done?'Completed':scheduled?'Scheduled':assignment?.started_at?'In progress':history.length?'In progress':'Not started'
-  return {key,label,assignment,done,status,outcome:last?caseStatusMeta(last.to_status).label:null,
+  const status=done?'Completed':scheduled?'Scheduled':assignment?.started_at||(key==='application'&&row.application_id)?'In progress':history.length?'In progress':'Not started'
+  return {key,label,assignment,done,status,outcome:key==='application'?(done?'Submitted':row.application_id?'Draft in progress':history.length?'Invited':null):last?caseStatusMeta(last.to_status).label:null,
    due:assignment?.due_at||(scheduled?last.payload?.scheduled_at:null),
    last,history}
  })

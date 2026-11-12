@@ -1,5 +1,27 @@
 # Platform Test Plan
 
+## Requirement-bound applications (2026-11-12)
+
+Run `supabase/tests/application_invitation_binding.test.mjs` in the PGlite runtime
+with the absolute migrations directory. It applies the real case/claim/workspace
+migrations and 1202 twice. Verify identity, exact-case creation, ambiguous legacy
+calls, stable retry/data preservation, cross-user denial, closed requirement/case,
+missing invite, submission guard, legacy preservation, and task assignment before
+and after submission. SQL tests use synthetic data only.
+
+Run `application-invitation-binding.spec.js`, `applications-directory.spec.js` and
+`recruitment-workspace.spec.js` on the synthetic server with
+`HOLMES_FLEET_SYNTHETIC_SMOKE=1` and `--no-deps`. Cover claim redirect/stale preference,
+explicit selection, draft/reload, legacy guidance, read failure/retry, directory
+correction exceptions, existing role/filter/navigation behavior, and draft versus
+submitted task status/time. External traffic is intercepted; no emails are sent.
+
+Staging additionally exercises the actual schema/guards and authenticated draft,
+retry and submission in a single rolled-back transaction. This does not claim a
+persistent staging migration, real emailed magic link or deployed reissue Function
+check. Those release checks require the approved coordinated deployment.
+
+
 ## AI Search auto-hiding sidebar (2026-11-12)
 
 Run `ai-sidebar.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1`, a local Vite

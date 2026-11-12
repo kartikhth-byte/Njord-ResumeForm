@@ -81,7 +81,7 @@ export default function RecruitmentWorkspacePage() {
    const active=t.status==='In progress'||t.status==='Scheduled'
    const Icon=unsuccessful?XCircle:waived?Circle:t.done?CheckCircle2:active?Clock3:Circle
    const tone=unsuccessful?'text-danger':waived?'text-fg-muted':t.done?'text-success':active?'text-warning':'text-fg-muted'
-   const outcome=t.key==='application'&&t.done?'Completed':t.last?.to_status?t.outcome:t.status
+   const outcome=t.key==='application'?(t.outcome||t.status):t.last?.to_status?t.outcome:t.status
    return <li key={t.key} className="flex items-start gap-2"><Icon aria-hidden="true" className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`}/><span><span className="font-medium">{t.label}</span><span className={tone}> — {outcome}</span></span></li>
   })}</ul></td>
   <td>{nextWork(c)}{c.tasks.filter(t=>!t.done&&t.due).map(t=><p key={t.key} className="text-xs">{t.label} · {when(t.due)} · {name(t.assignment?.assignee_id)}</p>)}</td>
@@ -118,7 +118,7 @@ export default function RecruitmentWorkspacePage() {
   {params.get('case')&&!tracker.loading&&!selected&&<p role="alert">This recruitment record is unavailable.</p>}
   {selected&&<RecordFormDialog sidePanel title={`${selected.candidate?.name||'Candidate'} · ${selected.requirement?.req_id_display||'Recruitment'}`} busy={busy||caseBusy} onClose={()=>{set('case','');setEdit(null)}}>
    <div className="p-5 space-y-4"><strong className="block">{workStage(selected.status)}</strong>
-   <RecruitmentResourceActions key={`${selected.id}:${selected.application_id||''}`} candidate={selected.candidate} prospectId={selected.prospect_id} applicationId={selected.application_id} permissions={permissions}/>
+   <RecruitmentResourceActions key={`${selected.id}:${selected.application_id||''}`} candidate={selected.candidate} prospectId={selected.prospect_id} applicationId={selected.application_id} applicationPending={!!selected.application && !selected.application.submitted_at} permissions={permissions}/>
    {error&&<p role="alert" className="text-danger">{error}</p>}
    <p>Assigned recruiter: {name(selected.owner?.assignee_id)}</p>
    {canMove&&!isCaseTerminal(selected.status)&&<div className="flex gap-3"><button className={button} disabled={busy} onClick={()=>take(selected,'case',selected.owner)}>Take over row</button>{role==='Master Recruiter'&&<button className={button} onClick={()=>beginEdit('case',selected.owner)}>Assign row</button>}</div>}
@@ -127,7 +127,7 @@ export default function RecruitmentWorkspacePage() {
    <RecruitmentCasePanel key={`${selected.id}:${selected.version}`} requirementId={selected.requirement_id} selectedCaseId={selected.id} requirementOpen={selected.requirement?.status==='open'&&!selected.requirement?.archived_at&&!selected.requirement?.deleted_at} permissions={permissions} performerId={performer||auth.user.id} occurredAt={occurred?new Date(occurred).toISOString():null} onCaseChanged={reload} onBusyChange={setCaseBusy}/>
    <h2 className="font-semibold">Tasks</h2>
    <div className="grid sm:grid-cols-2 gap-3">
-   {selected.tasks.map(t=><section key={t.key} aria-label={t.label} className="border border-line rounded p-3 space-y-2"><h3 className="font-semibold">{t.label} · {t.status}</h3><p className="text-sm">{t.outcome||'No outcome recorded'} · Assigned: {name(t.assignment?.assignee_id)}{t.due&&` · Due ${when(t.due)}`}</p>{t.done&&t.last&&<p className="text-xs text-fg-muted">Performed by {name(work.credits.find(c=>c.event_id===t.last.id)?.performed_by||t.last.actor_id)} · Recorded by {name(t.last.actor_id)} · {when(work.credits.find(c=>c.event_id===t.last.id)?.occurred_at||t.last.payload?.occurred_at||t.last.payload?.sent_at||t.last.created_at)}</p>}
+   {selected.tasks.map(t=><section key={t.key} aria-label={t.label} className="border border-line rounded p-3 space-y-2"><h3 className="font-semibold">{t.label} · {t.status}</h3><p className="text-sm">{t.outcome||'No outcome recorded'} · Assigned: {name(t.assignment?.assignee_id)}{t.due&&` · Due ${when(t.due)}`}</p>{t.done&&t.key==='application'&&<p className="text-xs text-fg-muted">Form submitted · {when(selected.application?.submitted_at)}</p>}{t.done&&t.key!=='application'&&t.last&&<p className="text-xs text-fg-muted">Performed by {name(work.credits.find(c=>c.event_id===t.last.id)?.performed_by||t.last.actor_id)} · Recorded by {name(t.last.actor_id)} · {when(work.credits.find(c=>c.event_id===t.last.id)?.occurred_at||t.last.payload?.occurred_at||t.last.payload?.sent_at||t.last.created_at)}</p>}
     {canMove&&!t.done&&!isCaseTerminal(selected.status)&&selected.requirement?.status==='open'&&<div className="flex flex-wrap gap-2"><button disabled={busy} className={button} onClick={()=>take(selected,t.key,t.assignment,true)}>Start task</button>{(role==='Master Recruiter'||t.assignment?.assignee_id===auth.user.id)&&<button className={button} onClick={()=>beginEdit(t.key,t.assignment)}>Assignment / due date</button>}</div>}
    </section>)}
    </div>

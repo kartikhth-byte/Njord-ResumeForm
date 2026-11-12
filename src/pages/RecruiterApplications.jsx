@@ -94,7 +94,6 @@ export default function RecruiterApplications() {
   }
   const searchTerm = searchParams.get('q') || ''
   const complianceFilter = searchParams.get('checks') || 'all'
-  const tab = ['linked', 'unlinked'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'all'
   const statusFilter = searchParams.get('status') || ''
 
   // Preserve an in-flight Teams return from the older application workflow.
@@ -353,14 +352,16 @@ const updateContractEndDate = async (applicationId, value) => {
 
   const placements = applicationPlacements(applications.filter(a => matchesLegacyApplicationStatus(a.status, statusFilter)), context)
   const filtered = filterApplicationPlacements(placements, { q: searchTerm, checks: complianceFilter, company: searchParams.get('company') || '', ship: searchParams.get('ship') || '', requirement: searchParams.get('requirement') || '' })
-  const count = rows => new Set(rows.map(r => r.application.id)).size
-  const tabCounts = { all: count(filtered), linked: count(filtered.filter(r => r.links.length)), unlinked: count(filtered.filter(r => !r.links.length)) }
-  const listed = filtered.filter(r => tab === 'all' || (tab === 'linked' ? r.links.length : !r.links.length))
+  // Saved tab URLs no longer hide forms. Missing links are data exceptions.
+  const listed = filtered
   const uniqueIds = [...new Set(listed.map(r => r.application.id))]
   const totalPages = Math.max(1, Math.ceil(uniqueIds.length / itemsPerPage))
   const page = Math.min(currentPage, totalPages)
   const idsOnPage = new Set(uniqueIds.slice((page - 1) * itemsPerPage, page * itemsPerPage))
-  const groups = groupApplicationPlacements(listed.filter(r => idsOnPage.has(r.application.id)))
+  const pageRows = listed.filter(r => idsOnPage.has(r.application.id))
+  const groups = groupApplicationPlacements(pageRows.filter(r => r.links.length))
+  const corrections = pageRows.filter(r => !r.links.length)
+  const correctionCount = new Set(listed.filter(r => !r.links.length).map(r => r.application.id)).size
   const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length
   const field = 'h-11 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm'
   const label = 'flex min-w-0 flex-col gap-1.5 text-sm'
@@ -376,12 +377,13 @@ const updateContractEndDate = async (applicationId, value) => {
     <thead><tr>{['Candidate / application','Requirement','Applied for','Submitted','Document checks','Actions'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
     <tbody className="[&_td]:break-words">{rows.map(({ id, application: app, links }) => <tr key={id}>
       <td><p className="font-medium">{app.full_name}</p><p className="text-xs text-fg-muted">{app.reference_number || 'No reference'}</p>{notesByProspect[app.prospect_id] && <details className="mt-2 text-xs text-fg-muted"><summary className="cursor-pointer">Latest note</summary><p>{notesByProspect[app.prospect_id]}</p></details>}</td>
-      <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-fg-muted">Not linked</span>}</td>
+      <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-warning">Recruitment link missing</span>}</td>
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
       <td>{new Date(app.submitted_at).toLocaleDateString()}</td>
       <td><ComplianceBadge status={app.compliance_status} /><p className="mt-1 text-xs text-fg-muted">Based on submitted form</p></td>
       <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`)}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
         {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
+        {!links.length && <span className="text-xs text-fg-muted">Ask a recruiter to verify the original invitation and correct this link.</span>}
         {links.length > 1 && <span className="text-xs text-fg-muted">Choose a requirement to open recruitment.</span>}
         {canEditApplications && app.status === 'hired' && <label className="w-full min-w-0 text-xs text-fg-muted">Contract ends<input aria-label={`Contract ends for ${app.reference_number}`} type="date" className={`${field} mt-1`} value={app.contract_end_date || ''} onChange={event => updateContractEndDate(app.id,event.target.value)} /></label>}
       </div></td>
@@ -393,7 +395,6 @@ const updateContractEndDate = async (applicationId, value) => {
     <div className="w-full min-w-0 space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
       <p className="text-sm text-fg-muted">Review submitted forms. Open recruitment to manage stages and tasks.</p>
-      <div role="group" aria-label="Application view" className="flex flex-wrap gap-2">{[['all','All submitted'],['linked','Linked'],['unlinked','Not linked']].map(([id,title]) => <button key={id} className={button} aria-pressed={tab===id} onClick={() => setParam('tab',id==='all'?'':id)}>{title} ({loading || loadError ? '—' : tabCounts[id]})</button>)}</div>
       <section aria-label="Application filters" className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
         <label className={label}>Company<select aria-label="Company" className={field} value={searchParams.get('company') || ''} onChange={e => setParam('company',e.target.value)}><option value="">All</option>{searchParams.get('company') && !companyOptions.some(([id]) => id === searchParams.get('company')) && <option value={searchParams.get('company')}>Unavailable selection</option>}{companyOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
@@ -406,9 +407,10 @@ const updateContractEndDate = async (applicationId, value) => {
       {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
         <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}{listed.length > uniqueIds.length ? ' Forms linked to multiple ships appear under each ship.' : ''}</p>
         {!listed.length ? <p className="recruiter-panel p-6">No submitted applications match these filters.</p> : <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" className="space-y-5">{groups.map(company => <details key={company.id} open className="overflow-hidden rounded-xl border border-line">
-          <summary className="cursor-pointer bg-accent-soft px-4 py-3 font-semibold text-accent-text"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.unlinked ? 'Not linked to recruitment' : `Company · ${company.name}`}<span className="ml-3 text-xs font-normal">{company.count} on this page</span></summary>
-          {company.ships.map(ship => company.unlinked ? <div key={ship.id}>{table(ship.rows)}</div> : <details key={ship.id} open className="border-t border-line"><summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />Ship · {ship.name}<span className="ml-3 text-xs font-normal">{ship.rows.length} on this page</span></summary>{table(ship.rows)}</details>)}
+          <summary className="cursor-pointer bg-accent-soft px-4 py-3 font-semibold text-accent-text"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{`Company · ${company.name}`}<span className="ml-3 text-xs font-normal">{company.count} on this page</span></summary>
+          {company.ships.map(ship => <details key={ship.id} open className="border-t border-line"><summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />Ship · {ship.name}<span className="ml-3 text-xs font-normal">{ship.rows.length} on this page</span></summary>{table(ship.rows)}</details>)}
         </details>)}</section>}
+        {corrections.length > 0 && <section aria-label="Applications needing correction" className="overflow-hidden rounded-xl border border-warning"><div className="p-4"><h2 className="font-semibold">Recruitment link needs correction</h2><p className="mt-1 text-sm text-fg-muted">{correctionCount} submitted {correctionCount === 1 ? 'form has' : 'forms have'} no verified recruitment link. Verify the original invitation before correcting the link.</p></div>{table(corrections)}</section>}
         {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} itemsPerPage={itemsPerPage} totalItems={uniqueIds.length} />}
       </>}
       {autoOpenInterviewForApp && canEditApplications && <InterviewSchedulingModal application={autoOpenInterviewForApp} onCancel={() => setAutoOpenInterviewForApp(null)} onScheduled={() => {setAutoOpenInterviewForApp(null);loadApplications(appliedFilters,{background:true})}} />}

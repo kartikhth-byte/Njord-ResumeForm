@@ -285,7 +285,7 @@ export default function RecruitmentCasePanel({ requirementId, requirementOpen = 
           </button>
         </div>
 
-        {row.application_id ? <p className="mt-3 text-sm">Submitted form linked · {row.application_id.slice(0, 8)}. <Link className="underline" to={`/recruiter/workspace/prospects/${row.prospect_id}`}>Open candidate’s applications</Link></p> : canMove && !terminal && CASE_FORM_INVITE_STAGES.includes(row.status) ? <div className="mt-3">
+        {row.application_id ? <p className="mt-3 text-sm">{row.application?.submitted_at ? 'Submitted form linked' : row.application ? 'Application linked · awaiting submission' : 'Linked application unavailable'} · {row.application_id.slice(0, 8)}. <Link className="underline" to={`/recruiter/workspace/prospects/${row.prospect_id}`}>Open candidate’s applications</Link></p> : canMove && !terminal && CASE_FORM_INVITE_STAGES.includes(row.status) ? <div className="mt-3">
           {submittedForms.some(app => app.prospect_id === row.prospect_id) ? <button disabled={Boolean(busy)} className="underline text-sm" onClick={() => setForm({ caseId: row.id, mode: 'link-form', applicationId: '' })}>Choose submitted form</button> : <p className="text-sm text-fg-muted">No submitted form linked to this case.</p>}
         </div> : null}
 

@@ -38,6 +38,8 @@ export default function AuthCallback() {
       if (claimFailure || !claim?.prospect_id) throw claimFailure || new Error('Invite claim was not accepted')
       try {
         window.sessionStorage.setItem('njord-applicant-prospect-id', claim.prospect_id)
+        if (claim.case_id) window.sessionStorage.setItem('njord-applicant-case-id', claim.case_id)
+        else window.sessionStorage.removeItem('njord-applicant-case-id')
       } catch {
         // The database claim succeeded; blocked session storage must not undo it.
       }

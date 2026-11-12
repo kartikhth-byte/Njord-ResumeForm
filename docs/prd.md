@@ -1,5 +1,15 @@
 # Holmes - Platform PRD
 
+## Application form ownership — current clarification (2026-11-12)
+
+Long forms are invited during requirement-linked recruitment. Every newly created
+form must retain the exact invited recruitment case; completing the form does not
+select or infer a requirement. When several invitations are eligible, the applicant
+chooses the requirement explicitly. Applications shows submitted forms by Company
+and Ship, with requirement links. Historical missing links are correction exceptions,
+not an alternate entry workflow. A linked draft remains in progress until submitted.
+
+
 ## Recruitment workspace (2026-11-12)
 
 Recruitment owns per-candidate/requirement task work and stage actions. Candidates owns profile/CV/attachment; requirement details link to Recruitment. Broad stages are display groups of existing case statuses. Task assignment and due dates are independent of row ownership. Signed-in actor is immutable; actual performer may be recorded separately. KPI distinguishes current workload, performer activity and original-creator sourcing cohorts.

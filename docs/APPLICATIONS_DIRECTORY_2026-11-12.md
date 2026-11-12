@@ -1,5 +1,10 @@
 # Applications directory — 2026-11-12
 
+> Superseded in part by the owner's later clarification: remove the three views;
+> applications originate in requirement-linked hiring. See
+> `APPLICATION_INVITATION_BINDING_2026-11-12.md`. The release history below records
+> the earlier deployed design and its frontend-only scope, not the new release.
+
 ## Approved design and scope
 
 The owner approved Applications as a submitted-form review page, consistent with
