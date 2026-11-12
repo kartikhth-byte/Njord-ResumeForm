@@ -1,12 +1,16 @@
 # Project Status
 
-## Applications directory — ready for release checks (2026-11-12)
+## Applications directory — deployed and verified (2026-11-12)
 
 Applications now groups submitted forms by Company → Ship with requirement links,
 All submitted/Linked/Not linked views, aligned filters and readable document
 checks. Stage/task work opens the exact Recruitment case. Retains unlinked forms,
 saved status URLs, advanced filters, contract-end editing and Teams return.
-No backend changes; not deployed. See `docs/APPLICATIONS_DIRECTORY_2026-11-12.md`.
+Approved commit `59ff459` is deployed (Vercel `7732373637`). Read-only live smoke
+passed for submitted/unlinked views, empty Linked state, search/filter/reload and
+application/Back navigation. Production has no linked forms; company/ship and
+case navigation passed staging/synthetic checks. No backend or data changes.
+See `docs/APPLICATIONS_DIRECTORY_2026-11-12.md`.
 
 
 ## Recruitment document actions — deployed and verified (2026-11-12)

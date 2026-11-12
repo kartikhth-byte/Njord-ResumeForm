@@ -69,10 +69,27 @@ or cancelling it does not send invitations.
 - Synthetic Coordinator checks do not claim a fresh normal-session Coordinator
   smoke. Source application/detail write permissions are unchanged.
 
-## Release gate
+## Production release and live smoke
 
-Not deployed. Prepare exact frontend commit, obtain production approval, promote
-to Holmes main/Vercel and run read-only live smoke. No migrations or backend
-release. Existing production baseline: c9ed55d (document actions). Preserve the
-separate local Needle changes. Desktop/mobile preview screenshots are private
-artifacts, not committed résumé data.
+Exact commit `59ff459a548dc57373a0cd8c9899718a8e61ad32` was approved and
+fast-forward promoted to Holmes main. Primary Vercel deployment `7732373637`
+succeeded at 2026-11-12 08:37:36 UTC; the secondary deployment also succeeded.
+No migrations, backend release, intake activation or record changes occurred.
+
+Read-only production Recruiter smoke passed:
+
+- All submitted loads the one existing submitted synthetic form; Not linked
+  retains it and Linked correctly shows zero. No relationship was inferred from
+  the candidate's separate recruitment case.
+- Reference search returns the expected form. Tab and search persist on reload.
+- View application opens the correct synthetic form; its Back button preserves
+  the filtered list context.
+- Checks clear filters the action-needed form out; clearing the filter restores
+  it. The list is left in All submitted with filters cleared.
+
+Production has no exact linked forms, so live company/ship grouping and Open
+recruitment navigation could not be exercised. Those paths passed staging and
+synthetic checks above. This slice does not claim a fresh normal Coordinator
+production check. Private screenshots remain in
+`.local/applications-release-20261112/`; no form contents are committed.
+Separate local Needle changes were untouched.
