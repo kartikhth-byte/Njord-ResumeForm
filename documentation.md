@@ -1,5 +1,17 @@
 # Project Status
 
+## AI Search auto-hiding sidebar — ready for release (2026-11-12)
+
+The Holmes icon rail is replaced by a left-edge hover drawer over a full-viewport
+AI frame. A bottom-left menu button supports keyboard/touch; hidden links are
+inert, Escape/close restore focus, and clicking into the frame dismisses the
+drawer. Other pages retain their saved sidebar preference. Seven focused browser
+cases and eight adjacent Applications cases pass; final focused rerun, lint and
+build pass. Independent review reports no material findings. Normal staging
+shell/navigation passes; its embedded `/ai/` currently returns 404, so full frame
+interactions were verified with a synthetic document. No model calls or data
+changes. Not deployed; exact production approval and hosted smoke pending.
+
 ## Applications directory — deployed and verified (2026-11-12)
 
 Applications now groups submitted forms by Company → Ship with requirement links,

@@ -1,5 +1,19 @@
 # Platform Test Plan
 
+## AI Search auto-hiding sidebar (2026-11-12)
+
+Run `ai-sidebar.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1`, a local Vite
+server configured with fake Supabase and `VITE_FEATURE_AI_SEARCH=on`, and
+`--no-deps`. The fixture intercepts all engine/auth calls and blocks external
+requests. Cover full frame bounds, quick edge pass, hover open/leave, retained
+search input, keyboard open from closed and already hover-open, Escape, inert
+hidden links, account interaction, frame-click dismissal, mobile menu, both saved
+sidebar preferences and Coordinator denial. Adjacent Applications smoke covers
+the shared sidebar. Existing `needle-embed.spec.js` shell expectations are
+updated to hidden rail/full height; its full backend suite was not rerun for this
+shell-only slice. Hosted read-only frame verification follows exact release
+approval. No paid model calls are required.
+
 ## Applications directory (2026-11-12)
 
 Run `tests/applicationDirectory.test.mjs` plus application progress/case/workspace/

@@ -55,6 +55,7 @@ test.describe('Applications directory',()=>{
   const company=groups.locator('summary').filter({hasText:'Company · Northstar Shipping'})
   await company.click()
   await page.getByLabel('Search',{exact:true}).fill('SYN-R1')
+  await expect(groups.getByText('Alex',{exact:true})).toHaveCount(1)
   await expect(groups.getByText('Alex',{exact:true})).toBeVisible()
   await expect(page.getByRole('status')).toContainText('1 submitted application')
   await page.getByLabel('Search',{exact:true}).fill('')

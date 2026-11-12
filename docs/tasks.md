@@ -1,5 +1,14 @@
 # Pending Tasks
 
+## AI Search auto-hiding sidebar (2026-11-12)
+
+- [x] Full-viewport AI frame, hover overlay, keyboard/touch launcher, focus-safe
+  dismissal, saved ordinary-page preference and independent review.
+- [x] Seven focused browser cases plus eight adjacent Applications cases; lint
+  and build. Normal staging shell navigation passes; its local Needle frame
+  returns 404, so embedded-frame interactions use a synthetic fixture.
+- [ ] Exact UI release approval, promotion and read-only hosted smoke.
+
 ## Applications directory (2026-11-12)
 
 - [x] Approved company/ship grouping, exact requirement links, submitted-form

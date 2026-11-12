@@ -55,13 +55,18 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const asideRef = useRef(null)
   const menuRef = useRef(null)
+  const triggerRef = useRef(null)
+  const hoverTimer = useRef(null)
+  const pointerInside = useRef(false)
+  const focusOnOpen = useRef(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const isRecruiterOrMaster = role === 'Recruiter' || role === 'Master Recruiter'
   const showKpi = canViewAnalytics()
   const showSettings = role === 'Master Recruiter' || canManageSettings()
   const showAiSearch = canUseAiSearch({ isOperator, role })
   const isAiSearch = pathname.startsWith('/recruiter/ai/') || pathname === '/recruiter/ai'
-  const effectiveCollapsed = collapsed || isAiSearch
+  const effectiveCollapsed = collapsed && !isAiSearch
 
   const groups = [
     {
@@ -109,12 +114,16 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   }, [])
 
   useLayoutEffect(() => {
-    document.documentElement.dataset.rail = effectiveCollapsed ? 'collapsed' : 'expanded'
-  }, [effectiveCollapsed])
+    document.documentElement.dataset.rail = isAiSearch ? 'hidden' : effectiveCollapsed ? 'collapsed' : 'expanded'
+  }, [effectiveCollapsed, isAiSearch])
 
   useEffect(() => {
     setMobileOpen(false)
     setMenuOpen(false)
+    setDrawerOpen(false)
+    focusOnOpen.current = false
+    clearTimeout(hoverTimer.current)
+    pointerInside.current = false
   }, [pathname])
 
   useEffect(() => {
@@ -134,6 +143,69 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
       document.removeEventListener('keydown', handleKey)
     }
   }, [])
+
+  // The AI drawer overlays the frame. Hidden navigation must not remain tabbable.
+  // Pointer opening never steals focus; button opening moves focus into the menu.
+  const closeDrawer = (restoreFocus = false) => {
+    clearTimeout(hoverTimer.current)
+    focusOnOpen.current = false
+    setDrawerOpen(false)
+    setMenuOpen(false)
+    if (restoreFocus) triggerRef.current?.focus()
+  }
+
+  useLayoutEffect(() => {
+    if (drawerOpen && focusOnOpen.current) {
+      focusOnOpen.current = false
+      asideRef.current?.querySelector('button')?.focus()
+    }
+  }, [drawerOpen])
+
+  const leaveDrawer = () => {
+    pointerInside.current = false
+    clearTimeout(hoverTimer.current)
+    hoverTimer.current = setTimeout(() => {
+      if (!menuOpen && !asideRef.current?.contains(document.activeElement)) setDrawerOpen(false)
+    }, 240)
+  }
+
+  useEffect(() => {
+    if (!isAiSearch) return undefined
+    const outside = (event) => {
+      if (!asideRef.current?.contains(event.target) && !triggerRef.current?.contains(event.target)) {
+        clearTimeout(hoverTimer.current)
+        setDrawerOpen(false)
+        setMenuOpen(false)
+      }
+    }
+    const escape = (event) => {
+      if (event.key === 'Escape') {
+        clearTimeout(hoverTimer.current)
+        setDrawerOpen(false)
+        setMenuOpen(false)
+        if (drawerOpen) triggerRef.current?.focus()
+      }
+    }
+    // Clicking into the embedded document does not bubble a pointer event here.
+    const frameFocus = () => {
+      clearTimeout(hoverTimer.current)
+      hoverTimer.current = setTimeout(() => {
+        if (document.activeElement?.tagName === 'IFRAME') {
+          setDrawerOpen(false)
+          setMenuOpen(false)
+        }
+      }, 0)
+    }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    window.addEventListener('blur', frameFocus)
+    return () => {
+      clearTimeout(hoverTimer.current)
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
+      window.removeEventListener('blur', frameFocus)
+    }
+  }, [isAiSearch, drawerOpen])
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -176,8 +248,40 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
 
   return (
     <>
-      {/* Phone top bar */}
-      <div className="recruiter-mobilebar">
+      {isAiSearch ? (
+        <>
+          <div
+            className="recruiter-sidebar__edge"
+            aria-hidden="true"
+            onPointerEnter={(event) => {
+              if (event.pointerType !== 'mouse') return
+              pointerInside.current = true
+              clearTimeout(hoverTimer.current)
+              hoverTimer.current = setTimeout(() => setDrawerOpen(true), 180)
+            }}
+            onPointerLeave={leaveDrawer}
+          />
+          <button
+            ref={triggerRef}
+            type="button"
+            className="recruiter-sidebar__launcher recruiter-sidebar__icon-button"
+            aria-label="Open Holmes menu"
+            title="Holmes menu"
+            aria-controls="holmes-navigation"
+            aria-expanded={drawerOpen}
+            onClick={() => {
+              clearTimeout(hoverTimer.current)
+              if (drawerOpen) asideRef.current?.querySelector('button')?.focus()
+              else {
+                focusOnOpen.current = true
+                setDrawerOpen(true)
+              }
+            }}
+          ><Menu className="h-5 w-5" aria-hidden="true" /></button>
+        </>
+      ) : null}
+      {/* Phone top bar on ordinary recruiter pages. */}
+      {!isAiSearch ? <div className="recruiter-mobilebar">
         <button
           type="button"
           className="recruiter-sidebar__icon-button"
@@ -187,7 +291,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
         <span className="recruiter-sidebar__wordmark">Holmes</span>
-      </div>
+      </div> : null}
 
       {mobileOpen ? (
         <div className="recruiter-sidebar__backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
@@ -195,7 +299,17 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
 
       <aside
         ref={asideRef}
-        className={`recruiter-sidebar ${rail ? 'is-rail' : ''} ${mobileOpen ? 'is-open' : ''}`}
+        id="holmes-navigation"
+        inert={isAiSearch && !drawerOpen ? true : undefined}
+        onPointerEnter={isAiSearch ? () => {
+          pointerInside.current = true
+          clearTimeout(hoverTimer.current)
+        } : undefined}
+        onPointerLeave={isAiSearch ? leaveDrawer : undefined}
+        onBlur={isAiSearch ? (event) => {
+          if (!event.currentTarget.contains(event.relatedTarget) && !pointerInside.current) closeDrawer()
+        } : undefined}
+        className={`recruiter-sidebar ${rail ? 'is-rail' : ''} ${mobileOpen || (isAiSearch && drawerOpen) ? 'is-open' : ''} ${isAiSearch ? 'is-autohide' : ''}`}
         aria-label="Main"
       >
         <div className="recruiter-sidebar__brand">
@@ -212,11 +326,11 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
             <button
               type="button"
               className="recruiter-sidebar__icon-button recruiter-sidebar__collapse"
-              onClick={mobileOpen ? () => setMobileOpen(false) : toggleCollapsed}
-              aria-label={mobileOpen ? 'Close menu' : 'Collapse sidebar'}
-              title={mobileOpen ? 'Close menu' : 'Collapse sidebar'}
+              onClick={isAiSearch ? () => closeDrawer(true) : mobileOpen ? () => setMobileOpen(false) : toggleCollapsed}
+              aria-label={isAiSearch ? 'Close Holmes menu' : mobileOpen ? 'Close menu' : 'Collapse sidebar'}
+              title={isAiSearch ? 'Close Holmes menu' : mobileOpen ? 'Close menu' : 'Collapse sidebar'}
             >
-              {mobileOpen ? <X className="h-[18px] w-[18px]" aria-hidden="true" /> : <PanelLeft className="h-[18px] w-[18px]" aria-hidden="true" />}
+              {mobileOpen || isAiSearch ? <X className="h-[18px] w-[18px]" aria-hidden="true" /> : <PanelLeft className="h-[18px] w-[18px]" aria-hidden="true" />}
             </button>
           ) : null}
         </div>

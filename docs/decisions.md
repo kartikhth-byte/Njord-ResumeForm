@@ -1,5 +1,13 @@
 # Decisions Log
 
+## AI Search navigation (2026-11-12)
+
+AI Search uses the full viewport with no persistent Holmes icon rail. Holmes
+navigation slides over search after a short left-edge hover; leaving closes it
+unless keyboard focus or the account menu is active. A compact bottom-left menu
+button supports keyboard/touch access without reserving a header or column.
+Ordinary recruiter pages retain their saved expanded/collapsed preference.
+
 ## Applications review directory (2026-11-12)
 
 User approved Company → Ship → Applications, a requirement column and an Open
