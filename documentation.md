@@ -1,5 +1,13 @@
 # Project Status
 
+## Recruitment UI corrections — prepared locally (2026-11-12)
+
+Filter alignment/help, shorter search placeholder, Pre-joining stage label and
+readable per-task status lines are ready. Six synthetic browser checks, 15
+adjacent tests, lint/build and independent review pass. Exact production promotion
+and live smoke remain pending; no database or workflow changes. See the latest
+section of `docs/RECRUITMENT_WORKSPACE_2026-11-12.md`.
+
 ## Recruitment workspace — deployed and smoke verified (2026-11-12)
 
 Holmes `c89a0c2c6fdb1767b4b10f7c9eab2b08e170739a` and migration `2026111201`

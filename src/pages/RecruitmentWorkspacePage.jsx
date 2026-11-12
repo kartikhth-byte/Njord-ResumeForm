@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Building2, Ship } from 'lucide-react'
+import { Building2, Ship, CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
@@ -15,6 +15,8 @@ import { WORK_STAGES, workStage, taskProgress, nextWork, groupRecruitmentRows } 
 import { isCaseTerminal } from '../utils/recruitmentCase'
 const button='workspace-action-button workspace-action-button--secondary'
 const field='rounded-control border border-line bg-surface p-2 text-sm w-full'
+const filterField=`${field} h-11 min-w-0`
+const filterLabel='flex min-w-0 flex-col gap-1.5 text-sm'
 const when=value=>value?new Date(value).toLocaleString():''
 
 export default function RecruitmentWorkspacePage() {
@@ -42,9 +44,11 @@ export default function RecruitmentWorkspacePage() {
   const owner=work.assignments.find(a=>a.case_id===c.id&&a.task_key==='case'),tasks=taskProgress(c,tracker.data.caseEvents,work.assignments)
   return {...c,candidate,requirement,company,ship,owner,tasks}
  })
+ // Preserve bookmarked stage filters created before the display-label rename.
+ const selectedStage=params.get('stage')==='Joining preparation'?'Pre-joining':params.get('stage')
  const rows=all.filter(c=>{
-  if(!params.get('stage')&&isCaseTerminal(c.status))return false
-  if(params.get('stage')&&params.get('stage')!==workStage(c.status))return false
+  if(!selectedStage&&isCaseTerminal(c.status))return false
+  if(selectedStage&&selectedStage!==workStage(c.status))return false
   if(params.get('scope')==='mine'&&c.owner?.assignee_id!==auth.user?.id&&!c.tasks.some(t=>!t.done&&t.assignment?.assignee_id===auth.user?.id))return false
   if(params.get('recruiter')&&c.owner?.assignee_id!==params.get('recruiter')&&!c.tasks.some(t=>!t.done&&t.assignment?.assignee_id===params.get('recruiter')))return false
   if(params.get('company')&&c.company?.id!==params.get('company'))return false
@@ -71,7 +75,15 @@ export default function RecruitmentWorkspacePage() {
  const beginEdit=(key,assignment)=>{const date=assignment?.due_at?new Date(assignment.due_at):null;setEdit({key,assignment,assignee:assignment?.assignee_id||'',due:date?new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16):'',note:''})}
  const renderRows=list=><div className="overflow-x-auto"><table className="tracker-table table-fixed min-w-[850px] w-full"><colgroup>{[22,15,25,23,15].map((width,i)=><col key={i} style={{width:`${width}%`}}/>)}</colgroup><thead><tr>{['Candidate','Requirement','Stage / task progress','Next action','Assigned recruiter'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead><tbody className="[&_td]:break-words">{list.map(c=><tr key={c.id}>
   <td><button className="text-accent-text underline text-left" onClick={()=>open(c)}>{c.candidate?.name||'Candidate'}</button>{c.cycle>1&&<p className="text-xs">Cycle {c.cycle}</p>}</td>
-  <td>{c.requirement?.req_id_display||'Requirement unavailable'}</td><td><strong>{workStage(c.status)}</strong><p className="text-xs">{c.tasks.filter(t=>t.last||t.done||t.assignment).map(t=>`${t.label}: ${t.outcome||t.status}`).join(' · ')||'No tasks recorded'}</p></td>
+  <td>{c.requirement?.req_id_display||'Requirement unavailable'}</td><td><strong className="block mb-2">{workStage(c.status)}</strong><ul aria-label="Task progress" className="space-y-1.5 text-xs">{c.tasks.map(t=>{
+   const unsuccessful=['test_failed','interview_failed','test_no_show','interview_no_show','offer_declined'].includes(t.last?.to_status)
+   const waived=t.last?.to_status==='test_waived'
+   const active=t.status==='In progress'||t.status==='Scheduled'
+   const Icon=unsuccessful?XCircle:waived?Circle:t.done?CheckCircle2:active?Clock3:Circle
+   const tone=unsuccessful?'text-danger':waived?'text-fg-muted':t.done?'text-success':active?'text-warning':'text-fg-muted'
+   const outcome=t.key==='application'&&t.done?'Completed':t.last?.to_status?t.outcome:t.status
+   return <li key={t.key} className="flex items-start gap-2"><Icon aria-hidden="true" className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tone}`}/><span><span className="font-medium">{t.label}</span><span className={tone}> — {outcome}</span></span></li>
+  })}</ul></td>
   <td>{nextWork(c)}{c.tasks.filter(t=>!t.done&&t.due).map(t=><p key={t.key} className="text-xs">{t.label} · {when(t.due)} · {name(t.assignment?.assignee_id)}</p>)}</td>
   <td>{name(c.owner?.assignee_id)}{canMove&&!isCaseTerminal(c.status)&&<button disabled={busy||!!work.error} className="block text-accent-text underline" onClick={()=>take(c,'case',c.owner)}>{c.owner?.assignee_id===auth.user.id?'Assigned to you':'Take over'}</button>}</td>
  </tr>)}</tbody></table></div>
@@ -85,12 +97,13 @@ export default function RecruitmentWorkspacePage() {
   {!allowed?<p role="alert">Your account cannot view recruitment.</p>:<>
   <p className="text-sm text-fg-muted">One row per candidate and requirement. Take over a row or handle an individual task.</p>
   {(tracker.error||work.error||fleet.error||error)&&<p role="alert" className="text-danger">{error||work.error||tracker.error||fleet.error}</p>}
-  <div className="flex flex-wrap gap-2"><button className={button} aria-pressed={!params.get('stage')} onClick={()=>set('stage','')}>Active</button>{WORK_STAGES.map(s=><button key={s} className={button} aria-pressed={params.get('stage')===s} onClick={()=>set('stage',s)}>{s} ({all.filter(c=>workStage(c.status)===s).length})</button>)}</div>
-  <section aria-label="Recruitment filters" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
-   <label>Search<input className={field} value={params.get('q')||''} onChange={e=>set('q',e.target.value)}/></label>
-   <label>Work<select aria-label="Work" className={field} value={params.get('scope')||''} onChange={e=>set('scope',e.target.value)}><option value="">All work</option><option value="mine">My work</option></select></label>
-   {[['company','Company',fleet.companies],['ship','Ship',fleet.ships.filter(s=>!params.get('company')||s.company_id===params.get('company'))],['requirement','Requirement',tracker.data.requirements.filter(r=>(!params.get('company')||r.company_id===params.get('company'))&&(!params.get('ship')||r.ship_id===params.get('ship')))],['recruiter','Recruiter',people]].map(([key,label,options])=><label key={key}>{label}<select className={field} value={params.get(key)||''} onChange={e=>{const value=e.target.value;updateParams(n=>{value?n.set(key,value):n.delete(key);if(key==='company'){n.delete('ship');n.delete('requirement')}if(key==='ship')n.delete('requirement')})}}><option value="">All</option>{options.map(o=><option key={o.id} value={o.id}>{o.name||o.req_id_display||o.full_name||o.email}</option>)}</select></label>)}
-   <label className="flex gap-2 items-center"><input type="checkbox" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label>
+  <div className="flex flex-wrap gap-2"><button className={button} aria-pressed={!selectedStage} onClick={()=>set('stage','')}>Active</button>{WORK_STAGES.map(s=><button key={s} className={button} aria-pressed={selectedStage===s} onClick={()=>set('stage',s)}>{s} ({all.filter(c=>workStage(c.status)===s).length})</button>)}</div>
+  <section aria-label="Recruitment filters" className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+   <label className={filterLabel}>Search<input placeholder="Name or reference…" className={filterField} value={params.get('q')||''} onChange={e=>set('q',e.target.value)}/></label>
+   <label className={filterLabel}>Work<select aria-label="Work" className={filterField} value={params.get('scope')||''} onChange={e=>set('scope',e.target.value)}><option value="">All work</option><option value="mine">My work</option></select></label>
+   {[['company','Company',fleet.companies],['ship','Ship',fleet.ships.filter(s=>!params.get('company')||s.company_id===params.get('company'))],['requirement','Requirement',tracker.data.requirements.filter(r=>(!params.get('company')||r.company_id===params.get('company'))&&(!params.get('ship')||r.ship_id===params.get('ship')))],['recruiter','Recruiter',people]].map(([key,label,options])=><label key={key} className={filterLabel}>{label}<select className={filterField} value={params.get(key)||''} onChange={e=>{const value=e.target.value;updateParams(n=>{value?n.set(key,value):n.delete(key);if(key==='company'){n.delete('ship');n.delete('requirement')}if(key==='ship')n.delete('requirement')})}}><option value="">All</option>{options.map(o=><option key={o.id} value={o.id}>{o.name||o.req_id_display||o.full_name||o.email}</option>)}</select></label>)}
+   <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" aria-describedby="recruitment-attention-help" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
+   <p id="recruitment-attention-help" className="text-xs text-fg-muted sm:col-span-2 lg:col-span-4">Needs attention: no assigned recruiter or an unfinished task past its due date.</p>
   </section>
   {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:!rows.length?<p>No recruitment rows match these filters.</p>:<section key={groupingScope} aria-label="Recruitment by company and ship" className="space-y-5">
    <p className="text-sm text-fg-muted">{rows.length} recruitment {rows.length===1?'row':'rows'} shown. Counts reflect the current filters.</p>

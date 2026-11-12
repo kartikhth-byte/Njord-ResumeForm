@@ -28,8 +28,10 @@ relationships remain intact. The workspace release is complete; onboarding remai
 - [x] Rollback-only production database role/handover checks; synthetic case and
   requirement Closed with history retained. No intake activation.
 
-Next: owner walkthrough of the deployed Recruitment workspace, then select the
-next UI to review. See `RECRUITMENT_WORKSPACE_2026-11-12.md` for release evidence.
+Next: promote the reviewed UI walkthrough corrections after exact approval,
+verify them live, then continue the owner walkthrough. The local follow-up covers
+filter alignment/help, short search placeholder, Pre-joining and per-task status
+lines. Work/Show wording remains undecided. See `RECRUITMENT_WORKSPACE_2026-11-12.md` for release evidence.
 
 ## Candidates directory — 2026-11-11
 

@@ -134,3 +134,24 @@ Runtime source was unchanged during smoke. Frontend rollback target is
 `1a8f6caf24143f3ba84dddcf7fccb660e305c45c`; rollback preserves additive task/history
 data and the database requirement-progress protection. No Needle, Function,
 subscription, region or hosting change was made.
+
+## UI walkthrough corrections — prepared locally, awaiting promotion
+
+- Consistent filter label spacing and control heights, including Needs attention.
+  Attention help states its existing unassigned-row/overdue-task meaning.
+- Search placeholder shortened to “Name or reference…”. Work wording remains
+  unchanged; the alternative labels were discussed but not selected.
+- “Joining preparation” becomes “Pre-joining” in Recruitment and Candidates.
+  Old saved stage-filter URLs retain their results. Stored case statuses are unchanged.
+- Task progress is a separate line for each task, with text and decorative icons:
+  green for completed, amber for scheduled/in-progress, grey for not started or
+  waived, red for failed/no-show/declined outcomes. No inferred completion from
+  broad stages; a linked application is explicitly shown as Completed.
+- Verification: 15 adjacent Node tests, six synthetic browser checks (including
+  saved stage URLs, reload and distinct task outcomes), lint and production build
+  pass. Desktop/mobile screenshots were inspected. Independent review found no
+  material issues. Existing build warnings concern bundle size and browser data.
+
+This is a frontend-only follow-up to deployed `c89a0c2`; no migration, Function,
+Needle, hosting, subscription or intake change. Exact promotion approval and live
+read-only smoke remain pending. The production release above remains the live baseline.

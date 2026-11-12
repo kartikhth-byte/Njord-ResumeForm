@@ -1,10 +1,10 @@
 import { caseActionLabel, caseNextActions, caseStatusMeta, isCaseTerminal } from './recruitmentCase.js'
-export const WORK_STAGES = ['New','Screening','Offer','Joining preparation','Joined','Closed']
+export const WORK_STAGES = ['New','Screening','Offer','Pre-joining','Joined','Closed']
 export const TASKS = {contact:'Contact and availability',test:'Test',interview:'Interview',offer:'Offer',application:'Application form',documents:'Document checks',principal:'Principal handoff',joining:'Confirm joining'}
 export function workStage(status) {
  if(status==='hired')return 'Joined'
  if(['withdrawn','rejected','closed'].includes(status))return 'Closed'
- if(['documents_pending','documents_verified','sent_to_principal','offer_accepted'].includes(status))return 'Joining preparation'
+ if(['documents_pending','documents_verified','sent_to_principal','offer_accepted'].includes(status))return 'Pre-joining'
  if(['selected','offered','offer_declined'].includes(status))return 'Offer'
  if(['legacy','sourced','interested'].includes(status))return 'New'
  return 'Screening'
