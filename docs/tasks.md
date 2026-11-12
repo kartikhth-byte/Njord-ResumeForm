@@ -8,8 +8,11 @@
 - [x] Update Recruitment task progress/assignment checks to use submission evidence.
 - [x] Focused SQL and browser tests, adjacent tests and independent source review.
 - [x] Rollback-only staging migration and authenticated draft/retry/submission check.
-- [ ] Exact production approval, fresh backup, migration 1202, reissue Function and
-  frontend release, then live smoke. No production change in this implementation.
+- [x] Exact production approval, fresh backup/payload restore, migration 1202,
+  reissue Function v11 and frontend `52e366ae` deployed (Vercel `7733635779`).
+- [x] Production synthetic authenticated draft/retry/submission and closed-requirement
+  invite denial; changes rolled back. Recruiter/Coordinator read checks and normal
+  signed-in directory/view/Back/search/reload passed. No email-delivery check.
 
 
 ## AI Search auto-hiding sidebar (2026-11-12)

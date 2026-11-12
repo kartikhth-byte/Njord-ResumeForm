@@ -90,3 +90,40 @@ Older clients fail safely on ambiguous starts. For rollback, prefer a forward fi
 keep the link/submission guards and compatible draft-aware task rendering together.
 Do not erase new links, drafts or history to roll back. No Needle/hosting/region/tier
 change is part of this release.
+
+
+## Production closeout
+
+The owner approved this exact release and live smoke. Commit
+`52e366ae4a2d6acd5146ebdb779b7d1061fe1b0b` was fast-forwarded to main;
+primary Vercel deployment `7733635779` reports success (2026-11-12).
+Migration `2026111202` is recorded in Holmes `btbqdviuqcpauojmorvx`;
+`request-applicant-magic-link` is ACTIVE, version 11, with its existing
+`verify_jwt=false` public-entry configuration and internal guards retained.
+
+- Fresh full database dump: 111 table-data objects, 7,679 rows. Isolated COPY
+  payload restoration/count comparison passed. Full managed-schema DDL/data
+  restoration did not pass on stock PostgreSQL; it remains an explicit limitation.
+  The previous deployed Function source was saved privately for rollback.
+- Migration applied atomically with its registry record; prospect/case counts
+  unchanged. No historical links were inferred or backfilled.
+- Authenticated applicant smoke against the deployed SQL passed: exact invited
+  draft, stable repeat start, claim containing the bound draft, submission, exact
+  case linkage, and rejection of invitation on a closed requirement. All synthetic
+  changes were rolled back; application/case/request counts and migration/function
+  state were unchanged afterwards.
+- Recruiter and Coordinator read checks passed for the case/application join;
+  neither received applicant-only claims. These were database-role checks, not a
+  new normal Coordinator browser session.
+- Deployed Function returned its generic success response to an empty request,
+  without an email address, request record or email. Initial Python HTTPS probe
+  failed local certificate discovery; system curl with normal TLS validation passed.
+- Normal signed-in production UI: no three-view selector; one historical unlinked
+  synthetic form appears under correction guidance. View application, Back,
+  reference search and reload passed. No application/requirement data was changed
+  through the browser. Existing production data has no linked submitted forms, so
+  grouped linked rows and new applicant browser flow retain staging/synthetic
+  coverage. No normal emailed applicant session or email delivery was exercised.
+- Private receipts and screenshot are under `.local/application-binding-20261112/`
+  in the parent Needle workspace. No credentials, applicant data or backup bytes
+  are committed. No Needle, hosting, subscription or intake change.

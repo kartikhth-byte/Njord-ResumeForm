@@ -1,6 +1,6 @@
 # Project Status
 
-## Requirement-bound applications — implemented, release pending (2026-11-12)
+## Requirement-bound applications — deployed and verified (2026-11-12)
 
 The owner clarified that the application form belongs to requirement-linked hiring.
 Applications is one submitted-form list grouped Company → Ship, with a requirement
@@ -15,9 +15,16 @@ they are never silently adopted or deleted. Recruitment task completion uses act
 submission evidence, not draft linkage; completion time is the submitted timestamp.
 
 See `docs/APPLICATION_INVITATION_BINDING_2026-11-12.md` for verification and release
-order. This supersedes the initial Applications directory design below. Production
-migration, Function deployment, frontend promotion and live smoke are pending exact
-release approval.
+order. This supersedes the initial Applications directory design below. Approved
+commit `52e366ae4a2d6acd5146ebdb779b7d1061fe1b0b` is on main/Vercel (primary
+deployment `7733635779`, success). Migration 1202 and reissue Function v11 are live.
+Fresh backup and isolated data-payload restore passed; full managed-schema restore
+remains unverified. Production authenticated synthetic draft/retry/submission and
+closed-requirement invite checks passed with all test mutations rolled back. Recruiter
+and Coordinator case/application reads passed. Normal signed-in UI verified removed
+tabs, correction guidance, historical form viewing, Back, search and reload. Production
+currently has one historical unlinked test form; company/ship grouping and new-form
+UI behavior were covered in staging/synthetic tests. No email delivery was exercised.
 
 ## AI Search auto-hiding sidebar — deployed and verified (2026-11-12)
 
