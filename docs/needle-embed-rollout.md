@@ -30,8 +30,13 @@ checks pass (policy/proxy plus matching/intake and actual bridge handlers), and
 lint/build pass. The browser initially could not launch in the filesystem
 sandbox; the same synthetic-only suite passed outside it, blocking external app
 traffic. Independent review found no source blocker; the rollout clarification
-above addresses its documentation finding. Production configuration and normal
-live recruiter sessions are still a release gate, not proven by the fixtures.
+above addresses its documentation finding. Approved `181851cb` is now deployed
+on main/Vercel (Ready); the public bundle contains the exact release version and
+both production settings are verified as `on`. Live Operator AI Search entry and
+reload, footer label and account-menu organization role pass. Normal Master
+Recruiter smoke awaits a separate signed-in session. Normal Recruiter/Coordinator
+checks are not claimed from the synthetic fixtures. No paid model calls were made.
+Private deployment evidence is in `.local/recruiter-ai-rollout-20261113/`.
 
 ## Current completion candidate — 2026-11-07
 

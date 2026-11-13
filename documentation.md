@@ -10,8 +10,11 @@ now labels platform operators as Operator, with the separate organization role
 in the account menu. Seventeen production-build browser checks, 21 Node checks
 (including actual integration/intake handlers), lint and build pass. Independent
 review found no source blockers; its rollout-documentation clarification is
-incorporated. Exact production release and live role checks remain pending;
-production settings have not been changed in this slice.
+incorporated. Approved commit `181851cb` is deployed on main/Vercel (Ready),
+and both production settings are verified as `on`. The live Operator label,
+account-menu organization role, AI Search load and reload pass. Normal Master
+Recruiter live smoke awaits a separate signed-in session; local Master/Recruiter
+checks passed. No paid model calls were made for this rollout.
 
 ## Problem reporting — deployed with capture follow-up (2026-11-13)
 

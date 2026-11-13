@@ -5,9 +5,11 @@
 - [x] Owner approval for Master Recruiter/Recruiter AI Search and prominent Operator identity.
 - [x] Preserve existing token-role policy; implement sidebar/account identity labels.
 - [x] Production-build role/navigation/reload smoke (17), Node policy/proxy/matching/intake checks (21), lint/build and independent review.
-- [ ] Exact release approval; set Vercel production `VITE_FEATURE_AI_SEARCH=on`
-  and Holmes production `NEEDLE_AI_SEARCH_ACCESS=on`, then promote the reviewed UI.
-- [ ] Live Master Recruiter and Operator search entry/reload checks and Operator label verification.
+- [x] Exact release approval and main/Vercel promotion `181851cb`; Vercel Ready and public version verified.
+- [x] Vercel production `VITE_FEATURE_AI_SEARCH=on` and Holmes `NEEDLE_AI_SEARCH_ACCESS=on` verified.
+- [x] Live Operator search entry/reload, footer label and account-menu organization role.
+- [ ] Live normal Master Recruiter search entry/reload and matching access; separate sign-in requested.
+- [ ] Live normal Recruiter/Coordinator checks when their sessions are available; synthetic role checks passed.
 
 ## Problem reporting (2026-11-13)
 
