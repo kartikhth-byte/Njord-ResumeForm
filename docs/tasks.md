@@ -1,5 +1,14 @@
 # Pending Tasks
 
+## Recruiter AI Search rollout (2026-11-13)
+
+- [x] Owner approval for Master Recruiter/Recruiter AI Search and prominent Operator identity.
+- [x] Preserve existing token-role policy; implement sidebar/account identity labels.
+- [x] Production-build role/navigation/reload smoke (17), Node policy/proxy/matching/intake checks (21), lint/build and independent review.
+- [ ] Exact release approval; set Vercel production `VITE_FEATURE_AI_SEARCH=on`
+  and Holmes production `NEEDLE_AI_SEARCH_ACCESS=on`, then promote the reviewed UI.
+- [ ] Live Master Recruiter and Operator search entry/reload checks and Operator label verification.
+
 ## Problem reporting (2026-11-13)
 
 - [x] Two-click capture/send, movable launcher, optional note, image upload fallback.
@@ -10,7 +19,9 @@
 - [x] Managed Storage isolation/deletion, scheduled invocation and ordinary-page/operator live smoke.
 - [x] Reproduce and patch modern-color AI frame capture and native Recruitment panel capture locally.
 - [x] Exact follow-up UI promotion `8cbb286`; Vercel and crewme.si bundle/version checks.
-- [ ] Live capture checks for AI Search and the Recruitment panel (browser-control tool unavailable; already approved).
+- [x] Live capture checks for AI Search and the Recruitment panel: both previously missing surfaces now appear.
+- [ ] Fix remaining clipped text in captured previews; inspect text fidelity as well as surface/color coverage.
+- [x] Investigate Operator labelling and AI Search pilot restriction; owner approved the separate rollout above.
 
 Details: `PROBLEM_REPORTS_2026-11-13.md`.
 

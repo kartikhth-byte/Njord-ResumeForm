@@ -1,6 +1,6 @@
 # Two-click problem reports — 2026-11-13
 
-Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed; its two live visual checks remain pending because browser control is unavailable.
+Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed. Both live visual checks completed: AI Search and the native Recruitment panel now appear in capture. Some preview text remains clipped; overall capture fidelity is not fully passed.
 
 ## User flow
 
@@ -114,7 +114,8 @@ Live verification:
   schedule: cron succeeded and pg_net recorded HTTP 200 at 08:04 UTC. That smoke
   schedule was removed; the regular 15-minute schedule remains enabled.
 - AI Search capture fell back to upload; an actual Recruitment panel was omitted
-  from its image. The follow-up fixes are now deployed; live visual rechecks are still pending, not passed checks.
+  from its image. The deployed follow-up restores both surfaces, verified in live
+  Chrome previews on 2026-11-13. Some text clipping remains in the captured images.
 
 Root causes and local corrections:
 
@@ -138,9 +139,25 @@ remaining blockers. All 14 focused production-build browser checks, lint and bui
 approved exact follow-up `8cbb286`, which was promoted to main/Vercel deployment
 `4LFpsbebFRPmGqdhp5aQFKsAtn61`. Vercel succeeded; crewme.si returns HTTP 200
 and serves that exact version plus the corrected capture module. Browser control
-remained unavailable after reset and a fresh user reply, so authenticated visual
-checks of AI Search and the Recruitment panel remain pending. No new sign-in or
-release approval is needed to resume those read-only checks. No new library or paid API call.
+initially remained unavailable after reset and a fresh user reply. It recovered
+on the subsequent turn, allowing the two authenticated visual checks to complete.
+AI Search's real embedded Projects page now renders in the screenshot, and the
+real synthetic Recruitment case panel is included with its CV/profile/application
+actions and task area. Both previews were cancelled without uploading; the panel
+was closed and recruitment data was unchanged. No paid model calls were made.
+Private visual evidence is saved under `.local/problem-report-release-20261113/`
+as `live-ai-capture-fixed.png` and `live-recruitment-capture-fixed.png` in the
+Needle workspace. These images also reveal clipped text in some labels: the
+original missing-surface defects are resolved, but text fidelity needs a further
+correction and is not reported as passed.
+
+Account investigation during the recheck: the deployed frontend still sets
+`VITE_FEATURE_AI_SEARCH=operator`, explaining why a Master Recruiter sees no AI
+Search entry. `canUseAiSearch` only enables normal Master Recruiter/Recruiter
+access in `on` mode; the server has a corresponding access gate. The observed
+`kartik.neuralnet@gmail.com` session still opens the Operator console. Its footer
+prints the independent recruiter `role` without considering `isOperator`, hence
+the misleading Recruiter label. No role assignments or rollout flags were changed.
 
 ## Release procedure
 

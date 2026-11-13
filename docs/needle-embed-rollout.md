@@ -1,5 +1,38 @@
 # Holmes operator-only Needle pilot
 
+## Recruiter access rollout — 2026-11-13
+
+The owner approved AI Search for Master Recruiters and Recruiters. This supersedes
+the operator-only access restriction in the historical pilot notes below.
+Release only the reviewed Holmes UI plus these two production settings:
+
+1. Set Holmes project `btbqdviuqcpauojmorvx` secret `NEEDLE_AI_SEARCH_ACCESS=on`.
+2. Set Vercel project `njord-resume-form` production `VITE_FEATURE_AI_SEARCH=on`
+   before building/promoting the reviewed commit. Keep Preview forwarding denied.
+3. Verify Master Recruiter/Recruiter navigation, normal Needle user session and
+   reload, plus Operator identity/admin access and Coordinator/applicant denial.
+   Also check requirement matching: the same flag exposes existing Match résumés
+   controls to users with `create_prospects` permission. The shared server gate
+   also governs `needle-integration` and `resume-intake`; their separate view/edit
+   permissions and intake-enable gates continue to apply.
+
+No new database migration, Function deployment, Railway deployment or intake
+activation is part of this release. Existing access maps recruiters to Needle
+`user` and operators to `admin` in the existing single organization. Record live
+role checks separately from synthetic shell tests. Rollback both access settings
+to `operator` and restore the previously approved Vercel deployment; changing
+only the frontend would leave the server access expansion active. Existing
+Needle sessions are not invalidated merely by changing token-issuance settings.
+
+Local verification: 17 production-build browser cases pass (10 AI sidebar role,
+reload and interaction checks; seven startup/authority regressions), 21 Node
+checks pass (policy/proxy plus matching/intake and actual bridge handlers), and
+lint/build pass. The browser initially could not launch in the filesystem
+sandbox; the same synthetic-only suite passed outside it, blocking external app
+traffic. Independent review found no source blocker; the rollout clarification
+above addresses its documentation finding. Production configuration and normal
+live recruiter sessions are still a release gate, not proven by the fixtures.
+
 ## Current completion candidate — 2026-11-07
 
 Production has advanced to Holmes `a1e62c1` and Needle `401ec6e0`. For the new
@@ -121,7 +154,8 @@ checkouts' pending work are excluded. Do not use the old broad-branch promotion.
    `NJORDHR_HOLMES_ORG_ID` explicitly to
    `00000000-0000-4000-8000-0000000000a1` after confirming the seed.
 6. Deploy only `needle-token` and `manage-runtime-settings` plus their checked
-   shared helpers. Set `NEEDLE_AI_SEARCH_ACCESS=operator`. Do not deploy all edge
+   shared helpers. The original pilot used `NEEDLE_AI_SEARCH_ACCESS=operator`;
+   the approved 2026-11-13 recruiter rollout uses `on`. Do not deploy all edge
    functions or unrelated staging changes. Set Railway's persistent session
    secret, `/ai` build/runtime base, admin-only direct login and hosted review.
 7. KT promotes Needle to `railway-m1`. Engine and worker must be Active; worker
@@ -130,7 +164,9 @@ checkouts' pending work are excluded. Do not use the old broad-branch promotion.
    New conversion is routed,
    Gemini converter unreachable; this rollout does not switch an extractor.
 8. KT deploys this Holmes candidate with Production `NEEDLE_ORIGIN` set to
-   `https://njordhr.up.railway.app` and `VITE_FEATURE_AI_SEARCH=operator`.
+   `https://njordhr.up.railway.app`. The original pilot used
+   `VITE_FEATURE_AI_SEARCH=operator`; the approved 2026-11-13 recruiter rollout
+   uses `on` in the Vercel production environment and requires a new build.
    Preview keeps the flag off and no origin; code also denies Preview forwarding.
 9. Real live gate: Operator Health Up; sign-in/cookie under Holmes's domain;
    actual prompt search streams to completion; filter-only search; repository;

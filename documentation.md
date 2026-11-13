@@ -1,5 +1,18 @@
 # Project Status
 
+## Recruiter AI Search access and Operator identity (2026-11-13)
+
+The owner approved AI Search access for Master Recruiters and Recruiters. The
+release must set both Vercel production `VITE_FEATURE_AI_SEARCH=on` and Holmes
+`NEEDLE_AI_SEARCH_ACCESS=on`; the existing server maps them to Needle `user`.
+Operators retain `admin`, and Coordinators/applicants remain denied. The sidebar
+now labels platform operators as Operator, with the separate organization role
+in the account menu. Seventeen production-build browser checks, 21 Node checks
+(including actual integration/intake handlers), lint and build pass. Independent
+review found no source blockers; its rollout-documentation clarification is
+incorporated. Exact production release and live role checks remain pending;
+production settings have not been changed in this slice.
+
 ## Problem reporting — deployed with capture follow-up (2026-11-13)
 
 Approved `cada470` is live: movable ＋ → optional note/preview → Send, private
@@ -9,8 +22,10 @@ submission, image viewing and status reload passed. Both synthetic reports are
 resolved. Final visual smoke found AI Search modern-color rendering and native
 Recruitment panel stacking defects; clone-only corrections are locally verified
 and independently reviewed. Approved follow-up `8cbb286` is deployed; Vercel and
-public bundle/version checks pass. Live visual rechecks remain pending because
-browser control is unavailable. See
+public bundle/version checks pass. Browser control recovered and both live visual
+rechecks completed: AI Search content and the native Recruitment panel are now
+captured. Some preview text is clipped; capture fidelity remains a follow-up,
+so this is not an unrestricted visual pass. See
 `docs/PROBLEM_REPORTS_2026-11-13.md` for evidence and backup limits.
 
 

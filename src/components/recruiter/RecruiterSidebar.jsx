@@ -65,6 +65,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const showKpi = canViewAnalytics()
   const showSettings = role === 'Master Recruiter' || canManageSettings()
   const showAiSearch = canUseAiSearch({ isOperator, role })
+  const accountRoleLabel = isOperator ? 'Operator' : role || 'Recruiter'
   const isAiSearch = pathname.startsWith('/recruiter/ai/') || pathname === '/recruiter/ai'
   const effectiveCollapsed = collapsed && !isAiSearch
 
@@ -379,7 +380,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
                 <>
                   <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
                     <span className="truncate text-[13px] text-fg">{displayName}</span>
-                    <span className="truncate text-xs text-fg-muted">{role || 'Recruiter'}</span>
+                    <span className="truncate text-xs text-fg-muted">{accountRoleLabel}</span>
                   </span>
                   <ChevronsUpDown className="h-4 w-4 flex-none text-fg-muted" aria-hidden="true" />
                 </>
@@ -391,7 +392,8 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
                 <div className="border-b border-line px-4 py-3">
                   <div className="truncate text-sm font-medium text-fg">{displayName}</div>
                   {displayEmail ? <div className="truncate text-xs text-fg-muted">{displayEmail}</div> : null}
-                  <div className="mt-1 text-xs font-medium text-accent-text">{role || 'Recruiter'}</div>
+                  <div className="mt-1 text-xs font-medium text-accent-text">{accountRoleLabel}</div>
+                  {isOperator && role ? <div className="text-xs text-fg-muted">Organization role: {role}</div> : null}
                 </div>
                 <button
                   type="button"

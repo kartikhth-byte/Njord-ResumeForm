@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 import { createFleetFixture, fleetSession } from '../helpers/fleetFixture'
 
 // Browser-only shell fixture: no engine, model, database or production calls.
-async function fixture(page, { collapsed = '0', role = 'Recruiter' } = {}) {
-  const state = createFleetFixture({ role, operator: false })
+async function fixture(page, { collapsed = '0', role = 'Recruiter', operator = false } = {}) {
+  const state = createFleetFixture({ role, operator })
   await page.addInitScript(({ session, collapsed }) => {
     localStorage.setItem('njord-auth-token', JSON.stringify(session))
     localStorage.setItem('holmes.sidebar.collapsed', collapsed)
@@ -34,6 +34,29 @@ async function ready(page) {
 test.describe('AI Search auto-hiding Holmes sidebar', () => {
   test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE, 'Requires synthetic Vite server with AI Search on')
   test.use({ storageState: { cookies: [], origins: [] } })
+  for (const role of ['Master Recruiter', 'Recruiter']) test(`${role} opens AI Search from navigation and after reload`, async ({ page }) => {
+    await fixture(page, { role })
+    await page.goto('/recruiter/companies')
+    const account = page.getByRole('button', { name: 'Account', exact: true })
+    await expect(account.getByText(role, { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Operator', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'AI search', exact: true }).click()
+    await expect(page.frameLocator('iframe').getByRole('heading', { name: 'AI Search fixture' })).toBeVisible()
+    await page.reload()
+    await expect(page.frameLocator('iframe').getByRole('heading', { name: 'AI Search fixture' })).toBeVisible()
+  })
+  test('Operator identity is prominent while the separate organization role stays visible in the account menu', async ({ page }) => {
+    await fixture(page, { operator: true })
+    await ready(page)
+    await launcher(page).click()
+    const account = page.getByRole('button', { name: 'Account', exact: true })
+    await expect(account.getByText('Operator', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Operator', exact: true })).toBeVisible()
+    await account.click()
+    await expect(page.getByRole('menu').getByText('Operator', { exact: true })).toBeVisible()
+    await expect(page.getByRole('menu').getByText('Organization role: Recruiter', { exact: true })).toBeVisible()
+    await page.screenshot({ path: 'test-results/operator-account-label.png', animations: 'disabled' })
+  })
   test('edge opens without resizing or remounting search; leave closes and quick pass stays closed', async ({ page }) => {
     await fixture(page); await ready(page)
     await expect(sidebar(page)).toBeHidden()
@@ -110,7 +133,11 @@ test.describe('AI Search auto-hiding Holmes sidebar', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
   })
   test('Coordinator access remains denied', async ({ page }) => {
-    await fixture(page, { role: 'Coordinator' }); await page.goto('/recruiter/ai/search')
+    await fixture(page, { role: 'Coordinator' }); await page.goto('/recruiter/companies')
+    await expect(page.getByRole('button', { name: 'Account', exact: true }).getByText('Coordinator', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'AI search', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Operator', exact: true })).toHaveCount(0)
+    await page.goto('/recruiter/ai/search')
     await expect(page).toHaveURL(/\/unauthorized$/)
     await expect(page.locator('iframe')).toHaveCount(0)
   })

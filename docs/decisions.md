@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-11-13 — AI Search for recruiter roles
+
+The owner approved expanding the existing operator-only AI Search rollout to
+Master Recruiters and Recruiters. Use the existing `on` mode in both frontend
+and server configuration; ordinary recruiters receive Needle `user`, not admin.
+Coordinator and applicant restrictions remain. Operator is a separate platform
+capability: show Operator prominently in the sidebar and account menu, with the
+organization role beneath it in the menu. Do not rewrite user role assignments.
+This remains the existing single-organization deployment, not multi-customer
+qualification. Exact production release approval follows verified review.
+
 ## 2026-11-13 — Frictionless private defect reports
 
 Use the existing Holmes Supabase project for a dedicated private screenshot bucket
