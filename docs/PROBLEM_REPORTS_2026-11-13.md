@@ -1,6 +1,6 @@
 # Two-click problem reports — 2026-11-13
 
-Status: implemented locally; production release and managed Storage/cron smoke pending.
+Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Two capture corrections are locally verified and await separate exact UI promotion.
 
 ## User flow
 
@@ -87,7 +87,58 @@ capture library is absent from initial page requests. No paid API calls were use
   Supabase Storage, Vault, cron or the deployed gateway.
 - Lint and build are release gates. No paid model calls or real emails are needed.
 
-## Release order / remaining gates
+## Production release and capture follow-up
+
+The approved release is on Holmes main/Vercel and crewme.si. Migrations 1301/1302
+are applied; cleanup Function version 1 is active with its dedicated secret;
+`problem-screenshot-retention` is enabled every 15 minutes. No Needle, intake,
+hosting-plan or subscription changes were made.
+
+Fresh backup receipt `20261113T075446Z` covers 111 table payloads / 7,790 rows.
+Payload restore checks passed. The compatible public-schema restore verified
+68 tables / 784 rows; the full managed schema/post-data restore was not certified.
+Storage bytes are outside this database backup.
+
+Live verification:
+
+- Normal authenticated capture → Send without a description → My reports →
+  authenticated image viewing passed on Companies & ships.
+- Operator review and Resolved status survived reload. Both synthetic reports are
+  resolved; report #1 is expired, report #2 retains the ordinary seven-day expiry.
+- Managed private Storage upload/finalize/download passed. Anonymous download,
+  cross-user report reads and expired-object policy access were denied.
+- Only the synthetic retention fixture was aged. The deployed cleanup Function
+  removed its Storage bytes and preserved report metadata. Wrong secret returned
+  401; the authorized invocation returned 200.
+- The exact production cron command was exercised through a temporary one-minute
+  schedule: cron succeeded and pg_net recorded HTTP 200 at 08:04 UTC. That smoke
+  schedule was removed; the regular 15-minute schedule remains enabled.
+- AI Search capture fell back to upload; an actual Recruitment panel was omitted
+  from its image. These are open production capture defects, not passed checks.
+
+Root causes and local corrections:
+
+1. Needle's Tailwind 4 stylesheet uses CSS Color 4 values such as `oklch`, which
+   html2canvas 1.x cannot parse. The iframe exception was converted to generic
+   upload guidance. The correction resolves modern colors through the browser's
+   canvas into sRGB, including the separate background option, in disposable
+   capture clones; live page styles and authentication remain unchanged.
+2. Native `showModal()` uses the browser top layer. DOM cloning loses that layer,
+   so ordinary app stacking contexts covered the real Recruitment panel. The
+   correction restores modal geometry and stacking in the clone, excluding the
+   report dialog before mapping source/clone dialogs.
+3. Earlier fixture coverage used an RGB-only frame and a plain dialog; the actual
+   Recruitment test verified controls/focus without asserting its screenshot
+   pixels. The new regressions compare actual panel pixels and modern-color frame
+   pixels (including nested color-mix, gradients and text stroke), after image
+   decoding. This closes the gap between a visible preview and correct content.
+
+The capture correction is frontend-only. Independent follow-up review found no
+remaining blockers. All 14 focused production-build browser checks, lint and build pass. Exact
+follow-up approval and live checks of both previously failing views remain the
+release gate. No new library or paid API call.
+
+## Release procedure
 
 1. Independent review, final commit and exact production approval. Back up and
    restore-check the target database under the existing release procedure.

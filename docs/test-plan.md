@@ -7,7 +7,9 @@ production build configured with the synthetic fixture. Run
 `node --test tests/problemReportCleanup.test.mjs` and the actual migration via
 `supabase/tests/problem_reports.test.mjs` in PGlite. Include lint/build. Native
 modal access, replacement-decode blocking and Supabase 400 duplicate retries are
-required regressions. Managed Storage/cron/Function-secret behavior requires
+required regressions. Assert image pixels after decoding for the actual Recruitment
+side panel and AI frames with modern colors (oklch, nested color-mix, gradients and
+text stroke); control visibility alone is insufficient. Managed Storage/cron/Function-secret behavior requires
 separate deployment smoke; follow `PROBLEM_REPORTS_2026-11-13.md`.
 
 

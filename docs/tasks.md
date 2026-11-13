@@ -5,9 +5,11 @@
 - [x] Two-click capture/send, movable launcher, optional note, image upload fallback.
 - [x] Private actor-bound reports, operator status/history and seven-day retention implementation.
 - [x] Local browser, SQL policy and cleanup-handler checks; lazy startup preserved.
-- [ ] Exact reviewed release approval and database backup/restore check.
-- [ ] Apply migrations 2026111301–02, deploy cleanup Function and configure private cron token.
-- [ ] Managed Storage isolation/deletion, scheduled invocation and deployed UI smoke.
+- [x] Exact reviewed release approval and database backup/restore check.
+- [x] Apply migrations 2026111301–02, deploy cleanup Function and configure private cron token.
+- [x] Managed Storage isolation/deletion, scheduled invocation and ordinary-page/operator live smoke.
+- [x] Reproduce and patch modern-color AI frame capture and native Recruitment panel capture locally.
+- [ ] Exact follow-up UI promotion and live capture checks for AI Search and the Recruitment panel.
 
 Details: `PROBLEM_REPORTS_2026-11-13.md`.
 

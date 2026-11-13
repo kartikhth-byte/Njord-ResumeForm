@@ -49,7 +49,7 @@ async function open(page,path='/recruiter/companies') {
   await plus(page).click();await expect(preview(page)).toBeVisible({timeout:20000})
 }
 async function capturePixels(page) {
-  return preview(page).evaluate(img=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const x=c.getContext('2d');x.drawImage(img,0,0);const pixel=(a,b)=>Array.from(x.getImageData(Math.floor(a*c.width),Math.floor(b*c.height),1,1).data);return {width:c.width,height:c.height,middle:pixel(.5,.5),corner:pixel(.95,.95)}})
+  return preview(page).evaluate(async img=>{await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const x=c.getContext('2d');x.drawImage(img,0,0);const pixel=(a,b)=>Array.from(x.getImageData(Math.floor(a*c.width),Math.floor(b*c.height),1,1).data);return {width:c.width,height:c.height,middle:pixel(.5,.5),corner:pixel(.95,.95)}})
 }
 test.describe('Two-click problem reporting (synthetic only)',()=>{
   test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Requires synthetic configuration')
@@ -130,10 +130,27 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
   test('actual Recruitment panel yields keyboard focus to reporting and shows confirmation',async({page})=>{
     await fixture(page);await page.goto('/recruiter/recruitment?case=case1')
     const panel=page.getByRole('dialog');await expect(panel).toBeVisible();await expect(panel.getByRole('button',{name:'Report a problem',exact:true})).toBeVisible()
+    // A native top-layer panel must paint above the underlying application's
+    // stacking context in the captured image, as it does on the user's screen.
+    await panel.evaluate(d=>{d.style.backgroundColor='rgb(20,70,120)'})
+    const bounds=await panel.boundingBox()
     await plus(page).click();await expect(preview(page)).toBeVisible()
+    const pixel=await preview(page).evaluate(async(img,b)=>{await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const x=c.getContext('2d');x.drawImage(img,0,0);return Array.from(x.getImageData((b.x+15)*c.width/innerWidth,(b.y+15)*c.height/innerHeight,1,1).data)},bounds)
+    expect(pixel.slice(0,3)).toEqual([20,70,120])
+    await page.screenshot({path:'test-results/problem-report-panel-fixed.png'})
     await page.getByRole('button',{name:'Close report'}).focus();await page.keyboard.press('Tab');await expect(page.getByLabel('What went wrong?')).toBeFocused()
     await page.keyboard.press('Tab');await expect(page.getByLabel('Upload screenshot')).toBeFocused()
     await page.getByRole('button',{name:'Send',exact:true}).click();await expect(panel.getByRole('status')).toHaveText('Report #17 sent')
+  })
+  test('AI frame with modern CSS colors renders rather than silently falling back',async({page})=>{
+    await fixture(page)
+    await page.route('**/ai/?*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><body style="margin:0;background:oklch(55% 0.12 250);color:oklch(95% 0.01 250)"><h1 style="box-shadow:0 1px 3px color-mix(in oklab, red 50%, blue);background-image:linear-gradient(oklab(70% .1 .1),color(display-p3 .2 .3 .4));-webkit-text-stroke-color:oklch(95% .01 250)">Modern AI Search</h1></body></html>'}))
+    await page.goto('/recruiter/ai/search');await expect(page.frameLocator('iframe').getByRole('heading')).toHaveText('Modern AI Search')
+    await plus(page).click();await expect(preview(page)).toBeVisible()
+    await expect(page.getByText(/could not be captured/)).toHaveCount(0)
+    const expected=await page.evaluate(()=>{const c=document.createElement('canvas').getContext('2d');c.fillStyle='oklch(55% 0.12 250)';c.fillRect(0,0,1,1);return Array.from(c.getImageData(0,0,1,1).data)})
+    expect((await capturePixels(page)).middle).toEqual(expected)
+    await page.screenshot({path:'test-results/problem-report-modern-frame-fixed.png'})
   })
   test('mobile capture and dialog fit viewport; Coordinator can report',async({page})=>{
     await page.setViewportSize({width:390,height:844});await fixture(page,{role:'Coordinator'});await open(page)

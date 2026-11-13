@@ -13,9 +13,58 @@ function visible(node, win) {
   return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < win.innerHeight && r.left < win.innerWidth
 }
 
+function colorResolver(document) {
+  const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
+  const cache = new Map()
+  return color => {
+    if (!cache.has(color)) {
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = color
+      context.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data
+      cache.set(color, `rgba(${r},${g},${b},${a / 255})`)
+    }
+    return cache.get(color)
+  }
+}
+
+// html2canvas 1.x cannot parse CSS Color 4 values used by the embedded app.
+// Let the browser resolve these colors into sRGB, in the disposable clone only.
+function normalizeColors(clone) {
+  const resolveColor = colorResolver(clone)
+  // Balanced functions also cover color-mix() containing nested color functions.
+  function convert(value) {
+    if (!/(?:oklch|oklab|lch|lab|color|color-mix)\(/.test(value)) return value
+    let result = '', start = 0
+    const pattern = /(?:oklch|oklab|lch|lab|color|color-mix)\(/g
+    let match
+    while ((match = pattern.exec(value))) {
+      let end = pattern.lastIndex, depth = 1
+      while (end < value.length && depth) { if (value[end] === '(') depth++; if (value[end] === ')') depth--; end++ }
+      const color = value.slice(match.index, end)
+      result += value.slice(start, match.index) + resolveColor(color)
+      start = end; pattern.lastIndex = end
+    }
+    return result + value.slice(start)
+  }
+  const properties = ['color', 'background-color', 'background-image', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'text-decoration-color', '-webkit-text-stroke-color', 'box-shadow', 'text-shadow']
+  for (const node of clone.querySelectorAll('*')) {
+    if (!node.style || node.closest('[data-report-ui]')) continue
+    const computed = clone.defaultView.getComputedStyle(node)
+    for (const name of properties) {
+      const value = computed.getPropertyValue(name), converted = convert(value)
+      if (value !== converted) node.style.setProperty(name, converted, 'important')
+    }
+  }
+}
+
 async function captureDocument(document, html2canvas, warnings, depth = 0) {
   const win = document.defaultView
   const frames = Array.from(document.querySelectorAll('iframe'))
+  const dialogs = Array.from(document.querySelectorAll('dialog')).filter(node => !node.closest('[data-report-ui], [data-html2canvas-ignore]')).map(node => ({
+    modal: node.matches(':modal') && !node.closest('[data-report-ui]'),
+    rect: node.getBoundingClientRect(),
+  }))
   const images = new Map()
   for (const [index, frame] of frames.entries()) {
     if (!visible(frame, win)) continue
@@ -32,11 +81,22 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
     width: win.innerWidth, height: win.innerHeight, x: win.scrollX, y: win.scrollY,
     windowWidth: win.innerWidth, windowHeight: win.innerHeight,
     scale: Math.min(win.devicePixelRatio || 1, 1.5, Math.sqrt(MAX_PIXELS / (win.innerWidth * win.innerHeight))),
-    backgroundColor: win.getComputedStyle(document.body).backgroundColor || '#ffffff',
+    // html2canvas parses the background override separately from cloned styles.
+    backgroundColor: colorResolver(document)(win.getComputedStyle(document.body).backgroundColor),
     logging: false, useCORS: false, allowTaint: false, imageTimeout: 2500,
     ignoreElements: node => node.hasAttribute('data-report-ui') || ['OBJECT', 'EMBED', 'VIDEO'].includes(node.tagName),
     onclone: clone => {
       mask(clone)
+      // Cloning does not retain the browser's top layer. Explicitly paint open
+      // app dialogs above normal stacking contexts using their live geometry.
+      clone.querySelectorAll('dialog').forEach((node, index) => {
+        const source = dialogs[index]
+        if (!source?.modal) return
+        Object.assign(node.style, { position: 'fixed', display: 'block', margin: '0',
+          inset: 'auto', left: `${source.rect.left}px`, top: `${source.rect.top}px`,
+          width: `${source.rect.width}px`, height: `${source.rect.height}px`,
+          maxWidth: 'none', maxHeight: 'none', boxSizing: 'border-box', zIndex: `${2147480000 + index}` })
+      })
       clone.querySelectorAll('iframe').forEach((frame, index) => {
         const replacement = clone.createElement(images.has(index) ? 'img' : 'div')
         replacement.style.cssText = frame.style.cssText
@@ -48,6 +108,7 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
         else { replacement.textContent = 'Embedded content not captured'; replacement.style.background = '#555'; replacement.style.color = '#fff' }
         frame.replaceWith(replacement)
       })
+      normalizeColors(clone)
     },
   })
 }

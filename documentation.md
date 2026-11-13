@@ -1,13 +1,15 @@
 # Project Status
 
-## Problem reporting — local implementation (2026-11-13)
+## Problem reporting — deployed with capture follow-up (2026-11-13)
 
-Two-click screenshot reports: movable ＋ → optional note/preview → Send. Private
-Supabase Storage, seven-day access expiry and scheduled physical cleanup; report
-metadata/status history remain. Reporter history and operator review are included.
-Capture is lazy and supports same-origin AI Search; PDFs have an upload fallback.
-Production migrations, cleanup Function/secret/schedule and live Storage smoke
-remain gated on exact release approval. See `docs/PROBLEM_REPORTS_2026-11-13.md`.
+Approved `cada470` is live: movable ＋ → optional note/preview → Send, private
+Supabase screenshots, seven-day expiry, scheduled cleanup and operator review.
+Managed upload/deletion, policy isolation, scheduled HTTP invocation, ordinary-page
+submission, image viewing and status reload passed. Both synthetic reports are
+resolved. Final visual smoke found AI Search modern-color rendering and native
+Recruitment panel stacking defects; clone-only corrections are locally verified
+and independently reviewed, awaiting separate exact UI promotion. See
+`docs/PROBLEM_REPORTS_2026-11-13.md` for evidence and backup limits.
 
 
 ## Startup loading improvement — deployed (2026-11-13)
