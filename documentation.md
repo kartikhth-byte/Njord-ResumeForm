@@ -1,13 +1,16 @@
 # Project Status
 
-## Startup loading improvement — prepared (2026-11-13)
+## Startup loading improvement — deployed (2026-11-13)
 
 Route screens now load on demand. Returning recruiter bootstrap overlaps the
 profile read with role/permission and operator reads; first-time users still
 resolve profile type first, and applicants retain their own path. Existing auth
 guards, query/RLS boundaries and timeout/cache policy are preserved. No schema,
 Function, Needle, provider or hosting change. Local production-build tests and
-independent review pass; exact production approval and live comparison remain.
+independent review pass. Approved `9386991` is live on main/Vercel; authenticated
+route/reload and AI shell smoke pass. The deployed entry is 72.8% smaller. Live
+network completion varied from 2.27–3.88 seconds (baseline observation 2.68 seconds);
+controlled startup improved from 2.20 to 1.07 seconds.
 See `docs/STARTUP_LOADING_2026-11-13.md` for measurements and test limits.
 
 ## Five-page smoke and applicant release (2026-11-13)

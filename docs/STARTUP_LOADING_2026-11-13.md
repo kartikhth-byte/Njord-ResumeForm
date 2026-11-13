@@ -1,6 +1,6 @@
 # Holmes startup loading — 2026-11-13
 
-Status: implemented and independently reviewed; production promotion pending.
+Status: deployed as `9386991f879344b97d011d4ef71cb49a50c3de30`; read-only live smoke passed.
 Base: `7fbf931` (application baseline `c6499bd2`). Isolated branch:
 `codex/holmes-startup-20261113`.
 
@@ -84,3 +84,37 @@ main/Vercel and perform read-only normal-session smoke: reload, navigation,
 permissions and AI shell entry. Compare authenticated startup again and record
 the result. Roll back to the prior frontend commit if needed; no data rollback
 is required because this release changes no database or persisted record format.
+
+## Production closeout
+
+The owner approved the exact release. Commit `9386991f879344b97d011d4ef71cb49a50c3de30`
+was fast-forwarded to Holmes main. Vercel deployment
+`5tJZmA1wYNrHynjQ2NLKou4wMZB6` reports Ready / Production for that commit.
+The public crewme.si page now references `index-CLLsEWxM.js`, measured at
+420,704 bytes uncompressed (72.8% smaller than the prior production entry).
+
+Normal authenticated Chrome smoke passed Companies & ships, Requirements,
+Candidates, Recruitment, Applications, AI Search with its loaded embedded project
+list, the Holmes overlay menu, and the authorized Operator route. Returning to
+Companies & ships and reloading retained the session and expected controls.
+No records, tasks, permissions or settings were changed. No paid model calls.
+Fresh applicant sign-in and a separate live Coordinator session were not repeated;
+the pre-release synthetic role/callback coverage is recorded above.
+
+With the same cache-disabled, unthrottled Chrome settings, two post-deploy reloads
+reported:
+
+| Measurement | Before | After, first | After, second |
+| --- | ---: | ---: | ---: |
+| DOMContentLoaded | 724 ms | 1,770 ms | 447 ms |
+| Load event | 749 ms | 1,790 ms | 461 ms |
+| Network finish | 2,680 ms | 3,880 ms | 2,270 ms |
+
+The second observation's profile and roles each took 869 ms, with permission
+requests of 340 ms and 31 ms; independent authorization work now overlaps. Network
+completion includes page data and is not a direct measure of usable-page timing.
+The first live observation was slower, so these small samples do not establish a
+production percentile improvement. The bundle reduction is verified; the controlled
+startup improvement remains the stronger comparison. Database/network latency
+continues to contribute to live variation. Private network evidence remains in
+`.local/holmes-startup-20261113/` in the Needle workspace.
