@@ -9,7 +9,8 @@
 - [x] Apply migrations 2026111301–02, deploy cleanup Function and configure private cron token.
 - [x] Managed Storage isolation/deletion, scheduled invocation and ordinary-page/operator live smoke.
 - [x] Reproduce and patch modern-color AI frame capture and native Recruitment panel capture locally.
-- [ ] Exact follow-up UI promotion and live capture checks for AI Search and the Recruitment panel.
+- [x] Exact follow-up UI promotion `8cbb286`; Vercel and crewme.si bundle/version checks.
+- [ ] Live capture checks for AI Search and the Recruitment panel (browser-control tool unavailable; already approved).
 
 Details: `PROBLEM_REPORTS_2026-11-13.md`.
 

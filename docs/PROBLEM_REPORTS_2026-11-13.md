@@ -1,6 +1,6 @@
 # Two-click problem reports — 2026-11-13
 
-Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Two capture corrections are locally verified and await separate exact UI promotion.
+Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed; its two live visual checks remain pending because browser control is unavailable.
 
 ## User flow
 
@@ -114,7 +114,7 @@ Live verification:
   schedule: cron succeeded and pg_net recorded HTTP 200 at 08:04 UTC. That smoke
   schedule was removed; the regular 15-minute schedule remains enabled.
 - AI Search capture fell back to upload; an actual Recruitment panel was omitted
-  from its image. These are open production capture defects, not passed checks.
+  from its image. The follow-up fixes are now deployed; live visual rechecks are still pending, not passed checks.
 
 Root causes and local corrections:
 
@@ -134,9 +134,13 @@ Root causes and local corrections:
    decoding. This closes the gap between a visible preview and correct content.
 
 The capture correction is frontend-only. Independent follow-up review found no
-remaining blockers. All 14 focused production-build browser checks, lint and build pass. Exact
-follow-up approval and live checks of both previously failing views remain the
-release gate. No new library or paid API call.
+remaining blockers. All 14 focused production-build browser checks, lint and build pass. The user
+approved exact follow-up `8cbb286`, which was promoted to main/Vercel deployment
+`4LFpsbebFRPmGqdhp5aQFKsAtn61`. Vercel succeeded; crewme.si returns HTTP 200
+and serves that exact version plus the corrected capture module. Browser control
+remained unavailable after reset and a fresh user reply, so authenticated visual
+checks of AI Search and the Recruitment panel remain pending. No new sign-in or
+release approval is needed to resume those read-only checks. No new library or paid API call.
 
 ## Release procedure
 

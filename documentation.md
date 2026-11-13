@@ -8,7 +8,9 @@ Managed upload/deletion, policy isolation, scheduled HTTP invocation, ordinary-p
 submission, image viewing and status reload passed. Both synthetic reports are
 resolved. Final visual smoke found AI Search modern-color rendering and native
 Recruitment panel stacking defects; clone-only corrections are locally verified
-and independently reviewed, awaiting separate exact UI promotion. See
+and independently reviewed. Approved follow-up `8cbb286` is deployed; Vercel and
+public bundle/version checks pass. Live visual rechecks remain pending because
+browser control is unavailable. See
 `docs/PROBLEM_REPORTS_2026-11-13.md` for evidence and backup limits.
 
 
