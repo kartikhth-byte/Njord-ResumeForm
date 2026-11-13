@@ -1,5 +1,17 @@
 # Decisions Log
 
+## 2026-11-13 — Frictionless private defect reports
+
+Use the existing Holmes Supabase project for a dedicated private screenshot bucket
+and actor-bound reports. Prefer ＋ → preview/optional note → Send, with no mandatory
+form fields. Keep screenshots for seven days and retain report/status metadata.
+Delete object bytes through Storage API from a dedicated-token scheduled Function;
+RLS enforces expiry independently. Lazy DOM capture avoids a browser screen-sharing
+prompt and startup cost; explain unsupported embedded/PDF content with upload
+fallback. This decision authorizes implementation; production rollout still needs
+an exact reviewed release approval.
+
+
 ## AI Search navigation (2026-11-12)
 
 AI Search uses the full viewport with no persistent Holmes icon rail. Holmes

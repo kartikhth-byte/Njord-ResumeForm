@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA || process.env.VITE_APP_VERSION || 'local') },
   server: {
     port: 3000,
     strictPort: true,

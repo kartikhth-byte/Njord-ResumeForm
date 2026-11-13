@@ -1,5 +1,15 @@
 # Project Status
 
+## Problem reporting — local implementation (2026-11-13)
+
+Two-click screenshot reports: movable ＋ → optional note/preview → Send. Private
+Supabase Storage, seven-day access expiry and scheduled physical cleanup; report
+metadata/status history remain. Reporter history and operator review are included.
+Capture is lazy and supports same-origin AI Search; PDFs have an upload fallback.
+Production migrations, cleanup Function/secret/schedule and live Storage smoke
+remain gated on exact release approval. See `docs/PROBLEM_REPORTS_2026-11-13.md`.
+
+
 ## Startup loading improvement — deployed (2026-11-13)
 
 Route screens now load on demand. Returning recruiter bootstrap overlaps the

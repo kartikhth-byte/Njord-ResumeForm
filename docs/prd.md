@@ -1,5 +1,16 @@
 # Holmes - Platform PRD
 
+## In-app problem reporting (2026-11-13)
+
+Signed-in users can report a visible UI defect with two clicks: floating movable
+＋ captures the visible app, then Send. A description is optional. The screenshot
+preview supports cancellation or replacement upload. Private screenshots expire
+after seven days; report details and status remain. Operators review reports;
+users see their own. No new issue-tracking subscription is required. Capture loads
+on demand, with explicit limits for native PDFs and inaccessible frames. See
+`PROBLEM_REPORTS_2026-11-13.md` for the local implementation and release gates.
+
+
 ## Application form ownership — current clarification (2026-11-12)
 
 Long forms are invited during requirement-linked recruitment. Every newly created

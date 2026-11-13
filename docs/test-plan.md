@@ -1,5 +1,16 @@
 # Platform Test Plan
 
+## Problem reports (2026-11-13)
+
+Run `problem-reports.spec.js`, `startup.spec.js` and `ai-sidebar.spec.js` against a
+production build configured with the synthetic fixture. Run
+`node --test tests/problemReportCleanup.test.mjs` and the actual migration via
+`supabase/tests/problem_reports.test.mjs` in PGlite. Include lint/build. Native
+modal access, replacement-decode blocking and Supabase 400 duplicate retries are
+required regressions. Managed Storage/cron/Function-secret behavior requires
+separate deployment smoke; follow `PROBLEM_REPORTS_2026-11-13.md`.
+
+
 ## Reviewed candidate invitation eligibility (2026-11-12)
 
 Run `supabase/tests/case_form_invite_eligibility.test.mjs` in the existing PGlite

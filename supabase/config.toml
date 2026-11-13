@@ -102,3 +102,7 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/resume-index-dispatch/index.ts"
+
+# Cron uses a dedicated secret validated by the handler; not a user JWT.
+[functions.cleanup-problem-screenshots]
+verify_jwt = false

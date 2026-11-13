@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.80.0",
     "@vercel/functions": "^3.10.6",
     "date-fns": "^4.1.0",
+    "html2canvas": "1.4.1",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.553.0",

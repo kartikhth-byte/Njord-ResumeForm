@@ -8,6 +8,7 @@ import { useThemeForRoute } from './hooks/useThemeForRoute'
 import ApplicantRoute from './components/auth/ApplicantRoute'
 import RecruiterRoute from './components/auth/RecruiterRoute'
 import OperatorRoute from './components/auth/OperatorRoute'
+import ProblemReporter from './components/reports/ProblemReporter'
 
 // Load only the requested screen; auth and route guards stay in the entry bundle.
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -332,6 +333,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </Suspense>
+          <ProblemReporter />
         </AuthProvider>
       </Router>
     </ErrorBoundary>

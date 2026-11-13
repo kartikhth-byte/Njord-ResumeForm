@@ -15,6 +15,9 @@ export default function RecordFormDialog({ title, busy = false, onClose, childre
     document.body.style.overflow = 'hidden'
     const trapTab = (event) => {
       if (event.key !== 'Tab') return
+      // A newer native modal (for example screenshot reporting) owns focus.
+      const focusedDialog = document.activeElement?.closest('dialog:modal')
+      if (focusedDialog && focusedDialog !== dialog) return
       const nodes = [...dialog.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')]
         .filter((node) => node.getClientRects().length > 0)
       const first = nodes[0]

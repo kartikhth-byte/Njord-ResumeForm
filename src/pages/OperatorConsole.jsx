@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../components/auth/AuthContext'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
@@ -9,7 +10,9 @@ import PageHeader from '../components/ui/PageHeader'
 
 // Operator console (docs/needle-in-holmes-design.md section 5). Platform
 // settings moved here from organization Settings → Integrations.
+const ProblemReportList = lazy(() => import('../components/reports/ProblemReportList'))
 const TABS = [
+  { key: 'problems', label: 'Reported problems' },
   { key: 'health', label: 'Health' },
   { key: 'platform', label: 'Platform settings' },
   { key: 'ai', label: 'AI' },
@@ -51,6 +54,7 @@ export default function OperatorConsole() {
           </div>
 
           <section role="tabpanel" className="recruiter-panel p-6">
+            {activeTab === 'problems' && <Suspense fallback={<p>Loading reports…</p>}><ProblemReportList userId={user.id} operator /></Suspense>}
             {activeTab === 'health' && <div className="space-y-6"><OperatorHealthSection /><OperatorOperationsSection /></div>}
             {['users', 'audit'].includes(activeTab) && <OperatorOperationsSection section={activeTab} />}
             {activeTab === 'platform' && <RecruiterIntegrationsSection />}

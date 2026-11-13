@@ -1,5 +1,17 @@
 # Pending Tasks
 
+## Problem reporting (2026-11-13)
+
+- [x] Two-click capture/send, movable launcher, optional note, image upload fallback.
+- [x] Private actor-bound reports, operator status/history and seven-day retention implementation.
+- [x] Local browser, SQL policy and cleanup-handler checks; lazy startup preserved.
+- [ ] Exact reviewed release approval and database backup/restore check.
+- [ ] Apply migrations 2026111301–02, deploy cleanup Function and configure private cron token.
+- [ ] Managed Storage isolation/deletion, scheduled invocation and deployed UI smoke.
+
+Details: `PROBLEM_REPORTS_2026-11-13.md`.
+
+
 ## Startup loading (2026-11-13)
 
 - [x] Inspect live bundle and authenticated browser network waterfall.
