@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { endNeedleSession } from '../../lib/needle'
+import { loadRecruiterAuthorization } from '../../lib/recruiterAuthorization'
 
 const AuthContext = createContext({})
 const AUTHZ_CACHE_KEY = 'njord-authz-cache'
@@ -152,6 +153,13 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
+        const cached = readAuthorizationCache(currentUser.id)
+        // Cache only chooses request scheduling, never the resulting authority.
+        // Returning recruiters can fetch independent reads while profile loads.
+        const preloadRecruiter = cached?.userType === 'recruiter' && getLoginIntent() !== 'applicant'
+        const recruiterRequest = preloadRecruiter
+          ? loadRecruiterAuthorization(supabase, currentUser.id, Boolean(cached?.isOperator))
+          : null
         const profileResponse = await supabase
           .from('profiles')
           .select('id, full_name, email, user_type')
@@ -193,58 +201,10 @@ export const AuthProvider = ({ children }) => {
           return
         }
 
-        const { data: roleRows, error: roleError } = await supabase
-          .from('user_roles')
-          .select(`
-            role_id,
-            roles (
-              name
-            )
-          `)
-          .eq('user_id', currentUser.id)
-
-        if (roleError) throw roleError
-
-        const roleIds = (roleRows || [])
-          .map(row => row.role_id)
-          .filter(Boolean)
-
-        let permissionNames = []
-
-        if (roleIds.length > 0) {
-          const { data: permissionRows, error: permissionError } = await supabase
-            .from('role_permissions')
-            .select(`
-              permission_id,
-              permissions (
-                name
-              )
-            `)
-            .in('role_id', roleIds)
-
-          if (permissionError) throw permissionError
-
-          permissionNames = [
-            ...new Set(
-              (permissionRows || [])
-                .map(row => row.permissions?.name)
-                .filter(Boolean)
-            )
-          ]
-        }
-
-        // Operator console access. Missing function (before the migration
-        // is applied) or any error means "not an operator".
-        // A transient error keeps the last known value instead of bouncing an
-        // operator out of the console.
-        const previousOperatorFlag = Boolean(readAuthorizationCache(currentUser.id)?.isOperator)
-        let operatorFlag = previousOperatorFlag
-        try {
-          const { data: operatorData, error: operatorError } = await supabase.rpc('is_platform_operator')
-          if (!operatorError) operatorFlag = operatorData === true
-        } catch {
-          operatorFlag = previousOperatorFlag
-        }
+        const { roleRows, permissionNames, operatorFlag, error: recruiterError } = await (
+          recruiterRequest || loadRecruiterAuthorization(supabase, currentUser.id, Boolean(cached?.isOperator))
+        )
+        if (recruiterError) throw recruiterError
 
         if (!isActive()) return
         if (mounted) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthContext'
@@ -7,33 +7,35 @@ import { useThemeForRoute } from './hooks/useThemeForRoute'
 
 import ApplicantRoute from './components/auth/ApplicantRoute'
 import RecruiterRoute from './components/auth/RecruiterRoute'
-import LoginPage from './pages/LoginPage'
-import Dashboard from './pages/Dashboard'
-import AuthCallback from './pages/AuthCallback'
-import FormSection from './pages/FormSection'
-import FormLayout from './components/form/FormLayout'
-import ReviewSubmit from './pages/ReviewSubmit'
-import ViewApplication from './pages/ViewApplication'
-import RecruiterDashboard from './pages/RecruiterDashboardSimple'
-import RecruiterKpiPage from './pages/RecruiterKpiPage'
-import RecruiterLogin from './pages/RecruiterLogin'
-import RecruiterSetup from './pages/RecruiterSetup'
-import RecruiterResetPassword from './pages/RecruiterResetPassword'
-import Unauthorized from './pages/Unauthorized'
-import RecruiterApplications from './pages/RecruiterApplications'
-import ExpiryDashboardPage from './pages/ExpiryDashboardPage'
-import CalendarDashboardPage from './pages/CalendarDashboardPage'
-import MicrosoftOAuthCallback from './pages/MicrosoftOAuthCallback'
-import RecruiterSettings from './pages/RecruiterSettings'
-import RecruiterProspectDetail from './pages/RecruiterProspectDetail'
-import RecruiterRequirementDetail from './pages/RecruiterRequirementDetail'
-import RecruiterRequirementsPage from './pages/RecruiterRequirementsPage'
-import RecruiterCompaniesPage from './pages/RecruiterCompaniesPage'
-import RecruitmentWorkspacePage from './pages/RecruitmentWorkspacePage'
-import RecruiterCandidatesPage from './pages/RecruiterCandidatesPage'
-import RecruiterAiSearch from './pages/RecruiterAiSearch'
-import OperatorConsole from './pages/OperatorConsole'
 import OperatorRoute from './components/auth/OperatorRoute'
+
+// Load only the requested screen; auth and route guards stay in the entry bundle.
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const FormSection = lazy(() => import('./pages/FormSection'))
+const FormLayout = lazy(() => import('./components/form/FormLayout'))
+const ReviewSubmit = lazy(() => import('./pages/ReviewSubmit'))
+const ViewApplication = lazy(() => import('./pages/ViewApplication'))
+const RecruiterDashboard = lazy(() => import('./pages/RecruiterDashboardSimple'))
+const RecruiterKpiPage = lazy(() => import('./pages/RecruiterKpiPage'))
+const RecruiterLogin = lazy(() => import('./pages/RecruiterLogin'))
+const RecruiterSetup = lazy(() => import('./pages/RecruiterSetup'))
+const RecruiterResetPassword = lazy(() => import('./pages/RecruiterResetPassword'))
+const Unauthorized = lazy(() => import('./pages/Unauthorized'))
+const RecruiterApplications = lazy(() => import('./pages/RecruiterApplications'))
+const ExpiryDashboardPage = lazy(() => import('./pages/ExpiryDashboardPage'))
+const CalendarDashboardPage = lazy(() => import('./pages/CalendarDashboardPage'))
+const MicrosoftOAuthCallback = lazy(() => import('./pages/MicrosoftOAuthCallback'))
+const RecruiterSettings = lazy(() => import('./pages/RecruiterSettings'))
+const RecruiterProspectDetail = lazy(() => import('./pages/RecruiterProspectDetail'))
+const RecruiterRequirementDetail = lazy(() => import('./pages/RecruiterRequirementDetail'))
+const RecruiterRequirementsPage = lazy(() => import('./pages/RecruiterRequirementsPage'))
+const RecruiterCompaniesPage = lazy(() => import('./pages/RecruiterCompaniesPage'))
+const RecruitmentWorkspacePage = lazy(() => import('./pages/RecruitmentWorkspacePage'))
+const RecruiterCandidatesPage = lazy(() => import('./pages/RecruiterCandidatesPage'))
+const RecruiterAiSearch = lazy(() => import('./pages/RecruiterAiSearch'))
+const OperatorConsole = lazy(() => import('./pages/OperatorConsole'))
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
@@ -168,6 +170,7 @@ function App() {
       <Router>
         <ThemeSync />
         <AuthProvider>
+          <Suspense fallback={<div role="status" className="min-h-screen flex items-center justify-center text-fg-secondary">Loading page…</div>}>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<RootRedirect />} />
@@ -328,6 +331,7 @@ function App() {
             {/* Catch-All Route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </Router>
     </ErrorBoundary>

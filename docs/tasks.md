@@ -1,5 +1,17 @@
 # Pending Tasks
 
+## Startup loading (2026-11-13)
+
+- [x] Inspect live bundle and authenticated browser network waterfall.
+- [x] Lazy-load screens and overlap independent recruiter bootstrap reads.
+- [x] Production-build synthetic startup, role, navigation, invitation, callback
+  and application-review regression checks; lint/build and independent review.
+- [ ] Exact release approval, main/Vercel promotion and authenticated live smoke.
+- [ ] Compare production reload timing after deployment; local synthetic timing
+  is evidence of improvement, not a production latency guarantee.
+
+Details: `STARTUP_LOADING_2026-11-13.md`.
+
 ## Applicant smoke follow-up (2026-11-13)
 
 - [x] Real invitation, applicant sign-in, draft save/reload and synthetic submission.
