@@ -2,6 +2,28 @@
 
 Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed. Both live visual checks completed: AI Search and the native Recruitment panel now appear in capture. Some preview text remains clipped; overall capture fidelity is not fully passed.
 
+## Text clipping follow-up — 2026-11-14 (local candidate)
+
+Root cause: html2canvas 1.4.1 measures font baselines using a hidden 1px image in
+its importing document. Tailwind's block-image reset moved that probe to another
+line. Correcting only the render clone cannot fix the importing document's
+measurement. All three new page/frame/dialog baseline regressions reproduced a
+13px vertical shift before the patch.
+
+The patch temporarily makes only the pinned library probe inline. Ordinary images
+and privacy masks are unchanged. Cleanup follows the underlying render promise,
+including failures, rather than the timeout race, because a timeout cannot cancel
+html2canvas. Independent review verified the installed probe and timeout,
+overlapping retry and cleanup behavior; no material findings remained.
+
+Verification: 18/18 production-build capture checks and 17/17 adjacent AI/sidebar
+and startup checks, lint and build pass. Pixel tests compare native browser text
+with captured page/frame/dialog text (1px difference after correction), and a
+render-failure test verifies cleanup and successful retry. Synthetic artifacts
+were visually inspected. No paid calls or production changes were made for this
+patch. Exact release approval and live AI Search/Recruitment text-fidelity smoke
+remain pending. The existing deployed surface/color checks above remain valid.
+
 ## User flow
 
 Authenticated recruiters, Coordinators and applicants can click the translucent,

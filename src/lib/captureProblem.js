@@ -1,5 +1,17 @@
 const MAX_PIXELS = 2_800_000
 
+// html2canvas 1.4.1 measures font baselines in the importing document, even
+// when rendering a clone/iframe. Tailwind's img { display:block } puts its
+// hidden 1px probe on a new line and shifts/clips every captured text run.
+// Target only that pinned library probe; never change real page image layout.
+function protectFontMetrics(document) {
+  const style = document.createElement('style')
+  style.dataset.reportFontMetrics = ''
+  style.textContent = 'body > div[style*="visibility: hidden"] > img[width="1"][height="1"][src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"] { display: inline !important; }'
+  document.head.append(style)
+  return () => style.remove()
+}
+
 function mask(document) {
   document.querySelectorAll('input[type="password"], [data-report-private]').forEach(node => {
     if ('value' in node) node.value = ''
@@ -116,9 +128,13 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
 export async function captureProblem() {
   const { default: html2canvas } = await import('html2canvas')
   const warnings = new Set()
+  const restoreMetrics = protectFontMetrics(document)
+  // A timeout returns control to the user but cannot cancel html2canvas.
+  // Keep the probe correction until the underlying render settles.
+  const rendering = captureDocument(document, html2canvas, warnings).finally(restoreMetrics)
   let timer
   const canvas = await Promise.race([
-    captureDocument(document, html2canvas, warnings),
+    rendering,
     new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Capture timed out')), 12000) }),
   ]).finally(() => clearTimeout(timer))
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))

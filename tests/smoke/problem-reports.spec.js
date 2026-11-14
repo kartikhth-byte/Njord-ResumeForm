@@ -152,6 +152,64 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
     expect((await capturePixels(page)).middle).toEqual(expected)
     await page.screenshot({path:'test-results/problem-report-modern-frame-fixed.png'})
   })
+  for (const surface of ['page', 'frame', 'dialog']) test(`captured text matches browser baseline in ${surface}`, async ({page}, info) => {
+    await fixture(page)
+    await page.goto('/recruiter/companies')
+    await expect(page.getByRole('region',{name:'Northstar Shipping',exact:true})).toBeVisible()
+    await page.evaluate(surface => {
+      const sample = '<div id="baseline-sample" style="width:300px;height:32px;overflow:hidden;background:white;color:black;font:24px/32px Arial;margin:0;padding:0;border:0">Hgyp Recruiter</div>'
+      const host = document.createElement(surface === 'frame' ? 'iframe' : surface === 'dialog' ? 'dialog' : 'div')
+      host.id = 'baseline-host'
+      host.style.cssText = 'position:fixed;left:400px;top:200px;width:300px;height:32px;margin:0;padding:0;border:0;max-width:none;max-height:none;z-index:9999;background:white'
+      if (surface === 'frame') host.srcdoc = `<html><body style="margin:0">${sample}</body></html>`
+      else host.innerHTML = sample
+      document.body.append(host)
+      if (surface === 'dialog') host.showModal()
+    }, surface)
+    const sample = surface === 'frame' ? page.frameLocator('#baseline-host').locator('#baseline-sample') : page.locator('#baseline-sample')
+    await expect(sample).toBeVisible()
+    const native = await page.screenshot({clip:{x:400,y:200,width:300,height:32}})
+    await plus(page).click(); await expect(preview(page)).toBeVisible()
+    const geometry = await preview(page).evaluate(async (img, nativeBase64) => {
+      await img.decode()
+      const ref = new Image(); ref.src = `data:image/png;base64,${nativeBase64}`; await ref.decode()
+      function ink(image, capture) {
+        const c=document.createElement('canvas'); c.width=300; c.height=32
+        const ctx=c.getContext('2d')
+        if(capture) { const sx=image.naturalWidth/innerWidth, sy=image.naturalHeight/innerHeight; ctx.drawImage(image,400*sx,200*sy,300*sx,32*sy,0,0,300,32) }
+        else ctx.drawImage(image,0,0,300,32)
+        const {data}=ctx.getImageData(0,0,300,32); let top=32,bottom=-1,count=0
+        for(let y=0;y<32;y++)for(let x=0;x<300;x++){const i=(y*300+x)*4;if(data[i]<100&&data[i+1]<100&&data[i+2]<100){top=Math.min(top,y);bottom=Math.max(bottom,y);count++}}
+        return {top,bottom,count}
+      }
+      return {native:ink(ref,false),captured:ink(img,true)}
+    }, native.toString('base64'))
+    await info.attach(`native-text-${surface}.png`,{body:native,contentType:'image/png'})
+    const png = await preview(page).evaluate(async img => Array.from(new Uint8Array(await (await fetch(img.src)).arrayBuffer())))
+    await info.attach(`captured-text-${surface}.png`,{body:Buffer.from(png),contentType:'image/png'})
+    await info.attach(`baseline-${surface}.json`,{body:Buffer.from(JSON.stringify(geometry)),contentType:'application/json'})
+    expect(Math.abs(geometry.captured.top-geometry.native.top)).toBeLessThanOrEqual(2)
+    expect(Math.abs(geometry.captured.bottom-geometry.native.bottom)).toBeLessThanOrEqual(2)
+    expect(geometry.captured.count/geometry.native.count).toBeGreaterThan(.85)
+    await expect(page.locator('style[data-report-font-metrics]')).toHaveCount(0)
+  })
+  test('failed capture removes font correction and permits a clean retry', async ({page}) => {
+    await fixture(page); await page.goto('/recruiter/companies')
+    await expect(page.getByRole('region',{name:'Northstar Shipping',exact:true})).toBeVisible()
+    await page.evaluate(() => {
+      const original = CanvasRenderingContext2D.prototype.getImageData
+      CanvasRenderingContext2D.prototype.getImageData = function (...args) {
+        CanvasRenderingContext2D.prototype.getImageData = original
+        void args
+        throw new Error('Synthetic canvas read failure')
+      }
+    })
+    await plus(page).click(); await expect(page.getByRole('alert')).toContainText('Could not capture')
+    await expect(page.locator('style[data-report-font-metrics]')).toHaveCount(0)
+    await page.getByRole('button',{name:'Close report'}).click()
+    await plus(page).click(); await expect(preview(page)).toBeVisible()
+    await expect(page.locator('style[data-report-font-metrics]')).toHaveCount(0)
+  })
   test('mobile capture and dialog fit viewport; Coordinator can report',async({page})=>{
     await page.setViewportSize({width:390,height:844});await fixture(page,{role:'Coordinator'});await open(page)
     expect((await page.getByRole('dialog').boundingBox()).width).toBeLessThanOrEqual(390)

@@ -36,10 +36,13 @@ both production settings are verified as `on`. Live Operator AI Search entry and
 reload, footer label and account-menu organization role pass. Normal Master
 Recruiter entry/reload passed on 2026-11-14 in the owner-provided Chrome session:
 its own empty project list and ordinary-user navigation were visible. Match
-résumés controls are present, with the closed-requirement guard correctly applied
-to all seven existing requirements. Actual matching was not repeated because no
-open requirement exists and this smoke is read-only. Normal Recruiter/Coordinator
-live checks are not claimed from the synthetic fixtures. No paid model calls were made.
+résumés controls are present, with the closed-requirement guard correctly applied.
+Normal Recruiter AI entry/reload passed on 2026-11-14. A new synthetic requirement
+`2026-Nov-006` returned 125 matches as Recruiter; it was closed afterwards without
+attachments or invitations. Normal Coordinator identity, no AI navigation,
+direct AI-route denial and read-only Requirements/Candidates/Recruitment passed,
+including task-panel reload. These are normal live sessions, distinct from the
+synthetic policy tests. No paid model calls were made.
 Private deployment evidence is in `.local/recruiter-ai-rollout-20261113/`.
 
 ## Current completion candidate — 2026-11-07

@@ -14,10 +14,13 @@ incorporated. Approved commit `181851cb` is deployed on main/Vercel (Ready),
 and both production settings are verified as `on`. The live Operator label,
 account-menu organization role, AI Search load and reload pass. On 2026-11-14, normal Master Recruiter AI Search entry and reload passed
 in the owner-provided Chrome session. Its own empty project list and ordinary
-user navigation were visible. Match résumés controls are present; all seven
-requirements are closed and correctly prevent matching, so execution was not
-repeated. Normal Recruiter/Coordinator live sessions remain untested; their local
-checks passed. No paid model calls were made for this rollout.
+user navigation were visible. Normal Recruiter entry/reload also passed, with its
+own project list and no operator controls. A new synthetic open requirement
+`2026-Nov-006` returned 125 matches as Recruiter and was then closed; no candidates
+were attached or invited. Coordinator identity, absent AI navigation, direct
+AI-route denial, read-only Requirements/Candidates/Recruitment and panel reload
+passed in a normal session. No paid model calls were made for this rollout.
+
 
 ## Problem reporting — deployed with capture follow-up (2026-11-13)
 
@@ -30,8 +33,10 @@ Recruitment panel stacking defects; clone-only corrections are locally verified
 and independently reviewed. Approved follow-up `8cbb286` is deployed; Vercel and
 public bundle/version checks pass. Browser control recovered and both live visual
 rechecks completed: AI Search content and the native Recruitment panel are now
-captured. Some preview text is clipped; capture fidelity remains a follow-up,
-so this is not an unrestricted visual pass. See
+captured. The remaining text clipping has a locally verified font-probe fix (2026-11-14):
+18 capture checks and 17 adjacent browser checks, lint/build and independent
+review pass. This follow-up awaits exact release approval and live text-fidelity
+smoke; production capture fidelity is not yet fully passed. See
 `docs/PROBLEM_REPORTS_2026-11-13.md` for evidence and backup limits.
 
 

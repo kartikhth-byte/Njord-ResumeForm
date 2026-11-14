@@ -10,8 +10,8 @@
 - [x] Live Operator search entry/reload, footer label and account-menu organization role.
 - [x] Live normal Master Recruiter search entry/reload (2026-11-14); own project list and ordinary-user navigation verified.
 - [x] Master Recruiter matching controls visible and closed-requirement guard verified.
-- [ ] Repeat actual matching on an open requirement when available; all seven are closed, and this smoke was read-only.
-- [ ] Live normal Recruiter/Coordinator checks when their sessions are available; synthetic role checks passed.
+- [x] Ordinary Recruiter matched a new synthetic open requirement 2026-Nov-006: 125 results. Closed afterwards without attachments or invitations (2026-11-14).
+- [x] Normal Recruiter AI entry/reload and Coordinator AI denial/read-only Requirements, Candidates and Recruitment, including panel reload (2026-11-14).
 
 ## Problem reporting (2026-11-13)
 
@@ -24,7 +24,8 @@
 - [x] Reproduce and patch modern-color AI frame capture and native Recruitment panel capture locally.
 - [x] Exact follow-up UI promotion `8cbb286`; Vercel and crewme.si bundle/version checks.
 - [x] Live capture checks for AI Search and the Recruitment panel: both previously missing surfaces now appear.
-- [ ] Fix remaining clipped text in captured previews; inspect text fidelity as well as surface/color coverage.
+- [x] Diagnose and locally fix clipped capture text: hidden font probe inherited block image styling. Page/frame/dialog pixel baselines and failure/retry cleanup pass.
+- [ ] Obtain exact approval, promote the font-probe fix and repeat live AI Search/Recruitment text-fidelity smoke.
 - [x] Investigate Operator labelling and AI Search pilot restriction; owner approved the separate rollout above.
 
 Details: `PROBLEM_REPORTS_2026-11-13.md`.
@@ -62,7 +63,7 @@ Details: `STARTUP_LOADING_2026-11-13.md`.
 - [x] Correct stale smoke assertion: enabled AI Search permits Recruiter matching while fleet editing remains Master-only; Coordinator remains read-only.
 - [ ] Fix duration refinement losing/ignoring the selected rank and rejecting explicit rank-duration wording.
 - [ ] Diagnose company-history follow-up returning the generic answer-verification failure.
-- [ ] Live Coordinator session recheck: preserved Chrome tab could not be accessed; synthetic Coordinator checks passed.
+- [x] Live Coordinator session recheck completed 2026-11-14: AI denied and Requirements/Candidates/Recruitment read-only, including task panel reload.
 
 Coverage and boundaries: `docs/FIVE_PAGE_SMOKE_2026-11-13.md`.
 

@@ -426,3 +426,13 @@ output cells use Excel text fitting. Static-label/style and mapped-value checks
 on the normalized reference passed, but actual Excel/hosted and second-customer
 visual checks remain required. A minimal synthetic transport template is not
 customer-format evidence.
+
+
+## Problem-report font baseline regression (2026-11-14)
+
+`tests/smoke/problem-reports.spec.js` compares native browser ink bounds with
+actual captured text for ordinary pages, same-origin frames and native dialogs.
+A bounded, fixed-height sample detects the prior 13px baseline shift and clipped
+descenders. Also force one canvas-read failure, verify temporary style cleanup,
+and capture again successfully. Capture suite: 18 checks; adjacent AI/sidebar and
+startup: 17 checks. Live font-fidelity smoke follows approved promotion.
