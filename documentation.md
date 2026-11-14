@@ -1,3 +1,12 @@
+# Operator résumé review candidate — 2026-11-14
+
+Implemented locally, not deployed: Operator → Résumé Review opens the paired
+Needle document workspace. Operator-only route, selected-version/filter URL
+persistence and reload are covered by synthetic browser checks. Ordinary
+Recruiter access is denied. Needle migration 028 and managed staging remain
+release prerequisites; no Holmes database/Function change.
+See `docs/OPERATOR_RESUME_REVIEW_2026-11-14.md`.
+
 # Project Status
 
 ## Recruiter AI Search access and Operator identity (2026-11-13)

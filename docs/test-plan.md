@@ -436,3 +436,12 @@ A bounded, fixed-height sample detects the prior 13px baseline shift and clipped
 descenders. Also force one canvas-read failure, verify temporary style cleanup,
 and capture again successfully. Capture suite: 18 checks; adjacent AI/sidebar and
 startup: 17 checks. Live font-fidelity smoke follows approved promotion.
+
+
+## Operator résumé review entry
+
+Synthetic tests: `tests/smoke/resume-review.spec.js` verifies Operator entry, selected
+version URL/reload and direct Recruiter denial; adjacent `ai-sidebar.spec.js`
+protects existing role/sidebar flows. Managed staging must additionally exercise
+the real paired Needle review APIs, private PDF access and save/reload/approval
+against migration 028 before exact production release approval.

@@ -1,5 +1,16 @@
 # Pending Tasks
 
+## Operator résumé review (2026-11-14)
+
+- [x] Operator console entry and protected embedded review route.
+- [x] Preserve selected source/version and filters through iframe messages/reload.
+- [x] Synthetic Operator/ordinary Recruiter and adjacent AI sidebar smoke (12).
+- [ ] Managed staging with paired Needle migration 028 and normal Operator session.
+- [ ] Independent release review, exact promotion approval and production smoke.
+
+No new intake activation or repair of the deferred 131 legacy chains. Details:
+`OPERATOR_RESUME_REVIEW_2026-11-14.md`.
+
 ## Recruiter AI Search rollout (2026-11-13)
 
 - [x] Owner approval for Master Recruiter/Recruiter AI Search and prominent Operator identity.

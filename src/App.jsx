@@ -283,6 +283,9 @@ function App() {
             } />
 
             {/* AI search: Needle embedded under /ai (docs/needle-in-holmes-design.md 4.1). */}
+            <Route path="/recruiter/ai/review" element={
+              <OperatorRoute><RecruiterAiSearch reviewOnly /></OperatorRoute>
+            } />
             <Route path="/recruiter/ai/*" element={
               <RecruiterAiSearch />
             } />

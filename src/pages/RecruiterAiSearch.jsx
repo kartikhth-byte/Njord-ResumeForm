@@ -18,17 +18,17 @@ import { resumeIntakeEnabled } from '../lib/resumeIntake'
 const ROUTE_PREFIX = '/recruiter/ai'
 const RESIGN_IN_MIN_INTERVAL_MS = 30_000
 
-function needlePathFromHolmes(pathname) {
+function needlePathFromHolmes(pathname, search = '') {
   const rest = pathname.startsWith(ROUTE_PREFIX) ? pathname.slice(ROUTE_PREFIX.length) : ''
-  return rest && rest !== '/' ? rest : '/search'
+  return (rest && rest !== '/' ? rest : '/search') + (rest === '/review' ? search : '')
 }
 
-export default function RecruiterAiSearch() {
+export default function RecruiterAiSearch({ reviewOnly = false }) {
   const { user, profile, role, isOperator, signOut, loading, authorizationLoading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const frameRef = useRef(null)
-  const lastNeedlePathRef = useRef(needlePathFromHolmes(location.pathname))
+  const lastNeedlePathRef = useRef(needlePathFromHolmes(location.pathname, location.search))
   // Last re-sign-in triggered by the frame (not the first sign-in). A second
   // request within the window means the session is not sticking: stop.
   const lastResignInRef = useRef(0)
@@ -38,7 +38,7 @@ export default function RecruiterAiSearch() {
   const [selection, setSelection] = useState(null)
   const requirementId = new URLSearchParams(location.search).get('requirement')
 
-  const allowed = canUseAiSearch({ isOperator, role })
+  const allowed = canUseAiSearch({ isOperator, role }) && (!reviewOnly || isOperator)
 
   const signIn = useCallback(async () => {
     const result = await startNeedleSession()
@@ -76,9 +76,10 @@ export default function RecruiterAiSearch() {
 
       if (data.type === 'needle:route' && typeof data.path === 'string' && data.path.startsWith('/') && !data.path.startsWith('//')) {
         lastNeedlePathRef.current = data.path
-        const next = `${ROUTE_PREFIX}${data.path}`
+        const suffix = data.path.split('?')[0] === '/review' || location.pathname === `${ROUTE_PREFIX}/review` ? '' : location.search
+        const next = `${ROUTE_PREFIX}${data.path}${suffix}`
         // Replace: the frame's own hash changes already create history entries.
-        if (next !== window.location.pathname) navigate(`${next}${location.search}`, { replace: true })
+        if (next !== window.location.pathname + window.location.search) navigate(next, { replace: true })
         return
       }
 
@@ -103,17 +104,17 @@ export default function RecruiterAiSearch() {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [status, navigate, signIn, postToFrame, location.search])
+  }, [status, navigate, signIn, postToFrame, location.pathname, location.search])
 
   // Holmes-side navigation (Back/Forward, sidebar link) moves the frame.
   useEffect(() => {
     if (status !== 'ready') return
-    const wanted = needlePathFromHolmes(location.pathname)
+    const wanted = needlePathFromHolmes(location.pathname, location.search)
     if (wanted !== lastNeedlePathRef.current) {
       lastNeedlePathRef.current = wanted
       postToFrame({ type: 'holmes:navigate', path: wanted })
     }
-  }, [location.pathname, status, postToFrame])
+  }, [location.pathname, location.search, status, postToFrame])
 
   if (loading || (user && authorizationLoading && status !== 'ready')) {
     return null
@@ -138,7 +139,7 @@ export default function RecruiterAiSearch() {
         <iframe
           ref={frameRef}
           src={frameSrc}
-          title="AI search"
+          title={reviewOnly ? "Résumé Review" : "AI search"}
           className="min-h-0 w-full flex-1 border-0 bg-transparent"
         />
       ) : (
@@ -147,7 +148,7 @@ export default function RecruiterAiSearch() {
             <Loader2 className="h-6 w-6 animate-spin text-fg-muted" aria-label="Loading" />
           ) : (
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="text-sm text-fg-secondary">AI search is unavailable right now.</div>
+              <div className="text-sm text-fg-secondary">{reviewOnly ? 'Résumé Review' : 'AI search'} is unavailable right now.</div>
               <button
                 type="button"
                 onClick={retry}

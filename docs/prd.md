@@ -200,3 +200,13 @@ with full-width aligned rows, independent collapse and row-level résumé matchi
 Requirement forms select directory records; they do not create them inline.
 Current role, historical-ID, Draft and release details are recorded in
 `COMPANIES_SHIPS_UI_2026-11-10.md`.
+
+
+## Operator résumé review workspace (implementation candidate, 2026-11-14)
+
+Operators can inspect all résumé sources or filter those requiring review. The
+paired Needle page displays original PDFs, formatted converted text and structured
+extraction sections, highlights issues and saves correction drafts. Approval
+publishes a new facts version only after evidence and projection checks. Existing
+recruiter search access does not grant review access. See
+`OPERATOR_RESUME_REVIEW_2026-11-14.md`; production cutover remains pending.

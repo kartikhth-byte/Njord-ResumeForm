@@ -290,3 +290,13 @@ only groups with filtered requirements appear. Requirement creation and matching
 retain their existing modals. Directory maintenance is Master/authorized-operator
 only; recruiters select stable IDs. Renames retain historical snapshots and
 cannot transfer ships between companies. See `COMPANIES_SHIPS_UI_2026-11-10.md`.
+
+
+## 2026-11-14 — Reuse the Needle review service inside Holmes
+
+The Operator-only Résumé Review page is a dedicated embedded workspace, with
+formatted PDF/Markdown/JSON views. Review state and versioned publication belong
+to Needle’s Supabase authority, not a second Holmes review store. The embed bridge
+carries review query parameters so selected extraction versions survive reload.
+No recruiter permissions, intake activation or model subscriptions are added.
+Implementation candidate; release gate remains pending.

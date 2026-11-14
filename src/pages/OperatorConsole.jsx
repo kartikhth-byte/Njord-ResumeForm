@@ -15,6 +15,7 @@ const TABS = [
   { key: 'problems', label: 'Reported problems' },
   { key: 'health', label: 'Health' },
   { key: 'platform', label: 'Platform settings' },
+  { key: 'review', label: 'Résumé Review' },
   { key: 'ai', label: 'AI' },
   { key: 'users', label: 'Organizations & users' },
   { key: 'audit', label: 'Audit' },
@@ -54,6 +55,7 @@ export default function OperatorConsole() {
           </div>
 
           <section role="tabpanel" className="recruiter-panel p-6">
+            {activeTab === 'review' && <div className="space-y-4"><p>Inspect the original PDF, formatted conversion and structured extraction. Review issues and publish corrections.</p><Link className="btn-primary inline-flex" to="/recruiter/ai/review">Open Résumé Review</Link></div>}
             {activeTab === 'problems' && <Suspense fallback={<p>Loading reports…</p>}><ProblemReportList userId={user.id} operator /></Suspense>}
             {activeTab === 'health' && <div className="space-y-6"><OperatorHealthSection /><OperatorOperationsSection /></div>}
             {['users', 'audit'].includes(activeTab) && <OperatorOperationsSection section={activeTab} />}
@@ -61,7 +63,7 @@ export default function OperatorConsole() {
             {activeTab === 'ai' && (aiSearchEnabled() ? <div className="space-y-4">
               <p className="text-sm text-fg-secondary">Review conversion issues and pending facts against the original résumé. Approval remains an operator action.</p>
               <div className="flex flex-wrap gap-3">
-                <Link className="underline" to="/recruiter/ai/review">Review queue</Link>
+                <Link className="underline" to="/recruiter/ai/review">Résumé Review — all résumés and pending reviews</Link>
                 <Link className="underline" to="/recruiter/ai/admin/facts-review">Facts approval</Link>
                 <Link className="underline" to="/recruiter/ai/admin/settings">AI settings</Link>
                 <Link className="underline" to="/recruiter/ai/admin/evals">Evaluations</Link>
