@@ -21,5 +21,18 @@ rejection plus adjacent sidebar/access flows); lint and build. The frame in thes
 Holmes checks is synthetic. Needle separately exercises its real renderer using
 synthetic artifacts and executes the actual SQL/RPC code locally.
 
-Pending: managed staging, independent release review, exact production approval,
-backup/restore and live normal-session smoke. No production modification performed.
+Independent release review is complete with no remaining material findings after
+Needle fixes for conversion-hold preservation, lock ordering and equal-timestamp
+version selection. Needle passed 126 backend checks, 17 frontend checks, both
+PGlite publication modes, real PostgreSQL concurrency, a rolled-back managed
+Supabase staging rehearsal and a built-UI/API/PostgREST/PostgreSQL synthetic smoke.
+
+There is no separate managed Needle staging service. The managed SQL rehearsal
+left no persistent staging changes; integrated UI authentication/document fetching
+used fixtures. Normal Operator session, Drive and hosted refresh checks remain
+for the approved production pilot.
+
+Pending: exact production approval, fresh backup/restore checks, Needle migration
+028 and paired deployment, then live normal-session smoke. No production
+modification performed. No Holmes migration or Function deployment is required;
+027 and intake remain off.
