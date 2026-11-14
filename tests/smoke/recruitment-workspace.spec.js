@@ -4,7 +4,7 @@ import {createCandidateDirectoryFixture} from '../helpers/candidateDirectoryFixt
 import {fleetSession,fleetUser} from '../helpers/fleetFixture'
 async function fixture(page,options={}) {
  const state=createCandidateDirectoryFixture(options),base=state.respond
- state.cases.forEach(c=>{c.version=1;c.cycle=1})
+ state.cases.forEach((c,index)=>{c.version=1;c.cycle=1;c.display_id=`REC-${index+1}`})
  state.assignments=[];state.history=[];state.events=[];state.credits=[]
  state.applications=[];state.applicationReads=[];state.applicationReadFails=false
  state.respond=(url,method,body)=>{
@@ -52,39 +52,33 @@ async function fixture(page,options={}) {
 test.describe('Recruitment workspace',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic server required')
  test.use({storageState:{cookies:[],origins:[]}})
- test('company and ship groups are default, collapse independently and reveal filtered work',async({page})=>{
+ test('company and ship labels share one table header and filters reveal assigned work',async({page})=>{
   const state=await fixture(page)
   state.cases.push({id:'case5',prospect_id:'p2',requirement_id:'R2',status:'sourced',version:1},{id:'case6',prospect_id:'p2',requirement_id:'LEGACY',status:'sourced',version:1},{id:'case7',prospect_id:'p2',requirement_id:'R1',status:'hired',version:1})
   // My work must include a task even when someone else owns the row.
   state.assignments=[{case_id:'case5',task_key:'case',assignee_id:'another-recruiter',version:1},{case_id:'case5',task_key:'interview',assignee_id:fleetUser.id,version:1}]
   await page.goto('/recruiter/recruitment')
   const groups=page.getByRole('region',{name:'Recruitment by company and ship'})
-  const north=groups.locator('details').filter({has:page.locator('summary').filter({hasText:'Company · Northstar Shipping'})}).first()
-  const company=north.locator(':scope > summary')
-  await expect(company).toContainText('4 rows · 4 active')
-  const aurora=north.locator('details').filter({has:page.locator('summary').filter({hasText:'Ship · MV Aurora'})})
-  await expect(aurora.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(2)
-  await expect(groups.getByText('Company · Company not mapped')).toBeVisible()
-  await aurora.locator('summary').click()
-  await expect(aurora.getByRole('table')).toBeHidden()
-  await expect(north.getByRole('button',{name:'Jamie Reed',exact:true})).toBeVisible()
-  await company.click()
+  await expect(groups.getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(1)
+  await expect(groups.getByText('Northstar Shipping',{exact:true})).toBeVisible()
+  await expect(groups.getByText('MV Aurora',{exact:true})).toBeVisible()
+  await expect(groups.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(3)
+  await expect(groups.getByText('Company not mapped',{exact:true})).toBeVisible()
   await page.getByLabel('Search',{exact:true}).fill('SYN-R4')
-  await expect(groups.getByRole('button',{name:'Alex Morgan',exact:true})).toBeVisible()
-  await expect(groups.locator(':scope > details')).toHaveCount(1)
-  await expect(groups).toContainText('1 row · 1 active')
+  await expect(groups.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(1)
+  await expect(groups.getByRole('button',{name:'Jamie Reed',exact:true})).toHaveCount(0)
   await page.getByLabel('Search',{exact:true}).fill('')
   await page.getByLabel('Work',{exact:true}).selectOption('mine')
   await expect(groups.getByRole('button',{name:'Jamie Reed',exact:true})).toBeVisible()
-  await expect(groups).toContainText('Ship · MV Horizon')
+  await expect(groups).toContainText('MV Horizon')
   await expect(groups.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(0)
   await page.reload()
   await expect(groups.getByRole('button',{name:'Jamie Reed',exact:true})).toBeVisible()
   await page.getByLabel('Work',{exact:true}).selectOption('')
   await page.getByRole('button',{name:/^Joined \(/}).click()
-  await expect(groups).toContainText('1 row · 0 active')
+  await expect(groups.getByRole('button',{name:'Jamie Reed',exact:true})).toHaveCount(1)
   await page.getByRole('button',{name:'Active',exact:true}).click()
-  await expect(groups).toContainText('6 recruitment rows shown')
+  await expect(groups.getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(1)
   await page.screenshot({path:'test-results/recruitment-grouped-desktop.png',fullPage:true,animations:'disabled'})
   await page.setViewportSize({width:390,height:844})
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -129,7 +123,7 @@ test.describe('Recruitment workspace',()=>{
   state.failNext=true
   await page.getByRole('dialog').getByRole('button',{name:'Take over row',exact:true}).click()
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Someone updated')
-  await page.getByRole('dialog').getByRole('button',{name:/Close alex/i}).click()
+  await page.getByRole('dialog').getByRole('button',{name:/Close .*Alex/i}).click()
   await page.getByLabel('Work',{exact:true}).selectOption('mine')
   await expect(page.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(1)
   await page.screenshot({path:'test-results/recruitment-desktop.png',fullPage:true,animations:'disabled'})
@@ -236,7 +230,8 @@ test.describe('Recruitment workspace',()=>{
  test('candidate link opens the exact recruitment case',async({page})=>{
   await fixture(page)
   await page.goto('/recruiter/candidates?tab=attached')
-  await page.getByRole('link',{name:'Open recruitment'}).first().click()
+  await page.getByRole('row').filter({hasText:'Alex Morgan'}).first().locator('summary').click()
+  await page.getByRole('link',{name:/Open recruitment/}).first().click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page).toHaveURL(/recruitment\?case=case/)
  })

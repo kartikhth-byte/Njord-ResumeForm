@@ -97,7 +97,7 @@ export default function RecruiterRequirementsPage() {
       if (dateFrom && (!row.date_opened || row.date_opened < dateFrom)) return false
       if (dateTo && (!row.date_opened || row.date_opened > dateTo)) return false
       if (query) {
-        const haystack = [row.reqId, row.vessel_name, row.customer_name, row.rankName, row.vesselTypeName, row.recruiterName, fleet.companies.find(item => item.id === row.company_id)?.name, fleet.ships.find(item => item.id === row.ship_id)?.name]
+        const haystack = [row.display_id, row.reqId, row.vessel_name, row.customer_name, row.rankName, row.vesselTypeName, row.recruiterName, fleet.companies.find(item => item.id === row.company_id)?.name, fleet.ships.find(item => item.id === row.ship_id)?.name]
           .join(' ')
           .toLowerCase()
         if (!haystack.includes(query)) return false
@@ -327,19 +327,14 @@ export default function RecruiterRequirementsPage() {
             </div>
           </div>
 
-          {filteredRows.length === 0 ? (
-            <EmptyState
-              icon={ClipboardList}
-              title="No requirements match"
-            />
-          ) : (
-            <RequirementGroups
+          <RequirementGroups
               key={JSON.stringify([statusFilter, recruiterFilter, search, dateFrom, dateTo])}
               rows={filteredRows} fleet={fleet} data={tracker.data} canMatch={canMatch}
+              canAddNotes={hasPermission('edit_requirements')} onNotesSaved={tracker.reload}
               matchButtons={matchButtons} from={`${location.pathname}${location.search}`}
               onMatch={row => { matchesChanged.current = false; setMatchRequirement(row) }}
             />
-          )}
+          {filteredRows.length === 0 && <EmptyState icon={ClipboardList} title="No requirements match" />}
 
           <p className="mt-4 text-xs text-fg-muted">
             {filteredRows.length} shown

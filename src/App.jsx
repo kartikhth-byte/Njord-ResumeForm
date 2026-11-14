@@ -249,7 +249,7 @@ function App() {
               </RecruiterRoute>
             } />
 
-            <Route path="/recruiter/companies" element={<RecruiterRoute><RecruiterCompaniesPage /></RecruiterRoute>} />
+            <Route path="/recruiter/companies" element={<ProtectedRoute allowedRoles={['Master Recruiter', 'Recruiter']}><RecruiterCompaniesPage /></ProtectedRoute>} />
 
             <Route path="/recruiter/requirements" element={
               <RecruiterRoute>

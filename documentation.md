@@ -1,3 +1,20 @@
+# Shared recruiter directories — local implementation, 2026-11-14
+
+Requirements, Candidates, Recruitment, and Applications now use a single table
+header per list with serial number, stable type-specific ID, created/modified
+dates where available, a notes control, and light column separators. Company and
+ship group rows show their names without redundant prefixes. Historical
+applications missing a verified recruitment link remain in the table as
+highlighted rows, with correction guidance on hover/focus. Candidate secondary
+actions sit under More. Coordinator no longer sees Companies & ships, and AI
+Search retains a narrow Holmes navigation rail on desktop.
+
+The IDs and application/case/draft note history require
+`supabase/migrations/2026111401_directory_ids_and_notes.sql` before deploying
+this frontend. Requirement and candidate notes use their existing audited RPCs.
+The migration and frontend are verified locally with synthetic data; neither has
+been applied to production. See `docs/SHARED_RECRUITER_DIRECTORIES_2026-11-14.md`.
+
 # Operator résumé review candidate — 2026-11-14
 
 Implemented locally, not deployed: Operator → Résumé Review opens the paired

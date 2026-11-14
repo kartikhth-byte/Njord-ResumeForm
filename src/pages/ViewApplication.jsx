@@ -389,7 +389,7 @@ export default function ViewApplication() {
 
               <PageHeader
                 title={fullName || 'Application'}
-              />
+              ><p className="text-sm text-fg-muted">{application.display_id || application.reference_number}</p></PageHeader>
             </div>
 
             <div className="flex flex-wrap gap-3">

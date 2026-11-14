@@ -19,7 +19,7 @@ async function readIds(client, table, columns, field, ids) {
 }
 export async function loadApplicationDirectory(client, filters = {}) {
   const applications = await readPages(() => {
-    let query = client.from('applications').select('id,user_id,applied_rank,status,reference_number,public_token,submitted_at,test_attempt_number,test_max_attempts,handling_recruiter_id,contract_end_date,prospect_id,application_data(data)')
+    let query = client.from('applications').select('id,display_id,created_at,updated_at,user_id,applied_rank,status,reference_number,public_token,submitted_at,test_attempt_number,test_max_attempts,handling_recruiter_id,contract_end_date,prospect_id,application_data(data)')
       .not('submitted_at', 'is', null).order('submitted_at', { ascending: false }).order('id')
     if (filters.position) query = query.eq('applied_rank', filters.position)
     if (filters.dateRange?.from) query = query.gte('submitted_at', filters.dateRange.from)
@@ -28,9 +28,9 @@ export async function loadApplicationDirectory(client, filters = {}) {
   })
   const [profiles, cases] = await Promise.all([
     readIds(client, 'profiles', 'id,full_name,email', 'id', applications.map(a => a.user_id)),
-    readIds(client, 'recruitment_cases', 'id,application_id,prospect_id,requirement_id,status,cycle', 'application_id', applications.map(a => a.id)),
+    readIds(client, 'recruitment_cases', 'id,display_id,application_id,prospect_id,requirement_id,status,cycle', 'application_id', applications.map(a => a.id)),
   ])
-  const requirements = await readIds(client, 'requirements', 'id,req_id_display,company_id,ship_id', 'id', cases.map(c => c.requirement_id))
+  const requirements = await readIds(client, 'requirements', 'id,display_id,req_id_display,company_id,ship_id', 'id', cases.map(c => c.requirement_id))
   const [companies, ships] = await Promise.all([
     readIds(client, 'client_companies', 'id,name', 'id', requirements.map(r => r.company_id)),
     readIds(client, 'client_ships', 'id,name,company_id', 'id', requirements.map(r => r.ship_id)),

@@ -100,7 +100,7 @@ export default function RecruiterProspectDetail() {
         ] = await Promise.all([
           supabase
             .from('prospects')
-            .select('needle_resume_id, resume_source, id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
+            .select('needle_resume_id, resume_source, id, display_id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
             .eq('id', prospectId)
             .maybeSingle(),
           supabase
@@ -375,7 +375,7 @@ export default function RecruiterProspectDetail() {
       setInviteStatus('Invite sent successfully.')
       const { data: refreshed, error: refreshError } = await supabase
         .from('prospects')
-        .select('needle_resume_id, resume_source, id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
+        .select('needle_resume_id, resume_source, id, display_id, name, dob, nationality_id, rank_applied_for_id, vessel_type_id, exp_in_rank_months, previous_employer, is_first_time_at_sea, telephone, email, lead_source, status, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, archive_reason, deleted_at, invited_at, claimed_at, applicant_user_id, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at, version')
         .eq('id', prospect.id)
         .maybeSingle()
 
@@ -489,6 +489,7 @@ export default function RecruiterProspectDetail() {
               {prospect.archived_at ? <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Archived</span> : null}
               {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
+            <p className="text-sm text-fg-muted">{prospect.display_id}</p>
           </PageHeader>
           <CandidateResumePanel candidate={prospect} countries={lookupMaps.countries} permissions={permissions} onChanged={() => setReloadToken(value => value + 1)} />
 

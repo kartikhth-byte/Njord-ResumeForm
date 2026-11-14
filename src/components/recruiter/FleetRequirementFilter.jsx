@@ -5,7 +5,7 @@ import { CASE_STATUS_META, caseStatusMeta } from '../../utils/recruitmentCase'
 
 export default function FleetRequirementFilter({value,onChange,requirements=[],cases=false,title}) {
   const fleet=useClientFleet()
-  const options=rows=>rows.map(r=>({value:r.id,label:r.name||r.req_id_display}))
+  const options=rows=>rows.map(r=>({value:r.id,label:r.name||r.display_id||r.req_id_display}))
   return <section aria-label="Company and ship navigation" className="recruiter-panel mt-6 space-y-3 p-5">
     <h2 className="font-semibold">{title || `Company → Ship → Requirement${cases ? ' → Case stage' : ''}`}</h2>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

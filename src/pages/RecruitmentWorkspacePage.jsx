@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Building2, Ship, CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
@@ -11,6 +11,9 @@ import RecruitmentCasePanel from '../components/recruiter/RecruitmentCasePanel'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import { assignRecruitmentWork } from '../services/recruitmentWorkService'
 import RecruitmentResourceActions from '../components/recruiter/RecruitmentResourceActions'
+import DirectoryNotes from '../components/recruiter/DirectoryNotes'
+import { supabase } from '../lib/supabase'
+import { dateCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
 import { WORK_STAGES, workStage, taskProgress, nextWork, groupRecruitmentRows } from '../utils/recruitmentWorkspace'
 import { isCaseTerminal } from '../utils/recruitmentCase'
 const button='workspace-action-button workspace-action-button--secondary'
@@ -25,6 +28,7 @@ export default function RecruitmentWorkspacePage() {
  const tracker=useKpiTrackerData({enabled:allowed}),work=useRecruitmentWork(allowed),fleet=useClientFleet({enabled:allowed,includeArchived:true})
  const [params,setParams]=useSearchParams(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[edit,setEdit]=useState(null)
  const [caseBusy,setCaseBusy]=useState(false)
+ const [noteCase,setNoteCase]=useState(null),[notesByCase,setNotesByCase]=useState({}),[noteRevision,setNoteRevision]=useState(0)
  const [performer,setPerformer]=useState(''),[occurred,setOccurred]=useState('')
  const pendingParams=useRef(params)
  useLayoutEffect(()=>{pendingParams.current=params},[params])
@@ -55,8 +59,20 @@ export default function RecruitmentWorkspacePage() {
   if(params.get('ship')&&c.ship?.id!==params.get('ship'))return false
   if(params.get('requirement')&&c.requirement_id!==params.get('requirement'))return false
   if(params.get('attention')&&!(!c.owner?.assignee_id||c.tasks.some(t=>!t.done&&t.due&&new Date(t.due)<new Date())))return false
-  return [c.candidate?.name,c.requirement?.req_id_display,c.company?.name,c.ship?.name].join(' ').toLowerCase().includes((params.get('q')||'').toLowerCase())
+  return [c.display_id,c.candidate?.display_id,c.candidate?.name,c.requirement?.display_id,c.requirement?.req_id_display,c.company?.name,c.ship?.name].join(' ').toLowerCase().includes((params.get('q')||'').toLowerCase())
  })
+ useEffect(()=>{
+  let active=true
+  const ids=tracker.data.cases.map(c=>c.id)
+  if(!ids.length)return undefined
+  Promise.all(Array.from({length:Math.ceil(ids.length/100)},(_,i)=>supabase.from('directory_notes').select('case_id,body,created_at').in('case_id',ids.slice(i*100,i*100+100)).order('created_at',{ascending:false}))).then(results=>{
+   if(!active)return
+   const map={}
+   for(const result of results)for(const note of result.data||[])if(!map[note.case_id])map[note.case_id]=note
+   setNotesByCase(map)
+  })
+  return()=>{active=false}
+ },[tracker.data.cases,noteRevision])
  const selected=all.find(c=>c.id===params.get('case'))
  const save=async(c,key,assignment,assignee,due,start,note)=>{
   setBusy(true);setError('')
@@ -73,9 +89,11 @@ export default function RecruitmentWorkspacePage() {
   <button disabled={busy} className={button}>Save assignment</button> <button type="button" className={button} onClick={()=>setEdit(null)}>Cancel</button>
  </form>
  const beginEdit=(key,assignment)=>{const date=assignment?.due_at?new Date(assignment.due_at):null;setEdit({key,assignment,assignee:assignment?.assignee_id||'',due:date?new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16):'',note:''})}
- const renderRows=list=><div className="overflow-x-auto"><table className="tracker-table table-fixed min-w-[850px] w-full"><colgroup>{[22,15,25,23,15].map((width,i)=><col key={i} style={{width:`${width}%`}}/>)}</colgroup><thead><tr>{['Candidate','Requirement','Stage / task progress','Next action','Assigned recruiter'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead><tbody className="[&_td]:break-words">{list.map(c=><tr key={c.id}>
+ let serial=0
+ const renderRows=list=>list.map(c=><tr key={c.id}>
+  <td>{++serial}</td><td>{recordDisplayId(c)}</td>
   <td><button className="text-accent-text underline text-left" onClick={()=>open(c)}>{c.candidate?.name||'Candidate'}</button>{c.cycle>1&&<p className="text-xs">Cycle {c.cycle}</p>}</td>
-  <td>{c.requirement?.req_id_display||'Requirement unavailable'}</td><td><strong className="block mb-2">{workStage(c.status)}</strong><ul aria-label="Task progress" className="space-y-1.5 text-xs">{c.tasks.map(t=>{
+  <td>{recordDisplayId(c.requirement,c.requirement?.req_id_display||'Requirement unavailable')}</td><td><strong className="block mb-2">{workStage(c.status)}</strong><ul aria-label="Task progress" className="space-y-1.5 text-xs">{c.tasks.map(t=>{
    const unsuccessful=['test_failed','interview_failed','test_no_show','interview_no_show','offer_declined'].includes(t.last?.to_status)
    const waived=t.last?.to_status==='test_waived'
    const active=t.status==='In progress'||t.status==='Scheduled'
@@ -86,37 +104,38 @@ export default function RecruitmentWorkspacePage() {
   })}</ul></td>
   <td>{nextWork(c)}{c.tasks.filter(t=>!t.done&&t.due).map(t=><p key={t.key} className="text-xs">{t.label} · {when(t.due)} · {name(t.assignment?.assignee_id)}</p>)}</td>
   <td>{name(c.owner?.assignee_id)}{canMove&&!isCaseTerminal(c.status)&&<button disabled={busy||!!work.error} className="block text-accent-text underline" onClick={()=>take(c,'case',c.owner)}>{c.owner?.assignee_id===auth.user.id?'Assigned to you':'Take over'}</button>}</td>
- </tr>)}</tbody></table></div>
+  <td>{dateCell(c.created_at)}</td><td>{dateCell(latestRecordDate(c.updated_at,c.owner?.updated_at,...c.tasks.map(t=>t.assignment?.updated_at),notesByCase[c.id]?.created_at))}</td>
+  <td><button className="text-accent-text underline" onClick={()=>setNoteCase(c)}>{notesByCase[c.id] ? <span title={notesByCase[c.id].body}>{notesByCase[c.id].body.slice(0,32)}{notesByCase[c.id].body.length>32?'…':''}</span> : canMove ? 'Add note' : 'View notes'}</button></td>
+ </tr>)
  const groups=groupRecruitmentRows(rows)
  // A changed filter reveals matches even when their groups were collapsed.
  // Opening a case or refreshing assignments does not reset the user's groups.
  const groupingScope=['q','scope','stage','recruiter','company','ship','requirement','attention'].map(key=>params.get(key)||'').join('\u001f')
- const countLabel=(count,active)=>`${count} ${count===1?'row':'rows'} · ${active} active`
  return <div className="min-h-screen bg-raised"><RecruiterTopbar user={auth.user} profile={auth.profile} role={role} signOut={auth.signOut}/><main className="mx-auto max-w-7xl px-4 py-6 space-y-5">
   <div className="flex justify-between"><h1 className="text-3xl font-semibold">Recruitment</h1><button className={button} onClick={reload}>Refresh</button></div>
   {!allowed?<p role="alert">Your account cannot view recruitment.</p>:<>
-  <p className="text-sm text-fg-muted">One row per candidate and requirement. Take over a row or handle an individual task.</p>
   {(tracker.error||work.error||fleet.error||error)&&<p role="alert" className="text-danger">{error||work.error||tracker.error||fleet.error}</p>}
   <div className="flex flex-wrap gap-2"><button className={button} aria-pressed={!selectedStage} onClick={()=>set('stage','')}>Active</button>{WORK_STAGES.map(s=><button key={s} className={button} aria-pressed={selectedStage===s} onClick={()=>set('stage',s)}>{s} ({all.filter(c=>workStage(c.status)===s).length})</button>)}</div>
   <section aria-label="Recruitment filters" className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
    <label className={filterLabel}>Search<input placeholder="Name or reference…" className={filterField} value={params.get('q')||''} onChange={e=>set('q',e.target.value)}/></label>
    <label className={filterLabel}>Work<select aria-label="Work" className={filterField} value={params.get('scope')||''} onChange={e=>set('scope',e.target.value)}><option value="">All work</option><option value="mine">My work</option></select></label>
-   {[['company','Company',fleet.companies],['ship','Ship',fleet.ships.filter(s=>!params.get('company')||s.company_id===params.get('company'))],['requirement','Requirement',tracker.data.requirements.filter(r=>(!params.get('company')||r.company_id===params.get('company'))&&(!params.get('ship')||r.ship_id===params.get('ship')))],['recruiter','Recruiter',people]].map(([key,label,options])=><label key={key} className={filterLabel}>{label}<select className={filterField} value={params.get(key)||''} onChange={e=>{const value=e.target.value;updateParams(n=>{value?n.set(key,value):n.delete(key);if(key==='company'){n.delete('ship');n.delete('requirement')}if(key==='ship')n.delete('requirement')})}}><option value="">All</option>{options.map(o=><option key={o.id} value={o.id}>{o.name||o.req_id_display||o.full_name||o.email}</option>)}</select></label>)}
-   <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" aria-describedby="recruitment-attention-help" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
-   <p id="recruitment-attention-help" className="text-xs text-fg-muted sm:col-span-2 lg:col-span-4">Needs attention: no assigned recruiter or an unfinished task past its due date.</p>
+   {[['company','Company',fleet.companies],['ship','Ship',fleet.ships.filter(s=>!params.get('company')||s.company_id===params.get('company'))],['requirement','Requirement',tracker.data.requirements.filter(r=>(!params.get('company')||r.company_id===params.get('company'))&&(!params.get('ship')||r.ship_id===params.get('ship')))],['recruiter','Recruiter',people]].map(([key,label,options])=><label key={key} className={filterLabel}>{label}<select className={filterField} value={params.get(key)||''} onChange={e=>{const value=e.target.value;updateParams(n=>{value?n.set(key,value):n.delete(key);if(key==='company'){n.delete('ship');n.delete('requirement')}if(key==='ship')n.delete('requirement')})}}><option value="">All</option>{options.map(o=><option key={o.id} value={o.id}>{o.name||o.display_id||o.req_id_display||o.full_name||o.email}</option>)}</select></label>)}
+   <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
   </section>
-  {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:!rows.length?<p>No recruitment rows match these filters.</p>:<section key={groupingScope} aria-label="Recruitment by company and ship" className="space-y-5">
-   <p className="text-sm text-fg-muted">{rows.length} recruitment {rows.length===1?'row':'rows'} shown. Counts reflect the current filters.</p>
-   {groups.map(company=><details key={company.id} open className="overflow-hidden rounded-xl border border-line">
-    <summary className="cursor-pointer bg-accent-soft text-accent-text px-4 py-3 font-semibold"><Building2 aria-hidden="true" className="inline h-4 w-4 mr-2"/>Company · {company.name}<span className="ml-3 text-xs font-normal">{countLabel(company.count,company.active)}</span></summary>
-    {company.ships.map(ship=><details key={ship.id} open className="border-t border-line">
-     <summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship aria-hidden="true" className="inline h-4 w-4 mr-2"/>Ship · {ship.name}<span className="ml-3 text-xs font-normal">{countLabel(ship.rows.length,ship.active)}</span></summary>
-     {renderRows(ship.rows)}
-    </details>)}
-   </details>)}
+  {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:<section key={groupingScope} aria-label="Recruitment by company and ship">
+   <div className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]"><thead><tr>{['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+   <tbody>{groups.flatMap(company=>[
+    <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={10} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4"/>{company.name}</td></tr>,
+    ...company.ships.flatMap(ship=>[
+     <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={10} className="font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4"/>{ship.name}</td></tr>,
+     ...renderRows(ship.rows)
+    ])
+   ])}</tbody></table></div>
+   {!rows.length&&<p className="p-5 text-sm text-fg-muted">No recruitment rows match these filters.</p>}
   </section>}
+  {noteCase&&<DirectoryNotes kind="recruitment" id={noteCase.id} label={recordDisplayId(noteCase)} canAdd={canMove} onClose={()=>setNoteCase(null)} onSaved={()=>setNoteRevision(n=>n+1)}/>}
   {params.get('case')&&!tracker.loading&&!selected&&<p role="alert">This recruitment record is unavailable.</p>}
-  {selected&&<RecordFormDialog sidePanel title={`${selected.candidate?.name||'Candidate'} · ${selected.requirement?.req_id_display||'Recruitment'}`} busy={busy||caseBusy} onClose={()=>{set('case','');setEdit(null)}}>
+  {selected&&<RecordFormDialog sidePanel title={`${recordDisplayId(selected)} · ${selected.candidate?.name||'Candidate'} · ${recordDisplayId(selected.requirement,selected.requirement?.req_id_display||'Recruitment')}`} busy={busy||caseBusy} onClose={()=>{set('case','');setEdit(null)}}>
    <div className="p-5 space-y-4"><strong className="block">{workStage(selected.status)}</strong>
    <RecruitmentResourceActions key={`${selected.id}:${selected.application_id||''}`} candidate={selected.candidate} prospectId={selected.prospect_id} applicationId={selected.application_id} applicationPending={!!selected.application && !selected.application.submitted_at} permissions={permissions}/>
    {error&&<p role="alert" className="text-danger">{error}</p>}

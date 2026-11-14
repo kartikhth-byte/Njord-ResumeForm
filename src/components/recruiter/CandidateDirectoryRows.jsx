@@ -1,37 +1,48 @@
-import { workStage } from '../../utils/recruitmentWorkspace'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Ship } from 'lucide-react'
+import { workStage } from '../../utils/recruitmentWorkspace'
 import { groupCandidateAttachments, resumeReadiness } from '../../utils/candidateDirectory'
+import { dateCell, recordDisplayId } from '../../utils/directoryDisplay'
 import { openCandidateResume } from '../../services/needleIntegrationService'
+import DirectoryNotes from './DirectoryNotes'
 
-export function CandidateRow({ row, links = [], showRequirements = false, from, canEdit, canAttach, onEdit, onAttach, onError }) {
-  return <article aria-label={row.name || 'Unnamed candidate'} className={`grid grid-cols-1 items-center gap-4 border-t border-line bg-surface px-4 py-4 sm:grid-cols-2 ${showRequirements ? 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1.3fr)]' : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)]'}`}>
-    <div className="min-w-0 [overflow-wrap:anywhere]">
-      {row.isDraft ? <h3 className="font-semibold break-words">{row.name || 'Unnamed candidate'}</h3> : <Link className="font-semibold text-accent-text hover:underline break-words" to={`/recruiter/workspace/prospects/${row.id}`} state={{from}}>{row.name}</Link>}
-      <p className="text-xs text-fg-muted break-words">{row.email || row.telephone || 'Contact details missing'}</p>
-    </div>
-    <div className="min-w-0 text-sm [overflow-wrap:anywhere]"><p>{row.rankName || 'Rank not provided'}</p><p className="text-xs text-fg-muted">{row.vesselTypeName || 'Vessel type not provided'}</p></div>
-    <div className="min-w-0 text-sm [overflow-wrap:anywhere]"><span className={`tracker-pill ${row.needle_resume_id ? 'bg-accent-soft text-accent-text' : 'bg-warning-soft text-warning'}`}>{row.needle_resume_id ? resumeReadiness(row.cvStatus).label : 'CV missing'}</span>
-      {!links.length && row.attachedRequirements?.length > 0 ? <p className="mt-1 text-xs text-fg-muted">No active attachment · {row.attachedRequirements.length} in history</p> : null}
-      {row.isArchived && <p className="text-xs">Archived</p>}
-    </div>
-    {showRequirements && <div className="min-w-0 text-sm [overflow-wrap:anywhere]" aria-label="Requirements"><p className="text-xs text-fg-muted mb-1">Requirements</p>{!links.length && <p className="text-xs text-fg-muted">No requirement</p>}<ul className="space-y-2">{links.map(link => <li key={link.requirementId}><Link className="text-accent-text underline" to={`/recruiter/workspace/requirements/${link.requirementId}`} state={{from}}>{link.requirement?.req_id_display || 'Historical requirement'}</Link><span className="ml-2">{link.isCase ? workStage(link.status) : link.stage}</span>{link.isCase && <Link className="ml-2 text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>Open recruitment</Link>}{link.requirement?.status !== 'open' && <span className="ml-2 text-xs text-fg-muted">({link.requirement?.status || 'Unavailable'})</span>}</li>)}</ul></div>}
-    <div className="flex min-w-0 flex-wrap items-center gap-3 text-sm [&>button]:max-w-full [&>button]:whitespace-normal">
-      {row.needle_resume_id && <button className="underline" onClick={() => openCandidateResume(row.id, row.needle_resume_id).catch(e => onError(e.message))}>View CV</button>}
+export function CandidateRow({ row, links = [], showRequirements = false, number, from, canEdit, canAttach, canAddNotes, onEdit, onAttach, onError, onNotes }) {
+  return <tr>
+    <td>{number}</td>
+    <td>{recordDisplayId(row, row.isDraft ? 'Draft' : '')}</td>
+    <td className="min-w-44"><div className="font-medium">{row.isDraft ? row.name || 'Unnamed candidate' : <Link className="text-accent-text underline" to={`/recruiter/workspace/prospects/${row.id}`} state={{from}}>{row.name}</Link>}</div><span className="text-xs text-fg-muted">{row.email || row.telephone || 'Contact details missing'}</span></td>
+    <td>{row.rankName || '—'}<span className="block text-xs text-fg-muted">{row.vesselTypeName || '—'}</span></td>
+    <td><span className={`tracker-pill ${row.needle_resume_id ? 'bg-accent-soft text-accent-text' : 'bg-warning-soft text-warning'}`}>{row.needle_resume_id ? resumeReadiness(row.cvStatus).label : 'CV missing'}</span>{row.isArchived && <span className="block text-xs">Archived</span>}</td>
+    {showRequirements && <td><ul className="space-y-1">{links.length ? links.map(link => <li key={link.requirementId}><Link className="text-accent-text underline" to={`/recruiter/workspace/requirements/${link.requirementId}`} state={{from}}>{recordDisplayId(link.requirement, link.requirement?.req_id_display || 'Historical requirement')}</Link><span className="ml-2 text-xs">{link.isCase ? workStage(link.status) : link.stage}</span></li>) : <li>—</li>}</ul></td>}
+    <td>{dateCell(row.created_at)}</td><td>{dateCell(row.updated_at)}</td>
+    <td><button className="text-accent-text underline" onClick={() => onNotes(row)}>{row.latestNote ? <span title={row.latestNote}>{row.latestNote.slice(0, 32)}{row.latestNote.length > 32 ? '…' : ''}</span> : canAddNotes ? 'Add note' : 'View notes'}</button></td>
+    <td><details className="relative"><summary className="cursor-pointer text-accent-text">More</summary><div className="flex flex-col items-start gap-2 whitespace-nowrap rounded-control border border-line bg-surface p-2 shadow-lg">
+      {!row.isDraft && <Link className="underline" to={`/recruiter/workspace/prospects/${row.id}`} state={{from}}>Open candidate</Link>}
+      {links.filter(link => link.isCase).map(link => <Link key={link.id} className="underline" to={`/recruiter/recruitment?case=${link.id}`}>Open recruitment · {recordDisplayId(link.requirement, link.requirement?.req_id_display)}</Link>)}
+      {row.needle_resume_id && <button className="underline" onClick={() => openCandidateResume(row.id, row.needle_resume_id).catch(error => onError(error.message))}>View CV</button>}
       {canEdit && !row.isArchived && <button className="underline" aria-label={`Edit ${row.name}`} onClick={() => onEdit(row)}>Edit</button>}
-      {canAttach && !row.isArchived && <button className="workspace-action-button workspace-action-button--secondary disabled:opacity-50" disabled={!row.needle_resume_id} title={!row.needle_resume_id ? 'Add and review a CV before attaching.' : undefined} onClick={() => onAttach(row)}>Attach to requirement</button>}
-    </div>
-  </article>
+      {canAttach && !row.isArchived && <button className="underline disabled:opacity-50" disabled={!row.needle_resume_id} title={!row.needle_resume_id ? 'Add and review a CV before attaching.' : undefined} onClick={() => onAttach(row)}>Attach to requirement</button>}
+    </div></details></td>
+  </tr>
 }
 
-export default function CandidateDirectoryRows({ rows, attached, showAllLinks, fleet, filter, history, ...actions }) {
-  if (!attached) return <div className="rounded-xl border border-line overflow-hidden">{rows.map(row => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={Boolean(showAllLinks)} {...actions}/>)}</div>
-  const groups = groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history)
-  return <div className="space-y-5" aria-label="Candidates by company and ship">{groups.map(company => <details key={company.id} open className="overflow-hidden rounded-xl border border-line">
-    <summary className="cursor-pointer bg-accent-soft text-accent-text px-4 py-3 font-semibold"><Building2 className="inline h-4 w-4 mr-2"/>Company · {company.name}</summary>
-    {company.ships.map(ship => <details key={ship.id} open className="border-t border-line">
-      <summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship className="inline h-4 w-4 mr-2"/>Ship · {ship.name}</summary>
-      {ship.candidates.map(({row,links}) => <CandidateRow key={row.id} row={row} links={links} showRequirements {...actions}/>)}
-    </details>)}
-  </details>)}</div>
+export default function CandidateDirectoryRows({ rows, attached, showAllLinks, fleet, filter, history, canAddNotes, onNotesSaved, ...actions }) {
+  const [noteRow, setNoteRow] = useState(null)
+  const withRequirements = attached || showAllLinks
+  const header = ['S.No.','Candidate ID','Candidate','Rank','CV',...(withRequirements ? ['Requirements'] : []),'Created','Modified','Notes','Actions']
+  let serial = 0
+  const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history) : []
+  return <>
+    <div className="tracker-table-wrap" aria-label="Candidates"><table className="tracker-table min-w-[1200px]">
+      <thead><tr>{header.map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+      <tbody>{attached ? groups.flatMap(company => [
+        <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={header.length} className="font-semibold">{company.name}</td></tr>,
+        ...company.ships.flatMap(ship => [
+          <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={header.length} className="font-medium">{ship.name}</td></tr>,
+          ...ship.candidates.map(({row,links}) => <CandidateRow key={`${ship.id}:${row.id}`} row={row} links={links} showRequirements number={++serial} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)
+        ])
+      ]) : rows.map(row => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={showAllLinks} number={++serial} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)}</tbody>
+    </table></div>
+    {noteRow && <DirectoryNotes kind={noteRow.isDraft ? 'draft' : 'candidate'} id={noteRow.id} label={recordDisplayId(noteRow, noteRow.name)} canAdd={canAddNotes && !noteRow.isArchived} onClose={() => setNoteRow(null)} onSaved={onNotesSaved} />}
+  </>
 }

@@ -3,8 +3,8 @@ import {test,expect} from '@playwright/test'
 import {createFleetFixture,fleetSession} from '../helpers/fleetFixture'
 async function fixture(page,{role='Recruiter',many=false}={}) {
  const base=createFleetFixture({role,operator:false})
- const form=(id,name,status='submitted',prospect='p1')=>({id,user_id:'applicant',prospect_id:prospect,reference_number:`FORM-${id}`,public_token:`synthetic-${id}`,submitted_at:'2026-11-10T10:00:00Z',status,applied_rank:'master',application_data:{data:{section1:{appliedForRank:'master',vesselType:'bulk_carrier'},section2:{firstName:name,nationality:'indian'}}}})
- const state={...base,applications:[form('a1','Alex'),form('a2','Jamie','hired','p2'),form('a3','Robin','withdrawn','p3'),{...form('draft','Draft'),submitted_at:null}],reads:[],writes:[],failTable:''}
+ const form=(id,name,status='submitted',prospect='p1')=>({id,display_id:`APP-${id}`,created_at:'2026-11-09T10:00:00Z',updated_at:'2026-11-10T10:00:00Z',user_id:'applicant',prospect_id:prospect,reference_number:`FORM-${id}`,public_token:`synthetic-${id}`,submitted_at:'2026-11-10T10:00:00Z',status,applied_rank:'master',application_data:{data:{section1:{appliedForRank:'master',vesselType:'bulk_carrier'},section2:{firstName:name,nationality:'indian'}}}})
+ const state={...base,applications:[form('a1','Alex'),form('a2','Jamie','hired','p2'),form('a3','Robin','withdrawn','p3'),{...form('draft','Draft'),submitted_at:null}],notes:[],reads:[],writes:[],failTable:''}
  state.cases=[{id:'case1',application_id:'a1',prospect_id:'p1',requirement_id:'R1',status:'interview_passed',cycle:1},{id:'case2',application_id:'a1',prospect_id:'p1',requirement_id:'CLOSED',status:'closed',cycle:2},{id:'case3',application_id:'a1',prospect_id:'p1',requirement_id:'R3',status:'hired',cycle:1},{id:'unrelated',application_id:null,prospect_id:'p2',requirement_id:'R2',status:'sourced'}]
  if(many)for(let i=4;i<=24;i++)state.applications.push(form(`a${i}`,`Person ${i}`))
  await page.addInitScript(session=>localStorage.setItem('njord-auth-token',JSON.stringify(session)),fleetSession())
@@ -19,7 +19,18 @@ async function fixture(page,{role='Recruiter',many=false}={}) {
   if(table==='applications' && state.delayNextApplication){state.delayNextApplication=false;await new Promise(resolve=>setTimeout(resolve,750))}
   if(state.failTable===table)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic lookup failed'})})
   let result
-  if(table==='profiles'&&url.searchParams.get('id')?.startsWith('in.'))result={status:200,body:[{id:'applicant',full_name:'Synthetic applicant',email:'synthetic@example.invalid'}]}
+  if(table==='directory_notes') {
+   if(req.method()==='POST') {
+    const payload=req.postDataJSON(),note={id:`note-${state.notes.length+1}`,...payload,created_at:new Date().toISOString()}
+    state.notes.push(note)
+    result={status:201,body:note}
+   } else {
+    const appId=url.searchParams.get('application_id')
+    const ids=appId?.startsWith('in.')?appId.slice(4,-1).split(','):null
+    result={status:200,body:state.notes.filter(note=>!appId||(ids?ids.includes(note.application_id):note.application_id===appId.slice(3)))}
+   }
+  }
+  else if(table==='profiles'&&url.searchParams.get('id')?.startsWith('in.'))result={status:200,body:[{id:'applicant',full_name:'Synthetic applicant',email:'synthetic@example.invalid'}]}
   else if(table==='applications'||table==='recruitment_cases'||['requirements','client_companies','client_ships'].includes(table)) {
    let rows=table==='applications'?state.applications:table==='recruitment_cases'?state.cases:table==='requirements'?state.requirements:table==='client_companies'?state.companies:state.ships
    for(const [key,filter] of url.searchParams){
@@ -39,21 +50,45 @@ async function fixture(page,{role='Recruiter',many=false}={}) {
 test.describe('Applications directory',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic server required')
  test.use({storageState:{cookies:[],origins:[]}})
+ test('application notes can be saved and reopened',async({page})=>{
+  const state=await fixture(page)
+  await page.goto('/recruiter/applications')
+  const row=page.getByRole('row').filter({hasText:'APP-a1'}).first()
+  await row.getByRole('button',{name:'Add note'}).click()
+  await page.getByLabel('Add note').fill('Call applicant before the next stage')
+  await page.getByRole('button',{name:'Save note'}).click()
+  await expect(page.getByText('Call applicant before the next stage').last()).toBeVisible()
+  await page.getByRole('button',{name:/Close notes/i}).click()
+  await row.getByRole('button',{name:/Call applicant before/}).click()
+  await expect(page.getByText('Call applicant before the next stage').last()).toBeVisible()
+  expect(state.notes).toHaveLength(1)
+  expect(state.notes[0].application_id).toBe('a1')
+ })
+ test('Coordinator can read application notes without a save control',async({page})=>{
+  const state=await fixture(page,{role:'Coordinator'})
+  state.notes.push({id:'note-existing',application_id:'a1',body:'Existing handover note',author_recruiter_id:'synthetic-user',created_at:'2026-11-10T10:00:00Z'})
+  await page.goto('/recruiter/applications')
+  const row=page.getByRole('row').filter({hasText:'APP-a1'}).first()
+  await row.getByRole('button',{name:/Existing handover note/}).click()
+  await expect(page.getByText('Existing handover note').last()).toBeVisible()
+  await expect(page.getByRole('button',{name:'Save note'})).toHaveCount(0)
+  expect(state.writes).toHaveLength(0)
+ })
  test('submitted forms group by exact fleet links; unlinked and closed forms remain visible',async({page})=>{
   const state=await fixture(page)
   await page.goto('/recruiter/applications?tab=unlinked')
   await expect(page.getByRole('status')).toContainText('3 submitted application')
   await expect(page.getByRole('group',{name:'Application view'})).toHaveCount(0)
-  await expect(page.getByRole('region',{name:'Applications needing correction'})).toContainText('2 submitted forms have no verified recruitment link')
   const groups=page.getByRole('region',{name:'Applications by company and ship'})
+  await expect(groups.getByRole('columnheader',{name:'Application ID'})).toHaveCount(1)
+  await expect(groups.getByRole('note',{name:/Recruitment link missing/})).toHaveCount(2)
   await expect(groups.getByText('Draft',{exact:true})).toHaveCount(0)
-  await expect(groups.getByRole('button',{name:'View application'})).toHaveCount(2)
+  await expect(groups.getByRole('button',{name:'View application'})).toHaveCount(4)
   await expect(groups.getByRole('link',{name:'SYN-CLOSED',exact:true})).toHaveAttribute('href','/recruiter/recruitment?case=case2')
   await expect(groups.getByRole('link',{name:'SYN-R2',exact:true})).toHaveCount(0)
   await expect(page.getByRole('group',{name:'Pipeline stage'})).toHaveCount(0)
   await expect(page.getByRole('button',{name:/Schedule Test|Mark as|Take over/})).toHaveCount(0)
-  const company=groups.locator('summary').filter({hasText:'Company · Northstar Shipping'})
-  await company.click()
+  await expect(groups.getByText('Northstar Shipping',{exact:true})).toBeVisible()
   await page.getByLabel('Search',{exact:true}).fill('SYN-R1')
   await expect(groups.getByText('Alex',{exact:true})).toHaveCount(1)
   await expect(groups.getByText('Alex',{exact:true})).toBeVisible()
@@ -87,9 +122,9 @@ test.describe('Applications directory',()=>{
   await expect(page.getByRole('status')).toContainText('3 submitted application')
   await expect(page.getByLabel(/Contract ends/)).toHaveCount(0)
   await expect(page.getByRole('link',{name:'Open recruitment',exact:true})).toHaveAttribute('href','/recruiter/recruitment?case=case3')
-  const corrections=page.getByRole('region',{name:'Applications needing correction'})
-  await expect(corrections.getByRole('link',{name:'Open recruitment',exact:true})).toHaveCount(0)
-  await corrections.getByRole('button',{name:'View application',exact:true}).first().click()
+  const correction=page.getByRole('row').filter({has:page.getByRole('note',{name:/Recruitment link missing/})}).first()
+  await expect(correction.getByRole('link',{name:'Open recruitment',exact:true})).toHaveCount(0)
+  await correction.getByRole('button',{name:'View application',exact:true}).click()
   await expect(page).toHaveURL(/\/application\/view\/synthetic-a2$/)
   expect(state.writes).toHaveLength(0)
  })
@@ -150,7 +185,7 @@ test.describe('Applications directory',()=>{
   await page.goto('/recruiter/applications')
   await expect(page.getByRole('status')).toContainText('24 submitted application')
   await page.getByRole('button',{name:'Next',exact:true}).last().click()
-  await expect(page.getByRole('region',{name:'Applications needing correction'}).getByRole('button',{name:'View application'})).toHaveCount(4)
+  await expect(page.getByRole('region',{name:'Applications by company and ship'}).getByRole('note',{name:/Recruitment link missing/})).toHaveCount(4)
   await page.getByLabel('Search',{exact:true}).fill('Jamie')
   await expect(page.getByRole('status')).toContainText('1 submitted application')
   await expect(page.getByText('Jamie',{exact:true})).toBeVisible()

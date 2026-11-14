@@ -1,5 +1,20 @@
 # Platform Test Plan
 
+## Shared recruiter directories (2026-11-14)
+
+Run `supabase/tests/directory_ids_and_notes.sql` in an isolated PostgreSQL or
+PGlite database. Verify backfill/new IDs, immutability, note visibility and
+Coordinator write denial. Run `applicationDirectory.test.mjs`,
+`kpiTracker.test.mjs`, and `recruitmentWorkspace.test.mjs` with Node. On the
+synthetic local server, run `ai-sidebar.spec.js`, `fleet-directory.spec.js`,
+`candidate-directory.spec.js`, `recruitment-workspace.spec.js`, and
+`applications-directory.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1` and
+`--no-deps`. Cover blank Requirements headers, note save/reopen, Coordinator
+read-only access, takeover, link exceptions and mobile navigation. Finish with
+lint/build. For release, apply the migration before deploying the frontend and
+check representative live rows and role permissions without changing production
+test records.
+
 ## Problem reports (2026-11-13)
 
 Run `problem-reports.spec.js`, `startup.spec.js` and `ai-sidebar.spec.js` against a
@@ -55,7 +70,7 @@ persistent staging migration, real emailed magic link or deployed reissue Functi
 check. Those release checks require the approved coordinated deployment.
 
 
-## AI Search auto-hiding sidebar (2026-11-12)
+## AI Search auto-hiding sidebar (historical, superseded 2026-11-14)
 
 Run `ai-sidebar.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1`, a local Vite
 server configured with fake Supabase and `VITE_FEATURE_AI_SEARCH=on`, and

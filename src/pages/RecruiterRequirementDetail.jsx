@@ -103,7 +103,7 @@ export default function RecruiterRequirementDetail() {
         ] = await Promise.all([
           supabase
             .from('requirements')
-            .select('company_id, ship_id, location_reviewed_at, id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
+            .select('company_id, ship_id, location_reviewed_at, id, display_id, req_id_display, req_year_month, req_sequence, date_opened, date_closed, vessel_name, status, positions_required, target_days, owner_recruiter_id, customer_name, closure_reason, created_by_recruiter_id, created_at, updated_at, version, rank_id, vessel_type_id, archived_at, archive_reason, deleted_at')
             .eq('id', requirementId)
             .maybeSingle(),
           supabase
@@ -380,7 +380,7 @@ export default function RecruiterRequirementDetail() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
-            title={requirement.req_id_display}
+            title={requirement.display_id || requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
                 {!requirementMatchBlocker(requirement) && role !== 'Coordinator' && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match résumés</button>}

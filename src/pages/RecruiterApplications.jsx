@@ -15,6 +15,8 @@ import { applicationStatusLabel } from '../constants/applicationStatus'
 import { loadApplicationDirectory } from '../services/applicationDirectoryService'
 import { applicationPlacements, filterApplicationPlacements, groupApplicationPlacements, matchesLegacyApplicationStatus, readApplicationFilters } from '../utils/applicationDirectory'
 import { workStage } from '../utils/recruitmentWorkspace'
+import DirectoryNotes from '../components/recruiter/DirectoryNotes'
+import { dateCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
 
 import { Building2, Ship, Loader2, SlidersHorizontal, RefreshCw } from 'lucide-react'
 
@@ -110,33 +112,32 @@ export default function RecruiterApplications() {
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
-  const [notesByProspect, setNotesByProspect] = useState({})
+  const [notesByApplication, setNotesByApplication] = useState({})
+  const [noteApplication, setNoteApplication] = useState(null)
+  const [noteRevision, setNoteRevision] = useState(0)
 
   useEffect(() => {
-    const prospectIds = [...new Set(applications.map((app) => app.prospect_id).filter(Boolean))]
-    if (prospectIds.length === 0) {
-      setNotesByProspect({})
+    const ids = [...new Set(applications.map((app) => app.id).filter(Boolean))]
+    if (ids.length === 0) {
+      setNotesByApplication({})
       return undefined
     }
     let cancelled = false
-    supabase
-      .from('prospect_notes')
-      .select('prospect_id, body, created_at')
-      .in('prospect_id', prospectIds)
+    Promise.all(Array.from({length:Math.ceil(ids.length/100)},(_,index)=>supabase
+      .from('directory_notes')
+      .select('application_id,body,created_at')
+      .in('application_id', ids.slice(index*100,index*100+100))
       .order('created_at', { ascending: false })
-      .limit(500)
-      .then(({ data, error: notesError }) => {
-        if (cancelled || notesError) return
+      .limit(500))).then(results => {
+        if (cancelled) return
         const map = {}
-        for (const note of data || []) {
-          if (!map[note.prospect_id]) map[note.prospect_id] = note.body
-        }
-        setNotesByProspect(map)
+        for (const result of results) for (const note of result.data || []) if (!map[note.application_id]) map[note.application_id] = note
+        setNotesByApplication(map)
       })
     return () => {
       cancelled = true
     }
-  }, [applications])
+  }, [applications, noteRevision])
   
   useEffect(() => {
     if (!permLoading && canViewApplications()) {
@@ -362,7 +363,7 @@ const updateContractEndDate = async (applicationId, value) => {
   const pageRows = listed.filter(r => idsOnPage.has(r.application.id))
   const groups = groupApplicationPlacements(pageRows.filter(r => r.links.length))
   const corrections = pageRows.filter(r => !r.links.length)
-  const correctionCount = new Set(listed.filter(r => !r.links.length).map(r => r.application.id)).size
+  let serial = (page - 1) * itemsPerPage
   const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length
   const field = 'h-11 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm'
   const label = 'flex min-w-0 flex-col gap-1.5 text-sm'
@@ -373,29 +374,25 @@ const updateContractEndDate = async (applicationId, value) => {
   const shipOptions = options(shipScope, 'shipId', 'shipName')
   const requirementScope = shipScope.filter(r => !searchParams.get('ship') || r.shipId === searchParams.get('ship')).flatMap(r => r.links)
   const requirementOptions = options(requirementScope, 'requirement_id', 'requirementName')
-  const table = rows => <div className="overflow-x-auto"><table className="tracker-table table-fixed min-w-[960px] w-full">
-    <colgroup>{[23,21,15,12,14,15].map((width,i) => <col key={i} style={{width: `${width}%`}} />)}</colgroup>
-    <thead><tr>{['Candidate / application','Requirement','Applied for','Submitted','Document checks','Actions'].map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
-    <tbody className="[&_td]:break-words">{rows.map(({ id, application: app, links }) => <tr key={id}>
-      <td><p className="font-medium">{app.full_name}</p><p className="text-xs text-fg-muted">{app.reference_number || 'No reference'}</p>{notesByProspect[app.prospect_id] && <details className="mt-2 text-xs text-fg-muted"><summary className="cursor-pointer">Latest note</summary><p>{notesByProspect[app.prospect_id]}</p></details>}</td>
-      <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-warning">Recruitment link missing</span>}</td>
+  const tableRows = rows => rows.map(({ id, application: app, links }) => <tr key={id} className={!links.length ? 'directory-row--issue' : ''} title={!links.length ? 'Recruitment link missing. Verify the original invitation before correcting it.' : undefined}>
+      <td>{++serial}</td><td>{recordDisplayId(app, app.reference_number)}</td>
+      <td><p className="font-medium">{app.full_name}</p><p className="text-xs text-fg-muted">{app.reference_number || '—'}</p></td>
+      <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-warning" tabIndex={0} role="note" aria-label="Recruitment link missing. Verify the original invitation before correcting it." title="Verify the original invitation before correcting this link.">⚠ Link missing</span>}</td>
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
-      <td>{new Date(app.submitted_at).toLocaleDateString()}</td>
-      <td><ComplianceBadge status={app.compliance_status} /><p className="mt-1 text-xs text-fg-muted">Based on submitted form</p></td>
+      <td>{dateCell(app.submitted_at)}</td><td>{dateCell(app.created_at)}</td><td>{dateCell(latestRecordDate(app.updated_at, notesByApplication[app.id]?.created_at))}</td>
+      <td><ComplianceBadge status={app.compliance_status} /></td>
+      <td><button className="text-accent-text underline" onClick={() => setNoteApplication(app)}>{notesByApplication[app.id] ? <span title={notesByApplication[app.id].body}>{notesByApplication[app.id].body.slice(0,32)}{notesByApplication[app.id].body.length>32?'…':''}</span> : canEditApplications ? 'Add note' : 'View notes'}</button></td>
       <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`, { state: { from: location.pathname + location.search } })}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
         {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
-        {!links.length && <span className="text-xs text-fg-muted">Ask a recruiter to verify the original invitation and correct this link.</span>}
         {links.length > 1 && <span className="text-xs text-fg-muted">Choose a requirement to open recruitment.</span>}
         {canEditApplications && app.status === 'hired' && <label className="w-full min-w-0 text-xs text-fg-muted">Contract ends<input aria-label={`Contract ends for ${app.reference_number}`} type="date" className={`${field} mt-1`} value={app.contract_end_date || ''} onChange={event => updateContractEndDate(app.id,event.target.value)} /></label>}
       </div></td>
-    </tr>)}</tbody>
-  </table></div>
+    </tr>)
 
   return <div className="recruiter-shell">
     <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
     <div className="w-full min-w-0 space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
-      <p className="text-sm text-fg-muted">Review submitted forms. Open recruitment to manage stages and tasks.</p>
       <section aria-label="Application filters" className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
         <label className={label}>Company<select aria-label="Company" className={field} value={searchParams.get('company') || ''} onChange={e => setParam('company',e.target.value)}><option value="">All</option>{searchParams.get('company') && !companyOptions.some(([id]) => id === searchParams.get('company')) && <option value={searchParams.get('company')}>Unavailable selection</option>}{companyOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
@@ -407,14 +404,20 @@ const updateContractEndDate = async (applicationId, value) => {
       {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
       {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
         <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}{listed.length > uniqueIds.length ? ' Forms linked to multiple ships appear under each ship.' : ''}</p>
-        {!listed.length ? <p className="recruiter-panel p-6">No submitted applications match these filters.</p> : <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" className="space-y-5">{groups.map(company => <details key={company.id} open className="overflow-hidden rounded-xl border border-line">
-          <summary className="cursor-pointer bg-accent-soft px-4 py-3 font-semibold text-accent-text"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{`Company · ${company.name}`}<span className="ml-3 text-xs font-normal">{company.count} on this page</span></summary>
-          {company.ships.map(ship => <details key={ship.id} open className="border-t border-line"><summary className="cursor-pointer bg-raised px-4 py-3 font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />Ship · {ship.name}<span className="ml-3 text-xs font-normal">{ship.rows.length} on this page</span></summary>{table(ship.rows)}</details>)}
-        </details>)}</section>}
-        {corrections.length > 0 && <section aria-label="Applications needing correction" className="overflow-hidden rounded-xl border border-warning"><div className="p-4"><h2 className="font-semibold">Recruitment link needs correction</h2><p className="mt-1 text-sm text-fg-muted">{correctionCount} submitted {correctionCount === 1 ? 'form has' : 'forms have'} no verified recruitment link. Verify the original invitation before correcting the link.</p></div>{table(corrections)}</section>}
+        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]">
+          <thead><tr>{['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+          <tbody>{groups.flatMap(company => [
+            <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={11} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.name}</td></tr>,
+            ...company.ships.flatMap(ship => [
+              <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={11} className="font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />{ship.name}</td></tr>,
+              ...tableRows(ship.rows)
+            ])
+          ])}{tableRows(corrections)}</tbody>
+        </table>{!listed.length && <p className="p-5 text-sm text-fg-muted">No submitted applications match these filters.</p>}</section>
         {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} itemsPerPage={itemsPerPage} totalItems={uniqueIds.length} />}
       </>}
       {autoOpenInterviewForApp && canEditApplications && <InterviewSchedulingModal application={autoOpenInterviewForApp} onCancel={() => setAutoOpenInterviewForApp(null)} onScheduled={() => {setAutoOpenInterviewForApp(null);loadApplications(appliedFilters,{background:true})}} />}
+      {noteApplication && <DirectoryNotes kind="application" id={noteApplication.id} label={recordDisplayId(noteApplication, noteApplication.reference_number)} canAdd={canEditApplications} onClose={() => setNoteApplication(null)} onSaved={() => setNoteRevision(value => value + 1)} />}
     </div>
   </div>
 }

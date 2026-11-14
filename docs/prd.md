@@ -1,5 +1,18 @@
 # Holmes - Platform PRD
 
+## Shared recruiter directories (2026-11-14)
+
+Requirements, Candidates, Recruitment and Applications are shared organization
+lists for authorized recruiter-side users. Assignment and takeover govern who
+works a recruitment case or task; they do not hide the other recruiters' records.
+Each table has one persistent column header, current-view serial numbers,
+server-assigned type-specific record IDs, dates, and notes. Group headers carry
+company and ship names without repeating their labels. Application rows with
+missing verified recruitment links stay visible as highlighted exceptions with
+short hover/focus guidance. Candidate secondary actions are grouped under More.
+Coordinator does not see Companies & ships navigation. AI Search has a narrow
+Holmes icon rail on desktop and a mobile menu.
+
 ## In-app problem reporting (2026-11-13)
 
 Signed-in users can report a visible UI defect with two clicks: floating movable

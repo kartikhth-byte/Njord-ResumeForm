@@ -154,7 +154,7 @@ export default function RecruiterCandidatesPage() {
       if (dateFrom && (!contactedDay || contactedDay < dateFrom)) return false
       if (dateTo && (!contactedDay || contactedDay > dateTo)) return false
       if (query) {
-        const haystack = [row.name, row.email, row.telephone, row.rankName, row.vesselTypeName, row.requirementLabel, row.recruiterName, ...(row.attachedRequirements || []).flatMap(link => [link.requirement?.req_id_display, link.requirement?.customer_name, link.requirement?.vessel_name, fleet.companies.find(c => c.id === link.requirement?.company_id)?.name, fleet.ships.find(s => s.id === link.requirement?.ship_id)?.name])]
+        const haystack = [row.display_id, row.name, row.email, row.telephone, row.rankName, row.vesselTypeName, row.requirementLabel, row.recruiterName, ...(row.attachedRequirements || []).flatMap(link => [link.requirement?.display_id, link.requirement?.req_id_display, link.requirement?.customer_name, link.requirement?.vessel_name, fleet.companies.find(c => c.id === link.requirement?.company_id)?.name, fleet.ships.find(s => s.id === link.requirement?.ship_id)?.name])]
           .join(' ')
           .toLowerCase()
         if (!haystack.includes(query)) return false
@@ -282,7 +282,7 @@ export default function RecruiterCandidatesPage() {
               canChooseRecruiter={role === 'Master Recruiter'}
               requirementOptions={tracker.data.requirements
                 .filter((row) => row.status === 'open' && row.location_reviewed_at && row.ship_id && !row.archived_at && !row.deleted_at)
-                .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}`, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))}
+                .map((row) => ({ value: row.id, label: `${row.display_id || row.req_id_display} · ${row.customer_name || 'No customer'}`, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))}
               currentRecruiterId={profile?.id || user?.id || ''}
               canAttach={canAttachCandidates}
               canSave={canCreateCandidates}
@@ -314,7 +314,6 @@ export default function RecruiterCandidatesPage() {
         ) : (
         <>
         <div className="mt-6"><SegmentedControl options={[...(tab === 'all' ? [{value:'all',label:'All candidates'}] : []),{value:'unattached',label:'Unattached',count:tabCounts.unattached},{value:'attached',label:'Attached',count:tabCounts.attached}]} value={tab} onChange={value => setParams(previous => { const next = new URLSearchParams(previous); next.set('tab',value); ['company','ship','requirement','caseStage','stage','history'].forEach(key => next.delete(key)); next.set('view','current'); return next },{replace:true})}/></div>
-        <p className="mt-2 text-xs text-fg-muted">Counts show unique current candidates. Unattached includes people with previous cases but no active attachment.</p>
         {draftError && <p role="alert" className="mt-4 text-danger">{draftError}</p>}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-end gap-4">
@@ -335,17 +334,11 @@ export default function RecruiterCandidatesPage() {
             <button type="button" className="text-sm underline" onClick={() => setParams({tab,history,view:'current'},{replace:true})}>Clear filters</button>
           </section>}
 
-          {filteredRows.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No candidates match"
-            />
-          ) : (
-            <CandidateDirectoryRows key={`${tab}:${search}:${JSON.stringify(fleetFilter)}:${history}`} rows={filteredRows} attached={tab === 'attached'} showAllLinks={tab === 'all'} fleet={fleet} filter={fleetFilter} history={history}
+          <CandidateDirectoryRows key={`${tab}:${search}:${JSON.stringify(fleetFilter)}:${history}`} rows={filteredRows} attached={tab === 'attached'} showAllLinks={tab === 'all'} fleet={fleet} filter={fleetFilter} history={history}
               from={`${location.pathname}${location.search}`} canEdit={canEditCandidates} canAttach={canAttachCandidates}
+              canAddNotes={hasPermission('edit_prospect_notes')} onNotesSaved={tracker.reload}
               onEdit={row => {setShowForm(false);setBasicForm(row);window.scrollTo({top:0,behavior:'smooth'})}} onAttach={setAttachCandidate} onError={setExportError}/>
-
-          )}
+          {filteredRows.length === 0 && <EmptyState icon={Users} title="No candidates match" />}
 
           <p className="mt-4 text-xs text-fg-muted">
             {filteredRows.length} {filteredRows.length === 1 ? 'candidate' : 'candidates'} shown

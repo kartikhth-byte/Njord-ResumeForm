@@ -1,5 +1,19 @@
 # Decisions Log
 
+## 2026-11-14 — Shared directories and persistent AI Search rail
+
+Recruiters and managers use the existing shared organization records, with
+assignment and takeover handled in Recruitment. Directory rows show stable
+type-specific IDs (`REQ`, `CAN`, `CAN-D`, `REC`, `APP`) while UUIDs remain internal.
+The IDs are immutable and server-assigned. A serial number only reflects the
+current list order. Dates and editable notes are visible where they help handover;
+existing requirement/candidate note history and permissions are preserved.
+Application, recruitment-case, and pre-CV draft notes receive their own
+permission-checked history. Coordinator can read notes and lists but cannot add
+notes or manage companies/ships. AI Search retains a narrow Holmes icon rail on
+desktop; mobile uses the menu button. This supersedes the 2026-11-12 auto-hide
+navigation decision below.
+
 ## 2026-11-13 — AI Search for recruiter roles
 
 The owner approved expanding the existing operator-only AI Search rollout to

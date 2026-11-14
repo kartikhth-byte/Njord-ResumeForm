@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { isCaseTableMissing } from '../utils/recruitmentCase'
 
-const REQUIREMENT_COLUMNS = 'company_id, ship_id, location_reviewed_at, id, req_id_display, version, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, closure_reason, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, created_at, updated_at'
-const PROSPECT_COLUMNS = 'version, dob, needle_resume_id, id, name, email, telephone, lead_source, status, rank_applied_for_id, vessel_type_id, nationality_id, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, deleted_at, invited_at, claimed_at, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at'
+const REQUIREMENT_COLUMNS = 'company_id, ship_id, location_reviewed_at, id, display_id, req_id_display, version, date_opened, date_closed, vessel_name, vessel_type_id, rank_id, positions_required, target_days, customer_name, status, closure_reason, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, created_at, updated_at'
+const PROSPECT_COLUMNS = 'version, dob, needle_resume_id, id, display_id, name, email, telephone, lead_source, status, rank_applied_for_id, vessel_type_id, nationality_id, first_contacted_at, last_terminal_status, last_terminal_status_at, archived_at, deleted_at, invited_at, claimed_at, bounce_flag, created_by_recruiter_id, last_activity_at, created_at, updated_at'
 const JUNCTION_COLUMNS = 'id, prospect_id, requirement_id, status, submitted_at, customer_decided_at, joined_at, withdrawn_at, withdrawal_reason, assigned_by_recruiter_id, last_transition_by_recruiter_id, created_at, updated_at'
-const APPLICATION_COLUMNS = 'id, prospect_id, user_id, applied_rank, status, submitted_at, reference_number, handling_recruiter_id, contract_end_date, created_at, updated_at'
+const APPLICATION_COLUMNS = 'id, display_id, prospect_id, user_id, applied_rank, status, submitted_at, reference_number, handling_recruiter_id, contract_end_date, created_at, updated_at'
 
 async function loadCaseRows(table, columns, orderColumn) {
   const rows = []
@@ -104,7 +104,7 @@ export default function useKpiTrackerData({ enabled = true } = {}) {
             .gte('scheduled_date', new Date().toISOString().slice(0, 10))
             .order('scheduled_date', { ascending: true })
             .limit(30),
-          loadCaseRows('recruitment_cases', 'id, prospect_id, requirement_id, application_id, application:applications!recruitment_cases_application_id_fkey(submitted_at), cycle, status, source, created_at, updated_at, version', 'updated_at'),
+          loadCaseRows('recruitment_cases', 'id, display_id, prospect_id, requirement_id, application_id, application:applications!recruitment_cases_application_id_fkey(submitted_at), cycle, status, source, created_at, updated_at, version', 'updated_at'),
           loadCaseRows('recruitment_case_events', 'id, case_id, event_type, from_status, to_status, actor_id, payload, created_at', 'created_at'),
         ])
 

@@ -37,7 +37,7 @@ export default function CandidateAttachmentDialog({ candidate, requirements, fle
       {candidate.attachedRequirements.length > 0 && <p className="text-sm text-fg-secondary">Previous attachments: {candidate.attachedRequirements.map(link => `${link.requirement?.req_id_display || 'Requirement'} (${link.stage})`).join(', ')}</p>}
       <label className="block text-sm">Open requirement<select className="mt-2 w-full rounded-control border border-line bg-surface p-3" required value={selected} disabled={busy} onChange={e => setSelected(e.target.value)}>
         <option value="">Choose company · ship · requirement</option>
-        {eligible.map(r => <option key={r.id} value={r.id}>{fleet.companies.find(c => c.id === r.company_id)?.name} · {fleet.ships.find(s => s.id === r.ship_id)?.name} · {r.req_id_display}</option>)}
+        {eligible.map(r => <option key={r.id} value={r.id}>{fleet.companies.find(c => c.id === r.company_id)?.name} · {fleet.ships.find(s => s.id === r.ship_id)?.name} · {r.display_id || r.req_id_display}</option>)}
       </select></label>
       {!eligible.length && <p>No eligible open requirements. Existing active attachments are excluded.</p>}
       {error && <p role="alert" className="text-danger">{error}</p>}

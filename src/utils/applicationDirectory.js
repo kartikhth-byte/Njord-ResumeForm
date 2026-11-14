@@ -22,7 +22,7 @@ export function applicationPlacements(applications, context) {
         companyName: companies.get(companyId)?.name || 'Company not mapped',
         shipName: ships.get(shipId)?.name || 'Ship not mapped', links: [],
       })
-      placements.get(key).links.push({ ...row, requirementName: requirement?.req_id_display || 'Requirement unavailable' })
+      placements.get(key).links.push({ ...row, requirementName: requirement?.display_id || requirement?.req_id_display || 'Requirement unavailable' })
     }
     return [...placements.values()]
   })
@@ -34,7 +34,7 @@ export function filterApplicationPlacements(rows, { company = '', ship = '', req
     const links = requirement ? row.links.filter(c => c.requirement_id === requirement) : row.links
     if (requirement && !links.length) return []
     if (checks !== 'all' && row.application.compliance_status !== checks) return []
-    if (term && ![row.application.full_name, row.application.email, row.application.reference_number, row.application.desired_rank, row.companyName, row.shipName, ...links.map(c => c.requirementName)].some(value => String(value || '').toLowerCase().includes(term))) return []
+    if (term && ![row.application.display_id, row.application.full_name, row.application.email, row.application.reference_number, row.application.desired_rank, row.companyName, row.shipName, ...links.map(c => c.requirementName)].some(value => String(value || '').toLowerCase().includes(term))) return []
     return [{ ...row, links }]
   })
 }
