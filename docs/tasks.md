@@ -25,7 +25,8 @@
 - [x] Exact follow-up UI promotion `8cbb286`; Vercel and crewme.si bundle/version checks.
 - [x] Live capture checks for AI Search and the Recruitment panel: both previously missing surfaces now appear.
 - [x] Diagnose and locally fix clipped capture text: hidden font probe inherited block image styling. Page/frame/dialog pixel baselines and failure/retry cleanup pass.
-- [ ] Obtain exact approval, promote the font-probe fix and repeat live AI Search/Recruitment text-fidelity smoke.
+- [x] Exact approval and promotion of font-probe fix `3d948154`; Vercel success, public version and live Recruitment text-fidelity verified.
+- [ ] Complete live AI Search text-fidelity smoke with a normal permitted user session.
 - [x] Investigate Operator labelling and AI Search pilot restriction; owner approved the separate rollout above.
 
 Details: `PROBLEM_REPORTS_2026-11-13.md`.

@@ -1,8 +1,8 @@
 # Two-click problem reports — 2026-11-13
 
-Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed. Both live visual checks completed: AI Search and the native Recruitment panel now appear in capture. Some preview text remains clipped; overall capture fidelity is not fully passed.
+Status: approved base release `cada470324a69e3dd905eea2e8cfbb3a0caded49` deployed; backend and ordinary-page smoke passed. Capture follow-up `8cbb286fe6e27665a2bab624d6026412e8789a5f` is also deployed. Both live visual checks completed: AI Search and the native Recruitment panel now appear in capture. Font-baseline follow-up `3d948154` is deployed; Recruitment text passes live, with the AI Search text recheck still pending.
 
-## Text clipping follow-up — 2026-11-14 (local candidate)
+## Text clipping follow-up — 2026-11-14 (deployed; AI visual check pending)
 
 Root cause: html2canvas 1.4.1 measures font baselines using a hidden 1px image in
 its importing document. Tailwind's block-image reset moved that probe to another
@@ -20,9 +20,14 @@ Verification: 18/18 production-build capture checks and 17/17 adjacent AI/sideba
 and startup checks, lint and build pass. Pixel tests compare native browser text
 with captured page/frame/dialog text (1px difference after correction), and a
 render-failure test verifies cleanup and successful retry. Synthetic artifacts
-were visually inspected. No paid calls or production changes were made for this
-patch. Exact release approval and live AI Search/Recruitment text-fidelity smoke
-remain pending. The existing deployed surface/color checks above remain valid.
+were visually inspected. Local verification used no paid calls or production
+changes. The owner approved exact commit `3d948154`, promoted to
+main/Vercel deployment `9bquYYi893hww6cWx2voKEjzBeq4` (success). The public
+crewme.si bundle contains that exact commit. Live Recruitment capture now shows
+readable headings, task titles and body text; the preview was cancelled without
+upload. AI Search text-fidelity smoke awaits a normal permitted user session;
+the current Coordinator session correctly cannot enter AI Search. Private
+receipt/proof: `.local/capture-text-release-20261114/` in the Needle workspace.
 
 ## User flow
 

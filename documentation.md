@@ -35,8 +35,10 @@ public bundle/version checks pass. Browser control recovered and both live visua
 rechecks completed: AI Search content and the native Recruitment panel are now
 captured. The remaining text clipping has a locally verified font-probe fix (2026-11-14):
 18 capture checks and 17 adjacent browser checks, lint/build and independent
-review pass. This follow-up awaits exact release approval and live text-fidelity
-smoke; production capture fidelity is not yet fully passed. See
+review pass. Approved `3d948154` is deployed and the public version verified.
+Recruitment capture text passes live; AI Search text-fidelity smoke awaits a
+normal permitted user session. Production capture fidelity is not yet fully
+passed. See
 `docs/PROBLEM_REPORTS_2026-11-13.md` for evidence and backup limits.
 
 
