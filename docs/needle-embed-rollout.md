@@ -34,8 +34,12 @@ above addresses its documentation finding. Approved `181851cb` is now deployed
 on main/Vercel (Ready); the public bundle contains the exact release version and
 both production settings are verified as `on`. Live Operator AI Search entry and
 reload, footer label and account-menu organization role pass. Normal Master
-Recruiter smoke awaits a separate signed-in session. Normal Recruiter/Coordinator
-checks are not claimed from the synthetic fixtures. No paid model calls were made.
+Recruiter entry/reload passed on 2026-11-14 in the owner-provided Chrome session:
+its own empty project list and ordinary-user navigation were visible. Match
+résumés controls are present, with the closed-requirement guard correctly applied
+to all seven existing requirements. Actual matching was not repeated because no
+open requirement exists and this smoke is read-only. Normal Recruiter/Coordinator
+live checks are not claimed from the synthetic fixtures. No paid model calls were made.
 Private deployment evidence is in `.local/recruiter-ai-rollout-20261113/`.
 
 ## Current completion candidate — 2026-11-07

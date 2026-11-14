@@ -8,7 +8,9 @@
 - [x] Exact release approval and main/Vercel promotion `181851cb`; Vercel Ready and public version verified.
 - [x] Vercel production `VITE_FEATURE_AI_SEARCH=on` and Holmes `NEEDLE_AI_SEARCH_ACCESS=on` verified.
 - [x] Live Operator search entry/reload, footer label and account-menu organization role.
-- [ ] Live normal Master Recruiter search entry/reload and matching access; separate sign-in requested.
+- [x] Live normal Master Recruiter search entry/reload (2026-11-14); own project list and ordinary-user navigation verified.
+- [x] Master Recruiter matching controls visible and closed-requirement guard verified.
+- [ ] Repeat actual matching on an open requirement when available; all seven are closed, and this smoke was read-only.
 - [ ] Live normal Recruiter/Coordinator checks when their sessions are available; synthetic role checks passed.
 
 ## Problem reporting (2026-11-13)

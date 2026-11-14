@@ -12,8 +12,11 @@ in the account menu. Seventeen production-build browser checks, 21 Node checks
 review found no source blockers; its rollout-documentation clarification is
 incorporated. Approved commit `181851cb` is deployed on main/Vercel (Ready),
 and both production settings are verified as `on`. The live Operator label,
-account-menu organization role, AI Search load and reload pass. Normal Master
-Recruiter live smoke awaits a separate signed-in session; local Master/Recruiter
+account-menu organization role, AI Search load and reload pass. On 2026-11-14, normal Master Recruiter AI Search entry and reload passed
+in the owner-provided Chrome session. Its own empty project list and ordinary
+user navigation were visible. Match résumés controls are present; all seven
+requirements are closed and correctly prevent matching, so execution was not
+repeated. Normal Recruiter/Coordinator live sessions remain untested; their local
 checks passed. No paid model calls were made for this rollout.
 
 ## Problem reporting — deployed with capture follow-up (2026-11-13)
