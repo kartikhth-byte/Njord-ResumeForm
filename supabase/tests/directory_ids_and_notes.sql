@@ -22,7 +22,7 @@ create table public.prospects (id uuid primary key, organization_id uuid not nul
 create table public.resume_lead_drafts (id uuid primary key, organization_id uuid not null, name text, telephone text, email text,
   version integer default 1, created_by uuid, created_at timestamptz default now(), status text default 'draft');
 create table public.recruitment_cases (id uuid primary key, organization_id uuid not null);
-create table public.applications (id uuid primary key, prospect_id uuid references public.prospects(id));
+create table public.applications (id uuid primary key, prospect_id uuid references public.prospects(id), submitted_at timestamptz);
 create function public.recruitment_workspace_can_read(p_case uuid) returns boolean language sql stable security definer as $$
   select public.has_permission(auth.uid(), 'view_requirements') and exists (
     select 1 from public.recruitment_cases where id = p_case and organization_id = public.needle_pilot_organization_id())
@@ -42,8 +42,12 @@ insert into public.recruitment_cases(id, organization_id) values
 insert into public.applications(id, prospect_id) values
   ('00000000-0000-4000-8000-000000000015', '00000000-0000-4000-8000-000000000012'),
   ('00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000022');
+insert into public.applications(id, submitted_at) values
+  ('00000000-0000-4000-8000-000000000035', now()),
+  ('00000000-0000-4000-8000-000000000045', null);
 
 \ir ../migrations/2026111401_directory_ids_and_notes.sql
+\ir ../migrations/2026111402_directory_notes_for_legacy_applications.sql
 
 do $$ begin
   if (select display_id from public.requirements where id = '00000000-0000-4000-8000-000000000011') <> 'REQ-000001'
@@ -82,18 +86,26 @@ insert into public.directory_notes(case_id, body) values
   ('00000000-0000-4000-8000-000000000014', 'Recruitment note');
 insert into public.directory_notes(draft_id, body) values
   ('00000000-0000-4000-8000-000000000013', 'Draft note');
+insert into public.directory_notes(application_id, body) values
+  ('00000000-0000-4000-8000-000000000035', 'Unlinked submitted form note');
 do $$ begin
-  if (select count(*) from public.directory_notes) <> 3 then raise exception 'recruiter note visibility failed'; end if;
+  if (select count(*) from public.directory_notes) <> 4 then raise exception 'recruiter note visibility failed'; end if;
   begin
     insert into public.directory_notes(application_id, body) values
       ('00000000-0000-4000-8000-000000000025', 'Cross-organization note');
     raise exception 'cross-organization insert should fail';
   exception when insufficient_privilege then null;
   end;
+  begin
+    insert into public.directory_notes(application_id, body) values
+      ('00000000-0000-4000-8000-000000000045', 'Unsubmitted form note');
+    raise exception 'unsubmitted unlinked application insert should fail';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 select set_config('test.uid', '00000000-0000-4000-8000-000000000003', false);
 do $$ begin
-  if (select count(*) from public.directory_notes) <> 3 then raise exception 'Coordinator note visibility failed'; end if;
+  if (select count(*) from public.directory_notes) <> 4 then raise exception 'Coordinator note visibility failed'; end if;
   begin
     insert into public.directory_notes(application_id, body) values
       ('00000000-0000-4000-8000-000000000015', 'Denied');

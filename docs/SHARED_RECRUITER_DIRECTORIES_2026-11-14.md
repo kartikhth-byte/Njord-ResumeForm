@@ -37,7 +37,8 @@ Recruitment workspace; list visibility does not depend on assignment.
 
 - SQL migration applied successfully in an isolated PGlite instance using
   `supabase/tests/directory_ids_and_notes.sql`: existing/new IDs, immutability,
-  recruiter and Coordinator note visibility, and Coordinator insert denial.
+  recruiter and Coordinator note visibility, historical submitted forms without
+  a prospect, and Coordinator insert denial.
 - Synthetic browser suites: AI sidebar, fleet/Requirements, Candidates,
   Recruitment, and Applications, including application note save/reopen and
   Coordinator read-only access. External requests were intercepted.
@@ -45,19 +46,20 @@ Recruitment workspace; list visibility does not depend on assignment.
 
 ## Release preparation — 2026-11-15
 
-- Feature commit `bd8ec5b` was pushed to
+- Initial feature commit `bd8ec5b` was pushed to
   `origin/codex/holmes-shared-lists-20261114`; `origin/main` remains `c8857a3`.
-- Holmes staging `dwslhetniuzpyuspuomy` recorded migration `2026111401`.
-  An isolated migration workdir applied only that migration. Its CLI dry run and
-  post-apply migration list both confirmed the selection. No staging frontend
-  deployment or normal signed-in staging browser check has been completed.
+- Holmes staging `dwslhetniuzpyuspuomy` recorded migrations `2026111401` and
+  `2026111402`. Isolated migration workdir dry runs selected only these
+  migrations, one at a time. The second corrects note access for historical
+  submitted applications with no prospect. No staging frontend deployment or
+  normal signed-in staging browser check has been completed.
 - Staging has unrelated pending migrations `2026110222`, `2026111202`,
   `2026111203`, `2026111301`, and `2026111302`. The first is intentionally
   unapplied; the last has a separate Function/Vault release gate. None were
   applied as part of this staging check.
 - Holmes production `btbqdviuqcpauojmorvx` is unchanged. A read-only migration
-  list and isolated CLI dry run show only `2026111401` pending in the release
-  selection; intentionally unapplied `2026110222` is excluded.
+  list and isolated CLI dry run show only `2026111401` and `2026111402` in the
+  release selection. Intentionally unapplied `2026110222` remains excluded.
 - A schema-only staging dump could not run because the local Docker daemon was
   unavailable. The applied migration registry and isolated PGlite checks do not
   replace a signed-in staging browser check or a production backup/restore check.
@@ -67,8 +69,10 @@ Recruitment workspace; list visibility does not depend on assignment.
 1. Obtain exact production approval for this release. Take a fresh Holmes
    production backup and verify its isolated restore/counts before the schema
    change, following the established Holmes release gate.
-2. Apply only `supabase/migrations/2026111401_directory_ids_and_notes.sql` to
-   Holmes production. It backfills IDs and creates the note table/policies.
+2. Apply only `2026111401_directory_ids_and_notes.sql` and
+   `2026111402_directory_notes_for_legacy_applications.sql` to Holmes
+   production. They backfill IDs and create the note table/policies, including
+   historical submitted forms without a prospect.
 3. Promote the matching frontend commit to main/Vercel. The new selects and
    list RPC expect the migration; deploying the frontend first would break
    these lists.

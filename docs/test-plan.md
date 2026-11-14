@@ -3,7 +3,8 @@
 ## Shared recruiter directories (2026-11-14)
 
 Run `supabase/tests/directory_ids_and_notes.sql` in an isolated PostgreSQL or
-PGlite database. Verify backfill/new IDs, immutability, note visibility and
+PGlite database. Verify backfill/new IDs, immutability, note visibility,
+historical submitted forms without a prospect, cross-organization denial and
 Coordinator write denial. Run `applicationDirectory.test.mjs`,
 `kpiTracker.test.mjs`, and `recruitmentWorkspace.test.mjs` with Node. On the
 synthetic local server, run `ai-sidebar.spec.js`, `fleet-directory.spec.js`,
@@ -11,9 +12,9 @@ synthetic local server, run `ai-sidebar.spec.js`, `fleet-directory.spec.js`,
 `applications-directory.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1` and
 `--no-deps`. Cover blank Requirements headers, note save/reopen, Coordinator
 read-only access, takeover, link exceptions and mobile navigation. Finish with
-lint/build. For release, apply the migration before deploying the frontend and
-check representative live rows and role permissions without changing production
-test records.
+lint/build. For release, apply both directory migrations before deploying the
+frontend and check representative live rows and role permissions without
+changing production test records.
 
 ## Problem reports (2026-11-13)
 

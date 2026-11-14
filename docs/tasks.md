@@ -6,8 +6,11 @@
   concise issue guidance, Coordinator navigation and persistent AI Search rail.
 - [x] Synthetic browser checks, Node directory/workspace checks, migration SQL
   check, lint and build (see `SHARED_RECRUITER_DIRECTORIES_2026-11-14.md`).
-- [ ] Apply `2026111401_directory_ids_and_notes.sql` before the matching frontend
-  release; verify old and new records, note permissions and live role visibility.
+- [x] Apply `2026111401` and `2026111402` on Holmes staging; verify the migration
+  plan selects only these directory changes and rerun the isolated SQL test.
+- [ ] After exact approval and backup/restore check, apply both directory
+  migrations on Holmes production before the matching frontend release; verify
+  old and new records, note permissions and live role visibility.
 - [ ] Promote the reviewed branch through the normal Holmes release process.
 
 ## Operator résumé review (2026-11-14)
