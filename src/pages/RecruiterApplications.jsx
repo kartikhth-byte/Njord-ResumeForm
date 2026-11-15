@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
+import { registerListSessionCache } from '../lib/listSessionCache'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import { formatDisplayValue } from '../utils/formatUtils'
 import InterviewSchedulingModal from '../components/InterviewSchedulingModal'
@@ -54,6 +55,8 @@ const COMPLIANCE_STYLES = {
   amber: 'bg-warning-soft text-warning border-warning-line',
   green: 'bg-success-soft text-success border-success-line',
 }
+const APPLICATION_CACHE_MAX_AGE_MS = 60_000
+const applicationCache = registerListSessionCache(new Map())
 
 function complianceLabel(status) {
   return ({red: 'Action needed', amber: 'Check details', green: 'Checks clear'})[status] || 'Not checked'
@@ -74,7 +77,8 @@ export default function RecruiterApplications() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { user, profile, signOut } = useAuth()
+  const { user, session, profile, signOut } = useAuth()
+  const identityKey = user?.id && session?.expires_at ? `${user.id}:${session.expires_at}` : null
   const { canViewApplications, canManageApplications, loading: permLoading, role } = usePermissions()
   const canEditApplications = canManageApplications()
 
@@ -82,6 +86,7 @@ export default function RecruiterApplications() {
   const [autoOpenInterviewForApp, setAutoOpenInterviewForApp] = useState(null)
 
   const [loading, setLoading] = useState(true)
+  const [loadedFor, setLoadedFor] = useState(null)
   const [backgroundRefreshing, setBackgroundRefreshing] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [context, setContext] = useState({ cases: [], requirements: [], companies: [], ships: [] })
@@ -150,7 +155,7 @@ export default function RecruiterApplications() {
       loadApplications(readApplicationFilters(appliedFilterKey))
     }
     return () => { request.current += 1 }
-  }, [permLoading, user?.id, appliedFilterKey])
+  }, [permLoading, identityKey, appliedFilterKey])
 
   useEffect(() => { setCurrentPage(1) }, [searchParams, applications])
 
@@ -207,9 +212,18 @@ export default function RecruiterApplications() {
 
   const loadApplications = async (appliedFilters = {}, { background = false } = {}) => {
     const current = ++request.current
+    const cacheKey = identityKey ? `${identityKey}:${JSON.stringify(appliedFilters)}` : null
+    const cached = cacheKey && applicationCache.get(cacheKey)
+    const freshCache = cached && Date.now() - cached.at < APPLICATION_CACHE_MAX_AGE_MS
     setLoadError('')
     try {
-      if (background) {
+      if (!background && freshCache) {
+        setApplications(cached.applications)
+        setContext(cached.context)
+        setLoadedFor(identityKey)
+        setLoading(false)
+      }
+      if (background || freshCache) {
         setBackgroundRefreshing(true)
       } else {
         setLoading(true)
@@ -310,6 +324,11 @@ export default function RecruiterApplications() {
       if (current !== request.current) return
       setApplications(formattedData)
       setContext(snapshot)
+      setLoadedFor(identityKey)
+      if (cacheKey) {
+        applicationCache.set(cacheKey, { applications: formattedData, context: snapshot, at: Date.now() })
+        if (applicationCache.size > 10) applicationCache.delete(applicationCache.keys().next().value)
+      }
     } catch (error) {
       if (current === request.current) setLoadError(error.message || 'Could not load applications.')
     } finally {
@@ -329,6 +348,7 @@ const updateContractEndDate = async (applicationId, value) => {
     if (updateError) throw updateError
     const patch = (rows) => rows.map((row) => (row.id === applicationId ? { ...row, contract_end_date: value || null } : row))
     setApplications(patch)
+    for (const key of applicationCache.keys()) if (identityKey && key.startsWith(`${identityKey}:`)) applicationCache.delete(key)
   } catch (contractError) {
     console.error('Failed to update contract end date:', contractError)
     alert(`Could not save the contract end date${contractError?.message ? `: ${contractError.message}` : ''}`)
@@ -414,7 +434,7 @@ const updateContractEndDate = async (applicationId, value) => {
       </section>
       {statusFilter && <p className="text-sm text-fg-muted">Saved status filter: {applicationStatusLabel(statusFilter)} <button className="underline text-accent-text" onClick={() => setParam('status','')}>Clear status filter</button></p>}
       {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
-      {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
+      {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading || loadedFor !== identityKey ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
         <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}</p>
         <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship">
           <GroupedDirectoryTable label="Application groups" groups={groups} columns={['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions']} renderRows={tableRows} ungroupedRows={corrections} colWidths={[4, 8, 15, 9, 11, 7, 7, 7, 12, 9, 11]} tableClassName="applications-table" />

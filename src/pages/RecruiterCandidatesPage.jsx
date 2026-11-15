@@ -71,8 +71,8 @@ export default function RecruiterCandidatesPage() {
   const [notice, setNotice] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(() => ['company','ship','requirement','caseStage','stage','recruiter','from','to','rank'].some(key => params.has(key)))
   const rankFilter = params.get('rank') || ''
-  const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
-  const tracker = useKpiTrackerData({ enabled: !permLoading })
+  const fleet = useClientFleet({ includeArchived: true, includeVesselTypes: false, enabled: !permLoading })
+  const tracker = useKpiTrackerData({ enabled: !permLoading, scope: 'candidates' })
   useRefreshOnFocus(tracker.reload, !permLoading)
   const createButton = useRef(null)
   const restoreCreateFocus = useRef(false)
@@ -269,6 +269,8 @@ export default function RecruiterCandidatesPage() {
           )}
         />
 
+        {(tracker.refreshing || fleet.refreshing) && <p aria-live="polite" className="mt-2 text-xs text-fg-muted">Refreshing list…</p>}
+
         {notice ? (
           <div role="status" className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>
         ) : null}
@@ -326,7 +328,7 @@ export default function RecruiterCandidatesPage() {
             <button className="workspace-action-button workspace-action-button--secondary" aria-expanded={filtersOpen} aria-controls="candidate-filters" onClick={() => setFiltersOpen(v => !v)}>Filters</button>
           </div>
           {filtersOpen && <section id="candidate-filters" className="mb-5 space-y-4 rounded-control border border-line p-4" aria-label="Candidate filters">
-            {tab === 'attached' && <FleetRequirementFilter title="Company, ship and requirement" value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements} cases/>}
+            {tab === 'attached' && <FleetRequirementFilter title="Company, ship and requirement" value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements} fleet={fleet} cases/>}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="text-sm">Candidate status<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={viewFilter} onChange={e => setViewFilter(e.target.value)}>{VIEW_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
               <SelectField label="Present rank" searchable value={rankFilter} onChange={value => setParam('rank', value)} options={tracker.data.ranks.map(r => ({ value: r.id, label: r.name }))} placeholder="All ranks" />

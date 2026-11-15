@@ -53,7 +53,7 @@ export default function RecruiterRequirementsPage() {
   const [showForm, setShowForm] = useState(false)
   const [formBusy, setFormBusy] = useState(false)
   const [notice, setNotice] = useState('')
-  const tracker = useKpiTrackerData({ enabled: !permLoading })
+  const tracker = useKpiTrackerData({ enabled: !permLoading, scope: 'requirements' })
   const createButton = useRef(null)
   const restoreCreateFocus = useRef(false)
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function RecruiterRequirementsPage() {
     return STATUS_FILTERS.some((option) => option.value === value) ? value : 'open'
   })
   const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
-  const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
+  const fleet = useClientFleet({ includeArchived: true, includeVesselTypes: false, enabled: !permLoading })
   useRefreshOnFocus(() => { tracker.reload(); fleet.reload() }, !permLoading)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -223,6 +223,8 @@ export default function RecruiterRequirementsPage() {
             </div>
           )}
         />
+
+        {(tracker.refreshing || fleet.refreshing) && <p aria-live="polite" className="mt-2 text-xs text-fg-muted">Refreshing list…</p>}
 
         {notice ? (
           <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>

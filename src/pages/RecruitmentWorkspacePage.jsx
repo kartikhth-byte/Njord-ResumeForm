@@ -30,7 +30,7 @@ const when=value=>value?dateTimeCell(value):''
 export default function RecruitmentWorkspacePage() {
  const auth=useAuth(),{permissions,role,hasPermission}=usePermissions()
  const allowed=hasPermission('view_requirements'),canMove=hasPermission('edit_junction_status')
- const tracker=useKpiTrackerData({enabled:allowed}),work=useRecruitmentWork(allowed),fleet=useClientFleet({enabled:allowed,includeArchived:true})
+ const tracker=useKpiTrackerData({enabled:allowed,scope:'recruitment'}),work=useRecruitmentWork(allowed),fleet=useClientFleet({enabled:allowed,includeArchived:true,includeVesselTypes:false})
  const [params,setParams]=useSearchParams(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[edit,setEdit]=useState(null)
  const [caseBusy,setCaseBusy]=useState(false)
  const [noteCase,setNoteCase]=useState(null),[notesByCase,setNotesByCase]=useState({}),[noteRevision,setNoteRevision]=useState(0)
@@ -118,6 +118,7 @@ export default function RecruitmentWorkspacePage() {
  const groupingScope=['q','scope','stage','recruiter','company','ship','requirement','attention'].map(key=>params.get(key)||'').join('\u001f')
  return <div className="min-h-screen bg-raised"><RecruiterTopbar user={auth.user} profile={auth.profile} role={role} signOut={auth.signOut}/><main className="mx-auto max-w-7xl px-4 py-6 space-y-5">
   <PageHeader title="Recruitment" actions={<button className={button} onClick={reload}>Refresh</button>} />
+  {(tracker.refreshing||work.refreshing||fleet.refreshing)&&<p aria-live="polite" className="text-xs text-fg-muted">Refreshing list…</p>}
   {!allowed?<p role="alert">Your account cannot view recruitment.</p>:<>
   {(tracker.error||work.error||fleet.error||error)&&<p role="alert" className="text-danger">{error||work.error||tracker.error||fleet.error}</p>}
   <SegmentedControl label="Recruitment stage" value={selectedStage || ''} onChange={value=>set('stage',value)} options={[{value:'',label:'Active',count:all.filter(c=>!isCaseTerminal(c.status)).length},...WORK_STAGES.map(s=>({value:s,label:s,count:all.filter(c=>workStage(c.status)===s).length}))]} />

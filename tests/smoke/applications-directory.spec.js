@@ -17,6 +17,7 @@ async function fixture(page,{role='Recruiter',many=false}={}) {
   if(req.method()!=='GET' && !['is_platform_operator','logout'].includes(table))state.writes.push({table,method:req.method()})
   state.reads.push({table,query:Object.fromEntries(url.searchParams)})
   if(table==='applications' && state.delayNextApplication){state.delayNextApplication=false;await new Promise(resolve=>setTimeout(resolve,750))}
+  if(table==='applications' && state.blockApplication)await state.blockApplication
   if(state.failTable===table)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic lookup failed'})})
   let result
   if(table==='directory_notes') {
@@ -50,6 +51,19 @@ async function fixture(page,{role='Recruiter',many=false}={}) {
 test.describe('Applications directory',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic server required')
  test.use({storageState:{cookies:[],origins:[]}})
+ test('recent Applications list opens while its refresh is pending',async({page})=>{
+  const state=await fixture(page)
+  await page.goto('/recruiter/applications')
+  const row=page.getByRole('row').filter({hasText:'APP-a1'}).first()
+  await expect(row).toBeVisible()
+  await page.getByRole('button',{name:'Requirements'}).click()
+  await expect(page.getByRole('heading',{name:'Requirements'})).toBeVisible()
+  let release
+  state.blockApplication=new Promise(resolve=>{release=resolve})
+  await page.getByRole('button',{name:'Applications'}).click()
+  try { await expect(row).toBeVisible({timeout:3000}) }
+  finally { release();state.blockApplication=null }
+ })
  test('application notes can be saved and reopened',async({page})=>{
   const state=await fixture(page)
   await page.goto('/recruiter/applications')

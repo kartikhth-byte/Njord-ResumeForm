@@ -54,6 +54,56 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await expect(groups.getByRole('columnheader',{name:'Requirement ID'})).toHaveCount(await groups.locator('table').count())
     await page.screenshot({path:'test-results/requirements-aligned-desktop.png',fullPage:true,animations:'disabled'})
   })
+  test('list pages fetch only the tracker datasets they display',async({page})=>{
+    const state=await fixture(page)
+    const original=state.respond
+    const reads=[]
+    state.respond=(url,...args)=>{
+      if(url.pathname.startsWith('/rest/v1/')) reads.push(url.pathname.split('/').pop())
+      return original(url,...args)
+    }
+    await page.goto('/recruiter/requirements')
+    await expect(reqRow(page,'SYN-R1')).toBeVisible()
+    expect(reads).toContain('requirements')
+    for(const table of ['prospects','applications','prospect_notes','scheduled_events','recruitment_case_events']) expect(reads).not.toContain(table)
+
+    reads.length=0
+    await page.goto('/recruiter/candidates')
+    await expect(page.getByRole('heading',{name:'Candidates',exact:true})).toBeVisible()
+    expect(reads).toContain('prospects')
+    for(const table of ['requirement_remarks','scheduled_events']) expect(reads).not.toContain(table)
+
+    reads.length=0
+    await page.goto('/recruiter/recruitment')
+    await expect(page.getByRole('region',{name:'Recruitment by company and ship'})).toBeVisible()
+    expect(reads).toContain('recruitment_cases')
+    for(const table of ['ranks','vessel_types','prospect_requirements','applications','requirement_remarks','prospect_notes','scheduled_events']) expect(reads).not.toContain(table)
+  })
+  test('recent Requirements and company lists open while their refresh is pending',async({page})=>{
+    const state=await fixture(page)
+    await page.goto('/recruiter/requirements')
+    await expect(reqRow(page,'SYN-R1')).toBeVisible()
+    await page.getByRole('button',{name:'Companies & ships'}).click()
+    const company=page.getByRole('region',{name:'Northstar Shipping'}).getByRole('button',{name:/Northstar Shipping 2 ships/})
+    await expect(company).toBeVisible()
+    let releaseRequirements
+    const requirementsGate=new Promise(resolve=>{releaseRequirements=resolve})
+    await page.route('**/rest/v1/requirements*',async route=>{await requirementsGate;await route.fallback()})
+    await page.getByRole('button',{name:'Requirements',exact:true}).click()
+    try {
+      await expect(reqRow(page,'SYN-R1')).toContainText('1 / 2',{timeout:3000})
+      state.requirements[0].positions_required=3
+    }
+    finally { releaseRequirements() }
+    await expect(reqRow(page,'SYN-R1')).toContainText('1 / 3')
+
+    let releaseCompanies
+    const companiesGate=new Promise(resolve=>{releaseCompanies=resolve})
+    await page.route('**/rest/v1/client_companies*',async route=>{await companiesGate;await route.fallback()})
+    await page.getByRole('button',{name:'Companies & ships'}).click()
+    try { await expect(company).toBeVisible({timeout:3000}) }
+    finally { releaseCompanies() }
+  })
   test('requirement detail opens the exact shared record',async({page})=>{
     const state=await fixture(page)
     const respond=state.respond

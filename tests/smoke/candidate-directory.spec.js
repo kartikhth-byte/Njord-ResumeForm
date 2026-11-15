@@ -18,6 +18,20 @@ const candidateRow=(page,name)=>page.getByRole('row').filter({hasText:name})
 test.describe('Candidate directory synthetic smoke',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic-only server required')
  test.use({storageState:{cookies:[],origins:[]}})
+ test('recent Candidates list opens while prospects refresh',async({page})=>{
+  await fixture(page)
+  await page.goto('/recruiter/candidates')
+  const tab=page.getByRole('tab',{name:/^Unattached/})
+  await expect(tab).toBeVisible()
+  await page.getByRole('button',{name:'Requirements'}).click()
+  await expect(page.getByRole('heading',{name:'Requirements'})).toBeVisible()
+  let release
+  const gate=new Promise(resolve=>{release=resolve})
+  await page.route('**/rest/v1/prospects*',async route=>{await gate;await route.fallback()})
+  await page.getByRole('button',{name:'Candidates'}).click()
+  try { await expect(tab).toBeVisible({timeout:3000}) }
+  finally { release() }
+ })
  test('legacy KPI drill-down includes attached candidates; active excludes archived',async({page})=>{
   const state=await fixture(page)
   state.prospects[0].first_contacted_at='2026-11-11T10:00:00Z'

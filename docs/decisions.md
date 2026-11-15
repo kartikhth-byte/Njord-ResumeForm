@@ -1,5 +1,16 @@
 # Decisions Log
 
+## 2026-11-15 — Shared list loading
+
+Requirements, Candidates, and Recruitment request only the tracker data used by
+their lists. Fleet lookups skip vessel types where the page already has them or
+does not show them. Recently opened lists keep a one-minute, in-memory snapshot
+for the same authenticated session, show it while refreshing, and replace it
+with the server result. Applications retains its separate linked-form loader
+and uses the same short-lived display cache. Clear all snapshots on sign-out or
+account switch. A cold Applications load still follows its linked-record reads;
+that path needs a measured backend query pass before further consolidation.
+
 ## 2026-11-15 — Directory grouping hierarchy
 
 Show Company → Ship as collapsible controls above each ship table's column header

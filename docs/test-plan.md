@@ -1,5 +1,13 @@
 # Platform Test Plan
 
+## Shared list loading (2026-11-15)
+
+Check cold Requirements, Candidates, and Recruitment requests contain only
+their required tracker datasets. Reopen each list, Applications, and Companies
+& ships while a refresh request is held: the prior session snapshot should be
+visible and marked as refreshing. Verify the server result replaces it, refresh
+failures remain visible, and account changes cannot display a prior user's list.
+
 ## Directory group controls (2026-11-15)
 
 For each of the four shared directories, verify that company and ship controls

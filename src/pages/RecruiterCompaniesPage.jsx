@@ -79,6 +79,7 @@ export default function RecruiterCompaniesPage() {
         <button type="button" disabled={!!editor} className={secondary} onClick={fleet.reload}><RefreshCcw className="h-4 w-4"/>Refresh</button>
         {canEdit && <button type="button" disabled={!!editor || fleet.loading || !!fleet.error} className="workspace-action-button workspace-action-button--primary disabled:opacity-50" onClick={event => begin({kind: 'company'}, event)}><Plus className="h-4 w-4"/>Add company</button>}
       </div>}/>
+      {fleet.refreshing && <p aria-live="polite" className="mt-2 text-xs text-fg-muted">Refreshing list…</p>}
       {loading ? <p role="status" className="mt-6">Loading…</p> : !canRead ? <p role="alert" className="mt-6">You do not have access to the company directory.</p> : <>
         {notice && <p role="status" className="mt-4 text-sm text-success">{notice}</p>}
         {fleet.error && <p role="alert" className="mt-4 text-danger">Could not refresh the directory. {fleet.error}</p>}

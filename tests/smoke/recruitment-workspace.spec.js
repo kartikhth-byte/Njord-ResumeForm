@@ -52,6 +52,20 @@ async function fixture(page,options={}) {
 test.describe('Recruitment workspace',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic server required')
  test.use({storageState:{cookies:[],origins:[]}})
+ test('recent Recruitment list opens while work assignments refresh',async({page})=>{
+  await fixture(page)
+  await page.goto('/recruiter/recruitment')
+  const groups=page.getByRole('region',{name:'Recruitment by company and ship'})
+  await expect(groups).toBeVisible()
+  await page.getByRole('button',{name:'Requirements'}).click()
+  await expect(page.getByRole('heading',{name:'Requirements'})).toBeVisible()
+  let release
+  const gate=new Promise(resolve=>{release=resolve})
+  await page.route('**/rest/v1/recruitment_work_assignments*',async route=>{await gate;await route.fallback()})
+  await page.getByRole('button',{name:'Recruitment'}).click()
+  try { await expect(groups).toBeVisible({timeout:3000}) }
+  finally { release() }
+ })
  test('company and ship controls precede their columns and filters reveal assigned work',async({page})=>{
   const state=await fixture(page)
   state.cases.push({id:'case5',prospect_id:'p2',requirement_id:'R2',status:'sourced',version:1},{id:'case6',prospect_id:'p2',requirement_id:'LEGACY',status:'sourced',version:1},{id:'case7',prospect_id:'p2',requirement_id:'R1',status:'hired',version:1})

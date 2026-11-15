@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { endNeedleSession } from '../../lib/needle'
+import { clearListSessionCaches } from '../../lib/listSessionCache'
 import { loadRecruiterAuthorization } from '../../lib/recruiterAuthorization'
 
 const AuthContext = createContext({})
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }) => {
   // Platform operator flag (platform_operators table), separate from roles.
   const [isOperator, setIsOperator] = useState(false)
   const hydratedSessionKeyRef = useRef(null)
+  const cachedUserIdRef = useRef(null)
 
   useEffect(() => {
     let mounted = true
@@ -248,6 +250,8 @@ export const AuthProvider = ({ children }) => {
       setSession(newSession)
 
       const currentUser = newSession?.user ?? null
+      if (cachedUserIdRef.current && cachedUserIdRef.current !== currentUser?.id) clearListSessionCaches()
+      cachedUserIdRef.current = currentUser?.id ?? null
       setUser(currentUser)
 
       if (mounted && !skipInitialLoading) {
@@ -371,6 +375,8 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     const clearLocalAuthState = () => {
       hydratedSessionKeyRef.current = null
+      cachedUserIdRef.current = null
+      clearListSessionCaches()
       setUser(null)
       setSession(null)
       setProfile(null)
