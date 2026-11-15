@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Calendar, Filter, SlidersHorizontal } from 'lucide-react'
 import { RANK_OPTIONS } from '../utils/rankOptions'
 import { VESSEL_TYPE_OPTIONS } from '../utils/vesselOptions'
+import { SelectField } from './recruiter/RecordFormFields'
 
 const COMMON_NATIONALITIES = [
   'indian', 'filipino', 'chinese', 'indonesian', 'russian', 'ukrainian',
@@ -123,15 +124,9 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <select aria-label="Rank" value={activeFilters.position || ''} onChange={event => updateFilter('position', event.target.value)} className={fieldClass}>
-            <option value="">Rank</option>
-            {RANK_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <SelectField label="Rank" searchable value={activeFilters.position || ''} onChange={value => updateFilter('position', value)} options={RANK_OPTIONS} placeholder="All ranks" />
 
-          <select aria-label="Vessel type" value={activeFilters.vesselType || ''} onChange={event => updateFilter('vesselType', event.target.value)} className={fieldClass}>
-            <option value="">Vessel Type</option>
-            {VESSEL_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <SelectField label="Vessel type" searchable value={activeFilters.vesselType || ''} onChange={value => updateFilter('vesselType', value)} options={VESSEL_TYPE_OPTIONS} placeholder="All vessel types" />
 
           <select aria-label="Nationality" value={activeFilters.nationality || ''} onChange={event => updateFilter('nationality', event.target.value)} className={fieldClass}>
             <option value="">Nationality</option>

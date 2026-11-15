@@ -45,11 +45,12 @@ authority, task ownership, and separate KPI attribution intact.
   the product also uses red for destructive actions and failures. A global
   colour reassignment needs a reviewed semantic and accessibility pass.
 - Fault 6: Rank and Vessel type are searchable in requirement and candidate
-  forms; the ship editor and candidate Rank filter now are too. The collapsed
-  Recruitment icon differs from Requirements, and the problem-report launcher
-  uses a bug icon instead of a plus. Dates are consistent in the reviewed shared
-  directories. Company → Ship grouping and explicit Refresh remain by product
-  decision; focus revalidation does not update an open tab continuously.
+  forms; the ship editor, candidate Rank filter, and Applications filters are
+  searchable too. The collapsed Recruitment icon differs from Requirements,
+  and the problem-report launcher uses a bug icon instead of a plus. Dates are
+  consistent in the reviewed shared directories. Company → Ship grouping and
+  explicit Refresh remain by product decision; focus revalidation does not
+  update an open tab continuously.
 
 ## Deliberate boundaries
 
@@ -82,3 +83,6 @@ browser cases, eight AI rail cases, three UI refinement cases and 18 problem
 report cases. The problem-report suite first failed because its test-only app
 version flag was absent and its Coordinator route still targeted Companies &
 ships; rerunning with the expected flag and current Coordinator route passed.
+The Applications search-filter follow-up passes lint, build, and two focused
+synthetic browser checks. An initial browser attempt was blocked by the macOS
+sandbox; the same checks passed when Chrome was allowed to start.
