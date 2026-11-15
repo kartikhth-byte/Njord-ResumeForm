@@ -13,13 +13,13 @@ explicit product choice from the agreed scope.
 
 | Agreed change | Screens / evidence | Status |
 | --- | --- | --- |
-| Shared organization lists visible independent of assignment; another recruiter can take over a case or task | Requirements, Candidates, Recruitment, Applications; directory and takeover browser checks | **Live partial** — a staging Recruiter saw rows assigned to another recruiter and took over an unassigned synthetic case; a second login has not checked the same rows |
-| Stable, type-specific IDs; row serials; one header per list; created/modified dates; notes | Four shared directories; `RequirementGroups`, `CandidateDirectoryRows`, Recruitment and Applications tables; directory smoke and isolated migration check | **Live partial** — existing staging records show `REQ-`, `CAN-`, `REC-`, and `APP-` IDs with headers/dates; new-record ID assignment and other roles remain unchecked |
-| Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live partial** — a Recruiter saved a requirement note on another owner's synthetic row and a note on an unlinked historical application; both read back. Coordinator live denial remains unchecked |
+| Shared organization lists visible independent of assignment; another recruiter can take over a case or task | Requirements, Candidates, Recruitment, Applications; directory and takeover browser checks | **Live partial** — Master Recruiter, Recruiter, and Coordinator now read identical staging row IDs; a Recruiter previously took over an unassigned case, but a two-account handoff has not been exercised |
+| Stable, type-specific IDs; row serials; one header per list; created/modified dates; notes | Four shared directories; `RequirementGroups`, `CandidateDirectoryRows`, Recruitment and Applications tables; directory smoke and isolated migration check | **Live partial** — all three roles read the same records and display IDs and see the ID column titles; new-record ID assignment remains unchecked |
+| Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live partial** — a temporary Master Recruiter note was visible to all three roles; a Coordinator note write was rejected by staging and its notes dialog was read-only. Requirement and application note save/reopen was checked earlier with a Recruiter |
 | Show Company and Ship names in group rows without redundant prefixes | Four shared directories; grouped-row browser checks | **Local pass** |
 | Candidate actions grouped under More; application link issue stays on its outlined row with hover/focus reason | Candidates and Applications; directory browser checks | **Local pass** |
 | Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live pending** — local flow passes, server-assigned IDs need a live readback |
-| Coordinator can read shared work but cannot manage companies/ships, add notes, or take over | Sidebar/routes, directory and Recruitment browser checks | **Live pending** — UI/fixture passes; live role and RLS check remains |
+| Coordinator can read shared work but cannot manage companies/ships, add notes, or take over | Sidebar/routes, directory and Recruitment browser checks | **Live pass for checked paths** — all four shared lists loaded; Companies & ships was absent from the sidebar, Take over was absent from Recruitment, the notes dialog was read-only, and staging rejected a note insert |
 | AI Search keeps each permitted user's own search context and a stable Holmes rail; Operator identity is clear | AI sidebar smoke; existing role rules | **Local pass** for navigation and role UI; per-login search context was not revalidated by this smoke |
 | Search long Rank and Vessel type lists | Requirement, candidate, ship editor, candidate filter, Applications filter, applicant Section 1; browser checks | **Local pass** for these entry points |
 | Search Company, Ship, Requirement, and recruiter selectors when the lists grow | Candidate attachment searches requirement ID; Applications, Recruitment, candidate/requirement filters, fleet forms, Home/KPI recruiter filters and assignment controls have search before selection | **Local pass** — the selected value remains available while the options are narrowed |
@@ -109,9 +109,10 @@ migrations.
   `kartikathome+holmes-master@gmail.com` (Master Recruiter) and
   `kartikathome+holmes-coordinator@gmail.com` (Coordinator). A read-only join of
   `auth.users`, `profiles`, `user_roles`, and `roles` confirmed the roles. The
-  owner needs to set working passwords; no credential was changed here. Staging
-  auth allows `http://localhost:3001/**`, and the matching local Vite frontend
-  is available there for recovery and sign-in.
+  owner would need to set working passwords to use those particular accounts;
+  no credential was changed here. The later temporary-account smoke used new
+  accounts instead. Staging auth allows `http://localhost:3001/**`, and the
+  matching local Vite frontend is available there for sign-in.
 - The detail audit aligned the candidate detail's requirement links, attachment
   selector, linked applications, and export with stable IDs. The application
   review's case selector and compliance heading, matching selector, candidate
@@ -122,10 +123,31 @@ migrations.
   assertion about native `<option>` visibility; KPI Node checks pass **28/28**,
   lint and build pass. Live role/data checks remain open.
 
+## Temporary-account cross-role smoke — 2026-11-15
+
+- With the owner's authorization, three temporary accounts were created in
+  Holmes staging for Master Recruiter, Recruiter, and Coordinator. Each signed
+  in through the current branch's local frontend against staging. All four
+  shared pages rendered ID column headers without access errors for each role.
+- API readback returned identical IDs across the three roles: 8 requirements,
+  11 candidates, 10 recruitment cases, and 7 applications. Every returned row
+  had a display ID. A Master Recruiter note on a recruitment case was visible
+  to all three roles. The test note was deleted after verification.
+- A separate temporary Coordinator session had no Companies & ships sidebar
+  entry or Recruitment Take over control; its notes dialog had no add form, and
+  staging rejected a direct note insert. All temporary Auth accounts were
+  verified deleted. No existing staging account was changed.
+- The browser check uses `http://127.0.0.1:3001` with staging credentials.
+  It does not yet verify a two-account takeover, server assignment of IDs to
+  newly created records, or the protected Vercel Preview in a signed-in
+  browser session.
+
 ## Release gate
 
-1. Put this branch's matching frontend on a staging-targeted origin and run
-   the live role/data checks above. Keep unrelated pending migrations deferred.
+1. Complete a signed-in browser check of the branch Vercel Preview and a
+   two-account takeover/new-record ID readback. The matching frontend is on a
+   staging-targeted Preview, and local cross-role staging checks pass. Keep
+   unrelated pending migrations deferred.
 2. Complete the remaining signed-in applicant/detail visual and copy review.
    Keep the existing semantic colors and seven-size theme unless specific
    screenshots show a better, accessible mapping.
