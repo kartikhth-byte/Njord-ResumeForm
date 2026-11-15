@@ -224,7 +224,7 @@ export default function RecruiterRequirementsPage() {
           )}
         />
 
-        {(tracker.refreshing || fleet.refreshing) && <p aria-live="polite" className="mt-2 text-xs text-fg-muted">Refreshing list…</p>}
+        {(tracker.refreshing || fleet.refreshing) && <p role="status" className="sr-only">Refreshing list…</p>}
 
         {notice ? (
           <div className="mt-6 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div>

@@ -62,7 +62,11 @@ test.describe('Applications directory',()=>{
   let release
   state.blockApplication=new Promise(resolve=>{release=resolve})
   await page.getByRole('button',{name:'Applications'}).click()
-  try { await expect(row).toBeVisible({timeout:3000}) }
+  try {
+   await expect(row).toBeVisible({timeout:3000})
+   await expect(page.getByText('Refreshing list…')).toHaveClass(/sr-only/)
+   await expect(page.getByText(/submitted applications match these filters/)).not.toContainText('Refreshing')
+  }
   finally { release();state.blockApplication=null }
  })
  test('unlinked rows reuse the visible ship header and gain one when ships collapse',async({page})=>{

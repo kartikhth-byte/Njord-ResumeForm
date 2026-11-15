@@ -92,16 +92,23 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await page.getByRole('button',{name:'Requirements',exact:true}).click()
     try {
       await expect(reqRow(page,'SYN-R1')).toContainText('1 / 2',{timeout:3000})
+      await expect(page.getByText('Refreshing list…')).toHaveClass(/sr-only/)
+      const rowTop=(await reqRow(page,'SYN-R1').boundingBox()).y
       state.requirements[0].positions_required=3
+      releaseRequirements()
+      await expect(reqRow(page,'SYN-R1')).toContainText('1 / 3')
+      expect((await reqRow(page,'SYN-R1').boundingBox()).y).toBe(rowTop)
     }
     finally { releaseRequirements() }
-    await expect(reqRow(page,'SYN-R1')).toContainText('1 / 3')
 
     let releaseCompanies
     const companiesGate=new Promise(resolve=>{releaseCompanies=resolve})
     await page.route('**/rest/v1/client_companies*',async route=>{await companiesGate;await route.fallback()})
     await page.getByRole('button',{name:'Companies & ships'}).click()
-    try { await expect(company).toBeVisible({timeout:3000}) }
+    try {
+      await expect(company).toBeVisible({timeout:3000})
+      await expect(page.getByText('Refreshing list…')).toHaveClass(/sr-only/)
+    }
     finally { releaseCompanies() }
   })
   test('requirement detail opens the exact shared record',async({page})=>{
