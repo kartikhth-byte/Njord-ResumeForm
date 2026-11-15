@@ -2,6 +2,10 @@
 
 ## Presentation-led Holmes UI refinement (2026-11-15)
 
+The current agreed-change checklist and smoke evidence are in
+`AGREED_CHANGE_CHECKLIST_2026-11-15.md`. Use its open items for the remaining
+app-wide audit and staging release gate.
+
 - [x] Apply shared control, table, date, empty-state, and record-action styling
   on the current shared-lists branch, preserving Company → Ship grouping.
 - [x] Refine Home, Calendar, Expiry, Operator, Settings, Login, and the four

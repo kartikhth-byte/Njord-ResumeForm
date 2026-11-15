@@ -2,6 +2,13 @@
 
 ## Presentation-led Holmes UI refinement (2026-11-15)
 
+Track agreed behavior, screen coverage, and live gaps against
+`AGREED_CHANGE_CHECKLIST_2026-11-15.md`. Include the synthetic KPI suite with
+`HOLMES_KPI_SYNTHETIC_SMOKE=1` and set `VITE_APP_VERSION=defect-report-test`
+for the problem-report browser suite. Run `application-review.spec.js` beside
+the four directories. `ui-refinement.spec.js` now checks an actionable Home
+link, Expiry filtering, a failed Login, Calendar, Operator, and Settings.
+
 Run lint/build and the synthetic `fleet-directory.spec.js`,
 `candidate-directory.spec.js`, `recruitment-workspace.spec.js`, and
 `applications-directory.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1` and
