@@ -1833,6 +1833,25 @@ body {
   color: rgb(var(--fg-secondary));
 }
 
+.applications-table {
+  min-width: 1576px;
+  table-layout: fixed;
+}
+
+.applications-table tbody td:nth-child(2),
+.applications-table tbody td:nth-child(4),
+.applications-table tbody td:nth-child(6),
+.applications-table tbody td:nth-child(7),
+.applications-table tbody td:nth-child(8),
+.applications-table tbody td:nth-child(10) {
+  white-space: nowrap;
+}
+
+.applications-table tbody td:nth-child(11) a,
+.applications-table tbody td:nth-child(11) button {
+  white-space: nowrap;
+}
+
 .tracker-pill {
   display: inline-flex;
   align-items: center;

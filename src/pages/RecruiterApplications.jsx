@@ -388,7 +388,7 @@ const updateContractEndDate = async (applicationId, value) => {
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
       <td>{dateCell(app.submitted_at)}</td><td>{dateCell(app.created_at)}</td><td>{dateCell(latestRecordDate(app.updated_at, notesByApplication[app.id]?.created_at))}</td>
       <td><ComplianceBadge status={app.compliance_status} summary={app.compliance_summary} /></td>
-      <td><button className="text-accent-text underline" onClick={() => setNoteApplication(app)}>{notesByApplication[app.id] ? <span title={notesByApplication[app.id].body}>{notesByApplication[app.id].body.slice(0,32)}{notesByApplication[app.id].body.length>32?'…':''}</span> : canEditApplications ? 'Add note' : 'View notes'}</button></td>
+      <td><button className="block max-w-full truncate text-accent-text underline" onClick={() => setNoteApplication(app)}>{notesByApplication[app.id] ? <span title={notesByApplication[app.id].body}>{notesByApplication[app.id].body.slice(0,32)}{notesByApplication[app.id].body.length>32?'…':''}</span> : canEditApplications ? 'Add note' : 'View notes'}</button></td>
       <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`, { state: { from: location.pathname + location.search } })}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
         {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
         {links.length > 1 && <span className="text-xs text-fg-muted">Choose a requirement to open recruitment.</span>}
@@ -400,18 +400,23 @@ const updateContractEndDate = async (applicationId, value) => {
     <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
     <div className="w-full min-w-0 space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
-      <section aria-label="Application filters" className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
-        <SearchableFilterSelect label="Company" className={label} selectClassName={field} value={searchParams.get('company') || ''} onChange={value => setParam('company', value)} options={companyOptions.map(([id,name]) => ({value:id,label:name}))} />
-        <SearchableFilterSelect label="Ship" className={label} selectClassName={field} value={searchParams.get('ship') || ''} onChange={value => setParam('ship', value)} options={shipOptions.map(([id,name]) => ({value:id,label:name}))} />
-        <SearchableFilterSelect label="Requirement" className={label} selectClassName={field} value={searchParams.get('requirement') || ''} onChange={value => setParam('requirement', value)} options={requirementOptions.map(([id,name]) => ({value:id,label:name}))} />
-        <label className={label}>Document checks<select aria-label="Document checks" className={field} value={complianceFilter} onChange={e => setParam('checks',e.target.value==='all'?'':e.target.value)}><option value="all">All</option>{['red','amber','green'].map(value => <option key={value} value={value}>{complianceLabel(value)}</option>)}</select></label>
+      <section aria-label="Application filters" className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
+          <label className={label}>Document checks<select aria-label="Document checks" className={field} value={complianceFilter} onChange={e => setParam('checks',e.target.value==='all'?'':e.target.value)}><option value="all">All</option>{['red','amber','green'].map(value => <option key={value} value={value}>{complianceLabel(value)}</option>)}</select></label>
+        </div>
+        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <SearchableFilterSelect label="Company" className={label} selectClassName={field} value={searchParams.get('company') || ''} onChange={value => setParam('company', value)} options={companyOptions.map(([id,name]) => ({value:id,label:name}))} />
+          <SearchableFilterSelect label="Ship" className={label} selectClassName={field} value={searchParams.get('ship') || ''} onChange={value => setParam('ship', value)} options={shipOptions.map(([id,name]) => ({value:id,label:name}))} />
+          <SearchableFilterSelect label="Requirement" className={label} selectClassName={field} value={searchParams.get('requirement') || ''} onChange={value => setParam('requirement', value)} options={requirementOptions.map(([id,name]) => ({value:id,label:name}))} />
+        </div>
       </section>
       {statusFilter && <p className="text-sm text-fg-muted">Saved status filter: {applicationStatusLabel(statusFilter)} <button className="underline text-accent-text" onClick={() => setParam('status','')}>Clear status filter</button></p>}
       {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
       {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
         <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}</p>
-        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" tabIndex={0} className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]">
+        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" tabIndex={0} className="tracker-table-wrap"><table className="tracker-table applications-table">
+          <colgroup>{[4, 8, 15, 9, 11, 7, 7, 7, 12, 9, 11].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
           <thead><tr>{['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{groups.flatMap(company => [
             <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={11} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.name}</td></tr>,
