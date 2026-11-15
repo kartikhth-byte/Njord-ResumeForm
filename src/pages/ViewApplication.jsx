@@ -595,7 +595,7 @@ export default function ViewApplication() {
                       <select className="mt-1 w-full rounded-control border border-line bg-surface p-2" value={selectedCaseId}
                         onChange={event => { const next = new URLSearchParams(searchParams); next.set('case', event.target.value); setSearchParams(next, { replace: true, state: location.state }) }}>
                         <option value="">Select a recruitment case</option>
-                        {reviewContext.cases.map(row => <option key={row.id} value={row.id}>{reviewContext.requirements.find(req => req.id === row.requirement_id)?.req_id_display || 'Requirement unavailable'} · Cycle {row.cycle || 1}</option>)}
+                        {reviewContext.cases.map(row => { const requirement = reviewContext.requirements.find(req => req.id === row.requirement_id); return <option key={row.id} value={row.id}>{requirement?.display_id || requirement?.req_id_display || 'Requirement unavailable'} · Cycle {row.cycle || 1}</option> })}
                       </select>
                     </label>}
                     {selectedCase ? <Link className="workspace-action-button workspace-action-button--secondary"

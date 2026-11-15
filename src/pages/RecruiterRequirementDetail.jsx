@@ -223,9 +223,9 @@ export default function RecruiterRequirementDetail() {
         sort: { field: 'updated_at', direction: 'desc' },
       })
       await downloadPdfReport({
-        filename: `requirement-${requirement.req_id_display}`,
+        filename: `requirement-${requirement.display_id || requirement.req_id_display}`,
         title: 'Requirement Snapshot',
-        subtitle: requirement.req_id_display,
+        subtitle: requirement.display_id || requirement.req_id_display,
         summaryItems: [
           { label: 'Customer', value: requirement.customer_name || 'Not provided' },
           { label: 'Status', value: requirement.status },
@@ -354,13 +354,13 @@ export default function RecruiterRequirementDetail() {
   }
 
   const onCancelRequirement = () => {
-    const reason = window.prompt(`Why is ${requirement.req_id_display} being cancelled?`)
+    const reason = window.prompt(`Why is ${requirement.display_id || requirement.req_id_display} being cancelled?`)
     if (reason === null) return
     runAction(() => setRequirementStatus(requirement, 'cancelled', reason), 'Requirement cancelled.')
   }
 
   const onDelete = () => {
-    if (!window.confirm(`Delete requirement ${requirement.req_id_display}? This is a restricted action.`)) return
+    if (!window.confirm(`Delete requirement ${requirement.display_id || requirement.req_id_display}? This is a restricted action.`)) return
     runAction(() => deleteRequirement(requirement, currentRecruiterId), 'Requirement deleted.', () => navigate('/recruiter/requirements'))
   }
 

@@ -39,7 +39,9 @@ explicit product choice from the agreed scope.
   Operator, Settings, Login error, and applicant form sections 1–19.
 - **Still requiring signed-in visual/copy review:** applicant sections 2–19 and
   detail states beyond the synthetic fixture. The route checks prove rendering,
-  not that every field and message is ideal with realistic data.
+  not that every field and message is ideal with realistic data. A source review
+  caught Section 2's duplicate section number, and synthetic detail checks found legacy
+  ID readouts in candidate/application details; those are corrected locally.
 - **Live staging partial:** the current branch ran locally against Holmes staging
   at `http://127.0.0.1:3000` with a normal Recruiter session. Master Recruiter
   and Coordinator sessions, two-user readback, Coordinator note/takeover denial,
@@ -92,6 +94,33 @@ migrations.
   prefer `display_id`, with legacy fallback for older fixtures. Focused synthetic
   KPI/Home browser checks pass **9/9**, KPI Node checks **27/27**, lint and build
   pass. This follow-up change has not had a second signed-in staging readback.
+
+## Staging readiness and detail follow-up — 2026-11-15
+
+- The Vercel branch preview for `b02a581` is Ready. Its preexisting
+  `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` variables are scoped to
+  **All Environments**. Branch-only overrides for `VITE_SUPABASE_URL` and
+  `VITE_SUPABASE_PUBLISHABLE_KEY` were added for
+  `codex/holmes-shared-lists-20261114`. After owner authenticator verification,
+  redeployment `ExEptuW8Nkmv9y6pa46goqDjPJYH` became Ready. Its built bundle
+  initializes Supabase with the staging project URL. Production settings were
+  not changed.
+- The staging Auth project has separate, confirmed, unbanned accounts for
+  `kartikathome+holmes-master@gmail.com` (Master Recruiter) and
+  `kartikathome+holmes-coordinator@gmail.com` (Coordinator). A read-only join of
+  `auth.users`, `profiles`, `user_roles`, and `roles` confirmed the roles. The
+  owner needs to set working passwords; no credential was changed here. Staging
+  auth allows `http://localhost:3001/**`, and the matching local Vite frontend
+  is available there for recovery and sign-in.
+- The detail audit aligned the candidate detail's requirement links, attachment
+  selector, linked applications, and export with stable IDs. The application
+  review's case selector and compliance heading, matching selector, candidate
+  export, KPI tracker, and requirement snapshot now prefer `display_id` with
+  legacy fallback. Applicant Section 2 now uses the same title style as the
+  other sections without repeating its section number. Focused synthetic
+  candidate/application browser checks pass **5/5** after correcting a test
+  assertion about native `<option>` visibility; KPI Node checks pass **28/28**,
+  lint and build pass. Live role/data checks remain open.
 
 ## Release gate
 

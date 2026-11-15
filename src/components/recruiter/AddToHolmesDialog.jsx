@@ -20,7 +20,7 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
       supabase.from('ranks').select('id,name').order('name'),
       supabase.from('vessel_types').select('id,name').order('name'),
       supabase.from('countries').select('id,name').order('name'),
-      supabase.from('requirements').select('id,req_id_display,status,version,rank_id,vessel_type_id').eq('status', 'open').not('location_reviewed_at','is',null).is('deleted_at', null).is('archived_at', null),
+      supabase.from('requirements').select('id,display_id,req_id_display,status,version,rank_id,vessel_type_id').eq('status', 'open').not('location_reviewed_at','is',null).is('deleted_at', null).is('archived_at', null),
     ]).then(([resumes, ranks, vessels, countries, requirements]) => {
       if ([ranks, vessels, countries, requirements].some(result => result.error)) throw new Error('Candidate options unavailable')
       if (inline && !requirements.data?.some(row => row.id === requirementId && row.version === requirementVersion)) throw new Error('Requirement changed or is no longer open. Close matching and refresh the requirement.')
@@ -32,7 +32,7 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
   const prefill = resume?.prefill || {}
   const comparable = value => String(value || '').toLowerCase().replaceAll('_', ' ').replace(/\s+/g, ' ').trim()
   const lookup = (rows, raw) => rows.find(row => comparable(row.name) === comparable(raw))?.id || ''
-  const requirementOptions = state.requirements.map(row => ({ value: row.id, label: row.req_id_display, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))
+  const requirementOptions = state.requirements.map(row => ({ value: row.id, label: row.display_id || row.req_id_display, version: row.version, rankId: row.rank_id, vesselTypeId: row.vessel_type_id }))
   const initial = resume ? withRequirementDefaults({ resume, name: prefill.full_name || '', email: prefill.email || '', telephone: normalizeResumePhone(prefill.phone),
     dob: /^\d{4}-\d{2}-\d{2}$/.test(prefill.dob || '') ? prefill.dob : '', nationalityId: lookup(state.countries, prefill.nationality),
     rankId: lookup(state.ranks, prefill.present_rank), requirementId: state.requirements.some(row => row.id === requirementId) ? requirementId : '',

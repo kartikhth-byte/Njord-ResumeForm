@@ -863,7 +863,7 @@ export function buildRequirementComplianceOverlay(applicationData = {}, requirem
       overlayType: 'requirement',
       requirementSummary: {
         requirementId: requirement.id || null,
-        requirementDisplayId: requirement.req_id_display || requirement.reqIdDisplay || 'Unknown requirement',
+        requirementDisplayId: requirement.display_id || requirement.req_id_display || requirement.reqIdDisplay || 'Unknown requirement',
         customerName: requirement.customer_name || requirement.customerName || null,
         nationalityPreferences: normalizedRequirementNationalities,
         applicantNationality: applicationData.section2?.nationality || null,

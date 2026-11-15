@@ -261,7 +261,7 @@ export function buildRequirementTrackerRows({
 
     return {
       ...requirement,
-      reqId: requirement.req_id_display,
+      reqId: requirement.display_id || requirement.req_id_display,
       ownerId: requirement.owner_recruiter_id || requirement.created_by_recruiter_id || null,
       vesselTypeName: lookupName(vesselTypes, requirement.vessel_type_id),
       rankName: lookupName(ranks, requirement.rank_id),
@@ -458,7 +458,7 @@ export function buildCandidateFunnelRows({
         stage: casesAvailable ? caseStatusMeta(item.status).label : (item.status || 'Attached'),
       })),
       requirementLabel: primaryRequirement
-        ? `${primaryRequirement.req_id_display}${requirementCount>1 ? ` +${requirementCount-1}` : ''}`
+        ? `${primaryRequirement.display_id || primaryRequirement.req_id_display}${requirementCount>1 ? ` +${requirementCount-1}` : ''}`
         : 'Unassigned',
       rankName: lookupName(ranks, prospect.rank_applied_for_id),
       vesselTypeName: lookupName(vesselTypes, prospect.vessel_type_id),

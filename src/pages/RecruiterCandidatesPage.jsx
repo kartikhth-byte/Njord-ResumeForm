@@ -198,7 +198,7 @@ export default function RecruiterCandidatesPage() {
         { label: 'Candidate Name', value: (row) => row.name },
         { label: 'Date Contacted', value: (row) => localDayString(row.contactedAt) },
         { label: 'Recruiter', value: (row) => row.recruiterName },
-        { label: 'Requirements', value: (row) => matchingCandidateLinks(row, tab === 'attached' ? fleetFilter : {}, tab === 'attached' ? history : 'all').map(link => `${link.requirement?.req_id_display || 'Historical requirement'} (${link.stage})`).join('; ') },
+        { label: 'Requirements', value: (row) => matchingCandidateLinks(row, tab === 'attached' ? fleetFilter : {}, tab === 'attached' ? history : 'all').map(link => `${link.requirement?.display_id || link.requirement?.req_id_display || 'Historical requirement'} (${link.stage})`).join('; ') },
         { label: 'Rank', value: (row) => row.rankName },
         { label: 'Vessel Type', value: (row) => row.vesselTypeName },
         { label: 'Current Stage', value: (row) => row.stage },

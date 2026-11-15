@@ -14,7 +14,7 @@ export async function loadApplicationReviewContext(client, application, { canRea
   ])
   const ids = [...new Set((cases || []).map(row => row.requirement_id).filter(Boolean))]
   const [requirements, nationalities] = ids.length ? await Promise.all([
-    read(client.from('requirements').select('id,req_id_display,customer_name,rank_id,vessel_type_id').in('id', ids)),
+    read(client.from('requirements').select('id,display_id,req_id_display,customer_name,rank_id,vessel_type_id').in('id', ids)),
     read(client.from('requirement_nationalities').select('requirement_id,country_id,countries(id,code,name)').in('requirement_id', ids)),
   ]) : [[], []]
   return { candidate, cases: cases || [], requirements: requirements || [], nationalities: nationalities || [] }

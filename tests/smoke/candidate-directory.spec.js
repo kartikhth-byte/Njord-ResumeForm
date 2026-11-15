@@ -92,6 +92,20 @@ test.describe('Candidate directory synthetic smoke',()=>{
   await page.getByRole('button',{name:'Filters',exact:true}).click()
   await page.screenshot({path:'test-results/candidates-attached-desktop.png',fullPage:true,animations:'disabled'})
  })
+ test('candidate detail uses stable requirement and application IDs',async({page})=>{
+  const state=await fixture(page)
+  state.requirements[0].display_id='REQ-000101'
+  const respond=state.respond
+  state.respond=(url,method,body)=>url.pathname.endsWith('/applications')
+    ? {status:200,body:[{id:'app1',prospect_id:'p1',display_id:'APP-000201',reference_number:'FORM-201',status:'submitted',created_at:'2026-11-15T00:00:00Z',public_token:'synthetic-token'}]}
+    : respond(url,method,body)
+  await page.goto('/recruiter/candidates?tab=attached')
+  await page.getByRole('link',{name:'Alex Morgan',exact:true}).first().click()
+  await expect(page.getByRole('heading',{name:'Alex Morgan',exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'REQ-000101',exact:true})).toBeVisible()
+  await expect(page.getByText('APP-000201',{exact:true})).toBeVisible()
+  await expect(page.getByText('FORM-201',{exact:true})).toHaveCount(0)
+ })
  test('CV availability gates attachment; one save moves candidate and survives reload',async({page})=>{
   const state=await fixture(page)
   await page.goto('/recruiter/candidates')

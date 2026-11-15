@@ -6,12 +6,19 @@ records; forms and attachment choices are searchable; Calendar, Expiry,
 Operator, Settings, and Login have clearer hierarchy and actions. Shared
 views refresh when a recruiter returns to the tab. Company → Ship grouping,
 stable IDs, notes, takeover, and separate KPI attribution remain intact. This
-UI pass adds no migration and is not deployed. See
+UI pass adds no migration and is not deployed to production. See
 `docs/UI_REFINEMENT_2026-11-15.md` for scope and test evidence.
 The follow-up also makes long Rank/Vessel type choices searchable in the ship
 editor and candidate filter, distinguishes the collapsed Recruitment icon, and
 relabels the report launcher. The presentation's five-size type scale and
-global colour/terminology pass remain open.
+global colour/terminology pass remain open. A follow-up detail audit aligned
+legacy requirement/application readouts with the stable IDs and unified the
+Section 2 applicant heading. The branch has a Ready Vercel preview and
+branch-only staging Supabase overrides. A redeployed Preview bundle was verified
+to initialize Supabase with the staging project URL.
+Existing staging Master and Coordinator accounts have
+correct roles but need working passwords for live smoke. See
+`docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
 
 # Shared recruiter directories — local implementation, 2026-11-14
 

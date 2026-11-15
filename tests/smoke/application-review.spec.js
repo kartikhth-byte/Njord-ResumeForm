@@ -6,6 +6,8 @@ import { createFleetFixture, fleetSession } from '../helpers/fleetFixture'
 async function fixture(page, { role = 'Recruiter', applicant = false, denied = false, multiple = false, cv = true } = {}) {
   const pdf = new jsPDF(); pdf.text('SYNTHETIC Application Review CV', 20, 20)
   const base = createFleetFixture({ role, operator: false })
+  base.requirements[0].display_id = 'REQ-000001'
+  base.requirements[1].display_id = 'REQ-000002'
   const data = { section1: { appliedForRank: 'master', vesselType: 'bulk_carrier' }, section2: { firstName: 'Synthetic', surname: 'Review', email: 'synthetic@example.invalid' }, section3: { passportNumber: 'SYNTHETIC' }, section16: { seaService: [{ vesselName: 'Synthetic Vessel', rank: 'master' }] }, section19: { agreedToTerms: true } }
   const app = { id: 'a1', prospect_id: 'p1', user_id: fleetSession().user.id, public_token: 'synthetic-review', reference_number: 'FORM-REVIEW', status: 'submitted', submitted_at: '2026-11-12T00:00:00Z', application_data: { data } }
   const state = { reads: [], writes: [], failTable: '', failCv: false, cases: [{ id: 'case1', application_id: 'a1', prospect_id: 'p1', requirement_id: 'R1', cycle: 1 }], cvCalls: [] }
@@ -54,7 +56,7 @@ test.describe('Submitted form review', () => {
     const state = await fixture(page, { role })
     await page.goto('/application/view/synthetic-review')
     await expect(page.getByRole('region', { name: 'Review findings', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Review findings · SYN-R1' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Review findings · REQ-000001' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Open recruitment', exact: true })).toHaveAttribute('href', '/recruiter/recruitment?case=case1')
     await expect(page.getByText('No review flags.', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Schedule|Reopen|Mark as|Handled by/ })).toHaveCount(0)
@@ -89,12 +91,13 @@ test.describe('Submitted form review', () => {
     await page.goto('/recruiter/applications?q=FORM-REVIEW')
     await page.getByRole('button', { name: 'View application', exact: true }).first().click()
     await expect(page.getByLabel('Linked recruitment')).toBeVisible()
+    await expect(page.getByLabel('Linked recruitment').getByRole('option', { name: 'REQ-000002 · Cycle 2' })).toHaveCount(1)
     await expect(page.getByRole('link', { name: 'Open recruitment' })).toHaveCount(0)
     await page.getByLabel('Linked recruitment').selectOption('case2')
     await page.reload()
     await expect(page.getByLabel('Linked recruitment')).toHaveValue('case2')
     await expect(page.getByRole('link', { name: 'Open recruitment' })).toHaveAttribute('href', '/recruiter/recruitment?case=case2')
-    await expect(page.getByRole('heading', { name: 'Review findings · SYN-R2' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Review findings · REQ-000002' })).toBeVisible()
     await page.getByRole('button', { name: 'Back', exact: true }).click()
     await expect(page).toHaveURL(/\/recruiter\/applications\?q=FORM-REVIEW$/)
   })

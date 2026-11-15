@@ -279,7 +279,7 @@ const autoCapitalize = (value) => {
     <div className="space-y-8">
       {/* Section Header */}
       <div>
-<h2 className="text-2xl font-semibold text-fg">Section 2: Personal & Contact Details</h2>
+        <h2 className="applicant-section-title">Personal and contact details</h2>
       </div>
 
       {/* Photo Upload */}

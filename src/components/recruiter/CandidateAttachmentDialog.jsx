@@ -37,7 +37,7 @@ export default function CandidateAttachmentDialog({ candidate, requirements, fle
     <form onSubmit={save} className="p-5 space-y-4">
       <p role="status">{checking ? 'Checking CV…' : readiness.label}</p>
       <button type="button" className="underline text-sm" disabled={busy} onClick={() => openCandidateResume(candidate.id, candidate.needle_resume_id).catch(f => setError(f.message))}>View CV</button>
-      {candidate.attachedRequirements.length > 0 && <p className="text-sm text-fg-secondary">Previous attachments: {candidate.attachedRequirements.map(link => `${link.requirement?.req_id_display || 'Requirement'} (${link.stage})`).join(', ')}</p>}
+      {candidate.attachedRequirements.length > 0 && <p className="text-sm text-fg-secondary">Previous attachments: {candidate.attachedRequirements.map(link => `${link.requirement?.display_id || link.requirement?.req_id_display || 'Requirement'} (${link.stage})`).join(', ')}</p>}
       <div className="text-sm"><label htmlFor="attachment-requirement-search">Open requirement</label><input id="attachment-requirement-search" type="search" className="mt-2 w-full rounded-control border border-line-input bg-surface p-3" placeholder="Search company, ship or requirement ID" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Open requirement" className="mt-2 w-full rounded-control border border-line-input bg-surface p-3" required value={selected} disabled={busy} onChange={e => { setSelected(e.target.value); setQuery('') }}>
         <option value="">Choose company · ship · requirement</option>
         {visible.map(r => <option key={r.id} value={r.id}>{requirementLabel(r)}</option>)}

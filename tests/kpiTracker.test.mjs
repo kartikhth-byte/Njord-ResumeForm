@@ -9,7 +9,7 @@ const day = (days) => d(days).slice(0, 10)
 const A = 'rec-a', B = 'rec-b'
 const recruiters = [{ id: A, full_name: 'Asha' }, { id: B, full_name: 'Ben' }]
 const requirements = [
-  { id: 'r1', req_id_display: 'R1', status: 'open', positions_required: 3, target_days: 30, date_opened: day(40), owner_recruiter_id: A, updated_at: d(20) },
+  { id: 'r1', display_id: 'REQ-000001', req_id_display: 'R1', status: 'open', positions_required: 3, target_days: 30, date_opened: day(40), owner_recruiter_id: A, updated_at: d(20) },
   { id: 'r2', req_id_display: 'R2', status: 'open', positions_required: 2, target_days: 30, date_opened: day(26), owner_recruiter_id: B, updated_at: d(1) },
   { id: 'r3', req_id_display: 'R3', status: 'open', positions_required: 1, target_days: 30, date_opened: day(5), created_by_recruiter_id: A, updated_at: d(5) },
   { id: 'r4', req_id_display: 'R4', status: 'closed', positions_required: 1, target_days: 30, date_opened: day(25), date_closed: day(2), owner_recruiter_id: A },
@@ -34,6 +34,7 @@ const candidateRows = buildCandidateFunnelRows({ prospects, junctions, requireme
 const eq = (name, got, want) => test(name, () => assert.deepEqual(got, want))
 const r1 = requirementRows.find((r) => r.id === 'r1')
 eq('r1 pipeline (rejected excluded)', r1.pipeline, { shortlisted: 1, withCustomer: 1, accepted: 0, joined: 1 })
+eq('stable requirement ID appears in tracker and candidate funnel', [r1.reqId, candidateRows.find((row) => row.id === 'p1').requirementLabel], ['REQ-000001', 'REQ-000001'])
 eq('r1 linked candidates include rejected links', r1.linkedCandidateCount, 4)
 eq('r3 has no linked candidates', requirementRows.find((r) => r.id === 'r3').linkedCandidateCount, 0)
 eq('r1 last activity = latest junction', r1.lastActivityAt, d(1))

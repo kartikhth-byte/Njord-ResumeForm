@@ -117,8 +117,8 @@ export default function RecruiterProspectDetail() {
             .from('applications')
             .select(
               canViewApplicationTokens
-                ? 'id, public_token, reference_number, status, submitted_at, created_at, updated_at, prospect_id'
-                : 'id, reference_number, status, submitted_at, created_at, updated_at, prospect_id'
+                ? 'id, public_token, display_id, reference_number, status, submitted_at, created_at, updated_at, prospect_id'
+                : 'id, display_id, reference_number, status, submitted_at, created_at, updated_at, prospect_id'
             )
             .eq('prospect_id', prospectId)
             .order('created_at', { ascending: false }),
@@ -157,7 +157,7 @@ export default function RecruiterProspectDetail() {
         if (requirementIds.length > 0) {
           const { data: fetchedRequirements, error: requirementError } = await supabase
             .from('requirements')
-            .select('id, req_id_display, status, customer_name, rank_id, vessel_type_id, positions_required, target_days, owner_recruiter_id, created_by_recruiter_id, updated_at, created_at')
+            .select('id, display_id, req_id_display, status, customer_name, rank_id, vessel_type_id, positions_required, target_days, owner_recruiter_id, created_by_recruiter_id, updated_at, created_at')
             .in('id', requirementIds)
           if (requirementError) throw requirementError
           requirementRows = fetchedRequirements || []
@@ -310,7 +310,7 @@ export default function RecruiterProspectDetail() {
     const linked = new Set(junctions.filter(row => !row.isCase || !isCaseTerminal(row.status)).map((junction) => junction.requirement_id))
     const { data, error: loadError } = await supabase
       .from('requirements')
-      .select('id, req_id_display, customer_name, status, archived_at, deleted_at')
+      .select('id, display_id, req_id_display, customer_name, status, archived_at, deleted_at')
       .eq('status', 'open')
       .order('date_opened', { ascending: false })
     if (loadError) {
@@ -320,7 +320,7 @@ export default function RecruiterProspectDetail() {
     setAttachValue('')
     setAttachOptions((data || [])
       .filter((row) => !row.archived_at && !row.deleted_at && !linked.has(row.id))
-      .map((row) => ({ value: row.id, label: `${row.req_id_display} · ${row.customer_name || 'No customer'}` })))
+      .map((row) => ({ value: row.id, label: `${row.display_id || row.req_id_display} · ${row.customer_name || 'No customer'}` })))
   }
 
   const onDelete = () => {
@@ -402,7 +402,7 @@ export default function RecruiterProspectDetail() {
     ]
 
     const linkedRequirementsTable = linkedRequirements.map((requirement) => [
-      requirement.req_id_display,
+      requirement.display_id || requirement.req_id_display,
       formatDisplayValue(requirement.customer_name || 'Customer not set'),
       requirement.status,
       formatDateTime(requirement.updated_at),
@@ -615,7 +615,7 @@ export default function RecruiterProspectDetail() {
                                       onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
                                       className="text-left hover:text-accent-text hover:underline"
                                     >
-                                      {requirement.req_id_display}
+                                      {requirement.display_id || requirement.req_id_display}
                                     </button>
                                   ) : junction.requirement_id}
                                 </h3>
@@ -702,7 +702,7 @@ export default function RecruiterProspectDetail() {
                     <option value="">Choose an eligible case</option>
                     {inviteCases.map((row) => (
                       <option key={row.id} value={row.id}>
-                        {linkedRequirementMap[row.requirement_id]?.req_id_display || 'Requirement'} · {caseStatusMeta(row.status).label}
+                        {linkedRequirementMap[row.requirement_id]?.display_id || linkedRequirementMap[row.requirement_id]?.req_id_display || 'Requirement'} · {caseStatusMeta(row.status).label}
                       </option>
                     ))}
                   </select>
@@ -777,7 +777,7 @@ export default function RecruiterProspectDetail() {
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-sm font-semibold text-fg">{application.reference_number}</p>
+                              <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
                               <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
                             </div>
                             <StatusBadge status={application.status} />
@@ -790,7 +790,7 @@ export default function RecruiterProspectDetail() {
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-sm font-semibold text-fg">{application.reference_number}</p>
+                              <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
                               <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
                             </div>
                             <StatusBadge status={application.status} />
