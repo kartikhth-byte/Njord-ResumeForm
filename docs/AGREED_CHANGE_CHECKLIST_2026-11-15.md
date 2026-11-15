@@ -282,3 +282,22 @@ migrations.
    that includes any required `1202`/`1203` dependencies, the two directory
    migrations, and the applicant ID correction. Promote the matching frontend
    only after its database dependencies, then perform production smoke.
+
+## Integration retest — 2026-11-15
+
+- The current branch head `1a8637d` has successful checks for both Vercel
+  deployments. This confirms deployment completion, not a live match. No
+  production release or database write was made in this retest.
+- A fresh Holmes staging inventory still found no `needle-integration`,
+  `resume-intake`, or `resume-index-dispatch` Function and no `NEEDLE_` or
+  `RESUME_INTAKE_` secret names. The paired Needle records also state that
+  there is no separate managed Needle staging service or database. The live
+  browser match and original-byte verification remain open until that isolated
+  service is provisioned and connected; pointing staging at production Needle
+  would not provide a valid staging test.
+- The local synthetic browser suite passed **101/101** across the shared
+  directories, matching modal, recruitment, applications, applicant invitation
+  and sections, AI rail, Operator, KPI, and presentation-led UI. Seven adjacent
+  Node suites passed **52/52**; lint and production build passed. One Node test
+  initially failed because it asserted the older held-upload copy. Its assertion
+  now checks the current exported hold message and the suite passes.
