@@ -18,7 +18,7 @@ explicit product choice from the agreed scope.
 | Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live partial** — a temporary Master Recruiter note was visible to all three roles; a Coordinator note write was rejected by staging and its notes dialog was read-only. Requirement and application note save/reopen was checked earlier with a Recruiter |
 | Show Company and Ship names in group rows without redundant prefixes | Four shared directories; grouped-row browser checks | **Local pass** |
 | Candidate actions grouped under More; application link issue stays on its outlined row with hover/focus reason | Candidates and Applications; directory browser checks | **Local pass** |
-| Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live partial** — local flow and staging ID allocator pass; the complete match/case/application path passed in a rolled-back staging transaction with synthetic source evidence, but a persistent browser run remains open |
+| Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live partial** — local flow and staging ID allocator pass; the complete match/case/application path passed in a rolled-back staging transaction with synthetic source evidence. Persistent applicant claim, draft, autosave, and submission now pass; an ordinary browser résumé match remains unchecked because staging has no suitable unattached original |
 | Coordinator can read shared work but cannot manage companies/ships, add notes, or take over | Sidebar/routes, directory and Recruitment browser checks | **Live pass for checked paths** — all four shared lists loaded; Companies & ships was absent from the sidebar, Take over was absent from Recruitment, the notes dialog was read-only, and staging rejected a note insert |
 | AI Search keeps each permitted user's own search context and a stable Holmes rail; Operator identity is clear | AI sidebar smoke; existing role rules | **Local pass** for navigation and role UI; per-login search context was not revalidated by this smoke |
 | Search long Rank and Vessel type lists | Requirement, candidate, ship editor, candidate filter, Applications filter, applicant Section 1; browser checks | **Local pass** for these entry points |
@@ -46,8 +46,9 @@ explicit product choice from the agreed scope.
   ID readouts in candidate/application details; those are corrected locally.
 - **Live staging partial:** later sections below record three-role shared-list
   readback, two-user takeover, Coordinator write denial, rolled-back new-record
-  IDs, and the signed-in branch Preview. A persistent browser match/invitation/
-  submission and uncommon populated detail states remain open.
+  IDs, the signed-in branch Preview, and a persistent applicant claim/draft/
+  submission. Ordinary browser résumé match, external invitation/email delivery,
+  and uncommon populated detail states remain open.
 
 ## Smoke result
 
@@ -178,7 +179,7 @@ migrations.
 
 ## Rolled-back end-to-end and populated-form follow-up — 2026-11-15
 
-- Staging currently has seven résumé registry rows: three ready sources with
+- Before the follow-up below, staging had seven résumé registry rows: three ready sources with
   originals, all already attached. The available open requirement with a
   reviewed location therefore cannot supply a new unattached original for an
   ordinary browser match. Migration history has `2026111401` and `2026111402`
@@ -205,21 +206,48 @@ migrations.
   select now displays an explicit saved-value option until the user chooses a
   current value. Six focused applicant browser checks, 19 adjacent validation
   checks, lint, and build pass.
-- A persistent browser match, invitation, draft creation, and submission remain
-  unchecked. The isolated directory release does not silently apply the
-  deferred `1202` and `1203` migrations.
+- At that point, persistent browser match, invitation, draft creation, and
+  submission remained unchecked. The isolated directory release did not
+  silently apply the deferred `1202` and `1203` migrations.
+
+## Persistent staging applicant smoke — 2026-11-15
+
+- With the owner's approval, applied exactly `2026111202` and `2026111203` to
+  Holmes staging in one transaction. A prior transaction dry run rolled back;
+  the committed readback confirmed both migration versions, the exact-case
+  application-start function, grants and triggers. The unrelated pending
+  migrations and production were untouched.
+- Used an existing synthetic candidate and case, one temporary applicant Auth
+  account, and a non-emailed invitation token. The browser redeemed the claim,
+  started a draft for that exact case, saved an edited field across reload, and
+  submitted `APP-000011` linked to `REC-000006`. The completed synthetic draft
+  satisfied the mandatory-section checks. The browser intercepted the
+  application email request, so no external message was sent.
+- The applicant dashboard displayed the legacy requirement reference
+  `2026-Nov-005` where the shared lists display `REQ-000003`. The
+  `get_applicant_claims()` function added by `1203` returns `req_id_display`;
+  it needs a subsequent migration to return the stable ID while retaining the
+  legacy reference where useful.
+- Deleted only the temporary application, claim, profile, Auth account, and
+  case event; restored the synthetic case and candidate fields. Final staging
+  readback found zero smoke application/claims/Auth users, the original case
+  status/version/event count, all three guards enabled, and unchanged totals
+  of 11 candidates, 10 cases, and 7 applications. The migration functions and
+  registry rows remain applied. This smoke does not prove original-PDF bytes,
+  ordinary browser résumé matching, or external email delivery.
 
 ## Release gate
 
-1. Decide whether the deferred `2026111202` and `2026111203` migrations should
-   be applied to staging for a persistent browser match/invitation/submission
-   smoke. The rolled-back flow passes, but the exact-case draft function is
-   absent from current staging. Keep the directory release migration plan
-   isolated until that decision.
+1. Correct the applicant claim response so its dashboard displays the stable
+   `REQ-` ID; verify the fix on staging. Complete an ordinary browser résumé
+   match when an unattached reviewed original is available, and separately
+   check external invitation/email delivery if that is in release scope.
 2. Review uncommon detail states with realistic synthetic data. Keep the
    existing semantic colors and seven-size theme unless specific screenshots
    show a better, accessible mapping.
 3. Before production schema changes, follow the Holmes release gate: exact
    approval, fresh production backup, and isolated restore/count verification.
-   Apply only `2026111401` and `2026111402`, then promote the matching frontend
-   and perform production smoke.
+   Recheck production migration history and prepare an explicit ordered plan
+   that includes any required `1202`/`1203` dependencies, the two directory
+   migrations, and the applicant ID correction. Promote the matching frontend
+   only after its database dependencies, then perform production smoke.

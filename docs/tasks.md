@@ -18,6 +18,14 @@ app-wide audit and staging release gate.
 - [x] Render authenticated applicant sections 1–19 with a synthetic staging
   draft populated across mandatory sections; visually review representative
   sections. See the checklist.
+- [x] Apply applicant invitation migrations `2026111202` and `2026111203` on
+  staging; verify a persistent browser claim, exact-case draft, autosave, and
+  submission with a disposable synthetic applicant, then remove only its data.
+- [ ] Return the stable `REQ-` display ID from `get_applicant_claims()` and
+  verify the applicant dashboard on staging. The current RPC returns the legacy
+  `req_id_display` reference despite the new directory ID.
+- [ ] Run an ordinary browser résumé match with a suitable unattached reviewed
+  original and verify external invitation/email delivery separately.
 - [ ] Review uncommon detail-screen visual/copy states. Keep the existing
   accessibility-reviewed seven-size theme and semantic failure/destructive
   colors pending a concrete alternative.

@@ -22,12 +22,18 @@ See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
 The cross-role shared-list and two-recruiter takeover checks now pass on
 staging. A rolled-back staging transaction also passed reviewed-résumé match,
 case creation, exact-case draft creation, and submission with new record IDs.
-A persistent browser run is still open because staging intentionally lacks
-older migrations `2026111202` and `2026111203`. A populated synthetic applicant
-draft rendered all 19 routes with mandatory sections populated; the original
-draft was restored. The shared form select now shows unsupported saved values
-explicitly, and the staging draft fixture uses current options and satisfies
-mandatory validation.
+With owner approval, `2026111202` and `2026111203` were applied to staging in
+one verified transaction. A temporary synthetic applicant then claimed a
+non-emailed invitation in the browser, started an exact-case draft, saved across
+reload, and submitted `APP-000011` linked to `REC-000006`. The application
+email request was intercepted; temporary applicant/application/claim data were
+removed and the synthetic case restored. The migration objects remain applied;
+production was untouched. A prior populated synthetic applicant draft also
+rendered all 19 routes with mandatory sections populated and was restored.
+The shared form select shows unsupported saved values explicitly. The browser
+smoke exposed one remaining ID gap: `get_applicant_claims()` returns the legacy
+requirement reference, so the applicant dashboard shows `2026-Nov-005` instead
+of `REQ-000003`. See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
 
 # Shared recruiter directories — local implementation, 2026-11-14
 
