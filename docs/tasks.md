@@ -24,9 +24,14 @@ app-wide audit and staging release gate.
 - [x] Return the stable `REQ-` display ID from `get_applicant_claims()` while
   retaining the legacy reference separately; apply `2026111501` and verify the
   applicant dashboard on staging after login and reload.
-- [ ] Run an ordinary browser résumé match with a suitable unattached reviewed
-  original and verify external invitation/email delivery separately. All three
-  currently ready staging originals are already linked to candidates.
+- [ ] Configure paired Needle staging integration, deploy `needle-integration`,
+  and run an ordinary browser résumé match with a fresh verified synthetic
+  original. Staging currently has no `needle-integration`/`resume-intake`
+  Function or `NEEDLE_` settings; all three ready originals are already linked.
+- [ ] Deploy the paired frontend and Function to staging, then verify
+  existing-case warnings use `REQ-` IDs in a signed-in requirement match.
+  Local bridge and browser regressions pass. Verify external invitation/email
+  delivery separately.
 - [ ] Review uncommon detail-screen visual/copy states. Keep the existing
   accessibility-reviewed seven-size theme and semantic failure/destructive
   colors pending a concrete alternative.

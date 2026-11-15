@@ -26,6 +26,9 @@ scratch runtime against `2026111501`. Assert that a claimed applicant sees the
 stable `REQ-` reference while the legacy reference remains available, and that
 other identities and ineligible cases remain excluded. Verify the same label in
 a signed-in staging applicant dashboard after login and reload.
+For the match dialog, verify `needle-integration` selects both `display_id` and
+the legacy reference on existing cases, then confirm the dialog shows `REQ-`
+IDs in the synthetic browser fixture and the deployed staging Function/UI pair.
 
 Run `supabase/tests/directory_ids_and_notes.sql` in an isolated PostgreSQL or
 PGlite database. Verify backfill/new IDs, immutability, note visibility,

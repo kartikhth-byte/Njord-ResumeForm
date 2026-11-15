@@ -257,13 +257,22 @@ migrations.
   candidates. The ordinary browser new-résumé match needs a fresh synthetic
   source with a real original-byte verification path. External invitation and
   application-email delivery were not exercised by these non-emailed smokes.
+- The match dialog's existing-case warning also used the older requirement
+  reference. The local Edge response now includes each case requirement's
+  `display_id`, and the dialog prefers it. The focused bridge check and
+  synthetic browser regression pass. A read-only staging inventory found no
+  `needle-integration` or `resume-intake` Function and no `NEEDLE_` secret names.
+  Live matching therefore needs a configured staging Needle service, the
+  paired Function deployment, and a fresh verified synthetic original. The
+  local Edge change has not been deployed to staging.
 
 ## Release gate
 
-1. Complete an ordinary browser résumé match after a fresh synthetic source
-   passes original-byte verification. Check external invitation/email delivery
-   separately if that is in release scope; the current staging smoke deliberately
-   generated no message.
+1. Configure the paired Needle staging service and Holmes integration Function,
+   then complete an ordinary browser résumé match with a fresh synthetic source
+   that passes original-byte verification. Check external invitation/email
+   delivery separately if that is in release scope; the current staging smoke
+   deliberately generated no message.
 2. Review uncommon detail states with realistic synthetic data. Keep the
    existing semantic colors and seven-size theme unless specific screenshots
    show a better, accessible mapping.

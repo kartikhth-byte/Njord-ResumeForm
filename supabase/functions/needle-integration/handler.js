@@ -163,7 +163,7 @@ export function integrationHandler({ admin, requester, authorize, sign, origin, 
           existing_candidate: person ? { id: person.id, name: person.name } : null }
       }))
       const people = [...new Set(rows.map(row => row.existing_candidate?.id).filter(Boolean))]
-      const cases = people.length ? checked(await client.from('recruitment_cases').select('id,prospect_id,requirement_id,status,requirements(req_id_display)').in('prospect_id', people)) || [] : []
+      const cases = people.length ? checked(await client.from('recruitment_cases').select('id,prospect_id,requirement_id,status,requirements(display_id,req_id_display)').in('prospect_id', people)) || [] : []
       return json({ stage_id: payload.stage_id, total: payload.total, offset: payload.offset,
         // Retain the owned path for older deployed callers during the rolling
         // release. The requirement modal does not display or navigate to it.

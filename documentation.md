@@ -39,6 +39,12 @@ checks, a guarded staging dry run, and a staging browser login/reload showing
 untouched. All three ready staging résumé originals are already linked to
 candidates, so a fresh verified synthetic original is needed for an ordinary
 browser new-résumé match. See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
+The local requirement-match dialog now also prefers stable `REQ-` IDs for
+existing-case warnings, with a matching Edge response field and focused tests.
+Read-only staging inventory found no `needle-integration` or `resume-intake`
+Function and no `NEEDLE_` secret names. The Edge/Frontend pair needs a
+configured Needle staging service, deployment and live readback before an
+ordinary browser résumé match can run.
 
 # Shared recruiter directories — local implementation, 2026-11-14
 

@@ -150,6 +150,22 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
   })
+  test('matching review shows stable requirement IDs for existing cases',async({page})=>{
+    const state=await fixture(page)
+    state.links['a'.repeat(64)]='p1'
+    state.cases[0].requirements={display_id:'REQ-000001',req_id_display:'SYN-R1'}
+    state.cases.push({id:'case2',prospect_id:'p1',requirement_id:'R2',status:'contacted',requirements:{display_id:'REQ-000002',req_id_display:'SYN-R2'}})
+    const respond=state.respond
+    state.respond=(url,...args)=>url.pathname.endsWith('/requirements') && url.searchParams.get('id')==='eq.R3'
+      ? {status:200,body:state.requirements[2]}
+      : respond(url,...args)
+    await page.goto('/recruiter/workspace/requirements/R3')
+    await page.getByRole('button',{name:'Match résumés',exact:true}).click()
+    const dialog=page.getByRole('dialog',{name:'Match résumés',exact:true})
+    await dialog.getByRole('button',{name:'Review Synthetic Match'}).click()
+    await expect(dialog.getByText('REQ-000002 · contacted')).toBeVisible()
+    await expect(dialog.getByText('SYN-R2 · contacted')).toHaveCount(0)
+  })
   test('review only saves nothing; reviewed attachment stays in modal and Candidates shows every requirement',async({page})=>{
     const state=await fixture(page)
     await page.goto('/recruiter/requirements')

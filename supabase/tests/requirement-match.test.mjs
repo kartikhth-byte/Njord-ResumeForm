@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { integrationHandler } from '../functions/needle-integration/handler.js'
 const hash='a'.repeat(64), reqId='00000000-0000-4000-8000-000000000002'
-let access={view:true,edit:true,search:true}, status='open', version=3, calls=[]
+let access={view:true,edit:true,search:true}, status='open', version=3, calls=[], caseSelects=[]
 const requirement=()=>({id:reqId,status,version,rank_id:'rank',vessel_type_id:'vessel',company_id:'company',ship_id:'ship',location_reviewed_at:'reviewed'})
 function query(table) {
- const data=table==='requirements'?requirement():table==='client_ships'?{id:'ship'}:table==='client_companies'?{id:'company'}:table==='ranks'?{name:'Chief Officer'}:table==='vessel_types'?{name:'Bulk Carrier'}:table==='requirement_nationalities'?[{countries:{name:'India'}}]:table==='recruitment_cases'?[{id:'case',prospect_id:'person',requirement_id:reqId,status:'sourced'}]:[]
- return {select(){return this},eq(){return this},is(){return this},in(){return this},maybeSingle(){return Promise.resolve({data})},then(resolve,reject){return Promise.resolve({data}).then(resolve,reject)}}
+ const data=table==='requirements'?requirement():table==='client_ships'?{id:'ship'}:table==='client_companies'?{id:'company'}:table==='ranks'?{name:'Chief Officer'}:table==='vessel_types'?{name:'Bulk Carrier'}:table==='requirement_nationalities'?[{countries:{name:'India'}}]:table==='recruitment_cases'?[{id:'case',prospect_id:'person',requirement_id:reqId,status:'sourced',requirements:{display_id:'REQ-000003',req_id_display:'2026-Nov-005'}}]:[]
+ return {select(columns){if(table==='recruitment_cases')caseSelects.push(columns);return this},eq(){return this},is(){return this},in(){return this},maybeSingle(){return Promise.resolve({data})},then(resolve,reject){return Promise.resolve({data}).then(resolve,reject)}}
 }
 const admin={auth:{getUser:async()=>({data:{user:{id:'normal-actor'}}})}}
 const handler=integrationHandler({admin,requester:()=>({from:query,rpc:async()=>({data:[{id:'person',name:'Synthetic',reason:'resume'}]})}),authorize:async()=>access,
@@ -23,6 +23,8 @@ assert.equal(matched.status,200)
 const result=await matched.json()
 assert.equal(result.rows[0].existing_candidate.id,'person')
 assert.equal(result.rows[0].cases[0].requirement_id,reqId)
+assert.equal(result.rows[0].cases[0].requirements.display_id,'REQ-000003')
+assert.ok(caseSelects.includes('id,prospect_id,requirement_id,status,requirements(display_id,req_id_display)'))
 assert.equal(result.rows[0].public_bucket,'relevant_candidate')
 assert.equal(result.path,'/search/private-project/chat');assert.equal('storage_ref' in result,false);assert.equal('storage_ref' in result.rows[0],false)
 assert.equal(calls.at(-1).body.rank,'Chief Officer');assert.deepEqual(calls.at(-1).body.nationalities,['India'])
