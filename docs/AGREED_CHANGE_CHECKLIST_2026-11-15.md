@@ -172,7 +172,9 @@ migrations.
   while list dates were formatted. The detail now formats date-only strings in
   its header and field rows with the shared directory formatter, including the
   Yellow Fever dates. Focused submitted-review browser smoke passes **10/10**.
-  The fix is on this branch and needs a fresh Preview deployment to appear there.
+  The fix was pushed as `61f04a4`; both Vercel deployment checks completed
+  successfully. The new build has synthetic browser coverage but has not had a
+  second signed-in Preview date readback.
 
 ## Release gate
 
