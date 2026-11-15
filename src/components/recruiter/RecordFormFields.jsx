@@ -20,13 +20,13 @@ export function TextField({ label, value, onChange, placeholder = '', type = 'te
   )
 }
 
-export function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false, searchable = false }) {
+export function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false, searchable = false, className = 'space-y-2 text-sm', controlClassName = '' }) {
   const [query, setQuery] = useState('')
   const matches = searchable && query.trim() ? options.filter(option => option.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) : options
   const selected = options.find(option => option.value === value)
   const visibleOptions = selected && !matches.some(option => option.value === value) ? [selected, ...matches] : matches
   return (
-    <div className="space-y-2 text-sm">
+    <div className={className}>
       <span className="block font-medium text-fg-secondary">
         {label}
         {required ? <span className="ml-1 text-danger">*</span> : null}
@@ -37,14 +37,14 @@ export function SelectField({ label, value, onChange, options, placeholder = 'Se
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={`Search ${label.toLowerCase()}`}
-        className="w-full rounded-control border border-line-input bg-surface px-4 py-2 text-sm focus-visible:ring-2 focus-visible:ring-accent"
+        className={`w-full rounded-control border border-line-input bg-surface px-4 py-2 text-sm focus-visible:ring-2 focus-visible:ring-accent ${controlClassName}`}
       />}
       <select
         aria-label={label}
         value={value}
         required={required}
         onChange={(event) => { onChange(event.target.value); setQuery('') }}
-        className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+        className={`w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30 ${controlClassName}`}
       >
         <option value="">{placeholder}</option>
         {visibleOptions.map((option) => (

@@ -72,6 +72,8 @@ test.describe('Recruitment workspace',()=>{
   // My work must include a task even when someone else owns the row.
   state.assignments=[{case_id:'case5',task_key:'case',assignee_id:'another-recruiter',version:1},{case_id:'case5',task_key:'interview',assignee_id:fleetUser.id,version:1}]
   await page.goto('/recruiter/recruitment')
+  const filterTops=await Promise.all([page.getByLabel('Search',{exact:true}),page.getByLabel('Work',{exact:true}),page.getByRole('searchbox',{name:'Search company'})].map(async field=>(await field.boundingBox()).y))
+  filterTops.forEach(top=>expect(Math.abs(top-filterTops[0])).toBeLessThan(1))
   const groups=page.getByRole('region',{name:'Recruitment by company and ship'})
   const company=groups.getByRole('button',{name:'Company: Northstar Shipping'})
   const ship=groups.getByRole('button',{name:'Ship: MV Aurora'})

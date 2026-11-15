@@ -83,7 +83,7 @@ export default function RecruiterCompaniesPage() {
       {loading ? <p role="status" className="mt-6">Loading…</p> : !canRead ? <p role="alert" className="mt-6">You do not have access to the company directory.</p> : <>
         {notice && <p role="status" className="mt-4 text-sm text-success">{notice}</p>}
         {fleet.error && <p role="alert" className="mt-4 text-danger">Could not refresh the directory. {fleet.error}</p>}
-        <label className="my-5 ml-auto block max-w-md text-sm"><span className="mb-1 block text-fg-muted">Find company or ship</span><input type="search" disabled={!!editor} value={query} onChange={e => setQuery(e.target.value)} className="w-full rounded-control border border-line-input bg-surface px-3 py-2"/></label>
+        <label className="my-5 block w-full max-w-md text-sm"><span className="sr-only">Find company or ship</span><input type="search" placeholder="Find company or ship" disabled={!!editor} value={query} onChange={e => setQuery(e.target.value)} className="h-11 w-full rounded-control border border-line-input bg-surface px-3 py-2"/></label>
         {editor?.kind === 'company' && !editor.record && <div className="mb-4">{renderEditor()}</div>}
         {fleet.loading ? <p role="status">Loading companies and ships…</p> : <div className="divide-y divide-line rounded-card border border-line bg-surface">
           {companies.map(company => {

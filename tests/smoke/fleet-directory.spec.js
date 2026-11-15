@@ -29,6 +29,17 @@ async function editDirectoryRecord(page,kind,name) {
 test.describe('Company directory and grouped requirements (synthetic only)',()=>{
   test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Requires synthetic-only Vite configuration')
   test.use({storageState:{cookies:[],origins:[]}})
+  test('company search starts at the left edge with its prompt inside the field',async({page})=>{
+    await page.setViewportSize({width:1440,height:900})
+    await fixture(page)
+    await page.goto('/recruiter/companies')
+    const search=page.getByRole('searchbox',{name:'Find company or ship'})
+    await expect(search).toHaveAttribute('placeholder','Find company or ship')
+    await expect(page.getByText('Find company or ship',{exact:true})).toHaveClass(/sr-only/)
+    const searchLeft=(await search.boundingBox()).x
+    const listLeft=(await page.getByRole('region',{name:'Northstar Shipping'}).boundingBox()).x
+    expect(Math.abs(searchLeft-listLeft)).toBeLessThan(2)
+  })
   test('Requirements keeps its column headers when no rows match',async({page})=>{
     await fixture(page)
     await page.goto('/recruiter/requirements')

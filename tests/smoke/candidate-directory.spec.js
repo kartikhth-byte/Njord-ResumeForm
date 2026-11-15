@@ -203,6 +203,19 @@ test.describe('Candidate directory synthetic smoke',()=>{
   await expect.poll(() => page.locator('.tracker-table-wrap').first().evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
   await page.screenshot({path:'test-results/candidates-wide-desktop.png',fullPage:true,animations:'disabled'})
  })
+ test('search prompt is inside the field and expanded filters align at the top',async({page})=>{
+  await page.setViewportSize({width:1440,height:900})
+  await fixture(page)
+  await page.goto('/recruiter/candidates')
+  const search=page.getByRole('searchbox',{name:'Search',exact:true})
+  await expect(search).toHaveAttribute('placeholder','Name, phone, rank, requirement…')
+  await expect(page.getByText('Search',{exact:true})).toHaveClass(/sr-only/)
+  await page.getByRole('button',{name:'Filters',exact:true}).click()
+  const fields=[page.getByRole('combobox',{name:'Candidate status'}),page.getByRole('searchbox',{name:'Search present rank'}),page.getByRole('searchbox',{name:'Search recruiter'})]
+  const tops=await Promise.all(fields.map(async field=>(await field.boundingBox()).y))
+  tops.forEach(top=>expect(Math.abs(top-tops[0])).toBeLessThan(1))
+  await page.screenshot({path:'test-results/candidate-filters-aligned.png',fullPage:true,animations:'disabled'})
+ })
  test('mobile groups and inline form fit viewport',async({page})=>{
   await page.setViewportSize({width:390,height:844})
   await fixture(page)

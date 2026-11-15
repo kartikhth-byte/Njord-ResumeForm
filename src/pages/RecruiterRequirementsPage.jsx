@@ -285,7 +285,7 @@ export default function RecruiterRequirementsPage() {
           </div>
           <div className="mb-4 grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1.3fr)_minmax(11rem,1fr)_minmax(10rem,0.8fr)_minmax(10rem,0.8fr)]">
               <label className="flex min-w-0 flex-col gap-1 text-sm">
-                <span className="block text-xs font-medium text-fg-muted">Search</span>
+                <span className="sr-only">Search</span>
                 <input
                   type="search"
                   value={search}

@@ -60,6 +60,7 @@ const LABELS = {
 export default function ApplicationFilters({ onFilterChange, onApplyFilters, activeFilters = {}, dateLabel = 'Date range', applyLabel = 'Search' }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const fieldClass = 'h-11 w-full rounded-card border border-line-input bg-surface px-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30'
+  const filterClass = 'flex min-w-0 flex-col gap-2 text-sm'
 
   const updateFilter = (key, value) => {
     const next = { ...activeFilters, [key]: value }
@@ -123,20 +124,24 @@ export default function ApplicationFilters({ onFilterChange, onApplyFilters, act
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <SelectField label="Rank" searchable value={activeFilters.position || ''} onChange={value => updateFilter('position', value)} options={RANK_OPTIONS} placeholder="All ranks" />
+        <div className="mt-4 grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SelectField label="Rank" searchable className={filterClass} controlClassName="h-11 min-w-0" value={activeFilters.position || ''} onChange={value => updateFilter('position', value)} options={RANK_OPTIONS} placeholder="All ranks" />
 
-          <SelectField label="Vessel type" searchable value={activeFilters.vesselType || ''} onChange={value => updateFilter('vesselType', value)} options={VESSEL_TYPE_OPTIONS} placeholder="All vessel types" />
+          <SelectField label="Vessel type" searchable className={filterClass} controlClassName="h-11 min-w-0" value={activeFilters.vesselType || ''} onChange={value => updateFilter('vesselType', value)} options={VESSEL_TYPE_OPTIONS} placeholder="All vessel types" />
 
-          <select aria-label="Nationality" value={activeFilters.nationality || ''} onChange={event => updateFilter('nationality', event.target.value)} className={fieldClass}>
-            <option value="">Nationality</option>
-            {COMMON_NATIONALITIES.map(option => <option key={option} value={option}>{option}</option>)}
-          </select>
+          <label className={filterClass}><span className="block font-medium text-fg-secondary">Nationality</span>
+            <select value={activeFilters.nationality || ''} onChange={event => updateFilter('nationality', event.target.value)} className={fieldClass}>
+              <option value="">All nationalities</option>
+              {COMMON_NATIONALITIES.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </label>
 
-          <select aria-label="Experience" value={activeFilters.experienceRange || ''} onChange={event => updateFilter('experienceRange', event.target.value)} className={fieldClass}>
-            <option value="">Experience</option>
-            {EXPERIENCE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <label className={filterClass}><span className="block font-medium text-fg-secondary">Experience</span>
+            <select value={activeFilters.experienceRange || ''} onChange={event => updateFilter('experienceRange', event.target.value)} className={fieldClass}>
+              <option value="">All experience</option>
+              {EXPERIENCE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
         </div>
 
         {chips.length > 0 ? (

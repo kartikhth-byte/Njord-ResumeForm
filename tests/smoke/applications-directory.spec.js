@@ -214,6 +214,10 @@ test.describe('Applications directory',()=>{
   await fixture(page)
   await page.goto('/recruiter/applications')
   await page.getByRole('button',{name:'More filters',exact:true}).click()
+  const fields=[page.getByRole('searchbox',{name:'Search rank'}),page.getByRole('searchbox',{name:'Search vessel type'}),page.getByRole('combobox',{name:'Nationality'}),page.getByRole('combobox',{name:'Experience'})]
+  const tops=await Promise.all(fields.map(async field=>(await field.boundingBox()).y))
+  tops.forEach(top=>expect(Math.abs(top-tops[0])).toBeLessThan(1))
+  await page.screenshot({path:'test-results/application-filters-aligned.png',fullPage:true,animations:'disabled'})
   await page.getByRole('searchbox',{name:'Search rank'}).fill('master')
   await expect(page.getByRole('combobox',{name:'Rank'}).locator('option',{hasText:'TUG HANDLER'})).toHaveCount(0)
   await page.getByRole('combobox',{name:'Rank'}).selectOption('master')

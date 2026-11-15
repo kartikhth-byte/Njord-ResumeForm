@@ -421,8 +421,8 @@ const updateContractEndDate = async (applicationId, value) => {
     <div className="w-full min-w-0 space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
       <section aria-label="Application filters" className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+          <label className={label}><span className="sr-only">Search</span><input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
           <label className={label}>Document checks<select aria-label="Document checks" className={field} value={complianceFilter} onChange={e => setParam('checks',e.target.value==='all'?'':e.target.value)}><option value="all">All</option>{['red','amber','green'].map(value => <option key={value} value={value}>{complianceLabel(value)}</option>)}</select></label>
         </div>
         <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
