@@ -230,7 +230,7 @@ export default function RecruiterKpiPage() {
           title: 'Open requirement ageing',
           headers: ['Req ID', 'Vessel', 'Rank', 'Open', 'Days open', 'Target', 'Status'],
           rows: metrics.requirementAgeing.slice(0, 15).map((row) => [
-            row.reqId, row.vessel_name || '—', row.rankName, String(row.openPositions),
+            row.display_id || row.reqId, row.vessel_name || '—', row.rankName, String(row.openPositions),
             String(row.daysOpen ?? '—'), String(row.targetDays ?? '—'), row.onTimeStatus,
           ]),
         },

@@ -46,7 +46,7 @@ export default function RequirementProgressTable({
                 <tr key={row.id}>
                   <td className="tracker-cell--primary tracker-cell--nowrap">
                     <Link to={`/recruiter/workspace/requirements/${row.id}`} state={{ from: `${location.pathname}${location.search}` }} className="text-accent-text hover:underline">
-                      {row.reqId}
+                      {row.display_id || row.reqId}
                     </Link>
                   </td>
                   <td>{row.customer_name || '—'}</td>

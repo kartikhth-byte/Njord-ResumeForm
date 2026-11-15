@@ -147,7 +147,7 @@ export default function RecruiterRequirementsPage() {
     await downloadCsvReport({
       filename: `requirements-tracker-${new Date().toISOString().slice(0, 10)}`,
       columns: [
-        { label: 'Req ID', value: (row) => row.reqId },
+        { label: 'Req ID', value: (row) => row.display_id || row.reqId },
         { label: 'Date Opened', value: (row) => row.date_opened || '' },
         { label: 'Date Closed', value: (row) => row.date_closed || '' },
         { label: 'Vessel', value: (row) => row.vessel_name || '' },

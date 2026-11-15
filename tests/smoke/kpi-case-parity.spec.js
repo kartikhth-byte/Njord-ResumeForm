@@ -8,9 +8,9 @@ const USER = { id: '00000000-0000-4000-8000-000000000091', email: 'kpi@example.i
 const OTHER = '00000000-0000-4000-8000-000000000092'
 const stamp = '2026-11-06T00:00:00Z'
 const requirements = [
-  { id: 'r1', req_id_display: 'SYN-KPI-1', status: 'open', positions_required: 3,
+  { id: 'r1', display_id: 'REQ-000101', req_id_display: 'SYN-KPI-1', status: 'open', positions_required: 3,
     date_opened: '2026-11-01', target_days: 30, owner_recruiter_id: USER.id, updated_at: stamp },
-  { id: 'r2', req_id_display: 'SYN-KPI-2', status: 'open', positions_required: 2,
+  { id: 'r2', display_id: 'REQ-000102', req_id_display: 'SYN-KPI-2', status: 'open', positions_required: 2,
     date_opened: '2026-11-01', target_days: 30, owner_recruiter_id: OTHER, updated_at: stamp },
 ]
 const junctions = [
@@ -116,7 +116,8 @@ test.describe('KPI case parity (synthetic only)', () => {
     test(`${path} shares the distinct hired total`, async ({ page }) => {
       await fixture(page)
       await page.goto(path)
-      await expect(path === '/recruiter/requirements' ? page.getByRole('row').filter({ has: page.getByRole('link', { name: 'SYN-KPI-1', exact: true }) }) : page.getByRole('row').filter({ hasText: 'SYN-KPI-1' })).toContainText('2 / 3')
+      const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: 'REQ-000101', exact: true }) })
+      await expect(row).toContainText('2 / 3')
       await expectDesktopInset(page)
     })
   }

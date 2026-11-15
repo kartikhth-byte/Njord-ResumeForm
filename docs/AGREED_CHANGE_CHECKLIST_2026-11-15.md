@@ -13,9 +13,9 @@ explicit product choice from the agreed scope.
 
 | Agreed change | Screens / evidence | Status |
 | --- | --- | --- |
-| Shared organization lists visible independent of assignment; another recruiter can take over a case or task | Requirements, Candidates, Recruitment, Applications; directory and takeover browser checks | **Live pending** — synthetic takeover passes, but two real users sharing staging data have not been checked |
-| Stable, type-specific IDs; row serials; one header per list; created/modified dates; notes | Four shared directories; `RequirementGroups`, `CandidateDirectoryRows`, Recruitment and Applications tables; directory smoke and isolated migration check | **Live pending** — frontend passes, directory migrations are on staging, production unchanged |
-| Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live pending** — real RLS and old-record behavior require signed-in staging checks |
+| Shared organization lists visible independent of assignment; another recruiter can take over a case or task | Requirements, Candidates, Recruitment, Applications; directory and takeover browser checks | **Live partial** — a staging Recruiter saw rows assigned to another recruiter and took over an unassigned synthetic case; a second login has not checked the same rows |
+| Stable, type-specific IDs; row serials; one header per list; created/modified dates; notes | Four shared directories; `RequirementGroups`, `CandidateDirectoryRows`, Recruitment and Applications tables; directory smoke and isolated migration check | **Live partial** — existing staging records show `REQ-`, `CAN-`, `REC-`, and `APP-` IDs with headers/dates; new-record ID assignment and other roles remain unchecked |
+| Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live partial** — a Recruiter saved a requirement note on another owner's synthetic row and a note on an unlinked historical application; both read back. Coordinator live denial remains unchecked |
 | Show Company and Ship names in group rows without redundant prefixes | Four shared directories; grouped-row browser checks | **Local pass** |
 | Candidate actions grouped under More; application link issue stays on its outlined row with hover/focus reason | Candidates and Applications; directory browser checks | **Local pass** |
 | Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live pending** — local flow passes, server-assigned IDs need a live readback |
@@ -40,9 +40,10 @@ explicit product choice from the agreed scope.
 - **Still requiring signed-in visual/copy review:** applicant sections 2–19 and
   detail states beyond the synthetic fixture. The route checks prove rendering,
   not that every field and message is ideal with realistic data.
-- **Live staging pending:** matched frontend deployment, signed-in Master
-  Recruiter/Recruiter/Coordinator sessions, two-user shared visibility and
-  takeover, old/new ID readback, note RLS, and application-link exception.
+- **Live staging partial:** the current branch ran locally against Holmes staging
+  at `http://127.0.0.1:3000` with a normal Recruiter session. Master Recruiter
+  and Coordinator sessions, two-user readback, Coordinator note/takeover denial,
+  new-record ID assignment, and a deployed staging frontend remain pending.
 
 ## Smoke result
 
@@ -58,8 +59,39 @@ was adjusted to return a single record for its `.maybeSingle()` query.
 This smoke uses intercepted external requests. It proves the local UI behavior
 under fixtures, not live shared-data visibility, RLS, migration backfill, email,
 or a production release. The two directory migrations are applied on Holmes
-staging only; the matching frontend has not had a signed-in staging smoke. Do
-not promote the frontend ahead of the two production migrations.
+staging only. A subsequent normal Recruiter session exercised the matching
+frontend locally against staging; it does not prove cross-role permissions or a
+deployed staging origin. Do not promote the frontend ahead of the two production
+migrations.
+
+## Live staging check — 2026-11-15
+
+- A normal Recruiter login loaded the four shared lists. Requirements showed
+  three open rows including rows owned by another recruiter, with stable IDs,
+  serials, headers, created/modified dates, and a note cell. Candidates,
+  Recruitment, and Applications showed the corresponding `CAN-`, `REC-`, and
+  `APP-` IDs. The Recruitment requirement selector included `REQ-` IDs.
+- The Recruiter saved a synthetic note on another recruiter's `REQ-000003` and
+  saw it in the row after save. A note on historical submitted application
+  `APP-000003`, whose recruitment link is missing, saved and reopened in note
+  history. The link problem remained an outlined row with a short reason.
+- The Recruiter took over synthetic unassigned case `REC-000005`; the row then
+  showed that Recruiter as assigned. This is one-account takeover, not a
+  two-account handoff check. Anonymous requests returned zero Requirements rows
+  and permission denial for `directory_notes`.
+- The attempted alternate login returned `User is banned`. The successful
+  account menu showed `Recruiter`; the owner reported no working second staging
+  login. Historical notes identify a separate synthetic staging Coordinator
+  account using `kartik.neuralnet@gmail.com` and say its password setup was
+  unfinished. The same email belongs to the production Holmes Operator account;
+  these are distinct identities in different Supabase projects.
+  Cross-user visibility, Master controls, Coordinator read-only/RLS, and
+  new-record ID readback therefore remain open.
+- The live dashboard exposed a missed ID inconsistency: its “Req ID” link still
+  showed the legacy reference. Home, KPI report rows, and Requirements CSV now
+  prefer `display_id`, with legacy fallback for older fixtures. Focused synthetic
+  KPI/Home browser checks pass **9/9**, KPI Node checks **27/27**, lint and build
+  pass. This follow-up change has not had a second signed-in staging readback.
 
 ## Release gate
 
