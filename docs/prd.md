@@ -5,10 +5,9 @@
 Requirements, Candidates, Recruitment and Applications are shared organization
 lists for authorized recruiter-side users. Assignment and takeover govern who
 works a recruitment case or task; they do not hide the other recruiters' records.
-Each list has one visible column header row, current-view serial numbers,
+Each expanded ship list has its own column header row, current-view serial numbers,
 server-assigned type-specific record IDs, dates, and notes. Collapsible company
-and ship headings sit above their records; the first visible group precedes the
-column headers. Application rows with
+and ship headings sit above their table headers and records. Application rows with
 missing verified recruitment links stay visible as highlighted exceptions with
 short hover/focus guidance. Secondary record actions use a vertical three-dot
 menu with an accessible name.

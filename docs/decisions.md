@@ -2,13 +2,16 @@
 
 ## 2026-11-15 — Directory grouping hierarchy
 
-Show Company → Ship as collapsible controls above the first visible column header
-row on Requirements, attached Candidates, Recruitment, and Applications. Show
-the header once per list, even when multiple ship tables or unlinked exceptions
-are visible; keep hidden headers in later tables for assistive technology. Unlinked
-application exceptions remain highlighted rows with the same columns and
-row-level issue guidance. Keep empty-list column headers visible. Fix candidate
+Show Company → Ship as collapsible controls above each ship table's column header
+row on Requirements, attached Candidates, Recruitment, and Applications. This
+replaces the short-lived single-header treatment after the owner reviewed the
+grouped layout. Unlinked application exceptions remain highlighted rows with the
+same columns and row-level issue guidance. Keep empty-list column headers visible. Fix candidate
 column widths and use vertical three-dot triggers for secondary action menus.
+
+The Requirements status tabs occupy their own row. Search, Recruiter, and opened
+date filters share a four-column grid with matching labels and field heights.
+The short Recruiter list uses one select control in this view.
 
 ## 2026-11-15 — Presentation-led UI refinement
 

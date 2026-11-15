@@ -4,7 +4,6 @@ import { Building2, ChevronDown, ChevronRight, Ship } from 'lucide-react'
 export default function GroupedDirectoryTable({ groups, columns, renderRows, getShipRows = ship => ship.rows, tableClassName = '', colWidths, ungroupedRows = [], label }) {
   const [collapsed, setCollapsed] = useState(new Set())
   let serial = 0
-  let visibleHeaderShown = false
   const toggle = key => setCollapsed(previous => {
     const next = new Set(previous)
     if (next.has(key)) next.delete(key); else next.add(key)
@@ -13,12 +12,10 @@ export default function GroupedDirectoryTable({ groups, columns, renderRows, get
   const table = (rows, name) => {
     const start = serial
     serial += rows.length
-    const showHeader = !visibleHeaderShown
-    visibleHeaderShown = true
     return <div className="tracker-table-wrap" tabIndex={0} aria-label={name}>
       <table className={`tracker-table ${tableClassName}`}>
         {colWidths && <colgroup>{colWidths.map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>}
-        <thead className={showHeader ? undefined : 'sr-only'}><tr>{columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
+        <thead><tr>{columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
         <tbody>{renderRows(rows, start)}</tbody>
       </table>
     </div>

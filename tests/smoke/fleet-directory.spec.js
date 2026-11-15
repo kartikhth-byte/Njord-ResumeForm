@@ -38,6 +38,22 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await expect(requirementRows(page)).toHaveCount(0)
     await expect(page.getByText('No requirements match')).toBeVisible()
   })
+  test('Requirements filters align and each expanded ship has column titles',async({page})=>{
+    await page.setViewportSize({width:1440,height:900})
+    await fixture(page)
+    await page.goto('/recruiter/requirements')
+    const search=page.getByRole('searchbox',{name:'Search',exact:true})
+    const recruiter=page.getByRole('combobox',{name:'Recruiter',exact:true})
+    const from=page.getByLabel('Opened from')
+    const to=page.getByLabel('Opened to')
+    const tops=await Promise.all([search,recruiter,from,to].map(async field=>(await field.boundingBox()).y))
+    tops.forEach(top=>expect(Math.abs(top-tops[0])).toBeLessThan(1))
+    await page.getByRole('tab',{name:/^All/}).click()
+    const groups=page.getByRole('region',{name:'Requirements by company and ship'})
+    expect(await groups.locator('table').count()).toBeGreaterThan(1)
+    await expect(groups.getByRole('columnheader',{name:'Requirement ID'})).toHaveCount(await groups.locator('table').count())
+    await page.screenshot({path:'test-results/requirements-aligned-desktop.png',fullPage:true,animations:'disabled'})
+  })
   test('requirement detail opens the exact shared record',async({page})=>{
     const state=await fixture(page)
     const respond=state.respond

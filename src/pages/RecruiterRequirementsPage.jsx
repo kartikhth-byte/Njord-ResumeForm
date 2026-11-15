@@ -6,7 +6,6 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RequirementGroups from '../components/recruiter/RequirementGroups'
 import useClientFleet from '../hooks/useClientFleet'
 import RequirementForm from '../components/recruiter/RequirementForm'
-import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
 import { canUseAiSearch } from '../lib/needle'
@@ -274,46 +273,50 @@ export default function RecruiterRequirementsPage() {
 
         {fleet.error && <p role="alert" className="mt-4 text-sm text-warning">Directory names could not refresh. Saved requirement names are shown; use Refresh to retry.</p>}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-full overflow-x-auto">
-              <SegmentedControl
-                options={STATUS_FILTERS.map((option) => ({ ...option, count: statusCounts[option.value] }))}
-                value={statusFilter}
-                onChange={setStatusFilter}
-                size="sm"
-              />
-            </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-fg-muted">Search</span>
+          <div className="mb-4 max-w-full overflow-x-auto">
+            <SegmentedControl
+              options={STATUS_FILTERS.map((option) => ({ ...option, count: statusCounts[option.value] }))}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              size="sm"
+            />
+          </div>
+          <div className="mb-4 grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(14rem,1.3fr)_minmax(11rem,1fr)_minmax(10rem,0.8fr)_minmax(10rem,0.8fr)]">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="block text-xs font-medium text-fg-muted">Search</span>
                 <input
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Req ID, vessel, rank, customer…"
-                  className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="h-11 w-full rounded-control border border-line bg-surface px-3.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
-              <SearchableFilterSelect label="Recruiter" className="flex flex-col gap-1 text-sm" selectClassName="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm" value={recruiterFilter} onChange={setRecruiterFilter} placeholder="All recruiters" options={workingRecruiters(tracker.data.recruiters).map(recruiter => ({value:recruiter.id,label:recruiter.full_name || recruiter.email}))} />
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-fg-muted">Opened from</span>
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="block text-xs font-medium text-fg-muted">Recruiter</span>
+                <select aria-label="Recruiter" className="h-11 w-full rounded-control border border-line bg-surface px-3.5 text-sm" value={recruiterFilter} onChange={event => setRecruiterFilter(event.target.value)}>
+                  <option value="">All recruiters</option>
+                  {workingRecruiters(tracker.data.recruiters).map(recruiter => <option key={recruiter.id} value={recruiter.id}>{recruiter.full_name || recruiter.email}</option>)}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="block text-xs font-medium text-fg-muted">Opened from</span>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => setDateFrom(event.target.value)}
-                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="h-11 w-full rounded-control border border-line bg-surface px-3.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-fg-muted">Opened to</span>
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="block text-xs font-medium text-fg-muted">Opened to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
-                  className="rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="h-11 w-full rounded-control border border-line bg-surface px-3.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
-            </div>
           </div>
 
           <RequirementGroups
