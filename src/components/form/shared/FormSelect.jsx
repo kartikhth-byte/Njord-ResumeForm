@@ -16,9 +16,13 @@ const FormSelect = forwardRef(({
     ? options.filter(option => option.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
     : options
   const selected = options.find(option => option.value === props.value)
+  const savedValue = props.value === null || props.value === undefined ? '' : String(props.value)
+  const savedOption = savedValue && !selected
+    ? { value: savedValue, label: `${savedValue} (saved value; no longer listed)` }
+    : null
   const visibleOptions = selected && !matches.some(option => option.value === selected.value)
     ? [selected, ...matches]
-    : matches
+    : savedOption ? [savedOption, ...matches] : matches
   return (
     <div className="applicant-field">
       {/* Label */}

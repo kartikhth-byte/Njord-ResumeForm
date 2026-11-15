@@ -109,4 +109,27 @@ test.describe('Applicant recovery and saved form validation', () => {
     await expect(page.locator('[name="uniformTrouserSize"]')).toHaveValue('32')
     await page.screenshot({ path: 'test-results/uniform-complete.png', fullPage: true, animations: 'disabled' })
   })
+
+  test('saved sea-service dropdown values remain visible until replaced', async ({ page }) => {
+    const state = await fixture(page, {
+      data: {
+        section16: {
+          seaService: [{
+            vesselName: 'Synthetic Voyager', vesselType: 'Tanker',
+            mainEngine: '2-stroke', engineFamily: 'MC', reasonForLeaving: 'Contract completed',
+          }],
+        },
+      },
+    })
+    await page.goto('/application/form/section/16')
+    const vesselType = page.locator('[name="service-0-vesselType"]')
+    await expect(vesselType).toHaveValue('Tanker')
+    await expect(vesselType.locator('option:checked')).toHaveText('Tanker (saved value; no longer listed)')
+    await expect(page.locator('[name="service-0-mainEngine"] option:checked')).toHaveText('2-stroke (saved value; no longer listed)')
+    await expect(page.locator('[name="service-0-engineFamily"] option:checked')).toHaveText('MC (saved value; no longer listed)')
+    await expect(page.locator('[name="service-0-reasonForLeaving"] option:checked')).toHaveText('Contract completed (saved value; no longer listed)')
+    await vesselType.selectOption('BC')
+    await expect.poll(() => state.data.section16?.seaService?.[0]?.vesselType).toBe('BC')
+    await expect(vesselType.locator('option:checked')).toHaveText('BC')
+  })
 })

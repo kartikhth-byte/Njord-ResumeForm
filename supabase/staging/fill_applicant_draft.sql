@@ -133,7 +133,9 @@ begin
     "weightUnit": "kg",
     "shoeSize": "9",
     "shoeSizeUnit": "UK",
-    "boilerSuitSize": "L"
+    "boilerSuitSize": "L",
+    "uniformShirtSize": "40",
+    "uniformTrouserSize": "32"
   },
   "section14": {
     "courses": [
@@ -149,14 +151,14 @@ begin
     "seaService": [
       {
         "vesselName": "Test Voyager",
-        "vesselType": "Tanker",
+        "vesselType": "BC",
         "flag": "Liberia",
         "grt": "42000",
         "teu": "0",
         "dwt": "74000",
         "yearBuilt": "2012",
-        "mainEngine": "2-stroke",
-        "engineFamily": "MC",
+        "mainEngine": "Diesel",
+        "engineFamily": "MAN",
         "mainEngineMake": "MAN B&W",
         "engineKw": "11000",
         "rankHeld": "Chief Officer",
@@ -168,7 +170,7 @@ begin
         "tradingArea": "Worldwide",
         "tradeRoute": "Worldwide",
         "totalMmDd": "06/00",
-        "reasonForLeaving": "Contract completed"
+        "reasonForLeaving": "EOC"
       }
     ]
   },

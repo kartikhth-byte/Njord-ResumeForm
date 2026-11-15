@@ -15,9 +15,12 @@ app-wide audit and staging release gate.
 - [ ] Review and promote through the separate Holmes release process.
 - [x] Search the remaining Company, Ship, Requirement, and recruiter selectors;
   align visible dates and remove duplicate requirement/fleet instructions.
-- [ ] Complete authenticated applicant sections 2–19 and detail-screen visual
-  copy review. Keep the existing accessibility-reviewed seven-size theme and
-  semantic failure/destructive colors pending a concrete alternative.
+- [x] Render authenticated applicant sections 1–19 with a synthetic staging
+  draft populated across mandatory sections; visually review representative
+  sections. See the checklist.
+- [ ] Review uncommon detail-screen visual/copy states. Keep the existing
+  accessibility-reviewed seven-size theme and semantic failure/destructive
+  colors pending a concrete alternative.
 
 ## Shared recruiter directories (2026-11-14)
 

@@ -16,9 +16,18 @@ legacy requirement/application readouts with the stable IDs and unified the
 Section 2 applicant heading. The branch has a Ready Vercel preview and
 branch-only staging Supabase overrides. A redeployed Preview bundle was verified
 to initialize Supabase with the staging project URL.
-Existing staging Master and Coordinator accounts have
-correct roles but need working passwords for live smoke. See
-`docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
+Existing staging Master and Coordinator accounts have correct roles but no
+confirmed working passwords. Temporary accounts supplied the three-role live smoke.
+See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
+The cross-role shared-list and two-recruiter takeover checks now pass on
+staging. A rolled-back staging transaction also passed reviewed-résumé match,
+case creation, exact-case draft creation, and submission with new record IDs.
+A persistent browser run is still open because staging intentionally lacks
+older migrations `2026111202` and `2026111203`. A populated synthetic applicant
+draft rendered all 19 routes with mandatory sections populated; the original
+draft was restored. The shared form select now shows unsupported saved values
+explicitly, and the staging draft fixture uses current options and satisfies
+mandatory validation.
 
 # Shared recruiter directories — local implementation, 2026-11-14
 

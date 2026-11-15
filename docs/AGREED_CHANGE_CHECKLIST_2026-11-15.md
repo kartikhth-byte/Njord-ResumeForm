@@ -18,7 +18,7 @@ explicit product choice from the agreed scope.
 | Notes append to history and respect permissions | Four directories; note save/reopen and Coordinator read-only browser checks | **Live partial** — a temporary Master Recruiter note was visible to all three roles; a Coordinator note write was rejected by staging and its notes dialog was read-only. Requirement and application note save/reopen was checked earlier with a Recruiter |
 | Show Company and Ship names in group rows without redundant prefixes | Four shared directories; grouped-row browser checks | **Local pass** |
 | Candidate actions grouped under More; application link issue stays on its outlined row with hover/focus reason | Candidates and Applications; directory browser checks | **Local pass** |
-| Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live partial** — local flow and staging ID allocator pass; a complete reviewed-résumé match with candidate creation has not been exercised against staging |
+| Requirement ID in selection/matching; reviewed résumé creates or links a candidate with a Candidate ID | Candidate attachment and requirement match; fleet and candidate browser checks | **Live partial** — local flow and staging ID allocator pass; the complete match/case/application path passed in a rolled-back staging transaction with synthetic source evidence, but a persistent browser run remains open |
 | Coordinator can read shared work but cannot manage companies/ships, add notes, or take over | Sidebar/routes, directory and Recruitment browser checks | **Live pass for checked paths** — all four shared lists loaded; Companies & ships was absent from the sidebar, Take over was absent from Recruitment, the notes dialog was read-only, and staging rejected a note insert |
 | AI Search keeps each permitted user's own search context and a stable Holmes rail; Operator identity is clear | AI sidebar smoke; existing role rules | **Local pass** for navigation and role UI; per-login search context was not revalidated by this smoke |
 | Search long Rank and Vessel type lists | Requirement, candidate, ship editor, candidate filter, Applications filter, applicant Section 1; browser checks | **Local pass** for these entry points |
@@ -26,7 +26,7 @@ explicit product choice from the agreed scope.
 | Consistent tabs, Refresh controls, light column dividers, usable wide/mobile tables, useful empty states | Shared directories, Calendar, Expiry, Operator; browser checks and earlier screenshot review | **Partial** — reviewed screens pass; no all-route visual audit or open-tab live refresh |
 | Home actionable rows, KPI attribution, Calendar navigation, Expiry windows | Home/Expiry, KPI, Calendar browser checks | **Local pass** for these flows; visual detail outside the checked states remains unaudited |
 | Operator evidence table; Settings team More menu; Login error beside password | Operator, Settings, and failed-login browser checks | **Local pass** |
-| Remove redundant system explanations and make dates consistent | Removed duplicate instructions in requirement/fleet forms; shared date formatter covers directories, applicant dashboard, submitted application view, report history, rejection history, compliance, and test mail dates | **Partial** — essential form, safety and recovery instructions remain. Applicant sections 2–19 rendered in staging, with spot visual checks of sections 2, 10, 16, and 19; sparse draft data limits content/copy conclusions |
+| Remove redundant system explanations and make dates consistent | Removed duplicate instructions in requirement/fleet forms; shared date formatter covers directories, applicant dashboard, submitted application view, report history, rejection history, compliance, and test mail dates | **Partial** — essential form, safety and recovery instructions remain. A synthetic staging draft populated the mandatory sections while all 19 routes rendered; spot screenshots were reviewed for sections 5, 16, and 19. A complete app-wide copy audit remains open |
 | Presentation's five-size type scale and semantic color rules throughout the app | One-off 11/13/15px classes now use theme sizes; report controls use semantic theme tokens | **Decision retained / partial** — the existing accessibility-reviewed theme has seven sizes and uses red for failure/destructive states. A forced global five-size remap was not adopted without screen-by-screen layout evidence |
 | Keep Company → Ship grouping and manual Refresh as an explicit retry | Shared lists and release decision | **Decision retained** — returning to a shared tab revalidates, but a continuously open tab does not update in real time |
 | Do not invent sea-service or last-active data | Candidate/Settings review | **Decision retained** — authoritative data is needed before adding these fields |
@@ -37,17 +37,17 @@ explicit product choice from the agreed scope.
   ships, Requirements and requirement detail, Candidates and candidate detail,
   Recruitment, Applications and submitted application review, AI Search rail,
   Operator, Settings, Login error, and applicant form sections 1–19.
-- **Still requiring realistic-data visual/copy review:** applicant sections 2–19 and
-  detail states beyond the synthetic fixture. A signed-in draft rendered all 18
-  remaining sections, and sections 2, 10, 16, and 19 were visually inspected.
-  Many saved draft sections are empty; route rendering does not prove that every
-  field and message is ideal with realistic data. A source review
+- **Still requiring realistic-data visual/copy review:** uncommon applicant and
+  detail states beyond the synthetic fixture. A signed-in draft with populated
+  mandatory sections rendered all 19 routes, with additional screenshots
+  reviewed for sections 5, 16, and 19. Route rendering does not prove that every
+  field and message is ideal with production data. A source review
   caught Section 2's duplicate section number, and synthetic detail checks found legacy
   ID readouts in candidate/application details; those are corrected locally.
-- **Live staging partial:** the current branch ran locally against Holmes staging
-  at `http://127.0.0.1:3000` with a normal Recruiter session. Master Recruiter
-  and Coordinator sessions, two-user readback, Coordinator note/takeover denial,
-  new-record ID assignment, and a deployed staging frontend remain pending.
+- **Live staging partial:** later sections below record three-role shared-list
+  readback, two-user takeover, Coordinator write denial, rolled-back new-record
+  IDs, and the signed-in branch Preview. A persistent browser match/invitation/
+  submission and uncommon populated detail states remain open.
 
 ## Smoke result
 
@@ -176,15 +176,49 @@ migrations.
   successfully. The new build has synthetic browser coverage but has not had a
   second signed-in Preview date readback.
 
+## Rolled-back end-to-end and populated-form follow-up — 2026-11-15
+
+- Staging currently has seven résumé registry rows: three ready sources with
+  originals, all already attached. The available open requirement with a
+  reviewed location therefore cannot supply a new unattached original for an
+  ordinary browser match. Migration history has `2026111401` and `2026111402`
+  but lacks `2026111202` and `2026111203`; the exact-case application-start
+  function from `1202` is absent. These older migrations were deliberately
+  deferred during the isolated directory rollout.
+- A transaction loaded `1202` and `1203` temporarily, created synthetic
+  résumé evidence and an invitation, called the reviewed-résumé match, created
+  a recruitment case, started the exact-case application, and submitted it.
+  The returned IDs were `CAN-000017`, `REC-000015`, and `APP-000010`, with the
+  application linked to its case. The transaction rolled back. A read-only
+  check confirmed zero temporary candidate, profile, and source rows and that
+  the exact-case function remains absent. Sequence numbers can advance after
+  rollback. This does not verify external original-PDF bytes or mail delivery.
+- Existing synthetic draft `APP-000004` was temporarily filled and its original
+  data restored after review. The applicant form rendered all 19 routes with
+  the mandatory sections populated. Screenshots of sections 5, 16, and 19
+  showed intact layout.
+  The fixture initially left Section 13 incomplete and used four Section 16
+  values absent from the current option lists, causing the editor to show a
+  placeholder. The fixture now supplies uniform sizes and current options;
+  validation passes all 13 mandatory sections. Two of three saved sea-service
+  rows on staging also contain unsupported option values, so the shared form
+  select now displays an explicit saved-value option until the user chooses a
+  current value. Six focused applicant browser checks, 19 adjacent validation
+  checks, lint, and build pass.
+- A persistent browser match, invitation, draft creation, and submission remain
+  unchecked. The isolated directory release does not silently apply the
+  deferred `1202` and `1203` migrations.
+
 ## Release gate
 
-1. Run a complete reviewed-résumé match and application submission with new
-   records on staging, if the release requires end-to-end proof beyond the ID
-   allocator checks. The signed-in branch Preview and two-account takeover now
-   pass. Keep unrelated pending migrations deferred.
-2. Review populated applicant sections and uncommon detail states with realistic
-   synthetic data. Keep the existing semantic colors and seven-size theme
-   unless specific screenshots show a better, accessible mapping.
+1. Decide whether the deferred `2026111202` and `2026111203` migrations should
+   be applied to staging for a persistent browser match/invitation/submission
+   smoke. The rolled-back flow passes, but the exact-case draft function is
+   absent from current staging. Keep the directory release migration plan
+   isolated until that decision.
+2. Review uncommon detail states with realistic synthetic data. Keep the
+   existing semantic colors and seven-size theme unless specific screenshots
+   show a better, accessible mapping.
 3. Before production schema changes, follow the Holmes release gate: exact
    approval, fresh production backup, and isolated restore/count verification.
    Apply only `2026111401` and `2026111402`, then promote the matching frontend
