@@ -128,7 +128,7 @@ export default function RecruitmentWorkspacePage() {
    <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
   </section>
   {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:<section key={groupingScope} aria-label="Recruitment by company and ship">
-   <GroupedDirectoryTable label="Recruitment groups" groups={groups} columns={['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes']} renderRows={renderRows} tableClassName="min-w-[1450px]" />
+   <GroupedDirectoryTable label="Recruitment groups" groups={groups} columns={['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes']} renderRows={renderRows} colWidths={[4, 10, 14, 11, 22, 12, 9, 6, 6, 6]} tableClassName="directory-table--fixed min-w-[1550px]" />
    {!rows.length&&<p className="p-5 text-sm text-fg-muted">No recruitment rows match. <button className="text-accent-text underline" onClick={()=>setParams({})}>Clear filters</button></p>}
   </section>}
   {noteCase&&<DirectoryNotes kind="recruitment" id={noteCase.id} label={recordDisplayId(noteCase)} canAdd={canMove} onClose={()=>setNoteCase(null)} onSaved={()=>setNoteRevision(n=>n+1)}/>}

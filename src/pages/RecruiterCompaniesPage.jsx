@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Building2, ChevronDown, ChevronRight, Pencil, Plus, RefreshCcw, Ship } from 'lucide-react'
+import { Building2, ChevronDown, ChevronRight, MoreVertical, Pencil, Plus, RefreshCcw, Ship } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import useClientFleet from '../hooks/useClientFleet'
@@ -95,12 +95,12 @@ export default function RecruiterCompaniesPage() {
                   {open ? <ChevronDown className="h-4 w-4 shrink-0"/> : <ChevronRight className="h-4 w-4 shrink-0"/>}<Building2 className="h-5 w-5 shrink-0 text-accent-text"/>
                   <span className="min-w-0 break-words font-semibold">{company.name}<span className="ml-3 inline-block text-xs font-normal text-fg-muted">{allShips.length} {allShips.length === 1 ? 'ship' : 'ships'}</span></span>
                 </button>
-                {canEdit && <details className="team-actions relative"><summary className={secondary + ' cursor-pointer'} aria-label={`Actions for company ${company.name}`}>More</summary><div className="team-actions__menu"><button type="button" disabled={!!editor} className="team-actions__item" aria-label={`Edit company ${company.name}`} onClick={event => begin({kind: 'company', record: company}, event)}><Pencil className="h-4 w-4"/>Edit company</button></div></details>}
+                {canEdit && <details className="team-actions relative"><summary className="directory-actions__summary" aria-label={`Actions for company ${company.name}`} title="Actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary><div className="team-actions__menu"><button type="button" disabled={!!editor} className="team-actions__item" aria-label={`Edit company ${company.name}`} onClick={event => begin({kind: 'company', record: company}, event)}><Pencil className="h-4 w-4"/>Edit company</button></div></details>}
               </div>}
               {open && <div id={`company-ships-${company.id}`} className="divide-y divide-line pl-6 sm:pl-12">
                 {ships.map(ship => editor?.kind === 'ship' && editor.record?.id === ship.id ? <div key={ship.id}>{renderEditor()}</div> : <div key={ship.id} className="flex items-center gap-3 px-3 py-3">
                   <Ship className="h-5 w-5 shrink-0 text-fg-muted"/><div className="min-w-0 flex-1"><p className="break-words font-medium">{ship.name}</p><p className="text-xs text-fg-muted">{fleet.vesselTypes.find(type => type.id === ship.vessel_type_id)?.name || 'Vessel type not set'}</p></div>
-                  {canEdit && <details className="team-actions relative"><summary className={secondary + ' cursor-pointer'} aria-label={`Actions for ship ${ship.name}`}>More</summary><div className="team-actions__menu"><button type="button" disabled={!!editor} className="team-actions__item" aria-label={`Edit ship ${ship.name}`} onClick={event => begin({kind: 'ship', record: ship, companyId: company.id}, event)}><Pencil className="h-4 w-4"/>Edit ship</button></div></details>}
+                  {canEdit && <details className="team-actions relative"><summary className="directory-actions__summary" aria-label={`Actions for ship ${ship.name}`} title="Actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary><div className="team-actions__menu"><button type="button" disabled={!!editor} className="team-actions__item" aria-label={`Edit ship ${ship.name}`} onClick={event => begin({kind: 'ship', record: ship, companyId: company.id}, event)}><Pencil className="h-4 w-4"/>Edit ship</button></div></details>}
                 </div>)}
                 {!ships.length && <p className="py-2 text-sm text-fg-muted">No ships added yet.</p>}
                 {editor?.kind === 'ship' && !editor.record && editor.companyId === company.id ? renderEditor() : canEdit && <div className="py-2"><button type="button" disabled={!!editor || !!fleet.error} className="text-sm text-accent-text underline" aria-label={`Add ship to ${company.name}`} onClick={event => begin({kind: 'ship', companyId: company.id}, event)}>Add ship</button></div>}

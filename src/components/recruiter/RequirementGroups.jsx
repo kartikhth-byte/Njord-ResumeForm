@@ -33,7 +33,7 @@ export default function RequirementGroups({ rows, fleet, data, canMatch, canAddN
             </tr>, open && <tr key={`${row.id}:details`}><td colSpan={10} className="bg-raised"><div className="flex flex-wrap gap-4 text-sm"><span>Legacy reference: {row.reqId}</span><span>Opened: {dateCell(row.date_opened)}</span><span>Target: {row.targetDays ?? '—'} days</span><span>Saved company: {row.customer_name || '—'}</span><span>Saved ship: {row.vessel_name || '—'}</span>{row.closure_reason && <span>{row.closure_reason}</span>}{blocker && <span>{blocker}</span>}<Link className="text-accent-text underline" to={`/recruiter/workspace/requirements/${row.id}`} state={{from}}>Open requirement</Link></div></td></tr>].filter(Boolean)
   })
   return <>
-    <GroupedDirectoryTable label="Requirements by company and ship" groups={groups} columns={['S.No.','Requirement ID','Rank','Positions','Status','Recruiter','Created','Modified','Notes','Actions']} renderRows={renderRows} tableClassName="min-w-[1250px]" />
+    <GroupedDirectoryTable label="Requirements by company and ship" groups={groups} columns={['S.No.','Requirement ID','Rank','Positions','Status','Recruiter','Created','Modified','Notes','Actions']} renderRows={renderRows} colWidths={[4, 11, 14, 10, 9, 12, 8, 8, 12, 12]} tableClassName="directory-table--fixed min-w-[1350px]" />
     {noteRow && <DirectoryNotes kind="requirement" id={noteRow.id} label={recordDisplayId(noteRow, noteRow.reqId)} canAdd={canAddNotes} onClose={() => setNoteRow(null)} onSaved={onNotesSaved} />}
   </>
 }

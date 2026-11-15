@@ -413,6 +413,7 @@ export default function RecruiterRequirementDetail() {
                   </button>
                 ) : null}
                 <MoreMenu
+                  label="Requirement"
                   disabled={acting}
                   items={[
                     canEditRequirement && requirement.status === 'open' && { label: 'Cancel requirement', onClick: onCancelRequirement },

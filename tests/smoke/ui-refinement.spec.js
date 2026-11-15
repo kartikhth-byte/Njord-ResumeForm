@@ -91,7 +91,7 @@ test.describe('UI refinement (synthetic only)', () => {
     await page.screenshot({ path: 'test-results/operator-refined-desktop.png', fullPage: true, animations: 'disabled' })
   })
 
-  test('Settings keeps team actions in More, with Remove last', async ({ page }) => {
+  test('Settings keeps team actions behind three dots, with Remove last', async ({ page }) => {
     await fixture(page)
     await page.goto('/recruiter/settings')
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()

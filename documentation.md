@@ -1,11 +1,12 @@
 # Holmes directory grouping correction — 2026-11-15
 
 Requirements, attached Candidates, Recruitment, and Applications now show
-collapsible Company → Ship headings above each expanded ship's column headers.
+collapsible Company → Ship headings with one visible column header per list.
 The shared group control preserves the existing row actions, filters, notes,
-and empty-list headers. Applications retain highlighted unlinked rows. The
-four-directory synthetic browser suite passed 42/42 checks; this change needs
-no database migration.
+and empty-list headers. Candidate columns have fixed widths, and secondary
+action triggers show accessible vertical three-dot icons. Applications retain
+highlighted unlinked rows. The expanded synthetic browser suite passed 47/47 checks;
+this change needs no database migration.
 
 ## Earlier UI refinement — 2026-11-15
 
@@ -63,8 +64,8 @@ dates where available, a notes control, and light column separators. Company and
 ship group rows show their names without redundant prefixes. Historical
 applications missing a verified recruitment link remain in the table as
 highlighted rows, with correction guidance on hover/focus. Candidate secondary
-actions sit under More. Coordinator no longer sees Companies & ships, and AI
-Search retains a narrow Holmes navigation rail on desktop.
+actions sit under a three-dot menu. Coordinator no longer sees Companies & ships,
+and AI Search retains a narrow Holmes navigation rail on desktop.
 
 The IDs and application/case/draft note history require migrations `2026111401`
 and `2026111402` before deploying this frontend. The second migration permits

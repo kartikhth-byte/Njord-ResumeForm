@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import CreateRecruiterModal from './CreateRecruiterModal'
 import EditRecruiterModal from './EditRecruiterModal'
-import { Plus, Trash2, Edit, Mail } from 'lucide-react'
+import { Plus, Trash2, Edit, Mail, MoreVertical } from 'lucide-react'
 
 export default function RecruiterTeamSection({ currentUserId }) {
   const [teamMembers, setTeamMembers] = useState([])
@@ -167,7 +167,7 @@ export default function RecruiterTeamSection({ currentUserId }) {
 
                   {isSelf ? null : (
                     <details className="team-actions relative">
-                      <summary className="workspace-action-button workspace-action-button--secondary cursor-pointer" aria-label={`Actions for ${member.full_name}`}>More</summary>
+                      <summary className="directory-actions__summary" aria-label={`Actions for ${member.full_name}`} title="Actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary>
                       <div className="team-actions__menu">
                       <button
                         type="button"

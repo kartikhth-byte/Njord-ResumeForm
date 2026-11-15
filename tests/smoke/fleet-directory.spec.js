@@ -47,6 +47,7 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await page.goto('/recruiter/workspace/requirements/R1')
     await expect(page.getByRole('heading',{name:'SYN-R1',exact:true})).toBeVisible()
     await expect(page.getByRole('button',{name:'Back',exact:true})).toBeVisible()
+    await expect(page.getByLabel('Requirement actions').locator('svg')).toHaveCount(1)
   })
   test('inline company and ship create/edit persist after navigating; duplicate and stale errors retain input',async({page})=>{
     const state=await fixture(page)
@@ -62,6 +63,7 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await page.getByRole('combobox',{name:'Vessel type'}).selectOption('v2')
     await page.getByRole('button',{name:'Save',exact:true}).click()
     await expect(page.getByLabel('Actions for ship Synthetic New Ship')).toBeVisible()
+    await expect(page.getByLabel('Actions for ship Synthetic New Ship').locator('svg')).toHaveCount(1)
     await editDirectoryRecord(page,'ship','Synthetic New Ship')
     await page.getByRole('textbox',{name:'Ship name'}).fill('Corrected Ship')
     state.failNext='version_conflict'

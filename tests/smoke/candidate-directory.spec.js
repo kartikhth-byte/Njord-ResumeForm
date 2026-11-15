@@ -163,10 +163,15 @@ test.describe('Candidate directory synthetic smoke',()=>{
   const state=await fixture(page,{role:'Coordinator',operator:false})
   state.prospects[1].name='Long synthetic candidate name for column alignment verification'
   state.prospects[1].email='long.synthetic.contact.with.no.spaces@example.invalid'
+  state.prospects[1].display_id='CAN-000123'
   state.prospects[2].needle_resume_id=null
   for(const query of ['', '?view=all']) {
    await page.goto('/recruiter/candidates'+query)
    await expect(candidateRow(page,'Robin Patel')).toBeVisible()
+   await expect(candidateRow(page,'Long synthetic candidate name').locator('td').nth(1)).toHaveCSS('white-space','nowrap')
+   const actions=candidateRow(page,'Long synthetic candidate name').locator('summary')
+   await expect(actions).toHaveAttribute('aria-label',/Actions for candidate/)
+   await expect(actions.locator('svg')).toHaveCount(1)
    const columns=await page.locator('.tracker-table tbody tr').evaluateAll(rows=>rows.filter(row=>row.children.length>1).map(row=>Array.from(row.children,cell=>({x:cell.getBoundingClientRect().x,width:cell.getBoundingClientRect().width}))))
    expect(columns.length).toBeGreaterThan(2)
    for(const row of columns.slice(1)) {
@@ -179,6 +184,10 @@ test.describe('Candidate directory synthetic smoke',()=>{
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
    if(!query)await page.screenshot({path:'test-results/candidates-aligned-coordinator.png',fullPage:true,animations:'disabled'})
   }
+  await page.setViewportSize({width:1920,height:1000})
+  await page.goto('/recruiter/candidates')
+  await expect.poll(() => page.locator('.tracker-table-wrap').first().evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  await page.screenshot({path:'test-results/candidates-wide-desktop.png',fullPage:true,animations:'disabled'})
  })
  test('mobile groups and inline form fit viewport',async({page})=>{
   await page.setViewportSize({width:390,height:844})

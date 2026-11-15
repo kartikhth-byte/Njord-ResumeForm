@@ -3,10 +3,12 @@
 ## Directory group controls (2026-11-15)
 
 For each of the four shared directories, verify that company and ship controls
-collapse independently, display their column headers only when expanded, and
+collapse independently, display one visible column header row per list, and
 restore records and serial numbers on reopening. Check that headings precede
 the columns, empty lists retain column titles, and application link exceptions
-remain visible outside mapped company groups.
+remain visible outside mapped company groups. Check candidate ID/date/notes
+column alignment at desktop width and accessible vertical three-dot action
+triggers on candidates, companies/ships, team members, and requirement details.
 
 ## Presentation-led Holmes UI refinement (2026-11-15)
 

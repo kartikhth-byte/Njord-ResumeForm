@@ -1794,6 +1794,22 @@ body {
 
 .team-actions__item:hover, .team-actions__item:focus-visible { background: rgb(var(--raised)); }
 
+.directory-actions__summary {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  cursor: pointer;
+  color: rgb(var(--fg-secondary));
+  border: 1px solid rgb(var(--line));
+  border-radius: 6px;
+}
+
+.directory-actions__summary::-webkit-details-marker { display: none; }
+.directory-actions__summary:hover { color: rgb(var(--accent-text)); background: rgb(var(--raised)); }
+
 .tracker-table {
   width: 100%;
   min-width: 960px;
@@ -1862,6 +1878,19 @@ body {
 
 .tracker-table .tracker-cell--muted {
   color: rgb(var(--fg-secondary));
+}
+
+.directory-table--fixed,
+.candidate-directory-table {
+  table-layout: fixed;
+}
+
+.candidate-directory-table {
+  min-width: 1150px;
+}
+
+.candidate-directory-table--with-requirements {
+  min-width: 1320px;
 }
 
 .applications-table {

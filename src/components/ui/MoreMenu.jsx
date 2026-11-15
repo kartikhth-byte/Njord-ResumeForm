@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreVertical } from 'lucide-react'
 
 // Small "More" menu for secondary or destructive actions.
 // items: [{ label, onClick, danger?, disabled? }] (falsy items are skipped)
@@ -20,11 +20,12 @@ export default function MoreMenu({ items = [], label = 'More', disabled = false 
   return (
     <details ref={ref} className="relative">
       <summary
-        className={`workspace-action-button workspace-action-button--secondary list-none [&::-webkit-details-marker]:hidden ${disabled ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
+        className={`directory-actions__summary ${disabled ? 'pointer-events-none opacity-60' : ''}`}
         aria-disabled={disabled}
+        aria-label={`${label} actions`}
+        title={`${label} actions`}
       >
-        <MoreHorizontal className="h-4 w-4" />
-        {label}
+        <MoreVertical aria-hidden="true" className="h-4 w-4" />
       </summary>
       <div className="absolute right-0 z-20 mt-2 min-w-[11rem] overflow-hidden rounded-card border border-line bg-surface py-1 shadow-lg" role="menu">
         {visible.map((item) => (
