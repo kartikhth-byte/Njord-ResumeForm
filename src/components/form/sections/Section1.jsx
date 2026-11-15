@@ -139,6 +139,7 @@ export default function Section1({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           options={RANK_OPTIONS}
+          searchable
           placeholder="Select the position you are applying for"
           error={touched.appliedForRank ? errors.appliedForRank : ''}
         />
@@ -152,6 +153,7 @@ export default function Section1({ data = {}, onUpdate }) {
           onChange={handleChange}
           onBlur={handleBlur}
           options={VESSEL_TYPE_OPTIONS}
+          searchable
           placeholder="Select preferred vessel type"
           error={touched.vesselType ? errors.vesselType : ''}
         />

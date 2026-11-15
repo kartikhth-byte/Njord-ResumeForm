@@ -46,11 +46,12 @@ authority, task ownership, and separate KPI attribution intact.
   colour reassignment needs a reviewed semantic and accessibility pass.
 - Fault 6: Rank and Vessel type are searchable in requirement and candidate
   forms; the ship editor, candidate Rank filter, and Applications filters are
-  searchable too. The collapsed Recruitment icon differs from Requirements,
-  and the problem-report launcher uses a bug icon instead of a plus. Dates are
-  consistent in the reviewed shared directories. Company → Ship grouping and
-  explicit Refresh remain by product decision; focus revalidation does not
-  update an open tab continuously.
+  searchable too. The applicant's first form section now searches its long
+  Rank and Vessel type lists. The collapsed Recruitment icon differs from
+  Requirements, and the problem-report launcher uses a bug icon instead of a
+  plus. Dates are consistent in the reviewed shared directories. The Company →
+  Ship grouping and explicit Refresh remain by product decision. Focus
+  revalidation does not update an open tab continuously.
 
 ## Deliberate boundaries
 
@@ -86,3 +87,5 @@ ships; rerunning with the expected flag and current Coordinator route passed.
 The Applications search-filter follow-up passes lint, build, and two focused
 synthetic browser checks. An initial browser attempt was blocked by the macOS
 sandbox; the same checks passed when Chrome was allowed to start.
+The applicant-form follow-up passes lint, build, and one focused synthetic
+browser check from invitation through the first form section.
