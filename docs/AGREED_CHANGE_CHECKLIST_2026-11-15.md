@@ -223,11 +223,11 @@ migrations.
   submitted `APP-000011` linked to `REC-000006`. The completed synthetic draft
   satisfied the mandatory-section checks. The browser intercepted the
   application email request, so no external message was sent.
-- The applicant dashboard displayed the legacy requirement reference
+- At that point, the applicant dashboard displayed the legacy requirement reference
   `2026-Nov-005` where the shared lists display `REQ-000003`. The
-  `get_applicant_claims()` function added by `1203` returns `req_id_display`;
-  it needs a subsequent migration to return the stable ID while retaining the
-  legacy reference where useful.
+  `get_applicant_claims()` function added by `1203` returned `req_id_display`;
+  the subsequent migration below corrects this while retaining the legacy
+  reference where useful.
 - Deleted only the temporary application, claim, profile, Auth account, and
   case event; restored the synthetic case and candidate fields. Final staging
   readback found zero smoke application/claims/Auth users, the original case
@@ -236,12 +236,34 @@ migrations.
   registry rows remain applied. This smoke does not prove original-PDF bytes,
   ordinary browser résumé matching, or external email delivery.
 
+## Applicant requirement ID follow-up — 2026-11-15
+
+- New migration `2026111501` changes `get_applicant_claims()` to put the stable
+  `REQ-` ID in `requirement_reference` and retain the older value in
+  `requirement_legacy_reference`. Its applicant identity, invitation eligibility,
+  open-requirement filters, and function grants remain in place. Focused PGlite
+  coverage checks both IDs, caller isolation, eligibility, and replay; the two
+  adjacent invitation SQL suites still pass. The focused synthetic applicant
+  invitation browser suite passes 25/25; lint and build pass.
+- The migration passed a rolled-back staging dry run and was then applied only
+  to Holmes staging. A temporary synthetic applicant redeemed a non-emailed
+  claim in the current branch frontend; the dashboard displayed `REQ-000003`
+  after login and reload, with Start application enabled. The claim, temporary
+  profile and Auth account were deleted, and the case/candidate restored. Final
+  staging readback found the migration present, zero temporary records, the
+  original case status/version/event count, and unchanged totals of 11
+  candidates, 10 cases, and 7 applications. Production was untouched.
+- All three ready staging résumé sources with originals are already linked to
+  candidates. The ordinary browser new-résumé match needs a fresh synthetic
+  source with a real original-byte verification path. External invitation and
+  application-email delivery were not exercised by these non-emailed smokes.
+
 ## Release gate
 
-1. Correct the applicant claim response so its dashboard displays the stable
-   `REQ-` ID; verify the fix on staging. Complete an ordinary browser résumé
-   match when an unattached reviewed original is available, and separately
-   check external invitation/email delivery if that is in release scope.
+1. Complete an ordinary browser résumé match after a fresh synthetic source
+   passes original-byte verification. Check external invitation/email delivery
+   separately if that is in release scope; the current staging smoke deliberately
+   generated no message.
 2. Review uncommon detail states with realistic synthetic data. Keep the
    existing semantic colors and seven-size theme unless specific screenshots
    show a better, accessible mapping.

@@ -20,6 +20,13 @@ captures before release. This UI pass adds no migration.
 
 ## Shared recruiter directories (2026-11-14)
 
+For the applicant dashboard ID follow-up, run
+`supabase/tests/applicant_claim_directory_requirement_id.test.mjs` in the PGlite
+scratch runtime against `2026111501`. Assert that a claimed applicant sees the
+stable `REQ-` reference while the legacy reference remains available, and that
+other identities and ineligible cases remain excluded. Verify the same label in
+a signed-in staging applicant dashboard after login and reload.
+
 Run `supabase/tests/directory_ids_and_notes.sql` in an isolated PostgreSQL or
 PGlite database. Verify backfill/new IDs, immutability, note visibility,
 historical submitted forms without a prospect, cross-organization denial and

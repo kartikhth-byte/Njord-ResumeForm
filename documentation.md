@@ -31,9 +31,14 @@ removed and the synthetic case restored. The migration objects remain applied;
 production was untouched. A prior populated synthetic applicant draft also
 rendered all 19 routes with mandatory sections populated and was restored.
 The shared form select shows unsupported saved values explicitly. The browser
-smoke exposed one remaining ID gap: `get_applicant_claims()` returns the legacy
-requirement reference, so the applicant dashboard shows `2026-Nov-005` instead
-of `REQ-000003`. See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
+smoke exposed an ID gap: `get_applicant_claims()` returned the legacy
+requirement reference. Migration `2026111501` now returns the stable `REQ-` ID
+and keeps the older reference separately. It passed focused and adjacent SQL
+checks, a guarded staging dry run, and a staging browser login/reload showing
+`REQ-000003`. The temporary account and claim were removed; production was
+untouched. All three ready staging résumé originals are already linked to
+candidates, so a fresh verified synthetic original is needed for an ordinary
+browser new-résumé match. See `docs/AGREED_CHANGE_CHECKLIST_2026-11-15.md`.
 
 # Shared recruiter directories — local implementation, 2026-11-14
 
