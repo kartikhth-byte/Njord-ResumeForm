@@ -4,7 +4,7 @@ export function resumeIntakeEnabled(value = import.meta.env?.VITE_FEATURE_RESUME
   return String(value || '').trim().toLowerCase() === 'on'
 }
 
-export const RESUME_INTAKE_HOLD = 'New résumé uploads are unavailable until Resume Intake is connected. You can review and attach existing résumés from requirement matching.'
+export const RESUME_INTAKE_HOLD = 'New résumé uploads are paused. Review existing résumés from requirement matching.'
 
 export function requireResumeIntake() {
   if (!resumeIntakeEnabled()) throw new Error(RESUME_INTAKE_HOLD)

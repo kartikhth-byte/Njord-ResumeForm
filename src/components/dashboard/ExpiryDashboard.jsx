@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertCircle, CheckCircle, FileText, Mail, RefreshCw, Search } from 'lucide-react'
+import { AlertCircle, Mail, RefreshCw, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../ui/PageHeader'
+import SegmentedControl from '../ui/SegmentedControl'
 import { useAuth } from '../auth/AuthContext'
+import { dateCell } from '../../utils/directoryDisplay'
 
 const URGENCY_CONFIG = {
   all: {
@@ -19,19 +21,19 @@ const URGENCY_CONFIG = {
   },
   critical: {
     badgeColor: 'bg-warning-soft text-warning',
-    label: 'Critical',
+    label: 'Due in 0–30 days',
     dot: 'bg-warning',
     description: 'Within 30 days'
   },
   urgent: {
     badgeColor: 'bg-progress-soft text-progress',
-    label: 'Urgent',
+    label: 'Due in 31–60 days',
     dot: 'bg-progress',
     description: '30–60 days'
   },
   moderate: {
     badgeColor: 'bg-success-soft text-success',
-    label: 'Moderate',
+    label: 'Due in 61–90 days',
     dot: 'bg-success',
     description: '60–90 days'
   }
@@ -52,12 +54,7 @@ const DOCUMENT_TYPE_LABELS = {
 }
 
 function formatDate(dateString) {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  return dateCell(dateString)
 }
 
 function getDocumentTypeLabel(type) {
@@ -192,7 +189,7 @@ export default function ExpiryDashboard() {
         title="Document expiry"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <button onClick={fetchExpiringDocuments} className="workspace-action-button">
+            <button onClick={fetchExpiringDocuments} className="workspace-action-button workspace-action-button--secondary">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
@@ -215,35 +212,10 @@ export default function ExpiryDashboard() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {['all', 'expired', 'critical', 'urgent', 'moderate'].map((key) => {
-          const config = URGENCY_CONFIG[key]
-          const active = selectedUrgency === key
-
-          return (
-            <button
-              key={key}
-              onClick={() => setSelectedUrgency(key)}
-              aria-pressed={active}
-              className={`rounded-card border p-4 text-left transition ${
-                active ? 'border-accent bg-raised' : 'border-line bg-surface hover:border-line-strong'
-              }`}
-            >
-              <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
-                <span className={`h-2 w-2 rounded-full ${config.dot}`} aria-hidden="true" />
-                {config.label}
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-fg">{summary[key]}</p>
-              <p className="mt-1 text-xs text-fg-muted">{config.description}</p>
-            </button>
-          )
-        })}
-      </div>
+      <SegmentedControl label="Expiry window" value={selectedUrgency} onChange={setSelectedUrgency} options={['all', 'expired', 'critical', 'urgent', 'moderate'].map(key => ({ value:key, label:URGENCY_CONFIG[key].label, count:summary[key] }))} size="sm" />
 
       <div className="recruiter-panel overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-line p-5 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-sm text-fg-secondary">{filteredDocuments.length} shown</p>
-
           <div className="relative w-full lg:w-[24rem]">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
             <input
@@ -257,20 +229,9 @@ export default function ExpiryDashboard() {
         </div>
 
         {documents.length === 0 ? (
-          <div className="p-6">
-            <div className="rounded-control border border-dashed border-success-line bg-success-soft px-6 py-12 text-center">
-              <CheckCircle className="mx-auto mb-3 h-12 w-12 text-success" />
-              <h3 className="text-xl font-semibold text-fg">All clear</h3>
-              <p className="mt-2 text-sm text-fg-secondary">Nothing expires in the next 90 days.</p>
-            </div>
-          </div>
+          <p className="p-6 text-sm text-fg-secondary">No documents expire in the next 90 days.</p>
         ) : filteredDocuments.length === 0 ? (
-          <div className="p-6">
-            <div className="rounded-control border border-dashed border-line-input bg-raised px-6 py-12 text-center">
-              <FileText className="mx-auto mb-3 h-10 w-10 text-fg-muted" />
-              <h3 className="text-lg font-semibold text-fg">No matching documents</h3>
-            </div>
-          </div>
+          <div className="p-6 text-sm text-fg-secondary">No matching documents. <button className="text-accent-text underline" onClick={() => { setSearchTerm(''); setSelectedUrgency('all') }}>Clear filters</button></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-line">

@@ -4,13 +4,6 @@ import CreateRecruiterModal from './CreateRecruiterModal'
 import EditRecruiterModal from './EditRecruiterModal'
 import { Plus, Trash2, Edit, Mail } from 'lucide-react'
 
-const getRoleTone = roleName => {
-  if (roleName === 'Master Recruiter') return 'bg-progress-soft text-progress'
-  if (roleName === 'Recruiter') return 'bg-accent-soft text-accent-text'
-  if (roleName === 'Coordinator') return 'bg-success-soft text-success'
-  return 'bg-raised text-fg-secondary'
-}
-
 export default function RecruiterTeamSection({ currentUserId }) {
   const [teamMembers, setTeamMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -136,7 +129,7 @@ export default function RecruiterTeamSection({ currentUserId }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <button
           type="button"
           onClick={() => setShowCreateModal(true)}
@@ -162,9 +155,7 @@ export default function RecruiterTeamSection({ currentUserId }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-semibold text-fg">{member.full_name}</h3>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getRoleTone(member.role_name)}`}>
-                        {member.role_name}
-                      </span>
+                      <span className="text-sm text-fg-secondary">{member.role_name}</span>
                       {isSelf ? (
                         <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
                           You
@@ -175,35 +166,38 @@ export default function RecruiterTeamSection({ currentUserId }) {
                   </div>
 
                   {isSelf ? null : (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <details className="team-actions relative">
+                      <summary className="workspace-action-button workspace-action-button--secondary cursor-pointer" aria-label={`Actions for ${member.full_name}`}>More</summary>
+                      <div className="team-actions__menu">
                       <button
                         type="button"
-                        onClick={() => handleSendResetEmail(member)}
+                        onClick={event => { event.currentTarget.closest('details').removeAttribute('open'); handleSendResetEmail(member) }}
                         disabled={resettingMemberId === member.user_id}
-                        className="workspace-action-button workspace-action-button--secondary"
+                        className="team-actions__item"
                       >
                         <Mail className="h-4 w-4" />
                         {resettingMemberId === member.user_id ? 'Sending...' : 'Send reset email'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleEditMember(member)}
-                        className="workspace-action-button workspace-action-button--secondary"
+                        onClick={event => { event.currentTarget.closest('details').removeAttribute('open'); handleEditMember(member) }}
+                        className="team-actions__item"
                       >
                         <Edit className="h-4 w-4" />
                         Edit
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteMember(member.user_id, member.email)}
+                        onClick={event => { event.currentTarget.closest('details').removeAttribute('open'); handleDeleteMember(member.user_id, member.email) }}
                         disabled={isLastMaster}
                         title={isLastMaster ? 'Make someone else a Master Recruiter first' : undefined}
-                        className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-[14px] border border-danger-line bg-danger-soft px-4 py-3 font-semibold text-danger transition hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-60"
+                        className="team-actions__item text-danger disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
                         Remove
                       </button>
-                    </div>
+                      </div>
+                    </details>
                   )}
                 </div>
               </article>

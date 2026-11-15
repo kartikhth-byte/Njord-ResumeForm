@@ -1,6 +1,6 @@
-export default function SegmentedControl({ options = [], value, onChange, size = 'md' }) {
+export default function SegmentedControl({ options = [], value, onChange, size = 'md', label = 'View' }) {
   return (
-    <div className={`segmented-control segmented-control--${size}`} role="tablist">
+    <div className={`segmented-control segmented-control--${size}`} role="tablist" aria-label={label}>
       {options.map(option => {
         const active = option.value === value
 

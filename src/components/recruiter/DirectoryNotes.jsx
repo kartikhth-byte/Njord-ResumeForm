@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import RecordFormDialog from './RecordFormDialog'
+import { dateTimeCell } from '../../utils/directoryDisplay'
 
 const subjects = {
   requirement: ['requirement_remarks', 'requirement_id'],
@@ -65,7 +66,7 @@ export default function DirectoryNotes({ kind, id, label, canAdd, onClose, onSav
       {loading ? <p>Loading notes…</p> : notes.length ? <ol className="space-y-3">{notes.map(note =>
         <li key={note.id} className="rounded-control border border-line p-3 text-sm">
           <p className="whitespace-pre-wrap break-words">{note.body}</p>
-          <span className="mt-2 block text-xs text-fg-muted">{authors[note.author_recruiter_id] || 'Recruiter'} · <time dateTime={note.created_at}>{new Date(note.created_at).toLocaleString()}</time></span>
+          <span className="mt-2 block text-xs text-fg-muted">{authors[note.author_recruiter_id] || 'Recruiter'} · <time dateTime={note.created_at}>{dateTimeCell(note.created_at)}</time></span>
         </li>)}</ol> : <p className="text-sm text-fg-muted">No notes yet.</p>}
     </div>
   </RecordFormDialog>

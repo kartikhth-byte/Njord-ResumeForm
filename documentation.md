@@ -1,3 +1,18 @@
+# Holmes UI refinement — local implementation, 2026-11-15
+
+The current shared-list branch now uses a more compact, consistent table and
+tab treatment across the recruiter screens. Home alerts link to specific
+records; forms and attachment choices are searchable; Calendar, Expiry,
+Operator, Settings, and Login have clearer hierarchy and actions. Shared
+views refresh when a recruiter returns to the tab. Company → Ship grouping,
+stable IDs, notes, takeover, and separate KPI attribution remain intact. This
+UI pass adds no migration and is not deployed. See
+`docs/UI_REFINEMENT_2026-11-15.md` for scope and test evidence.
+The follow-up also makes long Rank/Vessel type choices searchable in the ship
+editor and candidate filter, distinguishes the collapsed Recruitment icon, and
+relabels the report launcher. The presentation's five-size type scale and
+global colour/terminology pass remain open.
+
 # Shared recruiter directories — local implementation, 2026-11-14
 
 Requirements, Candidates, Recruitment, and Applications now use a single table

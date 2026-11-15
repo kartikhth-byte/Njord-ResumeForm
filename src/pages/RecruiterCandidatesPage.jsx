@@ -15,6 +15,8 @@ import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../lib/resumeIntake'
 import CandidateForm from '../components/recruiter/CandidateForm'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
+import { SelectField } from '../components/recruiter/RecordFormFields'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
@@ -70,6 +72,7 @@ export default function RecruiterCandidatesPage() {
   const rankFilter = params.get('rank') || ''
   const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
   const tracker = useKpiTrackerData({ enabled: !permLoading })
+  useRefreshOnFocus(tracker.reload, !permLoading)
   const createButton = useRef(null)
   const restoreCreateFocus = useRef(false)
   useEffect(() => {
@@ -325,7 +328,7 @@ export default function RecruiterCandidatesPage() {
             {tab === 'attached' && <FleetRequirementFilter title="Company, ship and requirement" value={fleetFilter} onChange={setFleetFilter} requirements={tracker.data.requirements} cases/>}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="text-sm">Candidate status<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={viewFilter} onChange={e => setViewFilter(e.target.value)}>{VIEW_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-              <label className="text-sm">Present rank<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={rankFilter} onChange={e => setParam('rank',e.target.value)}><option value="">All ranks</option>{tracker.data.ranks.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+              <SelectField label="Present rank" searchable value={rankFilter} onChange={value => setParam('rank', value)} options={tracker.data.ranks.map(r => ({ value: r.id, label: r.name }))} placeholder="All ranks" />
               <label className="text-sm">Recruiter<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={recruiterFilter} onChange={e => setRecruiterFilter(e.target.value)}><option value="">All recruiters</option>{workingRecruiters(tracker.data.recruiters).map(r => <option key={r.id} value={r.id}>{r.full_name || r.email}</option>)}</select></label>
               <label className="text-sm">Contacted from<input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="mt-1 block w-full min-w-0 rounded-control border border-line bg-surface p-2"/></label>
               <label className="text-sm">Contacted to<input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="mt-1 block w-full min-w-0 rounded-control border border-line bg-surface p-2"/></label>
@@ -338,11 +341,8 @@ export default function RecruiterCandidatesPage() {
               from={`${location.pathname}${location.search}`} canEdit={canEditCandidates} canAttach={canAttachCandidates}
               canAddNotes={hasPermission('edit_prospect_notes')} onNotesSaved={tracker.reload}
               onEdit={row => {setShowForm(false);setBasicForm(row);window.scrollTo({top:0,behavior:'smooth'})}} onAttach={setAttachCandidate} onError={setExportError}/>
-          {filteredRows.length === 0 && <EmptyState icon={Users} title="No candidates match" />}
+          {filteredRows.length === 0 && <EmptyState icon={Users} title={rows.length ? 'No candidates match' : 'No candidates yet'} action={rows.length ? <button className="text-accent-text underline" onClick={() => setParams({tab,view:'current',history:'active'},{replace:true})}>Clear filters</button> : canCreateCandidates ? <button className="text-accent-text underline" onClick={() => setBasicForm({})}>Add candidate</button> : null} />}
 
-          <p className="mt-4 text-xs text-fg-muted">
-            {filteredRows.length} {filteredRows.length === 1 ? 'candidate' : 'candidates'} shown
-          </p>
         </section>
         </>
         )}

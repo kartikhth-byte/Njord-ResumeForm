@@ -11,6 +11,7 @@ import RequirementMatchDialog from '../components/recruiter/RequirementMatchDial
 import { canUseAiSearch } from '../lib/needle'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import StatCard from '../components/ui/StatCard'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
@@ -74,6 +75,7 @@ export default function RecruiterRequirementsPage() {
   })
   const [recruiterFilter, setRecruiterFilter] = useState(() => initialParams.get('recruiter') || '')
   const fleet = useClientFleet({ includeArchived: true, enabled: !permLoading })
+  useRefreshOnFocus(() => { tracker.reload(); fleet.reload() }, !permLoading)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -200,7 +202,7 @@ export default function RecruiterRequirementsPage() {
               <button
                 type="button"
                 onClick={() => { tracker.reload(); fleet.reload() }}
-                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
@@ -334,11 +336,8 @@ export default function RecruiterRequirementsPage() {
               matchButtons={matchButtons} from={`${location.pathname}${location.search}`}
               onMatch={row => { matchesChanged.current = false; setMatchRequirement(row) }}
             />
-          {filteredRows.length === 0 && <EmptyState icon={ClipboardList} title="No requirements match" />}
+          {filteredRows.length === 0 && <EmptyState icon={ClipboardList} title={rows.length ? 'No requirements match' : 'No requirements yet'} action={rows.length ? <button className="text-accent-text underline" onClick={() => { setStatusFilter('all'); setRecruiterFilter(''); setSearch(''); setDateFrom(''); setDateTo('') }}>Clear filters</button> : canCreateRequirements ? <button className="text-accent-text underline" onClick={() => setShowForm(true)}>Add requirement</button> : null} />}
 
-          <p className="mt-4 text-xs text-fg-muted">
-            {filteredRows.length} shown
-          </p>
         </section>
         </>
         )}

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import ResumeSuggestionReview from './ResumeSuggestionReview'
 import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
 import { candidateResumeStatus, openCandidateResume, uploadResume, saveResumeCandidate, normalizeResumePhone } from '../../services/needleIntegrationService'
+import { dateTimeCell } from '../../utils/directoryDisplay'
 
 export default function CandidateResumePanel({ candidate, countries, permissions, onChanged }) {
   const [resumes, setResumes] = useState([])
@@ -42,9 +43,9 @@ export default function CandidateResumePanel({ candidate, countries, permissions
     {resumes.map(row => <div key={row.resume_id} className="rounded-lg border border-line p-3">
       <button className="underline" disabled={busy} onClick={() => perform(() => openCandidateResume(candidate.id, row.resume_id))}>View résumé</button>
       {row.needle_resume_registry?.platform&&<p className="text-sm">Storage: {row.needle_resume_registry.storage_status} · Basic extraction: {row.needle_resume_registry.basic_extraction_status?.replaceAll('_',' ')} · Indexing: {row.needle_resume_registry.indexing_status?.replaceAll('_',' ')}</p>}
-      <p className="mt-1 text-xs text-fg-secondary">{row.needle_resume_registry?.filename || 'Résumé'} · {row.statusUnavailable ? 'Status refresh unavailable' : row.needle_resume_registry?.review_required ? 'Needs operator review' : row.needle_resume_registry?.status || 'Status unavailable'} · {row.source === 'holmes_upload' ? 'Holmes upload' : 'Needle search'} · Linked {new Date(row.linked_at).toLocaleString()}</p>
+      <p className="mt-1 text-xs text-fg-secondary">{row.needle_resume_registry?.filename || 'Résumé'} · {row.statusUnavailable ? 'Status refresh unavailable' : row.needle_resume_registry?.review_required ? 'Needs operator review' : row.needle_resume_registry?.status || 'Status unavailable'} · {row.source === 'holmes_upload' ? 'Holmes upload' : 'Needle search'} · Linked {dateTimeCell(row.linked_at)}</p>
       {row.needle_resume_registry?.status === 'failed' && <p className="text-sm text-warning">Couldn’t read or qualify this résumé. The original is retained; complete the details manually while the operator reviews it.</p>}
-      <p className="break-all text-xs text-fg-muted">Engine: {row.engine_version || 'Not recorded'} · Facts: {row.facts_revision || 'Not recorded'}{row.stage_id ? ` · Search stage: ${row.stage_id}` : ''}</p>
+      <details className="break-all text-xs text-fg-muted"><summary className="cursor-pointer">Technical details</summary><p className="mt-1">Engine: {row.engine_version || 'Not recorded'} · Facts: {row.facts_revision || 'Not recorded'}{row.stage_id ? ` · Search stage: ${row.stage_id}` : ''}</p></details>
     </div>)}
     {canEdit && !resumeIntakeEnabled() && <p role="note" className="text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
     {canEdit && resumeIntakeEnabled() && permissions.includes('create_prospects') && <label className="block text-sm">Add résumé PDF (keeps earlier versions)

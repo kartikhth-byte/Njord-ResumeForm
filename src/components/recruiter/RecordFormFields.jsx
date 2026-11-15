@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 // Form fields shared by the requirement and candidate forms (moved from the old Workspace page).
 
 export function TextField({ label, value, onChange, placeholder = '', type = 'text', required = false }) {
@@ -18,26 +20,40 @@ export function TextField({ label, value, onChange, placeholder = '', type = 'te
   )
 }
 
-export function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false }) {
+export function SelectField({ label, value, onChange, options, placeholder = 'Select an option', required = false, searchable = false }) {
+  const [query, setQuery] = useState('')
+  const matches = searchable && query.trim() ? options.filter(option => option.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) : options
+  const selected = options.find(option => option.value === value)
+  const visibleOptions = selected && !matches.some(option => option.value === value) ? [selected, ...matches] : matches
   return (
-    <label className="space-y-2 text-sm">
+    <div className="space-y-2 text-sm">
       <span className="block font-medium text-fg-secondary">
         {label}
         {required ? <span className="ml-1 text-danger">*</span> : null}
       </span>
+      {searchable && <input
+        type="search"
+        aria-label={`Search ${label.toLowerCase()}`}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={`Search ${label.toLowerCase()}`}
+        className="w-full rounded-control border border-line-input bg-surface px-4 py-2 text-sm focus-visible:ring-2 focus-visible:ring-accent"
+      />}
       <select
+        aria-label={label}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        onChange={(event) => { onChange(event.target.value); setQuery('') }}
         className="w-full rounded-control border border-line bg-surface px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       >
         <option value="">{placeholder}</option>
-        {options.map((option) => (
+        {visibleOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-    </label>
+    </div>
   )
 }
 

@@ -26,7 +26,7 @@ function ComplianceStatusPill({ status }) {
 
   return (
     <span className={`inline-flex self-start rounded-control px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
-      {status ? status[0].toUpperCase() + status.slice(1) : ''}
+      {({ red: 'Action needed', amber: 'Check details', green: 'Valid' })[status] || 'Not checked'}
     </span>
   )
 }
@@ -55,9 +55,9 @@ export default function ApplicationCompliancePanel({
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <ComplianceSummaryCard label="Red items" value={compliance.summary.red} tone="red" />
-        <ComplianceSummaryCard label="Amber items" value={compliance.summary.amber} tone="amber" />
-        <ComplianceSummaryCard label="Green items" value={compliance.summary.green} tone="green" />
+        <ComplianceSummaryCard label="Action needed" value={compliance.summary.red} tone="red" />
+        <ComplianceSummaryCard label="To review" value={compliance.summary.amber} tone="amber" />
+        <ComplianceSummaryCard label="Valid" value={compliance.summary.green} tone="green" />
       </div>
 
       {compliance.redFlags.length > 0 ? (
@@ -105,7 +105,7 @@ export default function ApplicationCompliancePanel({
               <div>
                 <h4 className="text-sm font-semibold text-fg">{group.title}</h4>
                 <p className="mt-1 text-xs text-fg-muted">
-                  {group.counts.red} red • {group.counts.amber} amber • {group.counts.green} green
+                  {group.counts.red} action needed · {group.counts.amber} to review · {group.counts.green} valid
                 </p>
               </div>
             </div>

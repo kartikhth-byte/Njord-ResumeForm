@@ -1,5 +1,16 @@
 # Platform Test Plan
 
+## Presentation-led Holmes UI refinement (2026-11-15)
+
+Run lint/build and the synthetic `fleet-directory.spec.js`,
+`candidate-directory.spec.js`, `recruitment-workspace.spec.js`, and
+`applications-directory.spec.js` with `HOLMES_FLEET_SYNTHETIC_SMOKE=1` and
+`--no-deps`. Verify shared IDs/notes/grouping/takeover, keyboard access to
+horizontal tables, searchable requirement selection, and application issue-row
+hover/focus guidance. Run `ui-refinement.spec.js` for Calendar event selection,
+Operator evidence, and the Settings More menu. Review desktop and narrow-width
+captures before release. This UI pass adds no migration.
+
 ## Shared recruiter directories (2026-11-14)
 
 Run `supabase/tests/directory_ids_and_notes.sql` in an isolated PostgreSQL or

@@ -69,6 +69,7 @@ export default function RequirementForm({
 
           <SelectField
             label="Vessel type"
+            searchable
             required={form.status!=='draft'}
             value={form.vesselTypeId}
             onChange={set('vesselTypeId')}
@@ -77,6 +78,7 @@ export default function RequirementForm({
           />
           <SelectField
             label="Rank"
+            searchable
             required={form.status!=='draft'}
             value={form.rankId}
             onChange={set('rankId')}

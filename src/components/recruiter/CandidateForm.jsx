@@ -105,8 +105,8 @@ export default function CandidateForm({
           {canChooseRecruiter ? (
             <SelectField label="Added by" value={form.addedByRecruiterId} onChange={set('addedByRecruiterId')} options={options(recruiters, 'full_name')} placeholder="Choose recruiter" />
           ) : null}
-          <SelectField label="Rank" value={form.rankId} onChange={set('rankId')} options={options(ranks)} placeholder="Choose a rank" />
-          <SelectField label="Vessel type" value={form.vesselTypeId} onChange={set('vesselTypeId')} options={options(vesselTypes)} placeholder="Choose a vessel type" />
+          <SelectField label="Rank" searchable value={form.rankId} onChange={set('rankId')} options={options(ranks)} placeholder="Choose a rank" />
+          <SelectField label="Vessel type" searchable value={form.vesselTypeId} onChange={set('vesselTypeId')} options={options(vesselTypes)} placeholder="Choose a vessel type" />
           <SelectField label="Nationality" value={form.nationalityId} onChange={set('nationalityId')} options={options(countries)} placeholder="Choose nationality" />
           <TextField label="Experience in rank (months)" type="number" value={form.expInRankMonths} onChange={set('expInRankMonths')} placeholder="0" />
           <TextField label="Telephone" value={form.telephone} onChange={set('telephone')} placeholder="+919999999999" />
@@ -122,6 +122,7 @@ export default function CandidateForm({
         {canAttach && lockedRequirement ? <p className="rounded-control border border-line p-3 text-sm">Attach to requirement: <strong>{requirementOptions.find(row => row.value === form.requirementId)?.label}</strong></p> : canAttach ? (
           <SelectField
             label="Attach to requirement (optional)"
+            searchable
             value={form.requirementId}
             onChange={value => { setReviewed(false); setForm(current => withRequirementDefaults(current, requirementOptions.find(row => row.value === value))) }}
             options={requirementOptions}

@@ -54,7 +54,7 @@ async function capturePixels(page) {
 test.describe('Two-click problem reporting (synthetic only)',()=>{
   test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Requires synthetic configuration')
   test.use({storageState:{cookies:[],origins:[]}})
-  test('plus captures real page, Send submits without a description; no eager capture bundle',async({page},info)=>{
+  test('report launcher captures real page, Send submits without a description; no eager capture bundle',async({page},info)=>{
     const state=await fixture(page),scripts=[];page.on('request',r=>{if(r.resourceType()==='script')scripts.push(r.url())})
     await page.goto('/recruiter/companies?token=must-not-store')
     await expect(page.getByRole('region',{name:'Northstar Shipping',exact:true})).toBeVisible()
@@ -211,7 +211,7 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
     await expect(page.locator('style[data-report-font-metrics]')).toHaveCount(0)
   })
   test('mobile capture and dialog fit viewport; Coordinator can report',async({page})=>{
-    await page.setViewportSize({width:390,height:844});await fixture(page,{role:'Coordinator'});await open(page)
+    await page.setViewportSize({width:390,height:844});await fixture(page,{role:'Coordinator'});await open(page,'/recruiter/candidates')
     expect((await page.getByRole('dialog').boundingBox()).width).toBeLessThanOrEqual(390)
     await page.getByRole('button',{name:'Send',exact:true}).click();await expect(page.getByRole('status')).toContainText('sent')
   })

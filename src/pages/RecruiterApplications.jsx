@@ -10,6 +10,7 @@ import InterviewSchedulingModal from '../components/InterviewSchedulingModal'
 import ApplicationFilters from '../components/ApplicationFilters'
 import Pagination from '../components/Pagination'
 import PageHeader from '../components/ui/PageHeader'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import { buildApplicationCompliance } from '../utils/applicationCompliance'
 import { applicationStatusLabel } from '../constants/applicationStatus'
 import { loadApplicationDirectory } from '../services/applicationDirectoryService'
@@ -56,11 +57,14 @@ function complianceLabel(status) {
   return ({red: 'Action needed', amber: 'Check details', green: 'Checks clear'})[status] || 'Not checked'
 }
 
-function ComplianceBadge({ status }) {
+function ComplianceBadge({ status, summary }) {
+  const reason = summary && (summary.red || summary.amber)
+    ? `${summary.red ? `${summary.red} action needed` : ''}${summary.red && summary.amber ? ' · ' : ''}${summary.amber ? `${summary.amber} to review` : ''}`
+    : ''
   return (
-    <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${COMPLIANCE_STYLES[status] || 'bg-raised text-fg-secondary border-line'}`}>
+    <div className="space-y-1"><span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${COMPLIANCE_STYLES[status] || 'bg-raised text-fg-secondary border-line'}`}>
       {complianceLabel(status)}
-    </span>
+    </span>{reason && <p className="text-xs text-fg-secondary">{reason}</p>}</div>
   )
 }
 
@@ -336,6 +340,8 @@ const updateContractEndDate = async (applicationId, value) => {
     else setParam('filters', key)
   }
 
+  useRefreshOnFocus(() => loadApplications(appliedFilters, { background: true }), !permLoading && canViewApplications())
+
   if (permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -380,7 +386,7 @@ const updateContractEndDate = async (applicationId, value) => {
       <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-warning" tabIndex={0} role="note" aria-label="Recruitment link missing. Verify the original invitation before correcting it." title="Verify the original invitation before correcting this link.">⚠ Link missing</span>}</td>
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
       <td>{dateCell(app.submitted_at)}</td><td>{dateCell(app.created_at)}</td><td>{dateCell(latestRecordDate(app.updated_at, notesByApplication[app.id]?.created_at))}</td>
-      <td><ComplianceBadge status={app.compliance_status} /></td>
+      <td><ComplianceBadge status={app.compliance_status} summary={app.compliance_summary} /></td>
       <td><button className="text-accent-text underline" onClick={() => setNoteApplication(app)}>{notesByApplication[app.id] ? <span title={notesByApplication[app.id].body}>{notesByApplication[app.id].body.slice(0,32)}{notesByApplication[app.id].body.length>32?'…':''}</span> : canEditApplications ? 'Add note' : 'View notes'}</button></td>
       <td><div className="flex flex-col items-start gap-2">{app.public_token ? <button title="View application" className="text-accent-text underline" onClick={() => navigate(`/application/view/${app.public_token}`, { state: { from: location.pathname + location.search } })}>View application</button> : <span className="text-sm text-fg-muted">Application unavailable</span>}
         {links.length === 1 && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${links[0].id}`}>Open recruitment</Link>}
@@ -403,8 +409,8 @@ const updateContractEndDate = async (applicationId, value) => {
       {statusFilter && <p className="text-sm text-fg-muted">Saved status filter: {applicationStatusLabel(statusFilter)} <button className="underline text-accent-text" onClick={() => setParam('status','')}>Clear status filter</button></p>}
       {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
       {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
-        <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}{listed.length > uniqueIds.length ? ' Forms linked to multiple ships appear under each ship.' : ''}</p>
-        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]">
+        <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}</p>
+        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" tabIndex={0} className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]">
           <thead><tr>{['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
           <tbody>{groups.flatMap(company => [
             <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={11} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.name}</td></tr>,
@@ -413,7 +419,7 @@ const updateContractEndDate = async (applicationId, value) => {
               ...tableRows(ship.rows)
             ])
           ])}{tableRows(corrections)}</tbody>
-        </table>{!listed.length && <p className="p-5 text-sm text-fg-muted">No submitted applications match these filters.</p>}</section>
+        </table>{!listed.length && <p className="p-5 text-sm text-fg-muted">No submitted applications match. <button className="text-accent-text underline" onClick={() => { setSearchParams({}); setFilters({}) }}>Clear filters</button></p>}</section>
         {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} itemsPerPage={itemsPerPage} totalItems={uniqueIds.length} />}
       </>}
       {autoOpenInterviewForApp && canEditApplications && <InterviewSchedulingModal application={autoOpenInterviewForApp} onCancel={() => setAutoOpenInterviewForApp(null)} onScheduled={() => {setAutoOpenInterviewForApp(null);loadApplications(appliedFilters,{background:true})}} />}

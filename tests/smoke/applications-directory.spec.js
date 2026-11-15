@@ -104,7 +104,7 @@ test.describe('Applications directory',()=>{
  test('same-placement filters persist on reload and company changes clear dependent filters',async({page})=>{
   await fixture(page)
   await page.goto('/recruiter/applications?company=c1&requirement=R3')
-  await expect(page.getByText('No submitted applications match these filters.')).toBeVisible()
+  await expect(page.getByText('No submitted applications match.',{exact:false})).toBeVisible()
   await page.getByLabel('Company',{exact:true}).selectOption('c2')
   await expect(page.getByRole('link',{name:'SYN-R3',exact:true})).toBeVisible()
   await page.getByLabel('Ship',{exact:true}).selectOption('s3')
@@ -114,7 +114,7 @@ test.describe('Applications directory',()=>{
   await expect(page.getByLabel('Ship',{exact:true})).toHaveValue('s3')
   await expect(page.getByRole('link',{name:'SYN-R3',exact:true})).toBeVisible()
   await page.getByLabel('Search',{exact:true}).fill('no such candidate')
-  await expect(page.getByText('No submitted applications match these filters.')).toBeVisible()
+  await expect(page.getByText('No submitted applications match.',{exact:false})).toBeVisible()
  })
  test('Coordinator reads forms and links without workflow or contract mutation controls',async({page})=>{
   const state=await fixture(page,{role:'Coordinator'})
@@ -165,7 +165,7 @@ test.describe('Applications directory',()=>{
   await page.getByRole('button',{name:'Refresh',exact:true}).click()
   await page.getByLabel('Rank',{exact:true}).selectOption('chief_officer')
   await page.getByRole('button',{name:'Apply filters'}).click()
-  await expect(page.getByText('No submitted applications match these filters.')).toBeVisible()
+  await expect(page.getByText('No submitted applications match.',{exact:false})).toBeVisible()
   await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeEnabled()
   await expect(page.getByRole('status')).not.toContainText('Refreshing')
  })

@@ -33,7 +33,7 @@ export default function CandidateDirectoryRows({ rows, attached, showAllLinks, f
   let serial = 0
   const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history) : []
   return <>
-    <div className="tracker-table-wrap" aria-label="Candidates"><table className="tracker-table min-w-[1200px]">
+    <div className="tracker-table-wrap" tabIndex={0} aria-label="Candidates"><table className="tracker-table min-w-[1200px]">
       <thead><tr>{header.map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{attached ? groups.flatMap(company => [
         <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={header.length} className="font-semibold">{company.name}</td></tr>,

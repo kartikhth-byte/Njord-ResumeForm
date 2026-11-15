@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   AlertCircle,
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -18,6 +17,8 @@ import { useAuth } from '../auth/AuthContext'
 import { usePermissions } from '../../hooks/usePermissions'
 import { supabase } from '../../lib/supabase'
 import PageHeader from '../ui/PageHeader'
+import SegmentedControl from '../ui/SegmentedControl'
+import useRefreshOnFocus from '../../hooks/useRefreshOnFocus'
 
 const EVENT_TYPE_CONFIG = {
   interview: {
@@ -68,7 +69,7 @@ function combineDateTime(date, time) {
 }
 
 function formatAgendaDate(date) {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('en-GB', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -77,7 +78,7 @@ function formatAgendaDate(date) {
 }
 
 function formatMonthLabel(date) {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('en-GB', {
     month: 'long',
     year: 'numeric'
   })
@@ -152,6 +153,7 @@ export default function CalendarDashboard() {
       fetchScheduledEvents()
     }
   }, [permLoading])
+  useRefreshOnFocus(fetchScheduledEvents, !permLoading)
 
   const normalizedRole = role?.toLowerCase().replace(/\s+/g, '_')
   const hasAccess = normalizedRole === 'recruiter' || normalizedRole === 'master_recruiter' || normalizedRole === 'coordinator'
@@ -191,15 +193,6 @@ export default function CalendarDashboard() {
       })
   }, [events, searchTerm, selectedType])
 
-  const monthEvents = useMemo(() => {
-    return filteredEvents.filter(
-      (event) =>
-        event.eventDate &&
-        event.eventDate.getFullYear() === activeMonth.getFullYear() &&
-        event.eventDate.getMonth() === activeMonth.getMonth()
-    )
-  }, [filteredEvents, activeMonth])
-
   const eventCountsByDate = useMemo(() => {
     const counts = new Map()
 
@@ -230,6 +223,7 @@ export default function CalendarDashboard() {
       .filter((event) => event.dateKey === selectedKey)
       .sort((a, b) => a.eventDate - b.eventDate)
   }, [filteredEvents, selectedDate])
+  const nextEvents = filteredEvents.filter(event => event.eventDate && event.eventDate > selectedDate && event.dateKey !== getDateKey(selectedDate)).sort((a,b) => a.eventDate - b.eventDate).slice(0, 3)
 
   const monthGridDays = useMemo(() => {
     const monthStart = startOfMonth(activeMonth)
@@ -287,67 +281,26 @@ export default function CalendarDashboard() {
         title="Calendar"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <div className="flex items-center gap-2 rounded-control border border-line bg-surface px-2 py-2">
-              <button
-                onClick={() => setActiveMonth((current) => addMonths(current, -1))}
-                className="rounded-card p-2 text-fg-secondary transition hover:bg-raised hover:text-fg"
-                aria-label="Previous month"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="min-w-[10rem] text-center text-sm font-semibold text-fg">
-                {formatMonthLabel(activeMonth)}
-              </span>
-              <button
-                onClick={() => setActiveMonth((current) => addMonths(current, 1))}
-                className="rounded-card p-2 text-fg-secondary transition hover:bg-raised hover:text-fg"
-                aria-label="Next month"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                setActiveMonth(startOfMonth(today))
-                setSelectedDate(today)
-              }}
-              className="rounded-control border border-line bg-surface px-4 py-3 text-sm font-medium text-fg-secondary transition hover:border-line-input hover:text-fg"
-            >
-              Current month
-            </button>
             <button
               onClick={fetchScheduledEvents}
-              className="workspace-action-button"
+              className="workspace-action-button workspace-action-button--secondary"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            {lastSyncedAt && <span className="text-xs text-fg-muted">Updated {lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
           </div>
         }
       />
 
       <div className="recruiter-panel p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'all', label: 'All events' },
-              { id: 'interview', label: 'Interviews' },
-              { id: 'test', label: 'Tests' }
-            ].map((option) => (
-              <button
-                key={option.id}
-                onClick={() => setSelectedType(option.id)}
-                className={`rounded-control px-4 py-2 text-sm font-medium transition ${
- selectedType === option.id
- ? 'border border-line-strong bg-raised text-fg'
- : 'border border-line bg-surface text-fg-secondary hover:border-line-input hover:text-fg'
- }`}
-              >
-                {option.label} ({typeSummary[option.id]})
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="workspace-action-button workspace-action-button--secondary" onClick={() => setActiveMonth(current => addMonths(current, -1))} aria-label="Previous month"><ChevronLeft className="h-4 w-4" /></button>
+            <span className="min-w-36 text-center text-sm font-semibold">{formatMonthLabel(activeMonth)}</span>
+            <button className="workspace-action-button workspace-action-button--secondary" onClick={() => setActiveMonth(current => addMonths(current, 1))} aria-label="Next month"><ChevronRight className="h-4 w-4" /></button>
+            <button className="workspace-action-button workspace-action-button--secondary" onClick={() => { setActiveMonth(startOfMonth(today)); setSelectedDate(today) }}>Today</button>
           </div>
-
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-[20rem]">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
@@ -359,30 +312,15 @@ export default function CalendarDashboard() {
                 className="w-full rounded-card border border-line bg-surface py-3 pl-11 pr-4 text-sm text-fg outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/30"
               />
             </div>
-            <p className="text-sm text-fg-muted">
-              {lastSyncedAt
-                ? `Last synced ${lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Sync pending'}
-            </p>
           </div>
         </div>
+        <div className="mt-3"><SegmentedControl label="Event type" size="sm" value={selectedType} onChange={setSelectedType} options={[{value:'all',label:'All events',count:typeSummary.all},{value:'interview',label:'Interviews',count:typeSummary.interview},{value:'test',label:'Tests',count:typeSummary.test}]} /></div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.85fr)]">
-        <section className="recruiter-panel overflow-hidden">
-          <div className="border-b border-line px-5 py-5 sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold text-fg">{formatMonthLabel(activeMonth)}</h2>
-              </div>
-              <div className="text-sm text-fg-muted">
-                {monthEvents.length} {monthEvents.length === 1 ? 'event' : 'events'} in this month
-              </div>
-            </div>
-          </div>
-
+        <section aria-label={`${formatMonthLabel(activeMonth)} calendar`} className="recruiter-panel overflow-hidden">
           <div className="p-4 sm:p-6">
-            <div className="mb-3 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-fg-muted">
+            <div className="mb-1 grid grid-cols-7 text-center text-xs font-semibold text-fg-muted">
               {CALENDAR_DAY_LABELS.map((label) => (
                 <div key={label} className="py-2">
                   {label}
@@ -390,7 +328,7 @@ export default function CalendarDashboard() {
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 border-l border-t border-line">
               {monthGridDays.map((date) => {
                 const dateKey = getDateKey(date)
                 const isCurrentMonth = date.getMonth() === activeMonth.getMonth()
@@ -398,17 +336,18 @@ export default function CalendarDashboard() {
                 const isToday = dateKey === getDateKey(today)
                 const eventCount = eventCountsByDate.get(dateKey) || 0
                 const eventTypes = Array.from(eventTypesByDate.get(dateKey) || [])
+                const dayEvents = filteredEvents.filter(event => event.dateKey === dateKey)
 
                 return (
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDate(startOfDay(date))}
-                    className={`min-h-[4.5rem] rounded-card border p-2 text-left transition ${
+                    className={`min-h-[3.5rem] border-b border-r border-line p-1 text-left transition sm:min-h-[5rem] sm:p-2 ${
  isSelected
- ? 'border-accent bg-raised text-fg '
+ ? 'bg-accent-soft text-fg '
  : isCurrentMonth
- ? 'border-line bg-surface text-fg hover:border-line-input '
- : 'border-line bg-raised text-fg-muted hover:border-line-input'
+ ? 'bg-surface text-fg hover:bg-raised '
+ : 'bg-raised text-fg-muted hover:bg-raised'
  }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -434,7 +373,7 @@ export default function CalendarDashboard() {
                       ) : null}
                     </div>
 
-                    <div className="mt-6 flex flex-wrap gap-1.5">
+                    <div className="mt-1 flex flex-wrap gap-1.5 md:hidden">
                       {eventTypes.slice(0, 3).map((type) => (
                         <span
                           key={type}
@@ -444,6 +383,7 @@ export default function CalendarDashboard() {
                         />
                       ))}
                     </div>
+                    <div className="hidden space-y-1 md:block">{dayEvents.slice(0, 2).map(event => <span key={event.id} className="block truncate border-l-2 border-accent pl-1 text-xs">{event.scheduled_time?.slice(0,5)} {event.event_title || EVENT_TYPE_CONFIG[event.event_type]?.label || 'Event'}</span>)}{dayEvents.length > 2 && <span className="text-xs text-fg-muted">+{dayEvents.length - 2} more</span>}</div>
                   </button>
                 )
               })}
@@ -454,19 +394,12 @@ export default function CalendarDashboard() {
         <aside className="recruiter-panel overflow-hidden">
           <div className="border-b border-line px-5 py-5 sm:px-6">
             <h2 className="text-2xl font-semibold text-fg">{formatAgendaDate(selectedDate)}</h2>
-            <p className="mt-2 text-sm text-fg-muted">
-              {selectedDateEvents.length
-                ? `${selectedDateEvents.length} scheduled ${selectedDateEvents.length === 1 ? 'event' : 'events'}`
-                : 'No scheduled interviews or tests for this date.'}
-            </p>
+            {selectedDateEvents.length > 0 && <p className="mt-2 text-sm text-fg-muted">{selectedDateEvents.length} scheduled {selectedDateEvents.length === 1 ? 'event' : 'events'}</p>}
           </div>
 
           <div className="space-y-4 p-4 sm:p-6">
             {selectedDateEvents.length === 0 ? (
-              <div className="rounded-control border border-dashed border-line-input bg-raised px-6 py-12 text-center">
-                <CalendarIcon className="mx-auto mb-3 h-10 w-10 text-fg-muted" />
-                <h3 className="text-lg font-semibold text-fg">No events on this date</h3>
-              </div>
+              <div><p className="text-sm text-fg-secondary">No events on this date.</p>{nextEvents.length > 0 && <div className="mt-5"><h3 className="mb-2 text-sm font-semibold">Next events</h3><ul className="divide-y divide-line">{nextEvents.map(event => <li key={event.id}><button className="w-full py-2 text-left text-sm text-accent-text" onClick={() => { setActiveMonth(startOfMonth(event.eventDate)); setSelectedDate(startOfDay(event.eventDate)) }}>{event.eventDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short' })} · {event.event_title || EVENT_TYPE_CONFIG[event.event_type]?.label || 'Event'}</button></li>)}</ul></div>}</div>
             ) : (
               selectedDateEvents.map((event) => {
                 const config = EVENT_TYPE_CONFIG[event.event_type] || EVENT_TYPE_CONFIG.interview

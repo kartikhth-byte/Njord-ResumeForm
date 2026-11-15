@@ -12,15 +12,18 @@ import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import { assignRecruitmentWork } from '../services/recruitmentWorkService'
 import RecruitmentResourceActions from '../components/recruiter/RecruitmentResourceActions'
 import DirectoryNotes from '../components/recruiter/DirectoryNotes'
+import PageHeader from '../components/ui/PageHeader'
+import SegmentedControl from '../components/ui/SegmentedControl'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import { supabase } from '../lib/supabase'
-import { dateCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
+import { dateCell, dateTimeCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
 import { WORK_STAGES, workStage, taskProgress, nextWork, groupRecruitmentRows } from '../utils/recruitmentWorkspace'
 import { isCaseTerminal } from '../utils/recruitmentCase'
 const button='workspace-action-button workspace-action-button--secondary'
 const field='rounded-control border border-line bg-surface p-2 text-sm w-full'
 const filterField=`${field} h-11 min-w-0`
 const filterLabel='flex min-w-0 flex-col gap-1.5 text-sm'
-const when=value=>value?new Date(value).toLocaleString():''
+const when=value=>value?dateTimeCell(value):''
 
 export default function RecruitmentWorkspacePage() {
  const auth=useAuth(),{permissions,role,hasPermission}=usePermissions()
@@ -40,6 +43,7 @@ export default function RecruitmentWorkspacePage() {
  }
  const set=(key,value)=>updateParams(n=>{value?n.set(key,value):n.delete(key)})
  const reload=()=>{tracker.reload();work.reload()}
+ useRefreshOnFocus(()=>{ reload(); fleet.reload() },allowed)
  const people=tracker.data.recruiters.filter(r=>['Master Recruiter','Recruiter'].includes(r.role_name))
  const name=id=>tracker.data.recruiters.find(r=>r.id===id)?.full_name||tracker.data.recruiters.find(r=>r.id===id)?.email||'Unassigned'
  const all=tracker.data.cases.map(c=>{
@@ -112,10 +116,10 @@ export default function RecruitmentWorkspacePage() {
  // Opening a case or refreshing assignments does not reset the user's groups.
  const groupingScope=['q','scope','stage','recruiter','company','ship','requirement','attention'].map(key=>params.get(key)||'').join('\u001f')
  return <div className="min-h-screen bg-raised"><RecruiterTopbar user={auth.user} profile={auth.profile} role={role} signOut={auth.signOut}/><main className="mx-auto max-w-7xl px-4 py-6 space-y-5">
-  <div className="flex justify-between"><h1 className="text-3xl font-semibold">Recruitment</h1><button className={button} onClick={reload}>Refresh</button></div>
+  <PageHeader title="Recruitment" actions={<button className={button} onClick={reload}>Refresh</button>} />
   {!allowed?<p role="alert">Your account cannot view recruitment.</p>:<>
   {(tracker.error||work.error||fleet.error||error)&&<p role="alert" className="text-danger">{error||work.error||tracker.error||fleet.error}</p>}
-  <div className="flex flex-wrap gap-2"><button className={button} aria-pressed={!selectedStage} onClick={()=>set('stage','')}>Active</button>{WORK_STAGES.map(s=><button key={s} className={button} aria-pressed={selectedStage===s} onClick={()=>set('stage',s)}>{s} ({all.filter(c=>workStage(c.status)===s).length})</button>)}</div>
+  <SegmentedControl label="Recruitment stage" value={selectedStage || ''} onChange={value=>set('stage',value)} options={[{value:'',label:'Active',count:all.filter(c=>!isCaseTerminal(c.status)).length},...WORK_STAGES.map(s=>({value:s,label:s,count:all.filter(c=>workStage(c.status)===s).length}))]} />
   <section aria-label="Recruitment filters" className="grid items-start gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
    <label className={filterLabel}>Search<input placeholder="Name or reference…" className={filterField} value={params.get('q')||''} onChange={e=>set('q',e.target.value)}/></label>
    <label className={filterLabel}>Work<select aria-label="Work" className={filterField} value={params.get('scope')||''} onChange={e=>set('scope',e.target.value)}><option value="">All work</option><option value="mine">My work</option></select></label>
@@ -123,7 +127,7 @@ export default function RecruitmentWorkspacePage() {
    <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
   </section>
   {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:<section key={groupingScope} aria-label="Recruitment by company and ship">
-   <div className="tracker-table-wrap"><table className="tracker-table min-w-[1450px]"><thead><tr>{['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
+   <div className="tracker-table-wrap" tabIndex={0} aria-label="Recruitment table"><table className="tracker-table min-w-[1450px]"><thead><tr>{['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
    <tbody>{groups.flatMap(company=>[
     <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={10} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4"/>{company.name}</td></tr>,
     ...company.ships.flatMap(ship=>[
@@ -131,7 +135,7 @@ export default function RecruitmentWorkspacePage() {
      ...renderRows(ship.rows)
     ])
    ])}</tbody></table></div>
-   {!rows.length&&<p className="p-5 text-sm text-fg-muted">No recruitment rows match these filters.</p>}
+   {!rows.length&&<p className="p-5 text-sm text-fg-muted">No recruitment rows match. <button className="text-accent-text underline" onClick={()=>setParams({})}>Clear filters</button></p>}
   </section>}
   {noteCase&&<DirectoryNotes kind="recruitment" id={noteCase.id} label={recordDisplayId(noteCase)} canAdd={canMove} onClose={()=>setNoteCase(null)} onSaved={()=>setNoteRevision(n=>n+1)}/>}
   {params.get('case')&&!tracker.loading&&!selected&&<p role="alert">This recruitment record is unavailable.</p>}
@@ -145,11 +149,11 @@ export default function RecruitmentWorkspacePage() {
    {canMove&&!isCaseTerminal(selected.status)&&<div className="grid sm:grid-cols-2 gap-3"><label>Performed by<select className={field} value={performer||auth.user.id} onChange={e=>setPerformer(e.target.value)}>{people.map(p=><option key={p.id} value={p.id}>{name(p.id)}</option>)}</select></label><label>Completed / joined at<input className={field} type="datetime-local" value={occurred} onChange={e=>setOccurred(e.target.value)}/><span className="text-xs text-fg-muted">Defaults to now. Test/interview results use their recorded occurrence time.</span></label></div>}
    <RecruitmentCasePanel key={`${selected.id}:${selected.version}`} requirementId={selected.requirement_id} selectedCaseId={selected.id} requirementOpen={selected.requirement?.status==='open'&&!selected.requirement?.archived_at&&!selected.requirement?.deleted_at} permissions={permissions} performerId={performer||auth.user.id} occurredAt={occurred?new Date(occurred).toISOString():null} onCaseChanged={reload} onBusyChange={setCaseBusy}/>
    <h2 className="font-semibold">Tasks</h2>
-   <div className="grid sm:grid-cols-2 gap-3">
-   {selected.tasks.map(t=><section key={t.key} aria-label={t.label} className="border border-line rounded p-3 space-y-2"><h3 className="font-semibold">{t.label} · {t.status}</h3><p className="text-sm">{t.outcome||'No outcome recorded'} · Assigned: {name(t.assignment?.assignee_id)}{t.due&&` · Due ${when(t.due)}`}</p>{t.done&&t.key==='application'&&<p className="text-xs text-fg-muted">Form submitted · {when(selected.application?.submitted_at)}</p>}{t.done&&t.key!=='application'&&t.last&&<p className="text-xs text-fg-muted">Performed by {name(work.credits.find(c=>c.event_id===t.last.id)?.performed_by||t.last.actor_id)} · Recorded by {name(t.last.actor_id)} · {when(work.credits.find(c=>c.event_id===t.last.id)?.occurred_at||t.last.payload?.occurred_at||t.last.payload?.sent_at||t.last.created_at)}</p>}
+   <ol className="divide-y divide-line border-y border-line">
+   {selected.tasks.map((t,index)=><li key={t.key} className="grid gap-2 py-3 sm:grid-cols-[2rem_minmax(0,1fr)]"><span className="text-sm text-fg-muted">{index+1}.</span><div role="region" aria-label={t.label} className="space-y-1"><h3 className="font-semibold">{t.label} · {t.status}</h3><p className="text-sm">{t.outcome||'No outcome recorded'} · Assigned: {name(t.assignment?.assignee_id)}{t.due&&` · Due ${when(t.due)}`}</p>{t.done&&t.key==='application'&&<p className="text-xs text-fg-muted">Form submitted · {when(selected.application?.submitted_at)}</p>}{t.done&&t.key!=='application'&&t.last&&<p className="text-xs text-fg-muted">Performed by {name(work.credits.find(c=>c.event_id===t.last.id)?.performed_by||t.last.actor_id)} · Recorded by {name(t.last.actor_id)} · {when(work.credits.find(c=>c.event_id===t.last.id)?.occurred_at||t.last.payload?.occurred_at||t.last.payload?.sent_at||t.last.created_at)}</p>}
     {canMove&&!t.done&&!isCaseTerminal(selected.status)&&selected.requirement?.status==='open'&&<div className="flex flex-wrap gap-2"><button disabled={busy} className={button} onClick={()=>take(selected,t.key,t.assignment,true)}>Start task</button>{(role==='Master Recruiter'||t.assignment?.assignee_id===auth.user.id)&&<button className={button} onClick={()=>beginEdit(t.key,t.assignment)}>Assignment / due date</button>}</div>}
-   </section>)}
-   </div>
+   </div></li>)}
+   </ol>
    <h2 className="font-semibold">Handovers</h2><ol className="space-y-2">{work.history.filter(h=>h.case_id===selected.id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(h=><li key={h.id} className="text-sm">{when(h.created_at)} · {name(h.actor_id)} {h.action} {h.task_key} · {name(h.previous_assignee_id)} → {name(h.assignee_id)}{h.note&&<p>{h.note}</p>}</li>)}</ol>
    </div>
   </RecordFormDialog>}

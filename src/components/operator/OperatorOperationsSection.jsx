@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { needleIntegration } from '../../services/needleIntegrationService'
+import { dateTimeCell } from '../../utils/directoryDisplay'
 
-const stamp = value => value ? new Date(value).toLocaleString() : 'Not observed'
+const stamp = value => value ? dateTimeCell(value) : 'Not observed'
+const words = value => String(value || 'operation').replaceAll('_', ' ').replaceAll('/', ' / ')
 export default function OperatorOperationsSection({ section = 'health' }) {
   const [state, setState] = useState({ loading: true, data: null, needle: null, error: '' })
   const [notice, setNotice] = useState('')
@@ -35,19 +38,22 @@ export default function OperatorOperationsSection({ section = 'health' }) {
   const expiry = events.find(row => row.category === 'job' && row.action === 'expiry_warnings')
   const projectRef = /^https:\/\/([a-z0-9]+)\.supabase\.co(?:\/|$)/.exec(import.meta.env.VITE_SUPABASE_URL || '')?.[1]
   const logsUrl = projectRef ? `https://supabase.com/dashboard/project/${projectRef}/logs/edge-logs` : null
+  const failures = events.filter(row => row.status === 'failed').length
+  const emailEvents = state.data?.email_events || []
+  const healthRows = [
+    { name:'Intake worker', state: !worker ? 'Not observed' : !workerFresh ? 'Stale' : worker.status || 'Observed', checked: worker?.observed_at, meaning: !worker ? 'Intake availability is unknown.' : !workerFresh ? 'Recent intake activity has not been confirmed.' : worker.intake_enabled ? 'Automatic intake is enabled.' : 'Automatic intake is paused.' },
+    { name:'Email delivery', state: emailEvents.length ? 'Reports received' : 'No delivery reports', checked: emailEvents[0]?.latest, meaning: emailEvents.length ? 'Delivery evidence is available for review.' : 'Sending does not confirm inbox delivery.' },
+    { name:'Expiry reminders', state: expiry?.status || 'Not run', checked: expiry?.created_at, meaning: expiry ? 'The latest reminder run was recorded.' : 'No reminder run has been observed.' },
+    { name:'Background jobs', state: !events.length ? 'Not observed' : failures ? `${failures} failures` : 'No recorded failures', checked: events[0]?.created_at, meaning: events.length ? `${failures} failures in the latest ${events.length} recorded operations.` : 'No operation history is available.' },
+  ]
   return <div className="space-y-4">
-    <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{section === 'users' ? 'Organizations & users' : section === 'audit' ? 'Audit' : 'Operations'}</h2><button className="underline" disabled={state.loading} onClick={load}>Refresh</button></div>
-    {state.loading && <p role="status">Loading operational evidence…</p>}
+    <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{section === 'users' ? 'Organizations & users' : section === 'audit' ? 'Audit' : 'Operations'}</h2><button className="workspace-action-button workspace-action-button--secondary" disabled={state.loading} onClick={load}><RefreshCw className="h-4 w-4" aria-hidden="true" />Refresh</button></div>
+    {state.loading && <p role="status">Checking operations…</p>}
     {state.error && <p role="alert" className="text-sm text-warning">{state.error}</p>}
     {notice && <p role="status" className="text-sm">{notice}</p>}
     {section === 'health' && <>
-      <dl className="grid gap-4 sm:grid-cols-2">
-        <div><dt className="font-medium">Intake worker</dt><dd className="text-sm text-fg-secondary">{!worker ? 'Not observed' : !workerFresh ? 'Stale heartbeat' : worker.status} · Last observed {stamp(worker?.observed_at)}</dd><dd className="text-sm">{worker ? worker.intake_enabled ? 'Automatic Drive intake enabled' : 'Automatic Drive intake paused' : 'Intake switch not observed'}{worker?.probe_failures?.length ? ` · Failed probes: ${worker.probe_failures.join(', ')}` : ''}</dd></div>
-        <div><dt className="font-medium">Corpus / conversion</dt><dd className="text-sm text-fg-secondary">{health ? `${health.pool_documents} documents · ${health.conversion_review} blocking conversion reviews` : 'Not observed'}</dd>{health?.facts?.map(row => <dd key={`${row.review_status}:${row.extraction_status}`} className="text-xs text-fg-muted">{row.count} facts: {row.review_status} / {row.extraction_status}</dd>)}</div>
-        <div><dt className="font-medium">Email delivery, last 30 days</dt><dd className="text-sm text-fg-secondary">{state.data?.email_events?.length ? state.data.email_events.map(row => `${row.event_type}: ${row.count} (${stamp(row.latest)})`).join(' · ') : 'No delivery webhook evidence observed'}</dd><dd className="text-xs text-fg-muted">Delivery webhooks are evidence; accepted send requests alone do not prove inbox delivery.</dd></div>
-        <div><dt className="font-medium">Last expiry-warning run</dt><dd className="text-sm text-fg-secondary">{expiry ? `${expiry.status} · ${stamp(expiry.created_at)}` : 'Not observed since instrumentation was enabled'}</dd></div>
-      </dl>
-      <p className="text-sm">Recorded function/job failures: {events.filter(row => row.status === 'failed').length} in the latest 100 operations. {logsUrl ? <a className="underline" href={logsUrl} target="_blank" rel="noreferrer">Open full Supabase function logs</a> : 'Open the configured project’s Supabase function logs for the complete history.'}</p>
+      <div className="tracker-table-wrap" tabIndex={0} aria-label="Operational health"><table className="tracker-table" style={{ minWidth: 780 }}><thead><tr>{['Service','State','Last evidence','What this means','Action'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{healthRows.map(row => <tr key={row.name}><td className="font-medium">{row.name}</td><td>{row.state}</td><td>{stamp(row.checked)}</td><td>{row.meaning}</td><td>{logsUrl ? <a className="text-accent-text underline" href={logsUrl} target="_blank" rel="noreferrer">Open logs</a> : '—'}</td></tr>)}</tbody></table></div>
+      <details className="text-sm text-fg-secondary"><summary className="cursor-pointer">Technical evidence</summary><div className="mt-3 space-y-2"><p>Intake probes: {worker?.probe_failures?.join(', ') || 'None reported'}</p><p>Corpus / conversion: {health ? `${health.pool_documents} documents · ${health.conversion_review} blocking conversion reviews` : 'Not observed'}</p>{health?.facts?.map(row => <p key={`${row.review_status}:${row.extraction_status}`}>{row.count} facts: {row.review_status} / {row.extraction_status}</p>)}<p>Email delivery, last 30 days: {emailEvents.length ? emailEvents.map(row => `${row.event_type}: ${row.count} (${stamp(row.latest)})`).join(' · ') : 'No delivery webhook evidence observed'}</p></div></details>
     </>}
     {section === 'users' && <>
       {(state.data?.organizations || []).map(row => <div key={row.id} className="rounded-lg border border-line p-4"><h3 className="font-semibold">{row.name}</h3><p className="text-xs text-fg-muted">{row.id}</p><p className="text-sm">Résumé folder: {health ? health.resume_folder_configured ? 'Configured in Railway' : 'Not configured' : 'Not observed'} · Original uploads and identity review: Holmes platform Resume Intake (independent of Needle indexing)</p><p className="text-xs text-fg-muted">Mailbox delivery is managed in Platform settings and the existing mail automation. Additional customer onboarding remains a separate rollout.</p></div>)}
@@ -56,7 +62,7 @@ export default function OperatorOperationsSection({ section = 'health' }) {
     </>}
     {section === 'audit' && <>
       <p className="text-sm text-fg-secondary">Secret values and résumé contents are excluded. Operations show actor, target, time and outcome.</p>
-      <ol className="space-y-2">{events.map((row,i) => <li key={i} className="rounded border border-line p-3 text-sm">{stamp(row.created_at)} · {row.category} / {row.action} · {row.status}<div className="break-all text-xs text-fg-muted">Actor: {row.actor_id || 'Scheduler'}{row.target_id ? ` · Target: ${row.target_id}` : ''}{row.details?.key ? ` · Setting: ${row.details.key}` : ''}{row.details?.code ? ` · Outcome: ${row.details.code}` : ''}</div></li>)}</ol>
+      <ol className="divide-y divide-line">{events.map((row,i) => <li key={i} className="py-3 text-sm"><p>{row.actor_id ? 'A user' : 'The scheduler'} ran {words(row.action)} · {words(row.status)} <time className="text-fg-muted">{stamp(row.created_at)}</time></p><details className="mt-1 break-all text-xs text-fg-muted"><summary className="cursor-pointer">Details</summary>Category: {row.category} · Actor: {row.actor_id || 'Scheduler'}{row.target_id ? ` · Target: ${row.target_id}` : ''}{row.details?.key ? ` · Setting: ${row.details.key}` : ''}{row.details?.code ? ` · Outcome: ${row.details.code}` : ''}</details></li>)}</ol>
       <h3 className="font-semibold">Needle administrative access</h3><ol>{state.needle?.audit?.map((row,i) => <li key={i} className="break-all text-xs">{stamp(row.created_at)} · {row.action} · Actor {row.actor_id} · Target {row.target_id}</li>)}</ol>
       <h3 className="font-semibold">Needle runtime changes</h3><ol>{health?.settings_audit?.map((row,i) => <li key={i} className="text-xs">{stamp(row.changed_at)} · {row.key} · {row.changed_by}</li>)}</ol>
       <h3 className="font-semibold">Recruitment audit</h3><ol>{state.data?.legacy_audit?.map((row,i) => <li key={i} className="text-xs">{stamp(row.created_at)} · {row.entity_type} / {row.event_type} · {row.actor_user_id || 'System'}</li>)}</ol>

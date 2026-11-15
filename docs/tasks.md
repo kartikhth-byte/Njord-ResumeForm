@@ -1,5 +1,19 @@
 # Pending Tasks
 
+## Presentation-led Holmes UI refinement (2026-11-15)
+
+- [x] Apply shared control, table, date, empty-state, and record-action styling
+  on the current shared-lists branch, preserving Company → Ship grouping.
+- [x] Refine Home, Calendar, Expiry, Operator, Settings, Login, and the four
+  shared directories without changing AI Search or authority rules.
+- [x] Complete local synthetic browser checks and visual review; see
+  `UI_REFINEMENT_2026-11-15.md`.
+- [ ] Review and promote through the separate Holmes release process.
+- [ ] Complete the presentation's remaining cross-product type-scale,
+  terminology, and semantic-colour audit; the current UI pass addresses faults
+  2–6 only in the reviewed screens and preserves existing error/destructive
+  semantics. See `UI_REFINEMENT_2026-11-15.md`.
+
 ## Shared recruiter directories (2026-11-14)
 
 - [x] Local implementation: shared list tables, IDs, dates, serials, notes,

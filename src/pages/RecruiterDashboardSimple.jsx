@@ -8,6 +8,7 @@ import RequirementProgressTable from '../components/recruiter/RequirementProgres
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import {
   buildCandidateFunnelRows,
   buildNeedsAction,
@@ -67,6 +68,7 @@ export default function RecruiterDashboardSimple() {
   const { user, profile, signOut } = useAuth()
   const { role, loading: permLoading } = usePermissions()
   const tracker = useKpiTrackerData({ enabled: !permLoading })
+  useRefreshOnFocus(tracker.reload, !permLoading)
   // The Master Recruiter and read-only Coordinators (who own no work) see the
   // whole team by default and can narrow to one recruiter; Recruiters always
   // see their own work.
@@ -137,19 +139,14 @@ export default function RecruiterDashboardSimple() {
     scopeId,
   }), [tracker.data.applications, tracker.data.prospects, requirementRows, scopeId])
 
-  const actionItems = [
-    {
-      key: 'close',
-      count: actions.readyToClose.length,
-      text: (n) => `${n} requirement${n === 1 ? '' : 's'} fully joined but still open`,
-      to: actions.readyToClose.length === 1 ? `/recruiter/workspace/requirements/${actions.readyToClose[0].id}` : '/recruiter/requirements?status=open',
-      tone: 'border-success-line bg-success-soft text-success',
-    },
-    { key: 'stale', count: actions.staleReview.length, text: (n) => `${n} application${n === 1 ? '' : 's'} waiting over 7 days for review`, to: '/recruiter/applications?status=review', tone: 'border-warning-line bg-warning-soft text-warning' },
-    { key: 'unassigned', count: actions.unassigned.length, text: (n) => `${n} live application${n === 1 ? '' : 's'} with no recruiter`, to: '/recruiter/applications', tone: 'border-line bg-surface text-fg' },
-    { key: 'invites', count: actions.unclaimedInvites.length, text: (n) => `${n} invite${n === 1 ? '' : 's'} not opened after 3 days`, to: '/recruiter/candidates?view=active', tone: 'border-line bg-surface text-fg' },
-    { key: 'contracts', count: actions.contractsEnding.length, text: (n) => `${n} contract${n === 1 ? '' : 's'} ending within 45 days`, to: '/recruiter/applications?status=hired', tone: 'border-progress-line bg-progress-soft text-progress' },
-  ].filter((item) => item.count > 0)
+  const applicationLink = application => `/recruiter/applications?q=${encodeURIComponent(application.display_id || application.reference_number || '')}`
+  const actionRows = [
+    ...actions.unassigned.map(application => ({ key: `unassigned:${application.id}`, reason: 'No recruiter assigned', record: application.display_id || application.reference_number || 'Application', to: applicationLink(application), action: 'Review', tone: 'text-warning' })),
+    ...actions.staleReview.filter(application => application.handling_recruiter_id).map(application => ({ key: `review:${application.id}`, reason: 'Review waiting over 7 days', record: application.display_id || application.reference_number || 'Application', to: applicationLink(application), action: 'Review', tone: 'text-warning' })),
+    ...actions.readyToClose.map(row => ({ key: `close:${row.id}`, reason: 'All positions joined; requirement still open', record: row.display_id || row.reqId || 'Requirement', to: `/recruiter/workspace/requirements/${row.id}`, action: 'Open', tone: 'text-success' })),
+    ...actions.unclaimedInvites.map(prospect => ({ key: `invite:${prospect.id}`, reason: 'Invitation unopened after 3 days', record: prospect.name || 'Candidate', to: `/recruiter/workspace/prospects/${prospect.id}`, action: 'Open', tone: 'text-warning' })),
+    ...actions.contractsEnding.map(application => ({ key: `contract:${application.id}`, reason: 'Contract ending within 45 days', record: application.display_id || application.reference_number || 'Application', to: applicationLink(application), action: 'Review', tone: 'text-warning' })),
+  ]
 
   const recruiterParam = scopeId ? `&recruiter=${encodeURIComponent(scopeId)}` : ''
 
@@ -176,7 +173,7 @@ export default function RecruiterDashboardSimple() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
@@ -217,13 +214,15 @@ export default function RecruiterDashboardSimple() {
           <StatCard label="Open positions" value={metrics.openPositions} icon={Users} tone="warning" to={`/recruiter/requirements?status=open${recruiterParam}`} />
         </div>
 
-        {actionItems.length > 0 ? (
-          <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Needs action">
-            {actionItems.map((item) => (
-              <Link key={item.key} to={item.to} className={`rounded-card border p-4 text-sm font-semibold transition hover:opacity-90 ${item.tone}`}>
-                {item.text(item.count)}
-              </Link>
-            ))}
+        {actionRows.length > 0 ? (
+          <section className="recruiter-panel mt-6 px-5 py-3" aria-label="Needs action">
+            <h2 className="py-2 text-sm font-semibold">Needs action · {actionRows.length}</h2>
+            <ul className="divide-y divide-line">{actionRows.slice(0, 8).map(item => <li key={item.key} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
+              <span className={`min-w-56 font-medium ${item.tone}`}>{item.reason}</span>
+              <span className="min-w-0 flex-1 text-fg-secondary">{item.record}</span>
+              <Link to={item.to} className="workspace-action-button workspace-action-button--secondary">{item.action}</Link>
+            </li>)}</ul>
+            {actionRows.length > 8 && <p className="py-2 text-xs text-fg-muted">Showing 8 of {actionRows.length} items.</p>}
           </section>
         ) : null}
 

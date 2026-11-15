@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/auth/AuthContext'
 import AuthLayout, { AuthLoading, authButtonClass, authInputClass, authLabelClass } from '../components/auth/AuthLayout'
+import { AlertCircle } from 'lucide-react'
 
 const signOutSafely = async () => {
   const { error } = await supabase.auth.signOut({ scope: 'local' })
@@ -149,11 +150,13 @@ export default function RecruiterLogin() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={!!error}
+            aria-describedby={error ? 'recruiter-signin-error' : undefined}
             className={authInputClass}
           />
+          {error && <p id="recruiter-signin-error" role="alert" className="mt-2 flex items-start gap-2 text-sm text-danger"><AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{error}</p>}
         </div>
 
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         {resetMessage && <p className="text-sm text-success">{resetMessage}</p>}
 
         <button type="submit" disabled={loading} className={authButtonClass}>

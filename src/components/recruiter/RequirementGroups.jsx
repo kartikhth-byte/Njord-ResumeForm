@@ -24,7 +24,7 @@ export default function RequirementGroups({ rows, fleet, data, canMatch, canAddN
     </button>
   </td></tr>
   return <>
-    <div className="tracker-table-wrap" aria-label="Requirements by company and ship"><table className="tracker-table min-w-[1250px]">
+    <div className="tracker-table-wrap" tabIndex={0} aria-label="Requirements by company and ship"><table className="tracker-table min-w-[1250px]">
       <thead><tr>{['S.No.','Requirement ID','Rank','Positions','Status','Recruiter','Created','Modified','Notes','Actions'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
       <tbody>{groups.flatMap(company => [
         groupHeader(`company:${company.id}`, company.name, company.count, 'bg-accent-soft'),

@@ -5,6 +5,7 @@ import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
+import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import EmptyState from '../components/ui/EmptyState'
 import StatCard from '../components/ui/StatCard'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
@@ -70,6 +71,7 @@ export default function RecruiterKpiPage() {
   const { role, loading: permLoading, canExportData, canViewAnalytics } = usePermissions()
   const hasKpiAccess = canViewAnalytics()
   const tracker = useKpiTrackerData({ enabled: !permLoading && hasKpiAccess })
+  useRefreshOnFocus(tracker.reload, !permLoading && hasKpiAccess)
   const work = useRecruitmentWork(!permLoading && hasKpiAccess)
   const [recruiterFilter, setRecruiterFilter] = useState('')
   const [period, setPeriod] = useState('month')
@@ -397,7 +399,7 @@ export default function RecruiterKpiPage() {
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="kpi-page mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
           title="KPI"
           actions={(
@@ -405,7 +407,7 @@ export default function RecruiterKpiPage() {
               <button
                 type="button"
                 onClick={tracker.reload}
-                className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2.5 text-sm font-medium text-fg-secondary transition hover:bg-raised"
+                className="workspace-action-button workspace-action-button--secondary"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
@@ -466,7 +468,7 @@ export default function RecruiterKpiPage() {
         {tracker.data.casesAvailable ? (
           <section className="recruiter-panel mt-6 p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-fg">Recruitment cases</h2>
-            <p className="mt-1 text-sm text-fg-secondary">Current case stages; assessment outcomes recorded {periodLabel.toLowerCase()}. Repeated attempts are counted separately.</p>
+            <details className="mt-1 text-sm text-fg-secondary"><summary className="cursor-pointer">How these figures are counted</summary><p>Current case stages; assessment outcomes recorded {periodLabel.toLowerCase()}. Repeated attempts count separately.</p></details>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard label="Active cases" value={caseKpi.active} icon={Users} tone="accent" />
               <StatCard label="Closed cases" value={caseKpi.closed} icon={CheckCircle2} tone="success" />
@@ -532,9 +534,9 @@ export default function RecruiterKpiPage() {
 
         <section className="recruiter-panel p-5" aria-label="Recruiter work and activity">
           <h2 className="text-lg font-semibold">Recruiter work and activity</h2>{canExportData()&&<button className="underline" disabled={exporting||work.loading||!!work.error} onClick={generateTaskCsv}>Export task activity CSV</button>}
-          <p className="text-sm text-fg-muted">Current assignments and overdue work. Completed activity: {periodLabel.toLowerCase()}. Handovers do not transfer previous activity.</p>
+          <details className="text-sm text-fg-muted"><summary className="cursor-pointer">How task activity is counted</summary><p>Current assignments and overdue work. Completed activity: {periodLabel.toLowerCase()}. Handovers do not transfer previous activity.</p></details>
           {work.error ? <p role="alert">Task reporting is unavailable: {work.error}</p> : work.loading ? <p>Loading task reporting…</p> : <div className="tracker-table-wrap"><table className="tracker-table min-w-[750px]"><thead><tr>{['Recruiter','Assigned rows','Pending tasks','Overdue tasks','Contacts','Tests completed','Interviews completed','Document checks'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{taskScorecard.map(r=><tr key={r.id}>{['name','rows','pending','overdue','contacts','tests','interviews','documents'].map(k=><td key={k}>{r[k]}</td>)}</tr>)}</tbody></table></div>}
-          <p className="text-xs text-fg-muted mt-3">Tests and interviews count completed attempts, including failed outcomes; no-shows and waivers are not completions. Older events identify the recorder where the performer was not captured. Joined totals remain team outcomes.</p>
+          <details className="text-xs text-fg-muted mt-3"><summary className="cursor-pointer">More about task credit</summary><p>Tests and interviews count completed attempts, including failed outcomes; no-shows and waivers are not completions. Older events identify the recorder where the performer was not captured. Joined totals remain team outcomes.</p></details>
         </section>
         {/* Original sourcing-cohort report remains separate from work attribution. */}
         <section className="recruiter-panel mt-6 p-5 sm:p-6">
@@ -592,7 +594,7 @@ export default function RecruiterKpiPage() {
               </table>
             </div>
           )}
-          <p className="mt-4 text-xs text-fg-muted">These cohorts follow the original candidate creator, not the person completing each task. They are not individual task-performance credit.</p>
+          <details className="mt-4 text-xs text-fg-muted"><summary className="cursor-pointer">How sourcing cohorts are counted</summary><p>These cohorts follow the original candidate creator, not the person completing each task. They are not individual task-performance credit.</p></details>
         </section>
         </>
         ) : null}

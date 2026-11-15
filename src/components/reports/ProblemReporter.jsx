@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { reportPage, submitProblem } from '../../lib/problemReports'
+import { Bug } from 'lucide-react'
 
 const ProblemReportList = lazy(() => import('./ProblemReportList'))
 const VERSION = import.meta.env.VITE_APP_VERSION || 'local'
@@ -94,7 +95,7 @@ function Reporter({ userId }) {
       onPointerMove={e => { if (!drag.current) return; const dx=e.clientX-drag.current.x, dy=e.clientY-drag.current.y; if (Math.hypot(dx,dy)>6) suppressClick.current=true; if(suppressClick.current) setPosition(clamp({x:drag.current.start.x+dx,y:drag.current.start.y+dy})) }}
       onPointerUp={() => { drag.current=null }} onPointerCancel={() => { drag.current=null; suppressClick.current=false }}
       onKeyDown={e => { const steps={ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16]}; if (steps[e.key]) { e.preventDefault(); const [dx,dy]=steps[e.key]; setPosition(p=>clamp({x:p.x+dx,y:p.y+dy})) } else suppressClick.current=false }}
-      onClick={capture}>＋</button>
+      onClick={capture}><Bug className="h-5 w-5" aria-hidden="true" /></button>
   return <div data-report-ui data-html2canvas-ignore>
     {modalHost ? createPortal(launcher, modalHost) : launcher}
     {notice && (modalHost ? createPortal(<div data-report-ui role="status" className="fixed bottom-20 right-4 z-[2147483001] rounded-lg bg-surface border border-line px-4 py-3 text-fg shadow-lg">{notice}</div>, modalHost) : <div role="status" className="fixed bottom-20 right-4 z-[2147483001] rounded-lg bg-surface border border-line px-4 py-3 text-fg shadow-lg">{notice}</div>)}

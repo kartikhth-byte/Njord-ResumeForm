@@ -73,6 +73,8 @@ test.describe('Candidate directory synthetic smoke',()=>{
   await expect(first.getByRole('link',{name:'SYN-R1'})).toBeVisible()
   await expect(first.getByRole('link',{name:'SYN-R4'})).toBeVisible()
   await page.getByRole('button',{name:'Filters',exact:true}).click()
+  await page.getByRole('searchbox',{name:'Search present rank'}).fill('Master')
+  await expect(page.getByRole('combobox',{name:'Present rank'}).locator('option')).toHaveCount(2)
   await page.getByRole('combobox',{name:'Company',exact:true}).selectOption('c2')
   await page.getByRole('combobox',{name:'Case stage',exact:true}).selectOption('contacted')
   await expect(page.getByText('No candidates match')).toBeVisible()

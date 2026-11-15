@@ -5,6 +5,7 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RecruiterTeamSection from '../components/recruiter/RecruiterTeamSection'
 import RecruiterWorksheetMappingsSection from '../components/recruiter/RecruiterWorksheetMappingsSection'
 import PageHeader from '../components/ui/PageHeader'
+import SegmentedControl from '../components/ui/SegmentedControl'
 
 const TABS = [
   { key: 'team', label: 'Team' },
@@ -47,24 +48,7 @@ export default function RecruiterSettings() {
         <div className="space-y-6">
           <PageHeader title="Settings" />
 
-          <div role="tablist" aria-label="Settings" className="flex gap-1 border-b border-line">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.key}
-                onClick={() => setSearchParams(tab.key === 'team' ? {} : { section: tab.key })}
-                className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
-                  activeTab === tab.key
-                    ? 'border-accent text-fg'
-                    : 'border-transparent text-fg-muted hover:text-fg-secondary'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl label="Settings sections" value={activeTab} onChange={key => setSearchParams(key === 'team' ? {} : { section: key })} options={TABS.map(tab => ({ value: tab.key, label: tab.label }))} size="sm" />
 
           <section role="tabpanel" className="recruiter-panel p-6">
             {activeTab === 'team' && <RecruiterTeamSection currentUserId={user?.id} />}

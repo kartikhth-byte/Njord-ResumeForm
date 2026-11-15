@@ -27,7 +27,7 @@ export function formatDate(value, options = {}) {
     date = new Date(value)
   }
   if (Number.isNaN(date.getTime())) return 'Not set'
-  return date.toLocaleDateString([], {
+  return date.toLocaleDateString('en-GB', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -39,7 +39,7 @@ export function formatDateTime(value) {
   if (!value) return 'Not set'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Not set'
-  return date.toLocaleString([], {
+  return date.toLocaleString('en-GB', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

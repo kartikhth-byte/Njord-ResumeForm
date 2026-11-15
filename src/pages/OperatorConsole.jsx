@@ -7,6 +7,7 @@ import OperatorOperationsSection from '../components/operator/OperatorOperations
 import OperatorHealthSection from '../components/operator/OperatorHealthSection'
 import { aiSearchEnabled } from '../lib/needle'
 import PageHeader from '../components/ui/PageHeader'
+import SegmentedControl from '../components/ui/SegmentedControl'
 
 // Operator console (docs/needle-in-holmes-design.md section 5). Platform
 // settings moved here from organization Settings → Integrations.
@@ -35,24 +36,7 @@ export default function OperatorConsole() {
         <div className="space-y-6">
           <PageHeader title="Operator" />
 
-          <div role="tablist" aria-label="Operator" className="flex flex-wrap gap-1 border-b border-line">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.key}
-                onClick={() => setSearchParams(tab.key === 'health' ? {} : { section: tab.key })}
-                className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
-                  activeTab === tab.key
-                    ? 'border-accent text-fg'
-                    : 'border-transparent text-fg-muted hover:text-fg-secondary'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl label="Operator sections" value={activeTab} onChange={key => setSearchParams(key === 'health' ? {} : { section: key })} options={TABS.map(tab => ({ value: tab.key, label: tab.label }))} size="sm" />
 
           <section role="tabpanel" className="recruiter-panel p-6">
             {activeTab === 'review' && <div className="space-y-4"><p>Inspect the original PDF, formatted conversion and structured extraction. Review issues and publish corrections.</p><Link className="btn-primary inline-flex" to="/recruiter/ai/review">Open Résumé Review</Link></div>}
