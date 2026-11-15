@@ -5,6 +5,7 @@ import { groupCandidateAttachments, resumeReadiness } from '../../utils/candidat
 import { dateCell, recordDisplayId } from '../../utils/directoryDisplay'
 import { openCandidateResume } from '../../services/needleIntegrationService'
 import DirectoryNotes from './DirectoryNotes'
+import GroupedDirectoryTable from './GroupedDirectoryTable'
 
 export function CandidateRow({ row, links = [], showRequirements = false, number, from, canEdit, canAttach, canAddNotes, onEdit, onAttach, onError, onNotes }) {
   return <tr>
@@ -30,19 +31,11 @@ export default function CandidateDirectoryRows({ rows, attached, showAllLinks, f
   const [noteRow, setNoteRow] = useState(null)
   const withRequirements = attached || showAllLinks
   const header = ['S.No.','Candidate ID','Candidate','Rank','CV',...(withRequirements ? ['Requirements'] : []),'Created','Modified','Notes','Actions']
-  let serial = 0
-  const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history) : []
+  const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history).map(company => ({ ...company, count: new Set(company.ships.flatMap(ship => ship.candidates.map(candidate => candidate.row.id))).size })) : []
   return <>
-    <div className="tracker-table-wrap" tabIndex={0} aria-label="Candidates"><table className="tracker-table min-w-[1200px]">
-      <thead><tr>{header.map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
-      <tbody>{attached ? groups.flatMap(company => [
-        <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={header.length} className="font-semibold">{company.name}</td></tr>,
-        ...company.ships.flatMap(ship => [
-          <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={header.length} className="font-medium">{ship.name}</td></tr>,
-          ...ship.candidates.map(({row,links}) => <CandidateRow key={`${ship.id}:${row.id}`} row={row} links={links} showRequirements number={++serial} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)
-        ])
-      ]) : rows.map(row => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={showAllLinks} number={++serial} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)}</tbody>
-    </table></div>
+    <GroupedDirectoryTable label="Candidates by company and ship" groups={groups} columns={header} getShipRows={ship => ship.candidates} renderRows={attached
+      ? (candidates, start) => candidates.map(({row,links}, index) => <CandidateRow key={row.id} row={row} links={links} showRequirements number={start + index + 1} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)
+      : (candidates, start) => candidates.map((row, index) => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={showAllLinks} number={start + index + 1} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)} ungroupedRows={attached ? [] : rows} tableClassName="min-w-[1200px]" />
     {noteRow && <DirectoryNotes kind={noteRow.isDraft ? 'draft' : 'candidate'} id={noteRow.id} label={recordDisplayId(noteRow, noteRow.name)} canAdd={canAddNotes && !noteRow.isArchived} onClose={() => setNoteRow(null)} onSaved={onNotesSaved} />}
   </>
 }

@@ -1,4 +1,13 @@
-# Holmes UI refinement — local implementation, 2026-11-15
+# Holmes directory grouping correction — 2026-11-15
+
+Requirements, attached Candidates, Recruitment, and Applications now show
+collapsible Company → Ship headings above each expanded ship's column headers.
+The shared group control preserves the existing row actions, filters, notes,
+and empty-list headers. Applications retain highlighted unlinked rows. The
+four-directory synthetic browser suite passed 42/42 checks; this change needs
+no database migration.
+
+## Earlier UI refinement — 2026-11-15
 
 The current shared-list branch now uses a more compact, consistent table and
 tab treatment across the recruiter screens. Home alerts link to specific

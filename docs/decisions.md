@@ -1,12 +1,19 @@
 # Decisions Log
 
+## 2026-11-15 — Directory grouping hierarchy
+
+Show Company → Ship as collapsible controls above each ship's column headers
+on Requirements, attached Candidates, Recruitment, and Applications. Unlinked
+application exceptions remain highlighted rows with the same columns and
+row-level issue guidance. Keep empty-list column headers visible.
+
 ## 2026-11-15 — Presentation-led UI refinement
 
 Apply the presentation's denser spacing, clearer hierarchy, shared controls,
 actionable empty states, and progressive disclosure to the current Holmes UI.
 Keep the 2026-11-14 shared directory model and 2026-11-12 Company → Ship
-grouping and task/KPI rules. Preserve application link exceptions in the main
-table with row-level issue guidance. Do not invent sea-service or last-active
+grouping and task/KPI rules. Preserve application link exceptions with row-level
+issue guidance. Do not invent sea-service or last-active
 data. AI Search is outside this visual pass. See `UI_REFINEMENT_2026-11-15.md`.
 
 ## 2026-11-14 — Shared directories and persistent AI Search rail

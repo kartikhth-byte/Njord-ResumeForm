@@ -5,9 +5,9 @@
 Requirements, Candidates, Recruitment and Applications are shared organization
 lists for authorized recruiter-side users. Assignment and takeover govern who
 works a recruitment case or task; they do not hide the other recruiters' records.
-Each table has one persistent column header, current-view serial numbers,
-server-assigned type-specific record IDs, dates, and notes. Group headers carry
-company and ship names without repeating their labels. Application rows with
+Each expanded ship table has column headers, current-view serial numbers,
+server-assigned type-specific record IDs, dates, and notes. Collapsible company
+and ship headings sit above the columns and records. Application rows with
 missing verified recruitment links stay visible as highlighted exceptions with
 short hover/focus guidance. Candidate secondary actions are grouped under More.
 Coordinator does not see Companies & ships navigation. AI Search has a narrow

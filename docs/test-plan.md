@@ -1,5 +1,13 @@
 # Platform Test Plan
 
+## Directory group controls (2026-11-15)
+
+For each of the four shared directories, verify that company and ship controls
+collapse independently, display their column headers only when expanded, and
+restore records and serial numbers on reopening. Check that headings precede
+the columns, empty lists retain column titles, and application link exceptions
+remain visible outside mapped company groups.
+
 ## Presentation-led Holmes UI refinement (2026-11-15)
 
 Track agreed behavior, screen coverage, and live gaps against

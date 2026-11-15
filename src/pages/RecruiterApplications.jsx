@@ -18,9 +18,10 @@ import { applicationPlacements, filterApplicationPlacements, groupApplicationPla
 import { workStage } from '../utils/recruitmentWorkspace'
 import DirectoryNotes from '../components/recruiter/DirectoryNotes'
 import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
+import GroupedDirectoryTable from '../components/recruiter/GroupedDirectoryTable'
 import { dateCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
 
-import { Building2, Ship, Loader2, SlidersHorizontal, RefreshCw } from 'lucide-react'
+import { Loader2, SlidersHorizontal, RefreshCw } from 'lucide-react'
 
 function normalizeCertificateGrade(value) {
   return (value || '').toString().trim().toLowerCase()
@@ -370,7 +371,7 @@ const updateContractEndDate = async (applicationId, value) => {
   const pageRows = listed.filter(r => idsOnPage.has(r.application.id))
   const groups = groupApplicationPlacements(pageRows.filter(r => r.links.length))
   const corrections = pageRows.filter(r => !r.links.length)
-  let serial = (page - 1) * itemsPerPage
+  const serialOffset = (page - 1) * itemsPerPage
   const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length
   const field = 'h-11 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm'
   const label = 'flex min-w-0 flex-col gap-1.5 text-sm'
@@ -381,8 +382,8 @@ const updateContractEndDate = async (applicationId, value) => {
   const shipOptions = options(shipScope, 'shipId', 'shipName')
   const requirementScope = shipScope.filter(r => !searchParams.get('ship') || r.shipId === searchParams.get('ship')).flatMap(r => r.links)
   const requirementOptions = options(requirementScope, 'requirement_id', 'requirementName')
-  const tableRows = rows => rows.map(({ id, application: app, links }) => <tr key={id} className={!links.length ? 'directory-row--issue' : ''} title={!links.length ? 'Recruitment link missing. Verify the original invitation before correcting it.' : undefined}>
-      <td>{++serial}</td><td>{recordDisplayId(app, app.reference_number)}</td>
+  const tableRows = (rows, start) => rows.map(({ id, application: app, links }, index) => <tr key={id} className={!links.length ? 'directory-row--issue' : ''} title={!links.length ? 'Recruitment link missing. Verify the original invitation before correcting it.' : undefined}>
+      <td>{serialOffset + start + index + 1}</td><td>{recordDisplayId(app, app.reference_number)}</td>
       <td><p className="font-medium">{app.full_name}</p><p className="text-xs text-fg-muted">{app.reference_number || '—'}</p></td>
       <td>{links.length ? <ul className="space-y-2">{links.map(link => <li key={link.id}><Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${link.id}`}>{link.requirementName}</Link><p className="text-xs text-fg-muted">{workStage(link.status)}{link.cycle > 1 ? ` · Cycle ${link.cycle}` : ''}</p></li>)}</ul> : <span className="text-warning" tabIndex={0} role="note" aria-label="Recruitment link missing. Verify the original invitation before correcting it." title="Verify the original invitation before correcting this link.">⚠ Link missing</span>}</td>
       <td>{formatDisplayValue(app.desired_rank) || 'Rank not provided'}<p className="text-xs text-fg-muted">{formatDisplayValue(app.vessel_type) || 'Vessel type not provided'}</p></td>
@@ -415,17 +416,10 @@ const updateContractEndDate = async (applicationId, value) => {
       {showFilters && <ApplicationFilters dateLabel="Submitted date" applyLabel="Apply filters" activeFilters={filters} onFilterChange={setFilters} onApplyFilters={handleApplyFilters} />}
       {loadError ? <div role="alert" className="recruiter-panel p-5"><p>Could not load applications and their recruitment links. {loadError}</p><button className={`${button} mt-3`} onClick={() => loadApplications(appliedFilters)}>Retry</button></div> : loading ? <p role="status" className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Loading applications…</p> : <>
         <p className="text-sm text-fg-muted" role="status">{uniqueIds.length} submitted {uniqueIds.length===1?'application matches':'applications match'} these filters.{backgroundRefreshing ? ' Refreshing…' : ''}</p>
-        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship" tabIndex={0} className="tracker-table-wrap"><table className="tracker-table applications-table">
-          <colgroup>{[4, 8, 15, 9, 11, 7, 7, 7, 12, 9, 11].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
-          <thead><tr>{['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
-          <tbody>{groups.flatMap(company => [
-            <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={11} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4" />{company.name}</td></tr>,
-            ...company.ships.flatMap(ship => [
-              <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={11} className="font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4" />{ship.name}</td></tr>,
-              ...tableRows(ship.rows)
-            ])
-          ])}{tableRows(corrections)}</tbody>
-        </table>{!listed.length && <p className="p-5 text-sm text-fg-muted">No submitted applications match. <button className="text-accent-text underline" onClick={() => { setSearchParams({}); setFilters({}) }}>Clear filters</button></p>}</section>
+        <section key={`${searchParams}:${page}`} aria-label="Applications by company and ship">
+          <GroupedDirectoryTable label="Application groups" groups={groups} columns={['S.No.','Application ID','Candidate','Requirement ID','Applied for','Submitted','Created','Modified','Document checks','Notes','Actions']} renderRows={tableRows} ungroupedRows={corrections} colWidths={[4, 8, 15, 9, 11, 7, 7, 7, 12, 9, 11]} tableClassName="applications-table" />
+          {!listed.length && <p className="p-5 text-sm text-fg-muted">No submitted applications match. <button className="text-accent-text underline" onClick={() => { setSearchParams({}); setFilters({}) }}>Clear filters</button></p>}
+        </section>
         {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setCurrentPage} itemsPerPage={itemsPerPage} totalItems={uniqueIds.length} />}
       </>}
       {autoOpenInterviewForApp && canEditApplications && <InterviewSchedulingModal application={autoOpenInterviewForApp} onCancel={() => setAutoOpenInterviewForApp(null)} onScheduled={() => {setAutoOpenInterviewForApp(null);loadApplications(appliedFilters,{background:true})}} />}

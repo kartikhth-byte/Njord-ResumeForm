@@ -52,14 +52,24 @@ async function fixture(page,options={}) {
 test.describe('Recruitment workspace',()=>{
  test.skip(!process.env.HOLMES_FLEET_SYNTHETIC_SMOKE,'Synthetic server required')
  test.use({storageState:{cookies:[],origins:[]}})
- test('company and ship labels share one table header and filters reveal assigned work',async({page})=>{
+ test('company and ship controls precede their columns and filters reveal assigned work',async({page})=>{
   const state=await fixture(page)
   state.cases.push({id:'case5',prospect_id:'p2',requirement_id:'R2',status:'sourced',version:1},{id:'case6',prospect_id:'p2',requirement_id:'LEGACY',status:'sourced',version:1},{id:'case7',prospect_id:'p2',requirement_id:'R1',status:'hired',version:1})
   // My work must include a task even when someone else owns the row.
   state.assignments=[{case_id:'case5',task_key:'case',assignee_id:'another-recruiter',version:1},{case_id:'case5',task_key:'interview',assignee_id:fleetUser.id,version:1}]
   await page.goto('/recruiter/recruitment')
   const groups=page.getByRole('region',{name:'Recruitment by company and ship'})
-  await expect(groups.getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(1)
+  const company=groups.getByRole('button',{name:'Company: Northstar Shipping'})
+  const ship=groups.getByRole('button',{name:'Ship: MV Aurora'})
+  await expect(ship.locator('..').getByRole('columnheader',{name:'Recruitment ID'})).toBeVisible()
+  await ship.click()
+  await expect(ship).toHaveAttribute('aria-expanded','false')
+  await expect(ship.locator('..').getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(0)
+  await ship.click()
+  await company.click()
+  await expect(company).toHaveAttribute('aria-expanded','false')
+  await expect(company.locator('..').getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(0)
+  await company.click()
   await expect(groups.getByText('Northstar Shipping',{exact:true})).toBeVisible()
   await expect(groups.getByText('MV Aurora',{exact:true})).toBeVisible()
   await expect(groups.getByRole('button',{name:'Alex Morgan',exact:true})).toHaveCount(3)
@@ -82,7 +92,7 @@ test.describe('Recruitment workspace',()=>{
   await page.getByRole('tab',{name:/^Joined/}).click()
   await expect(groups.getByRole('button',{name:'Jamie Reed',exact:true})).toHaveCount(1)
   await page.getByRole('tab',{name:/^Active/}).click()
-  await expect(groups.getByRole('columnheader',{name:'Recruitment ID'})).toHaveCount(1)
+  await expect(groups.getByRole('columnheader',{name:'Recruitment ID'}).first()).toBeVisible()
   await page.screenshot({path:'test-results/recruitment-grouped-desktop.png',fullPage:true,animations:'disabled'})
   await page.setViewportSize({width:390,height:844})
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

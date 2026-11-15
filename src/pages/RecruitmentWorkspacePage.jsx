@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Building2, Ship, CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react'
+import { CheckCircle2, Circle, Clock3, XCircle } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import { usePermissions } from '../hooks/usePermissions'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
@@ -13,6 +13,7 @@ import { assignRecruitmentWork } from '../services/recruitmentWorkService'
 import RecruitmentResourceActions from '../components/recruiter/RecruitmentResourceActions'
 import DirectoryNotes from '../components/recruiter/DirectoryNotes'
 import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
+import GroupedDirectoryTable from '../components/recruiter/GroupedDirectoryTable'
 import PageHeader from '../components/ui/PageHeader'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
@@ -94,9 +95,8 @@ export default function RecruitmentWorkspacePage() {
   <button disabled={busy} className={button}>Save assignment</button> <button type="button" className={button} onClick={()=>setEdit(null)}>Cancel</button>
  </form>
  const beginEdit=(key,assignment)=>{const date=assignment?.due_at?new Date(assignment.due_at):null;setEdit({key,assignment,assignee:assignment?.assignee_id||'',due:date?new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16):'',note:''})}
- let serial=0
- const renderRows=list=>list.map(c=><tr key={c.id}>
-  <td>{++serial}</td><td>{recordDisplayId(c)}</td>
+ const renderRows=(list,start)=>list.map((c,index)=><tr key={c.id}>
+  <td>{start+index+1}</td><td>{recordDisplayId(c)}</td>
   <td><button className="text-accent-text underline text-left" onClick={()=>open(c)}>{c.candidate?.name||'Candidate'}</button>{c.cycle>1&&<p className="text-xs">Cycle {c.cycle}</p>}</td>
   <td>{recordDisplayId(c.requirement,c.requirement?.req_id_display||'Requirement unavailable')}</td><td><strong className="block mb-2">{workStage(c.status)}</strong><ul aria-label="Task progress" className="space-y-1.5 text-xs">{c.tasks.map(t=>{
    const unsuccessful=['test_failed','interview_failed','test_no_show','interview_no_show','offer_declined'].includes(t.last?.to_status)
@@ -128,14 +128,7 @@ export default function RecruitmentWorkspacePage() {
    <div className={filterLabel}><span>Attention</span><label className="flex h-11 items-center gap-2 rounded-control border border-line bg-surface px-3"><input type="checkbox" checked={!!params.get('attention')} onChange={e=>set('attention',e.target.checked?'1':'')}/>Needs attention</label></div>
   </section>
   {tracker.loading||work.loading||fleet.loading?<p>Loading recruitment…</p>:<section key={groupingScope} aria-label="Recruitment by company and ship">
-   <div className="tracker-table-wrap" tabIndex={0} aria-label="Recruitment table"><table className="tracker-table min-w-[1450px]"><thead><tr>{['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes'].map(h=><th key={h} scope="col">{h}</th>)}</tr></thead>
-   <tbody>{groups.flatMap(company=>[
-    <tr key={`company:${company.id}`} className="bg-accent-soft"><td colSpan={10} className="font-semibold"><Building2 aria-hidden="true" className="mr-2 inline h-4 w-4"/>{company.name}</td></tr>,
-    ...company.ships.flatMap(ship=>[
-     <tr key={`ship:${ship.id}`} className="bg-raised"><td colSpan={10} className="font-medium"><Ship aria-hidden="true" className="mr-2 inline h-4 w-4"/>{ship.name}</td></tr>,
-     ...renderRows(ship.rows)
-    ])
-   ])}</tbody></table></div>
+   <GroupedDirectoryTable label="Recruitment groups" groups={groups} columns={['S.No.','Recruitment ID','Candidate','Requirement ID','Stage / task progress','Next action','Assigned recruiter','Created','Modified','Notes']} renderRows={renderRows} tableClassName="min-w-[1450px]" />
    {!rows.length&&<p className="p-5 text-sm text-fg-muted">No recruitment rows match. <button className="text-accent-text underline" onClick={()=>setParams({})}>Clear filters</button></p>}
   </section>}
   {noteCase&&<DirectoryNotes kind="recruitment" id={noteCase.id} label={recordDisplayId(noteCase)} canAdd={canMove} onClose={()=>setNoteCase(null)} onSaved={()=>setNoteRevision(n=>n+1)}/>}
