@@ -8,7 +8,7 @@ async function fixture(page, { role = 'Recruiter', applicant = false, denied = f
   const base = createFleetFixture({ role, operator: false })
   base.requirements[0].display_id = 'REQ-000001'
   base.requirements[1].display_id = 'REQ-000002'
-  const data = { section1: { appliedForRank: 'master', vesselType: 'bulk_carrier' }, section2: { firstName: 'Synthetic', surname: 'Review', email: 'synthetic@example.invalid' }, section3: { passportNumber: 'SYNTHETIC' }, section16: { seaService: [{ vesselName: 'Synthetic Vessel', rank: 'master' }] }, section19: { agreedToTerms: true } }
+  const data = { section1: { appliedForRank: 'master', vesselType: 'bulk_carrier', availableFrom: '2026-12-01' }, section2: { firstName: 'Synthetic', surname: 'Review', email: 'synthetic@example.invalid', dateOfBirth: '1990-01-15' }, section3: { passportNumber: 'SYNTHETIC' }, section16: { seaService: [{ vesselName: 'Synthetic Vessel', rank: 'master' }] }, section19: { agreedToTerms: true } }
   const app = { id: 'a1', prospect_id: 'p1', user_id: fleetSession().user.id, public_token: 'synthetic-review', reference_number: 'FORM-REVIEW', status: 'submitted', submitted_at: '2026-11-12T00:00:00Z', application_data: { data } }
   const state = { reads: [], writes: [], failTable: '', failCv: false, cases: [{ id: 'case1', application_id: 'a1', prospect_id: 'p1', requirement_id: 'R1', cycle: 1 }], cvCalls: [] }
   if (multiple) state.cases.push({ id: 'case2', application_id: 'a1', prospect_id: 'p1', requirement_id: 'R2', cycle: 2 })
@@ -57,6 +57,8 @@ test.describe('Submitted form review', () => {
     await page.goto('/application/view/synthetic-review')
     await expect(page.getByRole('region', { name: 'Review findings', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Review findings · REQ-000001' })).toBeVisible()
+    await expect(page.getByText('Available from 01 Dec 2026')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Personal & Contact Details' }).getByText('15 Jan 1990')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Open recruitment', exact: true })).toHaveAttribute('href', '/recruiter/recruitment?case=case1')
     await expect(page.getByText('No review flags.', { exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Schedule|Reopen|Mark as|Handled by/ })).toHaveCount(0)

@@ -21,6 +21,10 @@ import { loadApplicationReviewContext } from '../services/applicationReviewServi
 import { openCandidateResume } from '../services/needleIntegrationService'
 import { useTheme } from '../hooks/useThemeForRoute'
 
+const displayDateOnly = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ? dateCell(value)
+  : value
+
 // Add this style tag to hide browser print headers/footers
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
@@ -572,7 +576,7 @@ export default function ViewApplication() {
                 {applicationData?.section1?.availableFrom ? (
                   <div className="flex items-center gap-3 text-sm text-fg-secondary">
                     <CalendarDays className="h-4 w-4 text-fg-muted" />
-                    <span>Available from {applicationData.section1.availableFrom}</span>
+                    <span>Available from {displayDateOnly(applicationData.section1.availableFrom)}</span>
                   </div>
                 ) : null}
               </div>
@@ -903,7 +907,7 @@ export default function ViewApplication() {
                   {applicationData.section10.vaccinations.yellowFever?.received && (
                     <ViewRow 
                       label="Yellow Fever" 
-                      value={`Yes (Issue: ${applicationData.section10.vaccinations.yellowFever.dateOfIssue || 'N/A'}, Expiry: ${applicationData.section10.vaccinations.yellowFever.dateOfExpiry || 'N/A'})`} 
+                      value={`Yes (Issue: ${displayDateOnly(applicationData.section10.vaccinations.yellowFever.dateOfIssue) || 'N/A'}, Expiry: ${displayDateOnly(applicationData.section10.vaccinations.yellowFever.dateOfExpiry) || 'N/A'})`}
                     />
                   )}
                   
@@ -1157,7 +1161,7 @@ function ViewRow({ label, value }) {
   return (
     <div className="flex flex-col gap-1 border-b border-line py-2 last:border-b-0 md:flex-row">
       <span className="w-full text-sm text-fg-secondary md:w-1/3">{label}</span>
-      <span className="w-full min-w-0 break-words text-sm text-fg md:w-2/3">{value}</span>
+      <span className="w-full min-w-0 break-words text-sm text-fg md:w-2/3">{displayDateOnly(value)}</span>
     </div>
   )
 }
