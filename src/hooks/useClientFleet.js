@@ -3,7 +3,6 @@ import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { registerListSessionCache } from '../lib/listSessionCache'
 
-const CACHE_MAX_AGE_MS = 60_000
 const fleetCache = registerListSessionCache(new Map())
 const EMPTY_FLEET = { companies: [], ships: [], vesselTypes: [], loading: true, refreshing: false, error: '' }
 
@@ -17,8 +16,7 @@ export default function useClientFleet({ includeArchived = false, includeVesselT
     if (!enabled || !cacheKey) return
     const current = ++request.current
     const cached = fleetCache.get(cacheKey)
-    const freshCache = cached && Date.now() - cached.at < CACHE_MAX_AGE_MS
-    setState(previous => freshCache
+    setState(previous => cached
       ? { ...cached.data, key: cacheKey, loading: false, refreshing: true, error: '' }
       : previous.key === cacheKey && !previous.loading
         ? { ...previous, refreshing: true, error: '' }
@@ -42,7 +40,7 @@ export default function useClientFleet({ includeArchived = false, includeVesselT
       ])
       if (current === request.current) {
         const data = { companies, ships, vesselTypes }
-        fleetCache.set(cacheKey, { data, at: Date.now() })
+        fleetCache.set(cacheKey, { data })
         if (fleetCache.size > 16) fleetCache.delete(fleetCache.keys().next().value)
         setState({ ...data, key: cacheKey, loading: false, refreshing: false, error: '' })
       }

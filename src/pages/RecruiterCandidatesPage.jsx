@@ -26,7 +26,6 @@ import {
   localDayString,
   workingRecruiters,
 } from '../utils/kpiTracker'
-import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   Download,
   Loader2,
@@ -184,6 +183,7 @@ export default function RecruiterCandidatesPage() {
   }
 
   const runExport = async () => {
+    const { downloadCsvReport, logRecruiterExport } = await import('../services/recruiterReportExportService')
     await logRecruiterExport({
       reportType: 'candidate_funnel',
       exportFormat: 'csv',

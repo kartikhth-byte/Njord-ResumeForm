@@ -15,7 +15,6 @@ const DATASETS = {
   recruitment: new Set(['recruiters', 'requirements', 'prospects', 'cases', 'caseEvents']),
 }
 const ALL_DATASETS = new Set(['ranks', 'vesselTypes', 'recruiters', 'requirements', 'prospects', 'junctions', 'applications', 'requirementRemarks', 'prospectNotes', 'scheduledEvents', 'cases', 'caseEvents'])
-const CACHE_MAX_AGE_MS = 60_000
 const trackerCache = registerListSessionCache(new Map())
 const EMPTY_DATA = {
   ranks: [], vesselTypes: [], recruiters: [], requirements: [], prospects: [],
@@ -56,8 +55,7 @@ export default function useKpiTrackerData({ enabled = true, scope = 'all' } = {}
     if (!enabled || !cacheKey) return undefined
     let cancelled = false
     const cached = trackerCache.get(cacheKey)
-    const freshCache = cached && Date.now() - cached.at < CACHE_MAX_AGE_MS
-    setSnapshot(previous => freshCache
+    setSnapshot(previous => cached
       ? { key: cacheKey, loading: false, refreshing: true, error: '', data: cached.data }
       : previous.key === cacheKey && !previous.loading
         ? { ...previous, refreshing: true, error: '' }
@@ -144,7 +142,7 @@ export default function useKpiTrackerData({ enabled = true, scope = 'all' } = {}
           caseEvents: casesAvailable ? caseEventsResult.data || [] : [],
           casesAvailable,
         }
-        trackerCache.set(cacheKey, { data, at: Date.now() })
+        trackerCache.set(cacheKey, { data })
         if (trackerCache.size > 16) trackerCache.delete(trackerCache.keys().next().value)
         setSnapshot({ key: cacheKey, loading: false, refreshing: false, error: '', data })
       } catch (loadError) {

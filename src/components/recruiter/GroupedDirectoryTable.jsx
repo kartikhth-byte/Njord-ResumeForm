@@ -4,18 +4,22 @@ import { Building2, ChevronDown, ChevronRight, Ship } from 'lucide-react'
 export default function GroupedDirectoryTable({ groups, columns, renderRows, getShipRows = ship => ship.rows, tableClassName = '', colWidths, ungroupedRows = [], label }) {
   const [collapsed, setCollapsed] = useState(new Set())
   let serial = 0
+  const hasVisibleShipTable = groups.some(company => {
+    const companyKey = `company:${company.id}`
+    return !collapsed.has(companyKey) && company.ships.some(ship => !collapsed.has(`${companyKey}:ship:${ship.id}`))
+  })
   const toggle = key => setCollapsed(previous => {
     const next = new Set(previous)
     if (next.has(key)) next.delete(key); else next.add(key)
     return next
   })
-  const table = (rows, name) => {
+  const table = (rows, name, showHeader = true) => {
     const start = serial
     serial += rows.length
     return <div className="tracker-table-wrap" tabIndex={0} aria-label={name}>
       <table className={`tracker-table ${tableClassName}`}>
         {colWidths && <colgroup>{colWidths.map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>}
-        <thead><tr>{columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
+        <thead className={showHeader ? '' : 'sr-only'}><tr>{columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
         <tbody>{renderRows(rows, start)}</tbody>
       </table>
     </div>
@@ -40,7 +44,7 @@ export default function GroupedDirectoryTable({ groups, columns, renderRows, get
         })}</div>}
       </div>
     })}
-    {ungroupedRows.length > 0 && <div className="directory-group">{table(ungroupedRows, label)}</div>}
+    {ungroupedRows.length > 0 && <div className="directory-group">{table(ungroupedRows, label, !hasVisibleShipTable)}</div>}
     {!groups.length && !ungroupedRows.length && table([], label)}
   </section>
 }

@@ -1,5 +1,12 @@
 # Platform Test Plan
 
+## Applications mixed-group follow-up (2026-11-15)
+
+With linked and unlinked applications on one page, every expanded ship list
+keeps its visible header, while the unlinked rows do not repeat one. Collapse
+all ship lists: unlinked rows need one visible header. Reopen lists after more
+than a minute; cached rows should remain visible during live revalidation.
+
 ## Shared list loading (2026-11-15)
 
 Check cold Requirements, Candidates, and Recruitment requests contain only

@@ -3,7 +3,6 @@ import { useAuth } from '../components/auth/AuthContext'
 import { supabase } from '../lib/supabase'
 import { registerListSessionCache } from '../lib/listSessionCache'
 
-const CACHE_MAX_AGE_MS = 60_000
 const workCache = registerListSessionCache(new Map())
 const EMPTY_WORK = { assignments: [], history: [], credits: [], loading: true, refreshing: false, error: '' }
 
@@ -29,8 +28,7 @@ export default function useRecruitmentWork(enabled = true) {
     if (!enabled || !cacheKey) return undefined
     let cancelled = false
     const cached = workCache.get(cacheKey)
-    const freshCache = cached && Date.now() - cached.at < CACHE_MAX_AGE_MS
-    setState(previous => freshCache
+    setState(previous => cached
       ? { ...cached.data, key: cacheKey, loading: false, refreshing: true, error: '' }
       : previous.key === cacheKey && !previous.loading
         ? { ...previous, refreshing: true, error: '' }
@@ -39,7 +37,7 @@ export default function useRecruitmentWork(enabled = true) {
       .then(([assignments, history, credits]) => {
         if (cancelled) return
         const data = { assignments, history, credits }
-        workCache.set(cacheKey, { data, at: Date.now() })
+        workCache.set(cacheKey, { data })
         if (workCache.size > 16) workCache.delete(workCache.keys().next().value)
         setState({ ...data, key: cacheKey, loading: false, refreshing: false, error: '' })
       })

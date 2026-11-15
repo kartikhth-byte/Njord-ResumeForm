@@ -56,6 +56,7 @@ test.describe('Applications directory',()=>{
   await page.goto('/recruiter/applications')
   const row=page.getByRole('row').filter({hasText:'APP-a1'}).first()
   await expect(row).toBeVisible()
+  await page.evaluate(() => { const now=Date.now; Date.now=()=>now()+65_000 })
   await page.getByRole('button',{name:'Requirements'}).click()
   await expect(page.getByRole('heading',{name:'Requirements'})).toBeVisible()
   let release
@@ -63,6 +64,18 @@ test.describe('Applications directory',()=>{
   await page.getByRole('button',{name:'Applications'}).click()
   try { await expect(row).toBeVisible({timeout:3000}) }
   finally { release();state.blockApplication=null }
+ })
+ test('unlinked rows reuse the visible ship header and gain one when ships collapse',async({page})=>{
+  const state=await fixture(page)
+  state.cases=state.cases.filter(row=>row.id==='case1')
+  await page.goto('/recruiter/applications')
+  const groups=page.getByRole('region',{name:'Applications by company and ship'})
+  await expect(groups.locator('table')).toHaveCount(2)
+  await expect(groups.locator('thead:not(.sr-only)')).toHaveCount(1)
+  await groups.getByRole('button',{name:'Ship: MV Aurora'}).click()
+  await expect(groups.locator('table')).toHaveCount(1)
+  await expect(groups.locator('thead:not(.sr-only)')).toHaveCount(1)
+  await expect(groups.getByRole('note',{name:/Recruitment link missing/})).toHaveCount(2)
  })
  test('application notes can be saved and reopened',async({page})=>{
   const state=await fixture(page)
@@ -98,11 +111,14 @@ test.describe('Applications directory',()=>{
   const ship=groups.getByRole('button',{name:'Ship: MV Aurora'})
   expect(await groups.locator('table').count()).toBeGreaterThan(1)
   await expect(groups.locator('thead')).toHaveCount(await groups.locator('table').count())
+  await expect(groups.locator('thead.sr-only')).toHaveCount(1)
+  await expect(groups.locator('thead:not(.sr-only)')).toHaveCount((await groups.locator('table').count())-1)
   await expect(ship.locator('..').getByRole('columnheader',{name:'Application ID'})).toBeVisible()
   await company.click()
   await expect(company).toHaveAttribute('aria-expanded','false')
   await expect(company.locator('..').getByRole('columnheader',{name:'Application ID'})).toHaveCount(0)
   await expect(groups.locator('thead')).toHaveCount(await groups.locator('table').count())
+  await expect(groups.locator('thead.sr-only')).toHaveCount(1)
   await company.click()
   await ship.click()
   await expect(ship).toHaveAttribute('aria-expanded','false')

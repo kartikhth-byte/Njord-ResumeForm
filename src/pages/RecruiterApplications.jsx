@@ -55,7 +55,6 @@ const COMPLIANCE_STYLES = {
   amber: 'bg-warning-soft text-warning border-warning-line',
   green: 'bg-success-soft text-success border-success-line',
 }
-const APPLICATION_CACHE_MAX_AGE_MS = 60_000
 const applicationCache = registerListSessionCache(new Map())
 
 function complianceLabel(status) {
@@ -214,16 +213,16 @@ export default function RecruiterApplications() {
     const current = ++request.current
     const cacheKey = identityKey ? `${identityKey}:${JSON.stringify(appliedFilters)}` : null
     const cached = cacheKey && applicationCache.get(cacheKey)
-    const freshCache = cached && Date.now() - cached.at < APPLICATION_CACHE_MAX_AGE_MS
+    const hasCache = Boolean(cached)
     setLoadError('')
     try {
-      if (!background && freshCache) {
+      if (!background && hasCache) {
         setApplications(cached.applications)
         setContext(cached.context)
         setLoadedFor(identityKey)
         setLoading(false)
       }
-      if (background || freshCache) {
+      if (background || hasCache) {
         setBackgroundRefreshing(true)
       } else {
         setLoading(true)
@@ -326,7 +325,7 @@ export default function RecruiterApplications() {
       setContext(snapshot)
       setLoadedFor(identityKey)
       if (cacheKey) {
-        applicationCache.set(cacheKey, { applications: formattedData, context: snapshot, at: Date.now() })
+        applicationCache.set(cacheKey, { applications: formattedData, context: snapshot })
         if (applicationCache.size > 10) applicationCache.delete(applicationCache.keys().next().value)
       }
     } catch (error) {

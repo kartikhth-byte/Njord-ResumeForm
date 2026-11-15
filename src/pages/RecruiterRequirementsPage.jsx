@@ -19,7 +19,6 @@ import {
   buildRequirementTrackerRows,
   workingRecruiters,
 } from '../utils/kpiTracker'
-import { downloadCsvReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   AlertTriangle,
   ClipboardList,
@@ -136,6 +135,7 @@ export default function RecruiterRequirementsPage() {
   }
 
   const runExport = async () => {
+    const { downloadCsvReport, logRecruiterExport } = await import('../services/recruiterReportExportService')
     await logRecruiterExport({
       reportType: 'requirements_tracker',
       exportFormat: 'csv',

@@ -1,13 +1,25 @@
 # Decisions Log
 
+## 2026-11-15 — List follow-up
+
+Applications keeps the column header for each visible ship table but does not
+repeat a visible header for unlinked rows beneath those tables. If all ship
+groups are collapsed, unlinked rows show their own header. Keep the list
+snapshot for the current access-token lifetime rather than dropping it
+after one minute; every revisit still refreshes from the server and replaces
+the displayed rows. Clear snapshots on sign-out or account switch. This
+improves repeat navigation, not the cold read sequence.
+Requirements and Candidates load the report exporter only when Export CSV is
+chosen, removing that large optional module from first list navigation.
+
 ## 2026-11-15 — Shared list loading
 
 Requirements, Candidates, and Recruitment request only the tracker data used by
 their lists. Fleet lookups skip vessel types where the page already has them or
-does not show them. Recently opened lists keep a one-minute, in-memory snapshot
+does not show them. Opened lists keep an in-memory snapshot
 for the same authenticated session, show it while refreshing, and replace it
 with the server result. Applications retains its separate linked-form loader
-and uses the same short-lived display cache. Clear all snapshots on sign-out or
+and uses the same display cache. Clear all snapshots on sign-out or
 account switch. A cold Applications load still follows its linked-record reads;
 that path needs a measured backend query pass before further consolidation.
 
