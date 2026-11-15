@@ -301,3 +301,32 @@ migrations.
   Node suites passed **52/52**; lint and production build passed. One Node test
   initially failed because it asserted the older held-upload copy. Its assertion
   now checks the current exported hold message and the suite passes.
+
+## Isolated Needle staging setup — 2026-11-15
+
+- With KT's approval, created a private Railway project `needle-holmes-staging`
+  (`79665bff-eadb-4ebd-b469-994260d0c8e2`) with an `engine` service
+  (`d45cc0b2-d4d5-442a-8e9b-f1cccf7e1cb2`), `staging` environment, and
+  persistent `/data` volume (`825f56cc-cf53-4d3a-823e-e9bea2071bfc`). This
+  is separate from the protected production Railway project. A temporary token
+  scoped to this project/environment was used for deployment and must be
+  revoked after the staging work.
+- Created a separate Supabase project `needle-holmes-staging`
+  (`gildwotwdrorxwbvdkow`) and applied all 29 migrations from the current
+  Needle branch. Readback found 34 public tables and 16 RLS policies. The
+  Railway service uses only this new project and a fresh Holmes signing pair.
+- Deployed the current Needle branch `codex/resume-review-workspace` at
+  `8b9152cf` via Railway CLI. The volume-backed deployment
+  `dc85cf3d-0b7e-4ea6-b7fd-d2ddee398d4f` built successfully and booted with
+  cloud Supabase auth and workspace APIs registered. Needle's focused Holmes
+  integration/source-verification tests passed 28/28.
+- Set the paired signing private key and organization ID in **Holmes staging**,
+  then deployed only its `needle-integration` Function. No production service,
+  database, Function, or Drive data was changed.
+- Railway's automatic approval review rejected generating a public domain for
+  this staging service because it would expand network exposure. Specific
+  approval has been requested. Until then, Holmes cannot call the private
+  Railway service, so the live browser match remains unverified. The staging
+  service also has no dedicated synthetic Google Drive original/credential or
+  platform Resume Intake path; the real original-byte gate requires those to
+  be provisioned separately before it can be claimed as passed.
