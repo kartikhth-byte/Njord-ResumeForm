@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { dateCell } from '../utils/directoryDisplay';
 
 async function invokeEmailFunction(functionName, payload) {
   try {
@@ -56,7 +57,7 @@ export const sendApplicationReceivedEmail = async (application) => {
 
 export const sendTestInvitationEmail = async (arg1, arg2) => {
   const p = normalizeParams(arg1, arg2);
-  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+  const expiryDate = dateCell(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   
   return invokeEmailFunction('send-test-invitation', {
     applicantEmail: p.email,
@@ -69,7 +70,7 @@ export const sendTestInvitationEmail = async (arg1, arg2) => {
 
 export const sendTestRetakeApprovedEmail = async (arg1, arg2) => {
   const p = normalizeParams(arg1, arg2);
-  const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+  const expiryDate = dateCell(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   
   return invokeEmailFunction('send-test-retake-approved', {
     applicantEmail: p.email,

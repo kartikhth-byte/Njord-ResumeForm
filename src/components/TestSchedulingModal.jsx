@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { supabaseApiKey } from '../lib/supabaseKey'
 import { useAuth } from './auth/AuthContext'
 import { Calendar, Clock, Link as LinkIcon, Loader2, PencilLine, X } from 'lucide-react'
+import { dateCell } from '../utils/directoryDisplay'
 
 export default function TestSchedulingModal({ application, onScheduled, onCancel }) {
   const { user } = useAuth()
@@ -116,11 +117,7 @@ if (reminderError) {
         const testDateObj = new Date(formData.testDate)
         const expiryDateObj = new Date(testDateObj)
         expiryDateObj.setDate(expiryDateObj.getDate() + 7)
-        const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
+        const expiryDate = dateCell(expiryDateObj)
         
         const emailResponse = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-invitation`,

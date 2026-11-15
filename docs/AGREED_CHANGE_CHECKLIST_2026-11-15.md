@@ -22,39 +22,38 @@ explicit product choice from the agreed scope.
 | Coordinator can read shared work but cannot manage companies/ships, add notes, or take over | Sidebar/routes, directory and Recruitment browser checks | **Live pending** — UI/fixture passes; live role and RLS check remains |
 | AI Search keeps each permitted user's own search context and a stable Holmes rail; Operator identity is clear | AI sidebar smoke; existing role rules | **Local pass** for navigation and role UI; per-login search context was not revalidated by this smoke |
 | Search long Rank and Vessel type lists | Requirement, candidate, ship editor, candidate filter, Applications filter, applicant Section 1; browser checks | **Local pass** for these entry points |
-| Search Company, Ship, Requirement, and recruiter selectors when the lists grow | Candidate attachment searches requirement ID; other filters and company/ship selectors remain native dropdowns | **Partial** — `RecruiterApplications`, `RecruitmentWorkspacePage`, `FleetRequirementFilter`, and `ClientFleetFields` still contain plain selectors |
+| Search Company, Ship, Requirement, and recruiter selectors when the lists grow | Candidate attachment searches requirement ID; Applications, Recruitment, candidate/requirement filters, fleet forms, Home/KPI recruiter filters and assignment controls have search before selection | **Local pass** — the selected value remains available while the options are narrowed |
 | Consistent tabs, Refresh controls, light column dividers, usable wide/mobile tables, useful empty states | Shared directories, Calendar, Expiry, Operator; browser checks and earlier screenshot review | **Partial** — reviewed screens pass; no all-route visual audit or open-tab live refresh |
 | Home actionable rows, KPI attribution, Calendar navigation, Expiry windows | Home/Expiry, KPI, Calendar browser checks | **Local pass** for these flows; visual detail outside the checked states remains unaudited |
 | Operator evidence table; Settings team More menu; Login error beside password | Operator, Settings, and failed-login browser checks | **Local pass** |
-| Remove redundant system explanations and make dates consistent | Reviewed directories and selected Home/Operator/candidate copy; shared directory date formatter | **Partial** — `RequirementForm` and `ClientFleetFields` retain explanatory paragraphs; `ViewApplication`, applicant Dashboard/Section 16, and report history still use differing locale/default date formats |
-| Presentation's five-size type scale and semantic color rules throughout the app | Current source uses seven Tailwind text sizes (`xs` through `3xl`) plus other styles; red still represents errors and destructive actions | **Partial** — no global type/color system was implemented; semantic color needs an accessibility decision |
+| Remove redundant system explanations and make dates consistent | Removed duplicate instructions in requirement/fleet forms; shared date formatter now covers directories, applicant dashboard/Section 16/application view, report history, rejection history, compliance, and test mail dates | **Partial** — essential form, safety and recovery instructions remain; every applicant form section still needs visual copy review |
+| Presentation's five-size type scale and semantic color rules throughout the app | One-off 11/13/15px classes now use theme sizes; report controls use semantic theme tokens | **Decision retained / partial** — the existing accessibility-reviewed theme has seven sizes and uses red for failure/destructive states. A forced global five-size remap was not adopted without screen-by-screen layout evidence |
 | Keep Company → Ship grouping and manual Refresh as an explicit retry | Shared lists and release decision | **Decision retained** — returning to a shared tab revalidates, but a continuously open tab does not update in real time |
 | Do not invent sea-service or last-active data | Candidate/Settings review | **Decision retained** — authoritative data is needed before adding these fields |
 
 ## Screen coverage
 
 - **Synthetic browser exercised:** Home, KPI, Calendar, Expiry, Companies &
-  ships, Requirements, Candidates, Recruitment, Applications, AI Search rail,
-  Operator, Settings, Login error, submitted application review, and applicant
-  form Section 1.
-- **Not independently smoked for this checklist:** requirement/candidate
-  detail pages and the other applicant form sections. A complete visual/copy
-  audit must include them.
+  ships, Requirements and requirement detail, Candidates and candidate detail,
+  Recruitment, Applications and submitted application review, AI Search rail,
+  Operator, Settings, Login error, and applicant form sections 1–19.
+- **Still requiring signed-in visual/copy review:** applicant sections 2–19 and
+  detail states beyond the synthetic fixture. The route checks prove rendering,
+  not that every field and message is ideal with realistic data.
 - **Live staging pending:** matched frontend deployment, signed-in Master
   Recruiter/Recruiter/Coordinator sessions, two-user shared visibility and
   takeover, old/new ID readback, note RLS, and application-link exception.
 
 ## Smoke result
 
-Using a local Vite server with fake Supabase, `VITE_FEATURE_AI_SEARCH=on`, and
-the report test's `VITE_APP_VERSION=defect-report-test`: **96 distinct synthetic
-browser cases pass** across the agreed-change suites. The first broad run had
-74 pass, 9 KPI skips because its separate flag was absent, and one report test
-failure because the server version label differed from its fixture. The 18
-report cases passed after the version flag was corrected; all 9 KPI cases passed
-with `HOLMES_KPI_SYNTHETIC_SMOKE=1`; the added Home/Expiry and Login cases and
-all 10 adjacent submitted-application review cases passed. The three adjacent
-Node suites pass **38/38**. Lint and production build pass.
+Using a local Vite server with fake Supabase, `VITE_FEATURE_AI_SEARCH=on`,
+`VITE_APP_VERSION=defect-report-test`, and both synthetic smoke flags: **96/96
+agreed-change browser cases pass**. A further **18/18 applicant section 2–19
+route checks** and **1/1 requirement-detail check** pass, for **115 distinct
+browser cases**. The three adjacent Node suites pass **38/38**. Lint, production
+build, and `git diff --check` pass. Initial test assertions about retaining a
+selected filter and a transient duplicate row were corrected; a detail fixture
+was adjusted to return a single record for its `.maybeSingle()` query.
 
 This smoke uses intercepted external requests. It proves the local UI behavior
 under fixtures, not live shared-data visibility, RLS, migration backfill, email,
@@ -66,8 +65,9 @@ not promote the frontend ahead of the two production migrations.
 
 1. Put this branch's matching frontend on a staging-targeted origin and run
    the live role/data checks above. Keep unrelated pending migrations deferred.
-2. Complete the open cross-product type, copy, color, selector, and date audit
-   as a separate UI pass; test affected screens again.
+2. Complete the remaining signed-in applicant/detail visual and copy review.
+   Keep the existing semantic colors and seven-size theme unless specific
+   screenshots show a better, accessible mapping.
 3. Before production schema changes, follow the Holmes release gate: exact
    approval, fresh production backup, and isolated restore/count verification.
    Apply only `2026111401` and `2026111402`, then promote the matching frontend

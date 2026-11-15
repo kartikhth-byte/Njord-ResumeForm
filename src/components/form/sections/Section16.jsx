@@ -4,6 +4,7 @@ import FormInput from '../shared/FormInput'
 import FormSelect from '../shared/FormSelect'
 import FormDatePicker from '../shared/FormDatePicker'
 import { Plus, Trash2 } from 'lucide-react'
+import { dateCell } from '../../../utils/directoryDisplay'
 
 const VESSEL_TYPE_OPTIONS = [
   { value: 'PC', label: 'PC' },
@@ -304,7 +305,7 @@ export default function Section16({ data = {}, onUpdate }) {
                     </h3>
                     {service.signOnDate && service.signOffDate && (
                       <p className="applicant-record-card__subtitle">
-                        {new Date(service.signOnDate).toLocaleDateString()} - {new Date(service.signOffDate).toLocaleDateString()}
+                        {dateCell(service.signOnDate)} – {dateCell(service.signOffDate)}
                         {(() => {
                           const days = Math.floor((new Date(service.signOffDate) - new Date(service.signOnDate)) / (1000 * 60 * 60 * 24))
                           const months = Math.floor(days / 30)

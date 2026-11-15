@@ -20,6 +20,7 @@ import {
   workingRecruiters,
 } from '../utils/kpiTracker'
 import { formatDate } from './recruiterDashboardUtils'
+import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import {
   AlertTriangle,
   CalendarDays,
@@ -183,21 +184,7 @@ export default function RecruiterDashboardSimple() {
         >
           <div className="mt-5 flex flex-wrap items-end gap-4">
             {isManager ? (
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
-                <select
-                  value={managerFilter}
-                  onChange={(event) => setManagerFilter(event.target.value)}
-                  className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                >
-                  <option value="">Whole team</option>
-                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
-                    <option key={recruiter.id} value={recruiter.id}>
-                      {recruiter.full_name || recruiter.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchableFilterSelect label="Recruiter" className="flex flex-col gap-1 text-sm" selectClassName="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm" value={managerFilter} onChange={setManagerFilter} placeholder="Whole team" options={workingRecruiters(tracker.data.recruiters).map(recruiter => ({value:recruiter.id,label:recruiter.full_name || recruiter.email}))} />
             ) : null}
           </div>
         </PageHeader>

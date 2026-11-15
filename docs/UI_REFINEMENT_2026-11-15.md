@@ -89,3 +89,26 @@ synthetic browser checks. An initial browser attempt was blocked by the macOS
 sandbox; the same checks passed when Chrome was allowed to start.
 The applicant-form follow-up passes lint, build, and one focused synthetic
 browser check from invitation through the first form section.
+
+## Checklist follow-up — 2026-11-15
+
+- Company, Ship, Requirement and recruiter filters now narrow their options as
+  the user types. This includes Applications, Recruitment, Requirements,
+  Candidates, Home, KPI, the fleet navigation/forms, and Recruitment assignment
+  controls. The current selection stays in the dropdown while searching.
+- Requirement/fleet forms no longer repeat the Draft/opening-date and refresh
+  instructions beside controls that already show those actions. The shared
+  date formatter is now used for applicant summary/review, sea-service rows,
+  test invitation/retake dates, compliance findings, rejection history and
+  problem-report history as well as the shared directories.
+- Report warnings/errors and the Send button now use the theme's semantic
+  colors. Arbitrary 11, 13 and 15 pixel text classes were mapped to the
+  existing theme sizes. The theme still defines seven sizes and keeps red for
+  errors/destructive states, following `docs/ui-theme-spec.md`; a wholesale
+  five-size remap was not applied without visual and contrast evidence.
+- The remaining authenticated applicant form sections and detail screens need
+  separate visual/copy review. The local smoke uses intercepted data; signed-in
+  staging visibility, ID backfill and note permissions remain unverified.
+- The full agreed synthetic suite passes 96/96. Separate saved-draft route
+  checks for applicant sections 2–19 pass 18/18, and the requirement-detail
+  route passes 1/1. Adjacent Node suites pass 38/38; lint/build pass.

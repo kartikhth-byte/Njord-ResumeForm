@@ -82,6 +82,13 @@ test.describe('Invited application binding',()=>{
   await expect(page.locator('select[name="appliedForRank"]')).toHaveValue('chief_officer')
   await expect(page.locator('select[name="vesselType"]')).toHaveValue('bulk_carrier')
  })
+ for (let section = 2; section <= 19; section++) test(`applicant section ${section} opens with a saved draft`,async({page})=>{
+  await fixture(page,{draft:true})
+  await page.goto(`/application/form/section/${section}`)
+  await expect(page).toHaveURL(new RegExp(`/application/form/section/${section}$`))
+  await expect(page.locator('.applicant-panel').first()).toBeVisible()
+  await expect(page.getByText('Loading application...')).toHaveCount(0)
+ })
  test('the case in the invite is preferred; an unavailable preference never chooses another case',async({page})=>{
   const state=await fixture(page,{preferred:'case-2'})
   await page.goto('/dashboard')

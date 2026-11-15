@@ -268,7 +268,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
               {!rail ? (
                 <>
                   <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
-                    <span className="truncate text-[13px] text-fg">{displayName}</span>
+                    <span className="truncate text-sm text-fg">{displayName}</span>
                     <span className="truncate text-xs text-fg-muted">{accountRoleLabel}</span>
                   </span>
                   <ChevronsUpDown className="h-4 w-4 flex-none text-fg-muted" aria-hidden="true" />

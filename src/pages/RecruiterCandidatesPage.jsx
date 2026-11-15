@@ -17,6 +17,7 @@ import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import useRefreshOnFocus from '../hooks/useRefreshOnFocus'
 import { SelectField } from '../components/recruiter/RecordFormFields'
+import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import useKpiTrackerData from '../hooks/useKpiTrackerData'
 import {
@@ -329,7 +330,7 @@ export default function RecruiterCandidatesPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="text-sm">Candidate status<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={viewFilter} onChange={e => setViewFilter(e.target.value)}>{VIEW_FILTERS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
               <SelectField label="Present rank" searchable value={rankFilter} onChange={value => setParam('rank', value)} options={tracker.data.ranks.map(r => ({ value: r.id, label: r.name }))} placeholder="All ranks" />
-              <label className="text-sm">Recruiter<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={recruiterFilter} onChange={e => setRecruiterFilter(e.target.value)}><option value="">All recruiters</option>{workingRecruiters(tracker.data.recruiters).map(r => <option key={r.id} value={r.id}>{r.full_name || r.email}</option>)}</select></label>
+              <SearchableFilterSelect label="Recruiter" className="flex flex-col gap-1 text-sm" selectClassName="block w-full rounded-control border border-line bg-surface p-2" value={recruiterFilter} onChange={setRecruiterFilter} placeholder="All recruiters" options={workingRecruiters(tracker.data.recruiters).map(r => ({value:r.id,label:r.full_name || r.email}))} />
               <label className="text-sm">Contacted from<input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="mt-1 block w-full min-w-0 rounded-control border border-line bg-surface p-2"/></label>
               <label className="text-sm">Contacted to<input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="mt-1 block w-full min-w-0 rounded-control border border-line bg-surface p-2"/></label>
               {stageFilter && <label className="text-sm">Pipeline stage<select className="mt-1 block w-full rounded-control border border-line bg-surface p-2" value={stageFilter} onChange={e => setStageFilter(e.target.value)}><option value="">All stages</option>{FUNNEL_STAGES.map(stage => <option key={stage} value={stage}>{stage}</option>)}</select></label>}

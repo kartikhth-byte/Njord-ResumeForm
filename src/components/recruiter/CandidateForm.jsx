@@ -103,7 +103,7 @@ export default function CandidateForm({
           <TextField label="Date of birth" type="date" value={form.dob} onChange={set('dob')} />
           <TextField label="Date contacted (if already contacted)" type="date" value={form.dateContacted} onChange={set('dateContacted')} />
           {canChooseRecruiter ? (
-            <SelectField label="Added by" value={form.addedByRecruiterId} onChange={set('addedByRecruiterId')} options={options(recruiters, 'full_name')} placeholder="Choose recruiter" />
+            <SelectField label="Added by" searchable value={form.addedByRecruiterId} onChange={set('addedByRecruiterId')} options={options(recruiters, 'full_name')} placeholder="Choose recruiter" />
           ) : null}
           <SelectField label="Rank" searchable value={form.rankId} onChange={set('rankId')} options={options(ranks)} placeholder="Choose a rank" />
           <SelectField label="Vessel type" searchable value={form.vesselTypeId} onChange={set('vesselTypeId')} options={options(vesselTypes)} placeholder="Choose a vessel type" />

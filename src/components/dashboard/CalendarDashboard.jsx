@@ -364,7 +364,7 @@ export default function CalendarDashboard() {
                       </span>
                       {eventCount > 0 ? (
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
  isSelected ? 'bg-surface/15 text-fg' : 'bg-raised text-fg-secondary'
  }`}
                         >

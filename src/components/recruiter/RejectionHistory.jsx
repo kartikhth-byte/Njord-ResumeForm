@@ -1,8 +1,7 @@
 import { rejectionSummary } from '../../constants/rejection'
+import { dateCell } from '../../utils/directoryDisplay'
 
-const formatDate = (value) => (value
-  ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  : '')
+const formatDate = value => value ? dateCell(value) : ''
 
 // One line on the application page: why it was rejected, and when.
 export default function RejectionHistory({ application }) {

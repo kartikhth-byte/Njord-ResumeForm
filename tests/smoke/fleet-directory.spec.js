@@ -38,6 +38,16 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await expect(requirementRows(page)).toHaveCount(0)
     await expect(page.getByText('No requirements match')).toBeVisible()
   })
+  test('requirement detail opens the exact shared record',async({page})=>{
+    const state=await fixture(page)
+    const respond=state.respond
+    state.respond=(url,...args)=>url.pathname.endsWith('/requirements') && url.searchParams.get('id')==='eq.R1'
+      ? {status:200,body:state.requirements[0]}
+      : respond(url,...args)
+    await page.goto('/recruiter/workspace/requirements/R1')
+    await expect(page.getByRole('heading',{name:'SYN-R1',exact:true})).toBeVisible()
+    await expect(page.getByRole('button',{name:'Back',exact:true})).toBeVisible()
+  })
   test('inline company and ship create/edit persist after navigating; duplicate and stale errors retain input',async({page})=>{
     const state=await fixture(page)
     await page.goto('/recruiter/companies')
@@ -216,7 +226,11 @@ test.describe('Company directory and grouped requirements (synthetic only)',()=>
     await expect(dialog.getByRole('link',{name:'Companies & ships (new tab)'})).toHaveAttribute('target','_blank')
     await dialog.getByRole('button',{name:'Refresh company and ship list'}).click()
     await expect(dialog.getByRole('textbox',{name:'Add remark'})).toHaveValue('Keep my draft')
+    await dialog.getByRole('searchbox',{name:'Search company'}).fill('Northstar')
+    await expect(dialog.getByRole('combobox',{name:'Company'}).locator('option',{hasText:'Bluewater'})).toHaveCount(0)
     await dialog.getByRole('combobox',{name:'Company',exact:true}).selectOption('c1')
+    await dialog.getByRole('searchbox',{name:'Search ship'}).fill('Horizon')
+    await expect(dialog.getByRole('combobox',{name:'Ship'}).locator('option',{hasText:'MV Aurora'})).toHaveCount(0)
     await dialog.getByRole('combobox',{name:'Ship',exact:true}).selectOption('s2')
     await expect(dialog.getByRole('combobox',{name:'Vessel type'})).toHaveValue('v2')
     await dialog.getByRole('searchbox',{name:'Search rank'}).fill('Master')

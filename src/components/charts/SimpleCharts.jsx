@@ -25,7 +25,7 @@ export function HBarChart({ items = [], unit = '', height = 30 }) {
               }}
             >
               {item.value > 0 ? (
-                <span className="text-[11px] font-semibold text-bg">{item.value}{unit}</span>
+                <span className="text-xs font-semibold text-bg">{item.value}{unit}</span>
               ) : null}
             </div>
           </div>
@@ -117,7 +117,7 @@ export function ColumnChart({ items = [], height = 170 }) {
             className="w-full max-w-[64px] rounded-t-control"
             style={{ height: `${Math.max((item.value / max) * 75, item.value > 0 ? 4 : 1)}%`, background: item.color }}
           />
-          <span className="text-center text-[11px] leading-tight text-fg-muted">{item.label}</span>
+          <span className="text-center text-xs leading-tight text-fg-muted">{item.label}</span>
         </div>
       ))}
     </div>

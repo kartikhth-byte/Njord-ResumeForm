@@ -2,6 +2,7 @@ import { CheckCircle2, Printer, X } from 'lucide-react'
 import StatusBadge from '../StatusBadge'
 import { formatDisplayValue } from '../../utils/formatUtils'
 import { TECHNICAL_SKILL_ROWS, formatPhone, formatSkillValue } from '../../utils/technicalSkills'
+import { dateCell } from '../../utils/directoryDisplay'
 
 // Read-only view of a submitted application for the applicant: summary,
 // "at a glance" cards, then grouped section cards (fields as label-over-value
@@ -14,8 +15,7 @@ function formatDate(value) {
   if (!value || typeof value !== 'string') return value || null
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (!match) return value
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return dateCell(`${match[1]}-${match[2]}-${match[3]}`)
 }
 
 const yesNo = (value) => (value === true || value === 'yes' ? 'Yes' : value === false || value === 'no' ? 'No' : null)
@@ -30,7 +30,7 @@ function GroupHeading({ children }) {
 function Card({ title, children }) {
   return (
     <section className="overflow-hidden rounded-card border border-line bg-surface print:break-inside-avoid">
-      <h3 className="border-b border-line px-5 py-3.5 text-[15px] font-semibold text-fg">{title}</h3>
+      <h3 className="border-b border-line px-5 py-3.5 text-lg font-semibold text-fg">{title}</h3>
       {children}
     </section>
   )
@@ -149,7 +149,7 @@ export default function ApplicantApplicationView({ application, applicationData,
                 <span className="font-mono text-fg-secondary">{application.reference_number}</span>
               ) : null}
               {application.submitted_at ? (
-                <span>· Submitted {new Date(application.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>· Submitted {dateCell(application.submitted_at)}</span>
               ) : null}
             </div>
           </div>

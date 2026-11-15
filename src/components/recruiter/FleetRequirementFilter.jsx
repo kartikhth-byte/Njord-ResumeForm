@@ -9,9 +9,9 @@ export default function FleetRequirementFilter({value,onChange,requirements=[],c
   return <section aria-label="Company and ship navigation" className="recruiter-panel mt-6 space-y-3 p-5">
     <h2 className="font-semibold">{title || `Company → Ship → Requirement${cases ? ' → Case stage' : ''}`}</h2>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <SelectField label="Company" value={value.company} onChange={company=>onChange({...value,company,ship:'',requirement:''})} options={options(fleet.companies)} placeholder="All companies"/>
-      <SelectField label="Ship" value={value.ship} onChange={ship=>onChange({...value,ship,requirement:''})} options={options(fleet.ships.filter(r=>!value.company||r.company_id===value.company))} placeholder="All ships"/>
-      {cases&&<><SelectField label="Requirement" value={value.requirement} onChange={requirement=>onChange({...value,requirement})} options={options(requirements.filter(r=>(!value.company||r.company_id===value.company)&&(!value.ship||r.ship_id===value.ship)))} placeholder="All requirements"/>
+      <SelectField label="Company" searchable value={value.company} onChange={company=>onChange({...value,company,ship:'',requirement:''})} options={options(fleet.companies)} placeholder="All companies"/>
+      <SelectField label="Ship" searchable value={value.ship} onChange={ship=>onChange({...value,ship,requirement:''})} options={options(fleet.ships.filter(r=>!value.company||r.company_id===value.company))} placeholder="All ships"/>
+      {cases&&<><SelectField label="Requirement" searchable value={value.requirement} onChange={requirement=>onChange({...value,requirement})} options={requirements.filter(r=>(!value.company||r.company_id===value.company)&&(!value.ship||r.ship_id===value.ship)).map(r=>({value:r.id,label:[r.display_id,r.req_id_display].filter(Boolean).join(' · ')||r.name||r.id}))} placeholder="All requirements"/>
       <SelectField label="Case stage" value={value.stage} onChange={stage=>onChange({...value,stage})} options={Object.keys(CASE_STATUS_META).map(status=>({value:status,label:caseStatusMeta(status).label}))} placeholder="All case stages"/></>}
     </div>
     {!cases&&<details className="rounded border border-line p-3 text-sm"><summary className="cursor-pointer font-medium">Browse company and ship tree</summary>

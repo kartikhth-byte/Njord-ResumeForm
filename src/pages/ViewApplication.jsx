@@ -11,6 +11,7 @@ import { TECHNICAL_SKILL_ROWS, formatPhone, formatSkillValue } from '../utils/te
 import { downloadGeneratedWorksheet, getWorksheetExportReadiness, listWorksheetCustomers } from '../services/worksheetConfigService'
 import { Loader2, AlertCircle, Printer, ArrowLeft, Mail, Phone, Anchor, BadgeCheck, BriefcaseBusiness, CalendarDays, FileSpreadsheet, Download, X } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
+import { dateCell } from '../utils/directoryDisplay'
 import ApplicationCompliancePanel from '../components/recruiter/ApplicationCompliancePanel'
 import StatusBadge from '../components/StatusBadge'
 import PageHeader from '../components/ui/PageHeader'
@@ -313,7 +314,7 @@ export default function ViewApplication() {
   const isRecruiterView = userType === 'recruiter'
   const compliance = isRecruiterView ? buildApplicationCompliance(applicationData || {}) : null
   const summaryRows = [
-    { label: 'Submitted', value: application?.submitted_at ? new Date(application.submitted_at).toLocaleDateString() : null },
+    { label: 'Submitted', value: application?.submitted_at ? dateCell(application.submitted_at) : null },
   ].filter((row) => row.value !== null && row.value !== undefined && row.value !== '')
   const selectedWorksheetCustomer = worksheetCustomers.find((customer) => customer.id === selectedWorksheetCustomerId) || null
   const worksheetReadiness = getWorksheetExportReadiness(selectedWorksheetCustomer)
@@ -634,11 +635,7 @@ export default function ViewApplication() {
                 <div>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight text-fg">{fullName || 'Application view'}</h2>
                   <p className="mt-2 text-sm text-fg-secondary">
-                    Submitted on {application.submitted_at ? new Date(application.submitted_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    }) : 'unknown date'} for {formatDisplayValue(applicationData?.section1?.appliedForRank) || 'an unspecified rank'}.
+                    Submitted on {application.submitted_at ? dateCell(application.submitted_at) : 'unknown date'} for {formatDisplayValue(applicationData?.section1?.appliedForRank) || 'an unspecified rank'}.
                   </p>
                 </div>
 

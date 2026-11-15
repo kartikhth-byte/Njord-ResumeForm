@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listProblems, reportScreenshot, setProblemStatus } from '../../lib/problemReports'
+import { dateTimeCell } from '../../utils/directoryDisplay'
 
 export default function ProblemReportList({ userId, operator = false }) {
   const [rows, setRows] = useState([])
@@ -23,11 +24,11 @@ export default function ProblemReportList({ userId, operator = false }) {
     catch (e) { setError(e.message) } finally { setSaving(null) }
   }
   return <div className="space-y-4">
-    {error && <p role="alert" className="text-red-600">{error}</p>}
+    {error && <p role="alert" className="text-danger">{error}</p>}
     {loading ? <p role="status">Loading reports…</p> : !rows.length ? <p>No reports yet.</p> : <>
       <p className="text-sm text-fg-muted">Latest {rows.length} reports. Screenshots expire after seven days; report details remain.</p>
       <ul className="space-y-3">{rows.map(row => <li key={row.id} className="rounded-lg border border-line p-3 space-y-2">
-        <div className="flex flex-wrap justify-between gap-2"><strong>Report #{row.report_number}</strong><span>{new Date(row.created_at).toLocaleString()}</span></div>
+        <div className="flex flex-wrap justify-between gap-2"><strong>Report #{row.report_number}</strong><span>{dateTimeCell(row.created_at)}</span></div>
         <p className="text-sm break-all">{row.page} · Version {row.app_version}</p>
         <p className="whitespace-pre-wrap break-words">{row.description || 'Screenshot report'}</p>
         <div className="flex flex-wrap items-center gap-3">

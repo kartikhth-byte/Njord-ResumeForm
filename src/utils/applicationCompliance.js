@@ -1,3 +1,5 @@
+import { dateCell } from './directoryDisplay'
+
 const DAY_MS = 24 * 60 * 60 * 1000
 const EXPIRING_SOON_DAYS = 30
 const PASSPORT_MIN_VALIDITY_DAYS = 365
@@ -111,7 +113,7 @@ function diffInDays(date, baseline = new Date()) {
 function formatDate(value) {
   const parsed = parseDate(value)
   if (!parsed) return 'Not provided'
-  return parsed.toLocaleDateString('en-GB')
+  return dateCell(value)
 }
 
 function formatDaysLabel(days) {

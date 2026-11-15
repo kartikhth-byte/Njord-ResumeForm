@@ -22,6 +22,7 @@ import {
   workingRecruiters,
 } from '../utils/kpiTracker'
 import { formatDateTime } from './recruiterDashboardUtils'
+import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import { downloadCsvReport, downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { HBarChart, TrendChart, ColumnChart, ChartLegend } from '../components/charts/SimpleCharts'
@@ -416,21 +417,7 @@ export default function RecruiterKpiPage() {
           )}
         >
           <div className="mt-5 flex flex-wrap items-end gap-4">
-            <label className="text-sm">
-              <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
-              <select
-                value={recruiterFilter}
-                onChange={(event) => setRecruiterFilter(event.target.value)}
-                className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-              >
-                <option value="">All recruiters</option>
-                {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
-                  <option key={recruiter.id} value={recruiter.id}>
-                    {recruiter.full_name || recruiter.email}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchableFilterSelect label="Recruiter" className="flex flex-col gap-1 text-sm" selectClassName="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm" value={recruiterFilter} onChange={setRecruiterFilter} placeholder="All recruiters" options={workingRecruiters(tracker.data.recruiters).map(recruiter => ({value:recruiter.id,label:recruiter.full_name || recruiter.email}))} />
             <div>
               <span className="mb-1 block text-xs font-medium text-fg-muted">Period</span>
               <SegmentedControl options={KPI_PERIODS} value={period} onChange={setPeriod} size="sm" />

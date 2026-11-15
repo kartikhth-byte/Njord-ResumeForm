@@ -5,6 +5,7 @@ import { useAuth } from './auth/AuthContext'
 import { CheckCircle, XCircle, RotateCcw, Calendar, Clock, Link as LinkIcon, Loader2, X, AlertTriangle } from 'lucide-react'
 import { REJECTION_CATEGORIES } from '../constants/rejection'
 import { rejectApplication } from '../services/rejectionService'
+import { dateCell } from '../utils/directoryDisplay'
 
 export default function TestResultModal({ application, onResultUpdated, onCancel }) {
   const { user } = useAuth()
@@ -192,11 +193,7 @@ export default function TestResultModal({ application, onResultUpdated, onCancel
     const testDateObj = new Date(formData.newTestDate)
     const expiryDateObj = new Date(testDateObj)
     expiryDateObj.setDate(expiryDateObj.getDate() + 7)
-    const expiryDate = expiryDateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    const expiryDate = dateCell(expiryDateObj)
 
     try {
       const { data, error } = await supabase.functions.invoke('send-test-retake-approved', {

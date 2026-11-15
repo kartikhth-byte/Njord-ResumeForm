@@ -71,7 +71,7 @@ export default function FormSidebar({ applicationData, mode = 'form' }) {
                 {state === 'done' && !isCurrent ? <CheckCircle className="h-3.5 w-3.5" /> : section.id}
               </span>
               <span className="min-w-0 flex-1 truncate">{section.shortTitle}</span>
-              {state === 'fix' && !isCurrent ? <span className="text-[11px] font-medium text-danger">Fix</span> : null}
+              {state === 'fix' && !isCurrent ? <span className="text-xs font-medium text-danger">Fix</span> : null}
               <span className="sr-only">
                 {state === 'done' ? '(complete)' : state === 'fix' ? '(needs attention)' : ''}
               </span>

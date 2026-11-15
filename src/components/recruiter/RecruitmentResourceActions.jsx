@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { openCandidateResume } from '../../services/needleIntegrationService'
+import { dateCell } from '../../utils/directoryDisplay'
 
 const action = 'workspace-action-button workspace-action-button--secondary'
 
@@ -71,7 +72,7 @@ export default function RecruitmentResourceActions({ candidate, prospectId, appl
                 {forms.rows.length > 1 && <label className="flex flex-col gap-1 text-sm">Submitted application
                   <select className="rounded-control border border-line bg-surface p-2" value={selectedId} onChange={event => setSelectedId(event.target.value)}>
                     <option value="">Choose an application</option>
-                    {forms.rows.map(row => <option key={row.id} value={row.id}>{row.reference_number || 'Application'} · {new Date(row.submitted_at).toLocaleDateString()}</option>)}
+                    {forms.rows.map(row => <option key={row.id} value={row.id}>{row.reference_number || 'Application'} · {dateCell(row.submitted_at)}</option>)}
                   </select>
                 </label>}
                 {selected?.public_token

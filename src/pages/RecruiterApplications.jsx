@@ -17,6 +17,7 @@ import { loadApplicationDirectory } from '../services/applicationDirectoryServic
 import { applicationPlacements, filterApplicationPlacements, groupApplicationPlacements, matchesLegacyApplicationStatus, readApplicationFilters } from '../utils/applicationDirectory'
 import { workStage } from '../utils/recruitmentWorkspace'
 import DirectoryNotes from '../components/recruiter/DirectoryNotes'
+import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import { dateCell, latestRecordDate, recordDisplayId } from '../utils/directoryDisplay'
 
 import { Building2, Ship, Loader2, SlidersHorizontal, RefreshCw } from 'lucide-react'
@@ -62,7 +63,7 @@ function ComplianceBadge({ status, summary }) {
     ? `${summary.red ? `${summary.red} action needed` : ''}${summary.red && summary.amber ? ' · ' : ''}${summary.amber ? `${summary.amber} to review` : ''}`
     : ''
   return (
-    <div className="space-y-1"><span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${COMPLIANCE_STYLES[status] || 'bg-raised text-fg-secondary border-line'}`}>
+    <div className="space-y-1"><span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${COMPLIANCE_STYLES[status] || 'bg-raised text-fg-secondary border-line'}`}>
       {complianceLabel(status)}
     </span>{reason && <p className="text-xs text-fg-secondary">{reason}</p>}</div>
   )
@@ -401,9 +402,9 @@ const updateContractEndDate = async (applicationId, value) => {
       <PageHeader title="Applications" actions={<div className="flex flex-wrap gap-2"><button className={button} disabled={loading || backgroundRefreshing} onClick={() => loadApplications(appliedFilters,{background:true})}><RefreshCw aria-hidden="true" className="h-4 w-4" />Refresh</button><button className={button} aria-expanded={showFilters} onClick={() => setShowFilters(v => !v)}><SlidersHorizontal aria-hidden="true" className="h-4 w-4" />More filters{activeFilterCount ? ` (${activeFilterCount})` : ''}</button></div>} />
       <section aria-label="Application filters" className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <label className={label}>Search<input className={field} placeholder="Name or reference…" value={searchTerm} onChange={e => setParam('q',e.target.value)} /></label>
-        <label className={label}>Company<select aria-label="Company" className={field} value={searchParams.get('company') || ''} onChange={e => setParam('company',e.target.value)}><option value="">All</option>{searchParams.get('company') && !companyOptions.some(([id]) => id === searchParams.get('company')) && <option value={searchParams.get('company')}>Unavailable selection</option>}{companyOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-        <label className={label}>Ship<select aria-label="Ship" className={field} value={searchParams.get('ship') || ''} onChange={e => setParam('ship',e.target.value)}><option value="">All</option>{searchParams.get('ship') && !shipOptions.some(([id]) => id === searchParams.get('ship')) && <option value={searchParams.get('ship')}>Unavailable selection</option>}{shipOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-        <label className={label}>Requirement<select aria-label="Requirement" className={field} value={searchParams.get('requirement') || ''} onChange={e => setParam('requirement',e.target.value)}><option value="">All</option>{searchParams.get('requirement') && !requirementOptions.some(([id]) => id === searchParams.get('requirement')) && <option value={searchParams.get('requirement')}>Unavailable selection</option>}{requirementOptions.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        <SearchableFilterSelect label="Company" className={label} selectClassName={field} value={searchParams.get('company') || ''} onChange={value => setParam('company', value)} options={companyOptions.map(([id,name]) => ({value:id,label:name}))} />
+        <SearchableFilterSelect label="Ship" className={label} selectClassName={field} value={searchParams.get('ship') || ''} onChange={value => setParam('ship', value)} options={shipOptions.map(([id,name]) => ({value:id,label:name}))} />
+        <SearchableFilterSelect label="Requirement" className={label} selectClassName={field} value={searchParams.get('requirement') || ''} onChange={value => setParam('requirement', value)} options={requirementOptions.map(([id,name]) => ({value:id,label:name}))} />
         <label className={label}>Document checks<select aria-label="Document checks" className={field} value={complianceFilter} onChange={e => setParam('checks',e.target.value==='all'?'':e.target.value)}><option value="all">All</option>{['red','amber','green'].map(value => <option key={value} value={value}>{complianceLabel(value)}</option>)}</select></label>
       </section>
       {statusFilter && <p className="text-sm text-fg-muted">Saved status filter: {applicationStatusLabel(statusFilter)} <button className="underline text-accent-text" onClick={() => setParam('status','')}>Clear status filter</button></p>}

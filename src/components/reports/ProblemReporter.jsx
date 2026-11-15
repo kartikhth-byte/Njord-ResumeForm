@@ -104,11 +104,11 @@ function Reporter({ userId }) {
       {mode==='history' ? <Suspense fallback={<p>Loading reports…</p>}><ProblemReportList userId={userId} /></Suspense> : <>
         {mode==='capturing' && <p role="status">Capturing screen…</p>}
         {preview && <img alt="Screenshot preview" src={preview.url} className="max-h-[40dvh] w-full object-contain rounded border border-line" />}
-        {warnings.map(w=><p key={w} className="text-sm mt-2 text-amber-600">{w}</p>)}
-        {error && <p role="alert" className="text-red-600 mt-2">{error}</p>}
+        {warnings.map(w=><p key={w} className="text-sm mt-2 text-warning">{w}</p>)}
+        {error && <p role="alert" className="text-danger mt-2">{error}</p>}
         {mode==='preview' && <><label className="block mt-3 text-sm">What went wrong? <span className="text-fg-muted">(optional)</span><textarea disabled={sending} maxLength={2000} value={description} onChange={e=>setDescription(e.target.value)} rows={2} className="block mt-1 w-full rounded border border-line bg-surface p-2" /></label>
           <p className="text-xs text-fg-muted mt-2">Shared privately with support. Screenshot expires in seven days.</p>
-          <div className="mt-4 flex flex-wrap items-center gap-3"><label className="text-sm underline cursor-pointer">Upload screenshot<input aria-label="Upload screenshot" type="file" accept="image/png,image/jpeg,image/webp" disabled={sending || normalizing} className="sr-only" onChange={e=>{upload(e.target.files[0]);e.target.value=''}} /></label><button className="text-sm underline" disabled={sending || normalizing} onClick={()=>{generation.current++;setPreview(null);setMode('history')}}>My reports</button><button autoFocus disabled={!preview || sending || normalizing} onClick={send} className="ml-auto rounded-lg bg-accent px-6 py-2 font-semibold text-white disabled:opacity-50">{normalizing?'Loading image…':sending?'Sending…':'Send'}</button></div>
+          <div className="mt-4 flex flex-wrap items-center gap-3"><label className="text-sm underline cursor-pointer">Upload screenshot<input aria-label="Upload screenshot" type="file" accept="image/png,image/jpeg,image/webp" disabled={sending || normalizing} className="sr-only" onChange={e=>{upload(e.target.files[0]);e.target.value=''}} /></label><button className="text-sm underline" disabled={sending || normalizing} onClick={()=>{generation.current++;setPreview(null);setMode('history')}}>My reports</button><button autoFocus disabled={!preview || sending || normalizing} onClick={send} className="ml-auto rounded-lg bg-accent-fill px-6 py-2 font-semibold text-on-accent disabled:opacity-50">{normalizing?'Loading image…':sending?'Sending…':'Send'}</button></div>
         </>}
       </>}
     </dialog>

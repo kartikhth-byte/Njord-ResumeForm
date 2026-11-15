@@ -13,10 +13,11 @@ app-wide audit and staging release gate.
 - [x] Complete local synthetic browser checks and visual review; see
   `UI_REFINEMENT_2026-11-15.md`.
 - [ ] Review and promote through the separate Holmes release process.
-- [ ] Complete the presentation's remaining cross-product type-scale,
-  terminology, and semantic-colour audit; the current UI pass addresses faults
-  2–6 only in the reviewed screens and preserves existing error/destructive
-  semantics. See `UI_REFINEMENT_2026-11-15.md`.
+- [x] Search the remaining Company, Ship, Requirement, and recruiter selectors;
+  align visible dates and remove duplicate requirement/fleet instructions.
+- [ ] Complete authenticated applicant sections 2–19 and detail-screen visual
+  copy review. Keep the existing accessibility-reviewed seven-size theme and
+  semantic failure/destructive colors pending a concrete alternative.
 
 ## Shared recruiter directories (2026-11-14)
 

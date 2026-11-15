@@ -10,6 +10,7 @@ import ApplicantSidebar from '../components/applicant/ApplicantSidebar'
 import { clearActiveDraftId, markActiveDraftExplicit, setActiveDraftId } from '../utils/draftSession'
 import { calculateApplicationProgress, firstIncompleteSection, hasMeaningfulDraftData } from '../utils/applicationProgress'
 import StatusBadge from '../components/StatusBadge'
+import { dateCell, dateTimeCell } from '../utils/directoryDisplay'
 
 const TERMINAL_APPLICATION_STATUSES = ['hired', 'rejected', 'withdrawn']
 
@@ -275,7 +276,7 @@ export default function Dashboard() {
                 <div className="h-3 rounded-full bg-accent-fill transition-all duration-300" style={{ width: `${progress}%` }} />
               </div>
               {claims.filter(claim => claim.application_id === draftApplication.id).map(claim => <p key={claim.case_id} className="mt-3 text-sm text-fg-secondary">Requirement: {claim.requirement_reference} · {claim.organization_name}</p>)}
-              <p className="mt-3 text-sm text-fg-secondary">Last saved: {new Date(draftApplication.updated_at).toLocaleString()}</p>
+              <p className="mt-3 text-sm text-fg-secondary">Last saved: {dateTimeCell(draftApplication.updated_at)}</p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 {readyToSubmit ? (
@@ -338,11 +339,7 @@ export default function Dashboard() {
                           {formatDisplayValue(app.application_data?.data?.section1?.appliedForRank || app.applied_rank) || 'Position not specified'}
                         </p>
                         <p className="mt-1 text-xs text-fg-muted">
-                          Submitted: {new Date(app.submitted_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          Submitted: {dateCell(app.submitted_at)}
                         </p>
                       </div>
 

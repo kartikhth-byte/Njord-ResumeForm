@@ -6,6 +6,7 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import RequirementGroups from '../components/recruiter/RequirementGroups'
 import useClientFleet from '../hooks/useClientFleet'
 import RequirementForm from '../components/recruiter/RequirementForm'
+import SearchableFilterSelect from '../components/recruiter/SearchableFilterSelect'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import RequirementMatchDialog from '../components/recruiter/RequirementMatchDialog'
 import { canUseAiSearch } from '../lib/needle'
@@ -293,21 +294,7 @@ export default function RecruiterRequirementsPage() {
                   className="w-56 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs font-medium text-fg-muted">Recruiter</span>
-                <select
-                  value={recruiterFilter}
-                  onChange={(event) => setRecruiterFilter(event.target.value)}
-                  className="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                >
-                  <option value="">All recruiters</option>
-                  {workingRecruiters(tracker.data.recruiters).map((recruiter) => (
-                    <option key={recruiter.id} value={recruiter.id}>
-                      {recruiter.full_name || recruiter.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchableFilterSelect label="Recruiter" className="flex flex-col gap-1 text-sm" selectClassName="w-44 rounded-control border border-line bg-surface px-3.5 py-2 text-sm" value={recruiterFilter} onChange={setRecruiterFilter} placeholder="All recruiters" options={workingRecruiters(tracker.data.recruiters).map(recruiter => ({value:recruiter.id,label:recruiter.full_name || recruiter.email}))} />
               <label className="text-sm">
                 <span className="mb-1 block text-xs font-medium text-fg-muted">Opened from</span>
                 <input
