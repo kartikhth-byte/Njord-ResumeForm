@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Prepared locally; not deployed. Needle baseline `166fcd05`, Holmes baseline
+Deployed and smoke-verified; see the production release record below. Needle baseline `166fcd05`, Holmes baseline
 `900ccdc`. Isolated branches `codex/needle-ai-workspace-20261116` and
 `codex/holmes-ai-workspace-20261116`. This slice extends the existing embedded
 workspace; it preserves the parser, search engine, stored conversations and
@@ -68,7 +68,7 @@ Initial Needle entry JS: approximately 628KB to 297KB (gzip 177KB to 93KB).
 One `/auth/me` on normal startup, down from two. The click benchmark has cold
 Needle assets even though Holmes is already open. Raw benchmark scripts/results
 and synthetic screenshots are kept in ignored `.local/ai-workspace-20261116/`
-in the parent workspace. Live timing remains a release gate.
+in the parent workspace. Live measurements are recorded below.
 
 ## Verification
 
@@ -102,6 +102,46 @@ in the parent workspace. Live timing remains a release gate.
    operator-only review; Coordinator denial. Check real opening/click timings.
 6. If rollback is needed, roll Holmes back FIRST, then Needle. No migrations.
 
-No claims of live latency, live role smoke or production deployment are made by
-this local record. Intake stays off. No paid parser rerun is required for this UI
-and bootstrap slice; a fresh paid prompt would need its own allowance.
+The preparation evidence above is local; the production evidence is recorded
+below. Intake stays off. No paid parser rerun is required for this UI and
+bootstrap slice; a fresh paid prompt would need its own allowance.
+
+## Production release verification — 2026-11-16
+
+Exact approved Needle `6ad3ab3acd5767e347b55c5579e8b592b4977933` deployed FIRST
+(engine `c9bad7ef-6717-411f-8d4f-1993213736d9`, worker
+`1a1b41f2-859d-4663-b25c-9e2abfb9e380`); both active. Engine health and
+cache hydration passed. Holmes `eb3edf696debafde4841a075502938d7a0faad94`
+then deployed to crewme.si (Vercel `92R3DAA4grmMz48AHHNtwBo6xXii`, Ready).
+
+Fresh database backups passed isolated COPY-payload restoration and count
+checks: Needle 72 tables/12,422 rows, Holmes 114 tables/8,257 rows. Full
+managed-schema DDL and Storage-file restoration were not verified. Six SQLite
+databases also passed online backup, archive extraction, integrity, foreign-key
+and row-count checks on the existing persistent volume. The initial local
+restore checker used a removed PGlite API; its isolated replacement restored
+the same dumps successfully using COPY FROM /dev/blob.
+
+Live checks passed: Operator opening and saved projects; normal Recruiter
+opening, own project scope, reload, filter-only search (237 matches), explicit
+Show results, Follow up selection, unsent draft preservation, New search reset,
+synthetic library/PDF rendering, direct review denial for Recruiter, and narrow
+projects drawer with Escape/focus return. No paid model calls. Coordinator and
+Master role checks were covered locally and were not repeated live this release.
+Operator review publication was not repeated for this UI/bootstrap change.
+
+Live timing (normal browser cache/network; small sample, not a controlled SLA):
+
+| Milestone | Before | After |
+| --- | ---: | ---: |
+| SSO start to first projects response | 2.769s (one Operator sample) | 0.730s Operator; 0.619s Recruiter sidebar; 0.394s Recruiter reload |
+| Full page reload to first projects response | Not captured | 2.045s (one Recruiter sample) |
+| Normal parent/frame auth checks | 1 + 1 | 0 + 1 |
+
+The before SSO request itself took 1.174s versus 0.125–0.206s after; network and
+server variation therefore contribute to the difference. Do not present these
+figures as a controlled percentage improvement or a sub-second full app load.
+The remaining full-reload delay includes Holmes startup before the AI exchange.
+Private backup receipts, live timing notes and screenshots are in the parent
+workspace `.local/ai-workspace-20261116/`. No schema, Function, hosting plan,
+subscription or intake changes were made.
