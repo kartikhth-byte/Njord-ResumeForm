@@ -3,8 +3,8 @@
 ## Status
 
 Deployed with exact owner approval: Needle `af321592c73c5f4c3fddef0e77bf7fca4c6d0667`
-and Holmes `1b8cdc176bbc6802f0c3235a0e7aed96ec6880f9`. Recruiter live smoke
-passed; final Operator navigation check is pending. Previous baselines were
+and Holmes `1b8cdc176bbc6802f0c3235a0e7aed96ec6880f9`. Recruiter and Operator live smoke
+passed. Previous baselines were
 Needle `6ad3ab3a` / Holmes `eb3edf6`. Branches: `codex/needle-search-polish-20261116` and
 `codex/holmes-search-polish-20261116`.
 
@@ -109,6 +109,10 @@ intake hold and live reload timings. Do not call local smoke production smoke.
 - Normal Recruiter: compact sidebar, icons, copy feedback, follow-up selection,
   same-chat reset/focus, saved history/results after reload and original synthetic
   PDF viewing pass. Résumé Review navigation is absent for this role.
+- Operator: AI Search and its compact navigation load; Résumé Review is visible
+  and opens successfully. Needs review and All views load, and a synthetic-name
+  filter returns the approved test résumé. This was a read-only navigation check;
+  no extraction edits or publication actions were performed.
 - Requirement Match Resume returned 125 confirmed rank/vessel matches. A clearly
   labelled synthetic résumé was reviewed and attached to a new synthetic
   requirement. Library Match Resume then reused that same candidate/attachment
