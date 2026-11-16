@@ -383,7 +383,7 @@ export default function RecruiterRequirementDetail() {
             title={requirement.display_id || requirement.req_id_display}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {!requirementMatchBlocker(requirement) && role !== 'Coordinator' && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match résumés</button>}
+                {!requirementMatchBlocker(requirement) && role !== 'Coordinator' && canUseAiSearch({ isOperator, role }) && permissions.includes('create_prospects') && <button ref={matchButton} disabled={acting} className="workspace-action-button workspace-action-button--primary" onClick={() => setMatching(true)}>Match Resume</button>}
 
                 {canExportPdf ? (
                   <button

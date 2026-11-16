@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import AddToHolmesDialog from '../components/recruiter/AddToHolmesDialog'
+const AddToHolmesDialog = lazy(() => import('../components/recruiter/AddToHolmesDialog'))
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../components/auth/AuthContext'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import { canUseAiSearch, needleFrameUrl, startNeedleSession } from '../lib/needle'
-import { resumeIntakeEnabled } from '../lib/resumeIntake'
 
 // AI search: Needle's own screens embedded under Holmes's address
 // (docs/needle-in-holmes-design.md sections 4.1-4.2).
@@ -24,7 +23,7 @@ function needlePathFromHolmes(pathname, search = '') {
 }
 
 export default function RecruiterAiSearch({ reviewOnly = false }) {
-  const { user, profile, role, isOperator, signOut, loading, authorizationLoading } = useAuth()
+  const { user, profile, role, isOperator, signOut, loading, authorizationLoading, permissions = [] } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const frameRef = useRef(null)
@@ -41,10 +40,15 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
   const sessionIdentity = user?.id ? `${user.id}:${role}:${Boolean(isOperator)}` : ''
   const identityRef = useRef(sessionIdentity)
   identityRef.current = sessionIdentity
+  const [matchingBusy, setMatchingBusy] = useState(false)
   const [selection, setSelection] = useState(null)
   const requirementId = new URLSearchParams(location.search).get('requirement')
 
   const allowed = canUseAiSearch({ isOperator, role }) && (!reviewOnly || isOperator)
+
+  const canMatch = allowed && permissions.includes('create_prospects') && permissions.includes('edit_junction_status')
+
+  useEffect(() => { setSelection(null); setMatchingBusy(false) }, [sessionIdentity, canMatch])
 
   const signIn = useCallback(async () => {
     const result = await startNeedleSession(sessionIdentity)
@@ -57,7 +61,7 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
     let cancelled = false
     setStatus('connecting')
     setConnectionId('')
-    setFrameSrc(needleFrameUrl(lastNeedlePathRef.current))
+    setFrameSrc(needleFrameUrl(lastNeedlePathRef.current, canMatch))
     setFrameIdentity(sessionIdentity)
     lastResignInRef.current = 0
     recoveryRef.current = null
@@ -69,7 +73,7 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
     return () => {
       cancelled = true
     }
-  }, [allowed, signIn, sessionIdentity])
+  }, [allowed, canMatch, signIn, sessionIdentity])
 
   const postToFrame = useCallback((message) => {
     const target = frameRef.current?.contentWindow
@@ -115,7 +119,7 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
       }
 
       if (data.type === 'needle:add-to-holmes') {
-        if (!resumeIntakeEnabled()) return
+        if (!canMatch) return
         const ids = data.resume_ids
         if (Array.isArray(ids) && ids.length > 0 && ids.length <= 25 && new Set(ids).size === ids.length && ids.every(id => typeof id === 'string' && /^[a-f0-9]{64}$/.test(id))) {
           setSelection({ ids, stageId: typeof data.stage_id === 'string' ? data.stage_id : null })
@@ -144,7 +148,7 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [status, navigate, signIn, postToFrame, postTheme, postSession, frameIdentity, sessionIdentity, location.pathname, location.search])
+  }, [status, navigate, signIn, postToFrame, postTheme, postSession, frameIdentity, sessionIdentity, location.pathname, location.search, canMatch])
 
   // Holmes-side navigation (Back/Forward, sidebar link) moves the frame.
   useEffect(() => {
@@ -168,13 +172,13 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
     const retryIdentity = sessionIdentity
     const ok = await signIn()
     if (identityRef.current !== retryIdentity) return
-    if (ok) { setConnectionId(crypto.randomUUID()); setFrameSrc(needleFrameUrl(lastNeedlePathRef.current)); setFrameIdentity(sessionIdentity) }
+    if (ok) { setConnectionId(crypto.randomUUID()); setFrameSrc(needleFrameUrl(lastNeedlePathRef.current, canMatch)); setFrameIdentity(sessionIdentity) }
     setStatus(ok ? 'ready' : 'unavailable')
   }
 
   return (
     <div className="recruiter-shell recruiter-ai-shell flex h-dvh min-h-0 min-w-0 max-w-full flex-col overflow-hidden">
-      {selection && <AddToHolmesDialog resumeIds={selection.ids} stageId={selection.stageId} requirementId={requirementId} onClose={() => { setSelection(null); frameRef.current?.focus() }} />}
+      {selection && canMatch && <Suspense fallback={<div role="status">Opening résumé matching…</div>}><AddToHolmesDialog busy={matchingBusy} onBusyChange={setMatchingBusy} resumeIds={selection.ids} stageId={selection.stageId} requirementId={requirementId} onClose={() => { setSelection(null); frameRef.current?.focus() }} /></Suspense>}
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
       {status !== 'unavailable' && frameSrc && frameIdentity === sessionIdentity && (

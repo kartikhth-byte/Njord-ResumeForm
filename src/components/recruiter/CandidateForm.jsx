@@ -20,6 +20,7 @@ export default function CandidateForm({
   canSave = true,
   allowUpload = true,
   lockedRequirement = false,
+  requireRequirement = false,
   onBusyChange,
   inDialog = false,
   initialForm = {},
@@ -66,6 +67,7 @@ export default function CandidateForm({
     setSaving(true)
     setError('')
     try {
+      if(requireRequirement && (!canAttach || !form.requirementId)) throw new Error('Choose a requirement before adding this résumé.')
       if(!reviewed)throw new Error('Review the résumé and identity decision before saving.')
       const found = await candidateMatches(form.resume?.resume_id, existingFile || form.linkTo ? {} : resumeCandidateFields(form))
       setMatches(found)
@@ -121,7 +123,7 @@ export default function CandidateForm({
         </div>}
         {canAttach && lockedRequirement ? <p className="rounded-control border border-line p-3 text-sm">Attach to requirement: <strong>{requirementOptions.find(row => row.value === form.requirementId)?.label}</strong></p> : canAttach ? (
           <SelectField
-            label="Attach to requirement (optional)"
+            label={requireRequirement ? "Requirement" : "Attach to requirement (optional)"}
             searchable
             value={form.requirementId}
             onChange={value => { setReviewed(false); setForm(current => withRequirementDefaults(current, requirementOptions.find(row => row.value === value))) }}
@@ -150,9 +152,9 @@ export default function CandidateForm({
               onSaved?.('Draft lead saved outside the candidate pool.',{leadId:data})
             }catch(e){setError(e.message)}finally{setSaving(false)}
           }}>Save draft lead without a résumé</button>}
-          <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving || uploading || !form.resume || !reviewed}>
+          <button type="submit" className="workspace-action-button workspace-action-button--primary" disabled={!canSave || saving || uploading || !form.resume || !reviewed || (requireRequirement && (!canAttach || !form.requirementId))}>
             <Plus className="h-4 w-4" />
-            {existingFile ? form.requirementId ? 'Attach existing candidate' : 'Use existing candidate' : lockedRequirement ? 'Attach candidate' : 'Save candidate'}
+            {requireRequirement ? 'Add to requirement' : existingFile ? form.requirementId ? 'Attach existing candidate' : 'Use existing candidate' : lockedRequirement ? 'Attach candidate' : 'Save candidate'}
           </button>
           {form.resume&&form.resume.review_source!=='existing_resume'&&!existingFile&&<button type="button" disabled={!canSave||saving||uploading} className="workspace-action-button workspace-action-button--secondary" onClick={async()=>{
             setSaving(true);setError('');try{await saveResumeCandidate(form.resume,{}, {hold:true});setReviewed(false);setError('Held for review. No candidate or case was created.')}catch(error){setError(error.message)}finally{setSaving(false)}

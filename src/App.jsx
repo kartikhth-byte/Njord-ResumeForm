@@ -35,7 +35,9 @@ const RecruiterRequirementsPage = lazy(() => import('./pages/RecruiterRequiremen
 const RecruiterCompaniesPage = lazy(() => import('./pages/RecruiterCompaniesPage'))
 const RecruitmentWorkspacePage = lazy(() => import('./pages/RecruitmentWorkspacePage'))
 const RecruiterCandidatesPage = lazy(() => import('./pages/RecruiterCandidatesPage'))
-const RecruiterAiSearch = lazy(() => import('./pages/RecruiterAiSearch'))
+// The small embedded shell is on the reload critical path. Keep its optional
+// attachment form lazy, but avoid a second route-chunk/Suspense startup wait.
+import RecruiterAiSearch from './pages/RecruiterAiSearch'
 const OperatorConsole = lazy(() => import('./pages/OperatorConsole'))
 
 // Protected Route Component

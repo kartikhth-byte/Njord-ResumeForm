@@ -1,3 +1,12 @@
+# AI Search compact workspace and matching — 2026-11-16
+
+Prepared locally, not deployed. Search navigation moves above Projects & chats;
+response icons include New search/Copy. Existing résumé Match Resume works
+independently of intake, requires requirement and identity review, and reuses
+the guarded attachment API. Small-shell startup and deferred matching form
+improve controlled reload measurements. See
+`docs/AI_SEARCH_COMPACT_MATCHING_2026-11-16.md` for tests, timing and release gates.
+
 # Holmes directory grouping correction — 2026-11-15
 
 Requirements, attached Candidates, Recruitment, and Applications now show

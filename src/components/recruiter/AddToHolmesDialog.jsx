@@ -48,16 +48,16 @@ export default function AddToHolmesDialog({ resumeIds, stageId, requirementId, r
     }
   }}>
     <section ref={ref} tabIndex={-1} className="mx-auto max-w-3xl rounded-2xl bg-surface p-4 sm:p-6">
-      <div className="mb-4 flex justify-between gap-4"><h2 id="add-holmes-title" className="text-xl font-semibold">{inline ? 'Review and attach' : 'Add to Holmes'}</h2><button disabled={busy} onClick={onClose} className="underline">{inline ? 'Back to résumé' : 'Close'}</button></div>
+      <div className="mb-4 flex justify-between gap-4"><h2 id="add-holmes-title" className="text-xl font-semibold">{inline ? 'Review and attach' : 'Match Resume'}</h2><button disabled={busy} onClick={onClose} className="underline">{inline ? 'Back to résumé' : 'Close'}</button></div>
       <p className="mb-4 text-sm text-fg-secondary">Review extracted details against the résumé. Nothing is sent to a candidate when you save.</p>
       {state.loading && <p role="status">Verifying résumé sources…</p>}
       {state.error && <p role="alert" className="text-danger">{state.error}</p>}
       {resume && <>
         {!inline && <a className="mb-3 inline-block underline" href={`/ai/api/workspace/candidates/${resume.resume_id}/pdf`} target="_blank" rel="noreferrer">Open original résumé for review</a>}
         <nav className="mb-4 flex flex-wrap gap-2" aria-label="Selected résumés">{state.resumes.map((row, i) => <button key={row.resume_id} className="rounded border border-line px-3 py-1" aria-current={i === index ? 'step' : undefined} disabled={busy} onClick={() => setIndex(i)}>{i + 1}{saved[row.resume_id] ? ' ✓' : ''}</button>)}</nav>
-        {saved[resume.resume_id] ? <p role="status">Saved. <Link className="underline" to={`/recruiter/workspace/prospects/${saved[resume.resume_id]}`}>Open candidate</Link></p> : <>
+        {saved[resume.resume_id] ? <p role="status">Added to requirement. <Link className="underline" to={`/recruiter/workspace/prospects/${saved[resume.resume_id]}`}>Open candidate</Link></p> : <>
           {prefill.phone && !initial.telephone && <p className="mb-3 text-sm text-warning">Source phone: {prefill.phone}. Enter its country code explicitly, or save using email.</p>}
-          <CandidateForm key={resume.resume_id} initialForm={initial} allowUpload={false} inDialog={inline} ranks={state.ranks} vesselTypes={state.vessels}
+          <CandidateForm key={resume.resume_id} initialForm={initial} allowUpload={false} inDialog requireRequirement ranks={state.ranks} vesselTypes={state.vessels}
             currentRecruiterId={user.id} canChooseRecruiter={false} canSave={permissions.includes('create_prospects') || role === 'Master Recruiter' || role === 'Recruiter'}
             canAttach={permissions.includes('edit_junction_status')} lockedRequirement={inline} onBusyChange={onBusyChange} requirementOptions={requirementOptions}
             onSaved={(_message, result) => { setSaved(prev => ({ ...prev, [resume.resume_id]: result.id })); onSaved?.(resume.resume_id, result.id); if (index < state.resumes.length - 1) setIndex(index + 1) }} onCancel={onClose} />
