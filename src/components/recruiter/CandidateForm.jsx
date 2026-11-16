@@ -128,7 +128,7 @@ export default function CandidateForm({
             value={form.requirementId}
             onChange={value => { setReviewed(false); setForm(current => withRequirementDefaults(current, requirementOptions.find(row => row.value === value))) }}
             options={requirementOptions}
-            placeholder="Leave unattached for now"
+            placeholder={requireRequirement ? "Choose a requirement" : "Leave unattached for now"}
           />
         ) : null}
         {!existingFile && (form.rankFromRequirement || form.vesselFromRequirement) && <p className="text-sm text-fg-secondary">{[form.rankFromRequirement && 'Rank', form.vesselFromRequirement && 'Vessel type'].filter(Boolean).join(' and ')} suggested from the requirement. Review or clear these optional fields before saving.</p>}

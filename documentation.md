@@ -1,3 +1,14 @@
+# AI Search continuity follow-up — 2026-11-16
+
+Prepared locally, not deployed: required Match Resume selection now says
+“Choose a requirement”; optional candidate creation keeps “Leave unattached for
+now”. Paired Needle changes show company continuity at three latest-company
+voyages and present-rank service in years/months. The integrated browser suite
+checks both labels and matching. Live reload tracing found the token request
+takes 2–5 seconds; no full live speed improvement is claimed. Needle's history
+optimization only removes repeated projection work within one request. See
+Needle `docs/AI_SEARCH_CONTINUITY_RELOAD_2026-11-16.md` for evidence and limits.
+
 # AI Search compact workspace and matching — 2026-11-16
 
 Prepared locally, not deployed. Search navigation moves above Projects & chats;
