@@ -8,6 +8,7 @@
 // once to /ai/auth/holmes.
 
 import { supabase } from './supabase'
+import { createNeedleConnection } from './needleConnection'
 import { resumeIntakeEnabled } from './resumeIntake'
 
 export const NEEDLE_BASE = '/ai'
@@ -51,30 +52,30 @@ export function aiSearchEnabled() {
 // ("/search", "/search/<project>/<chat>", "/repository").
 export function needleFrameUrl(needlePath = '/search') {
   const path = needlePath.startsWith('/') ? needlePath : `/${needlePath}`
-  return `${NEEDLE_BASE}/?embed=holmes&intake=${resumeIntakeEnabled() ? 'enabled' : 'disabled'}#${path}`
+  const theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+  return `${NEEDLE_BASE}/?embed=holmes&session=wait&theme=${theme}&intake=${resumeIntakeEnabled() ? 'enabled' : 'disabled'}#${path}`
 }
 
 // Exchange the Holmes session for a Needle session. Resolves to
 // { ok: true } or { ok: false, reason }.
-export async function startNeedleSession() {
-  const { data, error } = await supabase.functions.invoke('needle-token', { body: {} })
-  if (error || !data?.token) {
-    return { ok: false, reason: 'token' }
-  }
+async function exchangeNeedleSession() {
   try {
+    const signal = AbortSignal.timeout(15_000)
+    const { data, error } = await supabase.functions.invoke('needle-token', { body: {}, signal })
+    if (error || !data?.token) {
+      return { ok: false, reason: 'token' }
+    }
     const response = await fetch(`${NEEDLE_BASE}/auth/holmes`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: data.token }),
+      signal,
     })
     if (!response.ok) return { ok: false, reason: `needle_${response.status}` }
-    // Confirm the Needle cookie actually stuck (it can be dropped by the
-    // forwarding rule or a wrong cookie path); otherwise the frame would sit
-    // on its sign-in screen forever.
-    const me = await fetch(`${NEEDLE_BASE}/auth/me`, { credentials: 'same-origin' })
-    const body = me.ok ? await me.json().catch(() => null) : null
-    if (!body?.authenticated) return { ok: false, reason: 'session' }
+    // The embedded AuthGate checks /auth/me before mounting any protected
+    // screen. A missing cookie triggers the bounded parent recovery flow.
+    // Checking here too added one serial round trip to every opening.
     markSession(true)
     return { ok: true }
   } catch {
@@ -83,16 +84,21 @@ export async function startNeedleSession() {
 }
 
 // Best-effort sign-out of the Needle session (on Holmes sign-out).
-export function endNeedleSession() {
+async function logoutNeedleSession() {
   if (!sessionMarked()) return
   markSession(false)
   try {
-    fetch(`${NEEDLE_BASE}/auth/logout`, {
+    await fetch(`${NEEDLE_BASE}/auth/logout`, {
       method: 'POST',
       credentials: 'same-origin',
       keepalive: true,
+      signal: AbortSignal.timeout(5_000),
     }).catch(() => {})
   } catch {
     // Ignore: the Needle session also expires on its own.
   }
 }
+
+const connection = createNeedleConnection({ exchange: exchangeNeedleSession, logout: logoutNeedleSession })
+export const startNeedleSession = identity => connection.start(identity)
+export const endNeedleSession = () => connection.end()

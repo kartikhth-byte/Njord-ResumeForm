@@ -32,47 +32,78 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
   // Last re-sign-in triggered by the frame (not the first sign-in). A second
   // request within the window means the session is not sticking: stop.
   const lastResignInRef = useRef(0)
+  const recoveryRef = useRef(null)
   const [status, setStatus] = useState('connecting') // connecting | ready | unavailable
   // Set each time the frame is (re)created, from the place the user was at.
   const [frameSrc, setFrameSrc] = useState('')
+  const [frameIdentity, setFrameIdentity] = useState('')
+  const [connectionId, setConnectionId] = useState('')
+  const sessionIdentity = user?.id ? `${user.id}:${role}:${Boolean(isOperator)}` : ''
+  const identityRef = useRef(sessionIdentity)
+  identityRef.current = sessionIdentity
   const [selection, setSelection] = useState(null)
   const requirementId = new URLSearchParams(location.search).get('requirement')
 
   const allowed = canUseAiSearch({ isOperator, role }) && (!reviewOnly || isOperator)
 
   const signIn = useCallback(async () => {
-    const result = await startNeedleSession()
+    const result = await startNeedleSession(sessionIdentity)
     return result.ok
-  }, [])
+  }, [sessionIdentity])
 
-  // First sign-in, then show the frame.
+  // Download static UI alongside sign-in; Needle waits for our signed-in message.
   useEffect(() => {
-    if (!allowed) return undefined
+    if (!allowed || !sessionIdentity) return undefined
     let cancelled = false
     setStatus('connecting')
+    setConnectionId('')
+    setFrameSrc(needleFrameUrl(lastNeedlePathRef.current))
+    setFrameIdentity(sessionIdentity)
+    lastResignInRef.current = 0
+    recoveryRef.current = null
     signIn().then((ok) => {
       if (cancelled) return
-      if (ok) setFrameSrc(needleFrameUrl(lastNeedlePathRef.current))
+      if (ok) setConnectionId(crypto.randomUUID())
       setStatus(ok ? 'ready' : 'unavailable')
     })
     return () => {
       cancelled = true
     }
-  }, [allowed, signIn])
+  }, [allowed, signIn, sessionIdentity])
 
   const postToFrame = useCallback((message) => {
     const target = frameRef.current?.contentWindow
     if (target) target.postMessage(message, window.location.origin)
   }, [])
 
+  const postTheme = useCallback(() => postToFrame({ type: 'holmes:theme', theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark' }), [postToFrame])
+  useEffect(() => {
+    const observer = new MutationObserver(postTheme)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [postTheme])
+
+  const postSession = useCallback(() => {
+    if (status === 'ready' && connectionId && frameIdentity === sessionIdentity)
+      postToFrame({ type: 'holmes:signed-in', connection_id: connectionId })
+  }, [status, connectionId, frameIdentity, sessionIdentity, postToFrame])
+  useEffect(postSession, [postSession])
+
   // Messages from the Needle frame.
   useEffect(() => {
-    if (status !== 'ready') return undefined
+    if (status !== 'ready' || frameIdentity !== sessionIdentity) return undefined
     const onMessage = async (event) => {
       if (event.origin !== window.location.origin) return
       if (!frameRef.current || event.source !== frameRef.current.contentWindow) return
       const data = event.data
       if (!data || typeof data !== 'object') return
+
+      if (data.type === 'needle:booted') { postSession(); return }
+      if (data.type === 'needle:ready') {
+        postTheme()
+        postToFrame({ type: 'holmes:navigate', path: needlePathFromHolmes(location.pathname, location.search) })
+        return
+      }
 
       if (data.type === 'needle:route' && typeof data.path === 'string' && data.path.startsWith('/') && !data.path.startsWith('//')) {
         lastNeedlePathRef.current = data.path
@@ -92,19 +123,28 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
         return
       }
       if (data.type === 'needle:auth-required') {
+        // Several protected requests may fail together. They share the same
+        // recovery; only a fresh failure AFTER it finishes consumes the limit.
+        if (recoveryRef.current?.source === event.source && recoveryRef.current?.identity === sessionIdentity) return
         if (Date.now() - lastResignInRef.current < RESIGN_IN_MIN_INTERVAL_MS) {
           setStatus('unavailable')
           return
         }
         lastResignInRef.current = Date.now()
+        const recovery = { source: event.source, identity: sessionIdentity }
+        recoveryRef.current = recovery
         const ok = await signIn()
-        if (ok) postToFrame({ type: 'holmes:signed-in' })
+        if (recoveryRef.current === recovery) recoveryRef.current = null
+        // URL changes keep this frame alive; only a different frame or
+        // identity should invalidate an in-flight session recovery.
+        if (frameRef.current?.contentWindow !== event.source || identityRef.current !== sessionIdentity) return
+        if (ok) setConnectionId(crypto.randomUUID())
         else setStatus('unavailable')
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [status, navigate, signIn, postToFrame, location.pathname, location.search])
+  }, [status, navigate, signIn, postToFrame, postTheme, postSession, frameIdentity, sessionIdentity, location.pathname, location.search])
 
   // Holmes-side navigation (Back/Forward, sidebar link) moves the frame.
   useEffect(() => {
@@ -125,8 +165,10 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
 
   const retry = async () => {
     setStatus('connecting')
+    const retryIdentity = sessionIdentity
     const ok = await signIn()
-    if (ok) setFrameSrc(needleFrameUrl(lastNeedlePathRef.current))
+    if (identityRef.current !== retryIdentity) return
+    if (ok) { setConnectionId(crypto.randomUUID()); setFrameSrc(needleFrameUrl(lastNeedlePathRef.current)); setFrameIdentity(sessionIdentity) }
     setStatus(ok ? 'ready' : 'unavailable')
   }
 
@@ -135,17 +177,20 @@ export default function RecruiterAiSearch({ reviewOnly = false }) {
       {selection && <AddToHolmesDialog resumeIds={selection.ids} stageId={selection.stageId} requirementId={requirementId} onClose={() => { setSelection(null); frameRef.current?.focus() }} />}
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
-      {status === 'ready' && frameSrc ? (
+      {status !== 'unavailable' && frameSrc && frameIdentity === sessionIdentity && (
         <iframe
           ref={frameRef}
+          onLoad={() => { postTheme(); postSession() }}
+          key={frameIdentity}
           src={frameSrc}
           title={reviewOnly ? "Résumé Review" : "AI search"}
-          className="min-h-0 w-full flex-1 border-0 bg-transparent"
+          className={status === 'ready' ? "min-h-0 w-full flex-1 border-0 bg-transparent" : "absolute h-0 w-0 border-0 invisible"}
         />
-      ) : (
+      )}
+      {status !== 'ready' && (
         <div className="flex flex-1 items-center justify-center p-6">
           {status === 'connecting' ? (
-            <Loader2 className="h-6 w-6 animate-spin text-fg-muted" aria-label="Loading" />
+            <div role="status" className="flex items-center gap-3 text-sm text-fg-muted"><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />Opening {reviewOnly ? 'Résumé Review' : 'AI Search'}…</div>
           ) : (
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="text-sm text-fg-secondary">{reviewOnly ? 'Résumé Review' : 'AI search'} is unavailable right now.</div>

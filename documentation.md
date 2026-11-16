@@ -871,3 +871,17 @@ locked to that requirement. Confirmed present rank AND vessel-type experience
 are mandatory; nationality and other criteria are optional. No Open in AI Search
 action. See `docs/REQUIREMENT_MATCH_MODAL_2026-11-07.md` for verification and the
 Needle → bridge → frontend rollout dependency. Not promoted; intake stays off.
+
+
+## AI Search workspace and startup — 2026-11-16
+
+Prepared locally on `codex/holmes-ai-workspace-20261116` with the paired Needle
+branch. Retains the Holmes icon rail, persistent desktop Projects & chats,
+existing search actions and PDF access. Static UI now downloads alongside SSO
+but protected data waits for authenticated release; duplicate session checks
+and concurrent recovery races are covered. Controlled sidebar-click screen
+appearance improves from 1.244s to 0.828s; this is not a production measurement.
+
+Pending: exact paired promotion approval, fresh backups, Needle-first deployment,
+Holmes deployment and normal-session live smoke/timing. No schema, Function,
+intake or subscription change. Details: `docs/AI_SEARCH_WORKSPACE_2026-11-16.md`.
