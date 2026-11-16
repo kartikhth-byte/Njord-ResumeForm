@@ -2,9 +2,10 @@
 
 ## Status
 
-Prepared locally and independently reviewed; not deployed. Baselines are the
-released Needle `6ad3ab3a` / Holmes `eb3edf6` pair, plus their documentation-only
-closeout commits. Branches: `codex/needle-search-polish-20261116` and
+Deployed with exact owner approval: Needle `af321592c73c5f4c3fddef0e77bf7fca4c6d0667`
+and Holmes `1b8cdc176bbc6802f0c3235a0e7aed96ec6880f9`. Recruiter live smoke
+passed; final Operator navigation check is pending. Previous baselines were
+Needle `6ad3ab3a` / Holmes `eb3edf6`. Branches: `codex/needle-search-polish-20261116` and
 `codex/holmes-search-polish-20261116`.
 
 ## Owner-approved scope
@@ -92,3 +93,42 @@ Rollback Holmes first, then Needle. No database migration or Function deployment
 Live smoke must check normal Recruiter/Operator opening, responsive navigation,
 existing résumé review/attachment using only synthetic test records, unchanged
 intake hold and live reload timings. Do not call local smoke production smoke.
+
+## Production release evidence
+
+- Fresh consistent PostgreSQL backups passed isolated COPY-payload restore/count
+  checks: Needle 72 tables / 12,422 rows; Holmes 114 tables / 8,265 rows. Full
+  managed schema and Storage bytes were not restored. Six SQLite online backups
+  passed archive extraction, integrity, foreign-key and count checks on the same
+  persistent volume; this is not an off-volume disaster-recovery test.
+- Needle engine `429b9ff8-5ac9-4610-93f9-8b194ad13fa8` and worker
+  `913eb858-8191-4470-b96d-3f976e81598c` became active first. Public health and
+  hydration passed after a transient restart 502 cleared. Holmes Vercel
+  `DoqBbVmHPgNwwC8p4uu5oFMPcwZK` is Ready on production `crewme.si`, exact
+  approved commit confirmed.
+- Normal Recruiter: compact sidebar, icons, copy feedback, follow-up selection,
+  same-chat reset/focus, saved history/results after reload and original synthetic
+  PDF viewing pass. Résumé Review navigation is absent for this role.
+- Requirement Match Resume returned 125 confirmed rank/vessel matches. A clearly
+  labelled synthetic résumé was reviewed and attached to a new synthetic
+  requirement. Library Match Resume then reused that same candidate/attachment
+  without creating a second case. Missing requirement blocks submission, and
+  changing requirement resets the source-review checkbox. Candidates and profile
+  reload confirmed one case. Both new synthetic case and requirement were closed
+  after verification. Existing candidate details were retained; intake stayed
+  paused. No emails or model calls. Private IDs and screenshots are in the ignored
+  release evidence directory.
+
+### Live speed result and remaining findings
+
+The small live sample does **not** demonstrate a speed improvement. For the same
+normal Recruiter saved chat, last-stage response completion was 5.538s on initial
+navigation and 3.170s on reload before release, versus 6.511s and 3.809s after.
+These are browser resource response-end timings with normal cache/network, not
+paint measurements or a controlled SLA. One frame auth/me call was observed.
+The local controlled improvement above must not be presented as a live gain.
+Further live waterfall diagnosis remains necessary for the loading-time goal.
+
+Minor UI copy follow-up: the required library requirement selector still displays
+“Leave unattached for now”. Validation correctly disables submission without a
+requirement, but the placeholder should say “Choose a requirement”.
