@@ -144,6 +144,25 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   }, [menuOpen])
 
   useEffect(() => {
+    if (!menuOpen) return
+    let frame = 0
+    const dismissOnFrameFocus = () => {
+      // Pointer/key events inside AI Search do not bubble into this document.
+      // Treat entering its frame like any other outside interaction, without
+      // moving focus away from the control the user just selected.
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        if (document.activeElement?.tagName === 'IFRAME') setMenuOpen(false)
+      })
+    }
+    window.addEventListener('blur', dismissOnFrameFocus)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('blur', dismissOnFrameFocus)
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target) && !popupRef.current?.contains(event.target)) setMenuOpen(false)
     }

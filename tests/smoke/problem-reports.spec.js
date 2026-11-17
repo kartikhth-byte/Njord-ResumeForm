@@ -264,6 +264,23 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
       await expect(page.getByRole('button',{name:'Open menu',exact:true})).toBeFocused()
     }
   })
+  test('account menu dismisses when pointer or keyboard focus enters AI Search', async ({page}) => {
+    await page.setViewportSize({width:1440,height:850});await fixture(page,{operator:true})
+    await page.goto('/recruiter/ai/search')
+    const input=page.frameLocator('iframe').locator('input')
+    await expect(input).toBeVisible()
+    const account=page.getByRole('button',{name:'Account',exact:true})
+    const menu=page.getByRole('menu',{name:'Account'})
+    await account.click();await expect(menu).toBeVisible()
+    await input.click();await expect(menu).toHaveCount(0);await expect(input).toBeFocused()
+    await page.keyboard.press('Escape');await expect(menu).toHaveCount(0)
+    await account.click();await expect(menu).toBeVisible()
+    // From the account trigger, Tab enters the next region: AI Search.
+    await account.focus();await page.keyboard.press('Tab')
+    await expect(menu).toHaveCount(0);await expect(input).toBeFocused()
+    await account.click();await page.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0);await expect(account).toBeFocused()
+  })
   test('failed capture removes font correction and permits a clean retry', async ({page}) => {
     await fixture(page); await page.goto('/recruiter/companies')
     await expect(page.getByRole('region',{name:'Northstar Shipping',exact:true})).toBeVisible()

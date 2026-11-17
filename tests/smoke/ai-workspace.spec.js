@@ -149,7 +149,7 @@ test.describe('Unified AI workspace', () => {
   })
   test('conversation fills its pane, explicit results, follow-up, fresh search and reload', async ({ page, request }) => {
     await setup(page, request); await page.setViewportSize({ width: 1440, height: 1000 }); await ready(page)
-    await savedSearch(page)
+    const { project, chat } = await savedSearch(page)
     const ai = frame(page), prompt = ai.getByPlaceholder("Describe who you're looking for…")
     await prompt.fill('Keep this draft')
     await expect(ai.getByRole('separator')).toHaveCount(0)
@@ -170,9 +170,12 @@ test.describe('Unified AI workspace', () => {
     await expect(ai.getByText('Available from: 15 Jan 2027', { exact: true }).first()).toBeVisible()
     await expect(ai.getByText('Available from: NA', { exact: true }).first()).toBeVisible()
     await expect(ai.getByTestId('run-result-card').getByRole('button', { name: 'Match Resume', exact: true })).toHaveCount(0)
-    const navStyle = await ai.getByRole('link', { name: 'Résumé library', exact: true }).evaluate(el => ({size:getComputedStyle(el).fontSize,weight:getComputedStyle(el).fontWeight}))
-    const chatStyle = await ai.getByRole('link', { name: 'Chief officers', exact: true }).evaluate(el => ({size:getComputedStyle(el).fontSize,weight:getComputedStyle(el).fontWeight}))
+    const typography = el => { const s=getComputedStyle(el);return {size:s.fontSize,weight:s.fontWeight,font:s.fontFamily,color:s.color} }
+    const navStyle = await ai.getByRole('link', { name: 'Résumé library', exact: true }).evaluate(typography)
+    const chatStyle = await ai.locator(`a[href="#/search/${project.id}/${chat.id}"]`).evaluate(typography)
     expect(chatStyle).toEqual(navStyle)
+    expect(await ai.getByRole('button', { name: project.name, exact: true }).evaluate(typography)).toEqual(navStyle)
+    expect(await ai.getByRole('heading', { name: 'Projects & chats', exact: true }).evaluate(typography)).toEqual(navStyle)
     expect(await copy.locator('svg').getAttribute('width')).toBe('16')
     await ai.getByRole('button', { name: /Synthetic Seafarer/ }).first().click()
     await page.screenshot({ path: 'test-results/ai-workspace-continuity.png' })

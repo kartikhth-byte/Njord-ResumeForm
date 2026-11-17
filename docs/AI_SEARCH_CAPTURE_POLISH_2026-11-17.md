@@ -73,3 +73,20 @@ Minor remaining capture-only artifact: some disclosure arrows appear as small
 numeric markers in AI Search previews. Full-reload latency remains unresolved.
 Private proof files and release details are in the parent Needle repository's
 `.local/ui-polish-20261117/`.
+## Follow-up: account menu focus (2026-11-17)
+
+Live Chrome reproduction: open Account, click the AI Search input, then Escape.
+The menu remained open because iframe pointer/keyboard events do not reach the
+parent document. Escape while focused in the menu already worked.
+
+Dismiss the popup when focus moves into an iframe, preserving the newly chosen
+control's focus. Keep existing Escape focus restoration and mobile drawer
+ordering. The blur listener and pending animation frame are removed on closure
+or unmount.
+
+Four focused production-build browser checks pass: desktop and mobile account
+Escape, pointer/Tab entry into the frame, and paired typography/search/results/
+follow-up/reload checks. Lint and both builds pass. Initial sandboxed Chromium
+launch was blocked by macOS Mach-port permissions; the local synthetic suite
+passed outside the sandbox. No production data or paid model calls were used.
+This follow-up is local and requires its own production approval.
