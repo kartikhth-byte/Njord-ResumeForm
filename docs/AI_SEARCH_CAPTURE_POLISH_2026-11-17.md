@@ -1,7 +1,7 @@
 # AI Search capture and account menu — 2026-11-17
 
 Prepared locally on `codex/holmes-capture-20261117`, based on `d70ee7b`.
-Not deployed. Paired Needle changes: `codex/needle-ui-polish-20261117`.
+Deployed as `dd98a26daf8e751df27ee423d77e7c5cb5f916d9`, after paired Needle `d979b35f719dc71c4fcffe5d03b91e17fe739038`.
 
 ## Corrections
 
@@ -43,9 +43,33 @@ second closes the drawer, restoring its trigger. Sidebar scrolling remains intac
   Holmes release must include the review fixes after `8f246f7`; the original
   commit alone is not approved by the review.
 
-## Remaining release work
+## Release gates (completed below)
 
 Exact paired release approval, fresh backup/restore
 checks, Needle-first promotion, Holmes promotion and read-only live capture/menu
 smoke. No schema, Function, intake or paid model calls. Full-reload latency remains
 separate and unresolved. This is local verification, not a live completion claim.
+
+## Live closeout — 2026-11-17
+
+Exact paired approval received. Fresh SQLite and both PostgreSQL backups and
+isolated data-payload restore/count checks passed before Needle-first promotion.
+Full managed-schema/DDL, globals and Storage-byte restoration remain unverified;
+SQLite backups remain on the same volume. Production Vercel deployment
+`8hgKWDAWgwUXH3DDoMt6MncfekiZ` succeeded for the approved Holmes commit.
+
+Live ordinary Operator and Recruiter sessions pass the account popup, full
+identity display, role navigation and matching review-dialog access. Desktop
+Escape returns focus to Account; on the narrow Recruiter view, first Escape
+closes the popup and second closes the drawer with visible trigger focus.
+
+Compact AI Search, expanded-table modal and native Recruitment-panel screenshot
+previews now preserve layout without prior clipping/overlap. All previews were
+closed without Send; both matching dialogs were cancelled without adding.
+Saved results show recorded availability dates or NA. Follow up/New search
+mode checks pass without submitting any prompt or paid model call.
+
+Minor remaining capture-only artifact: some disclosure arrows appear as small
+numeric markers in AI Search previews. Full-reload latency remains unresolved.
+Private proof files and release details are in the parent Needle repository's
+`.local/ui-polish-20261117/`.
