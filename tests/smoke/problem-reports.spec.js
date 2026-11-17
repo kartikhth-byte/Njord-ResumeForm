@@ -193,6 +193,51 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
     expect(geometry.captured.count/geometry.native.count).toBeGreaterThan(.85)
     await expect(page.locator('style[data-report-font-metrics]')).toHaveCount(0)
   })
+  test('embedded centered modal escapes clipping and closed disclosure text stays hidden', async ({page}, info) => {
+    await fixture(page)
+    await page.route('**/ai/?*', route => route.fulfill({contentType:'text/html', body:`<!doctype html><html><head><style>
+      body {margin:0;background:white;font:14px Arial}
+      #clip {position:relative;margin-left:180px;width:400px;height:500px;overflow:hidden;transform:translateZ(0)}
+      dialog {position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:700px;height:380px;margin:0;padding:0;border:0;max-width:90vw;background:rgb(20,90,150);color:white}
+      dialog::backdrop {background:rgba(0,0,0,.4)}
+      dialog::before {content:'Modal heading';display:block;height:30px}
+      #marker {height:60px;width:100%;background:rgb(30,170,80)}
+      details p {position:fixed;top:20px;left:0;width:160px;height:60px;background:rgb(255,0,255)}
+    </style></head><body><details><summary>Search coverage</summary><p>Hidden warning</p></details>
+      <div id="clip"><dialog><div id="marker">Modal content</div><div data-report-private style="height:40px;background:rgb(255,0,255)">Private modal content</div><div style="height:200px;overflow:auto"><div style="height:700px">Rows</div></div></dialog></div>
+      <script>document.querySelector('dialog').showModal()</script></body></html>`}))
+    await page.goto('/recruiter/ai/search')
+    const frame=page.frameLocator('iframe')
+    await expect(frame.locator('#marker')).toBeVisible()
+    const box=await frame.locator('#marker').boundingBox()
+    const iframeBox=await page.locator('iframe').boundingBox()
+    await plus(page).click();await expect(preview(page)).toBeVisible()
+    const pixels=await preview(page).evaluate(async (img,{box,iframeBox})=>{
+      await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight
+      const x=c.getContext('2d');x.drawImage(img,0,0)
+      const pixel=(px,py)=>Array.from(x.getImageData(Math.floor(px*c.width/innerWidth),Math.floor(py*c.height/innerHeight),1,1).data).slice(0,3)
+      return {left:pixel(box.x+8,box.y+45),right:pixel(box.x+box.width-8,box.y+45),hidden:pixel(iframeBox.x+40,iframeBox.y+50),private:pixel(box.x+20,box.y+80)}
+    },{box,iframeBox})
+    expect(pixels.left).toEqual([30,170,80]);expect(pixels.right).toEqual([30,170,80])
+    expect(pixels.hidden).not.toEqual([255,0,255]);expect(pixels.private).toEqual([20,90,150])
+    await expect(frame.locator('dialog')).toBeVisible()
+    await expect(frame.locator('[data-report-private]')).toHaveText('Private modal content')
+    await expect(frame.locator('details')).not.toHaveAttribute('open')
+    const png=await preview(page).evaluate(async img=>Array.from(new Uint8Array(await(await fetch(img.src)).arrayBuffer())))
+    await info.attach('embedded-modal-capture.png',{body:Buffer.from(png),contentType:'image/png'})
+  })
+  for (const width of [1440, 390]) test(`account menu escapes sidebar at ${width}px`, async ({page}) => {
+    await page.setViewportSize({width,height:850});await fixture(page,{operator:true})
+    await page.goto('/recruiter/ai/search')
+    if(width<768) await page.getByRole('button',{name:'Open menu',exact:true}).click()
+    const account=page.getByRole('button',{name:'Account',exact:true})
+    await account.click()
+    const menu=page.getByRole('menu',{name:'Account'});await expect(menu).toBeVisible()
+    const box=await menu.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(width)
+    await expect(menu.getByRole('menuitem',{name:'Sign out'})).toBeFocused()
+    expect(await menu.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.right-5,r.top+15))})).toBe(true)
+    await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);await expect(account).toBeFocused()
+  })
   test('failed capture removes font correction and permits a clean retry', async ({page}) => {
     await fixture(page); await page.goto('/recruiter/companies')
     await expect(page.getByRole('region',{name:'Northstar Shipping',exact:true})).toBeVisible()

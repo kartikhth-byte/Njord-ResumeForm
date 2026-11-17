@@ -905,3 +905,13 @@ appearance improves from 1.244s to 0.828s; this is not a production measurement.
 Pending: exact paired promotion approval, fresh backups, Needle-first deployment,
 Holmes deployment and normal-session live smoke/timing. No schema, Function,
 intake or subscription change. Details: `docs/AI_SEARCH_WORKSPACE_2026-11-16.md`.
+
+## AI Search capture and account menu — 2026-11-17
+
+Prepared locally: expanded-table capture preserves modal bounds/styles and hides
+closed disclosure content; account popover escapes sidebar clipping and wraps
+identity text. Paired Needle adds compact icons, normal project/chat weight and
+recorded availability; Match Resume stays inside candidate details. Follow up
+behavior is unchanged. 21 capture/menu and 10 paired browser checks pass, with
+visual inspection, lint and build. Not deployed; independent promotion review and
+exact approval remain. See `docs/AI_SEARCH_CAPTURE_POLISH_2026-11-17.md`.

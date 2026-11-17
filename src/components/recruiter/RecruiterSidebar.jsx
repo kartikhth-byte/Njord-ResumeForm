@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
@@ -57,6 +58,8 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const asideRef = useRef(null)
   const menuRef = useRef(null)
+  const popupRef = useRef(null)
+  const [menuPosition, setMenuPosition] = useState({ left: 8, bottom: 8, width: 260 })
 
   const isRecruiterOrMaster = role === 'Recruiter' || role === 'Master Recruiter'
   const showKpi = canViewAnalytics()
@@ -120,12 +123,32 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     setMenuOpen(false)
   }, [pathname])
 
+  useLayoutEffect(() => {
+    if (!menuOpen) return
+    const position = () => {
+      const rect = menuRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = Math.min(280, window.innerWidth - 16)
+      setMenuPosition({ left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        bottom: Math.max(8, window.innerHeight - rect.top + 6), width })
+    }
+    position()
+    popupRef.current?.querySelector('button')?.focus()
+    window.addEventListener('resize', position)
+    window.addEventListener('scroll', position, true)
+    return () => {
+      window.removeEventListener('resize', position)
+      window.removeEventListener('scroll', position, true)
+    }
+  }, [menuOpen])
+
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) setMenuOpen(false)
+      if (menuRef.current && !menuRef.current.contains(event.target) && !popupRef.current?.contains(event.target)) setMenuOpen(false)
     }
     function handleKey(event) {
       if (event.key === 'Escape') {
+        if (popupRef.current) menuRef.current?.querySelector('button')?.focus()
         setMenuOpen(false)
         setMobileOpen(false)
       }
@@ -276,11 +299,11 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
               ) : null}
             </SidebarButton>
 
-            {menuOpen ? (
-              <div role="menu" className="recruiter-sidebar__menu">
+            {menuOpen ? createPortal(
+              <div ref={popupRef} role="menu" aria-label="Account" className="recruiter-sidebar__menu" style={{ ...menuPosition, position: 'fixed', maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto' }}>
                 <div className="border-b border-line px-4 py-3">
-                  <div className="truncate text-sm font-medium text-fg">{displayName}</div>
-                  {displayEmail ? <div className="truncate text-xs text-fg-muted">{displayEmail}</div> : null}
+                  <div className="break-words text-sm font-medium text-fg">{displayName}</div>
+                  {displayEmail ? <div className="break-all text-xs text-fg-muted">{displayEmail}</div> : null}
                   <div className="mt-1 text-xs font-medium text-accent-text">{accountRoleLabel}</div>
                   {isOperator && role ? <div className="text-xs text-fg-muted">Organization role: {role}</div> : null}
                 </div>
@@ -293,7 +316,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   Sign out
                 </button>
-              </div>
+              </div>, document.body
             ) : null}
           </div>
         </div>

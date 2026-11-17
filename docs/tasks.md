@@ -1,5 +1,15 @@
 # Pending Tasks
 
+## AI Search capture/menu polish (2026-11-17)
+
+- [x] Fix expanded-table capture clipping and account-menu clipping locally.
+- [x] Verify 21 capture/menu and 10 paired workspace browser checks; lint/build.
+- [ ] Independent promotion review, exact paired approval, fresh backups and
+  Needle-first/Holmes promotion followed by live capture and role smoke.
+- [ ] Return to unresolved AI Search full-reload latency.
+
+Details: `AI_SEARCH_CAPTURE_POLISH_2026-11-17.md`.
+
 ## Presentation-led Holmes UI refinement (2026-11-15)
 
 The current agreed-change checklist and smoke evidence are in

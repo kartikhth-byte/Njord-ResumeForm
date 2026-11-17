@@ -76,6 +76,12 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
   const dialogs = Array.from(document.querySelectorAll('dialog')).filter(node => !node.closest('[data-report-ui], [data-html2canvas-ignore]')).map(node => ({
     modal: node.matches(':modal') && !node.closest('[data-report-ui]'),
     rect: node.getBoundingClientRect(),
+    backdrop: win.getComputedStyle(node, '::backdrop').backgroundColor,
+    // Preserve inherited/ancestor-dependent styles before portalling the clone.
+    styles: [node, ...node.querySelectorAll('*')].filter(element => !element.closest('[data-report-ui], [data-html2canvas-ignore], object, embed, video, script')).map(element => {
+      const computed = win.getComputedStyle(element)
+      return Array.from(computed, name => [name, computed.getPropertyValue(name)])
+    }),
   }))
   const images = new Map()
   for (const [index, frame] of frames.entries()) {
@@ -98,16 +104,26 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
     logging: false, useCORS: false, allowTaint: false, imageTimeout: 2500,
     ignoreElements: node => node.hasAttribute('data-report-ui') || ['OBJECT', 'EMBED', 'VIDEO'].includes(node.tagName),
     onclone: clone => {
-      mask(clone)
       // Cloning does not retain the browser's top layer. Explicitly paint open
       // app dialogs above normal stacking contexts using their live geometry.
       clone.querySelectorAll('dialog').forEach((node, index) => {
         const source = dialogs[index]
         if (!source?.modal) return
+        // Top-layer dialogs escape ancestor overflow/stacking contexts. A
+        // cloned ordinary node does not: move it to body and remove its live
+        // centering transform, since rect is already the transformed position.
+        ;[node, ...node.querySelectorAll('*')].filter(element => !element.closest('html2canvaspseudoelement')).forEach((element, childIndex) => {
+          for (const [name, value] of source.styles[childIndex] || []) element.style?.setProperty(name, value)
+        })
+        const backdrop = clone.createElement('div')
+        Object.assign(backdrop.style, { position: 'fixed', inset: '0',
+          backgroundColor: source.backdrop, zIndex: `${2147480000 + index * 2}` })
+        clone.body.append(backdrop, node)
         Object.assign(node.style, { position: 'fixed', display: 'block', margin: '0',
+          transform: 'none', translate: 'none', rotate: 'none', scale: 'none',
           inset: 'auto', left: `${source.rect.left}px`, top: `${source.rect.top}px`,
           width: `${source.rect.width}px`, height: `${source.rect.height}px`,
-          maxWidth: 'none', maxHeight: 'none', boxSizing: 'border-box', zIndex: `${2147480000 + index}` })
+          maxWidth: 'none', maxHeight: 'none', boxSizing: 'border-box', zIndex: `${2147480001 + index * 2}` })
       })
       clone.querySelectorAll('iframe').forEach((frame, index) => {
         const replacement = clone.createElement(images.has(index) ? 'img' : 'div')
@@ -120,6 +136,13 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
         else { replacement.textContent = 'Embedded content not captured'; replacement.style.background = '#555'; replacement.style.color = '#fff' }
         frame.replaceWith(replacement)
       })
+      // html2canvas walks closed details' descendants even though the browser
+      // suppresses them. Remove hidden content in the disposable clone only.
+      clone.querySelectorAll('details:not([open])').forEach(node => {
+        const summary = node.querySelector(':scope > summary')
+        for (const child of [...node.childNodes]) if (child !== summary) child.remove()
+      })
+      mask(clone)
       normalizeColors(clone)
     },
   })
