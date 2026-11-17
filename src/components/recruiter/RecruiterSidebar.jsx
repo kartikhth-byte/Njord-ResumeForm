@@ -59,6 +59,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
   const asideRef = useRef(null)
   const menuRef = useRef(null)
   const popupRef = useRef(null)
+  const mobileTriggerRef = useRef(null)
   const [menuPosition, setMenuPosition] = useState({ left: 8, bottom: 8, width: 260 })
 
   const isRecruiterOrMaster = role === 'Recruiter' || role === 'Master Recruiter'
@@ -148,8 +149,12 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
     }
     function handleKey(event) {
       if (event.key === 'Escape') {
-        if (popupRef.current) menuRef.current?.querySelector('button')?.focus()
-        setMenuOpen(false)
+        if (popupRef.current) {
+          menuRef.current?.querySelector('button')?.focus()
+          setMenuOpen(false)
+          return
+        }
+        if (asideRef.current?.classList.contains('is-open')) mobileTriggerRef.current?.focus()
         setMobileOpen(false)
       }
     }
@@ -209,6 +214,7 @@ export default function RecruiterSidebar({ user, profile, role, signOut }) {
           className="recruiter-sidebar__icon-button"
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
+          ref={mobileTriggerRef}
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>

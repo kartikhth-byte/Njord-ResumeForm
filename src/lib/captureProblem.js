@@ -75,6 +75,7 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
   const frames = Array.from(document.querySelectorAll('iframe'))
   const dialogs = Array.from(document.querySelectorAll('dialog')).filter(node => !node.closest('[data-report-ui], [data-html2canvas-ignore]')).map(node => ({
     modal: node.matches(':modal') && !node.closest('[data-report-ui]'),
+    private: Boolean(node.closest('[data-report-private]')),
     rect: node.getBoundingClientRect(),
     backdrop: win.getComputedStyle(node, '::backdrop').backgroundColor,
     // Preserve inherited/ancestor-dependent styles before portalling the clone.
@@ -85,7 +86,7 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
   }))
   const images = new Map()
   for (const [index, frame] of frames.entries()) {
-    if (!visible(frame, win)) continue
+    if (!visible(frame, win) || frame.closest('[data-report-private]')) continue
     try {
       const child = frame.contentDocument
       if (depth >= 2 || !child?.body || child.contentType !== 'text/html' || child.querySelector('embed[type="application/pdf"]')) throw new Error('Unavailable frame')
@@ -104,6 +105,19 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
     logging: false, useCORS: false, allowTaint: false, imageTimeout: 2500,
     ignoreElements: node => node.hasAttribute('data-report-ui') || ['OBJECT', 'EMBED', 'VIDEO'].includes(node.tagName),
     onclone: clone => {
+      // Resolve frame images before moving dialogs, which can reorder frames.
+      clone.querySelectorAll('iframe').forEach((frame, index) => {
+        const replacement = clone.createElement(images.has(index) ? 'img' : 'div')
+        replacement.style.cssText = frame.style.cssText
+        replacement.className = frame.className
+        if (frame.closest('[data-report-private]')) replacement.setAttribute('data-report-private', '')
+        replacement.style.width = `${frames[index]?.getBoundingClientRect().width || 0}px`
+        replacement.style.height = `${frames[index]?.getBoundingClientRect().height || 0}px`
+        replacement.style.border = '0'
+        if (images.has(index)) replacement.src = images.get(index)
+        else { replacement.textContent = 'Embedded content not captured'; replacement.style.background = '#555'; replacement.style.color = '#fff' }
+        frame.replaceWith(replacement)
+      })
       // Cloning does not retain the browser's top layer. Explicitly paint open
       // app dialogs above normal stacking contexts using their live geometry.
       clone.querySelectorAll('dialog').forEach((node, index) => {
@@ -115,6 +129,8 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
         ;[node, ...node.querySelectorAll('*')].filter(element => !element.closest('html2canvaspseudoelement')).forEach((element, childIndex) => {
           for (const [name, value] of source.styles[childIndex] || []) element.style?.setProperty(name, value)
         })
+        // Keep private ancestry after escaping the original container.
+        if (source.private) node.setAttribute('data-report-private', '')
         const backdrop = clone.createElement('div')
         Object.assign(backdrop.style, { position: 'fixed', inset: '0',
           backgroundColor: source.backdrop, zIndex: `${2147480000 + index * 2}` })
@@ -124,17 +140,6 @@ async function captureDocument(document, html2canvas, warnings, depth = 0) {
           inset: 'auto', left: `${source.rect.left}px`, top: `${source.rect.top}px`,
           width: `${source.rect.width}px`, height: `${source.rect.height}px`,
           maxWidth: 'none', maxHeight: 'none', boxSizing: 'border-box', zIndex: `${2147480001 + index * 2}` })
-      })
-      clone.querySelectorAll('iframe').forEach((frame, index) => {
-        const replacement = clone.createElement(images.has(index) ? 'img' : 'div')
-        replacement.style.cssText = frame.style.cssText
-        replacement.className = frame.className
-        replacement.style.width = `${frames[index]?.getBoundingClientRect().width || 0}px`
-        replacement.style.height = `${frames[index]?.getBoundingClientRect().height || 0}px`
-        replacement.style.border = '0'
-        if (images.has(index)) replacement.src = images.get(index)
-        else { replacement.textContent = 'Embedded content not captured'; replacement.style.background = '#555'; replacement.style.color = '#fff' }
-        frame.replaceWith(replacement)
       })
       // html2canvas walks closed details' descendants even though the browser
       // suppresses them. Remove hidden content in the disposable clone only.

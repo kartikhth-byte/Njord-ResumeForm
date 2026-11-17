@@ -912,6 +912,7 @@ Prepared locally: expanded-table capture preserves modal bounds/styles and hides
 closed disclosure content; account popover escapes sidebar clipping and wraps
 identity text. Paired Needle adds compact icons, normal project/chat weight and
 recorded availability; Match Resume stays inside candidate details. Follow up
-behavior is unchanged. 21 capture/menu and 10 paired browser checks pass, with
-visual inspection, lint and build. Not deployed; independent promotion review and
-exact approval remain. See `docs/AI_SEARCH_CAPTURE_POLISH_2026-11-17.md`.
+behavior is unchanged. 23 capture/menu and 10 paired browser checks pass, with
+visual inspection, lint and build. Independent review found privacy and mobile
+focus edge cases; fixed and re-reviewed with no remaining blockers. Not deployed;
+exact approval and live smoke remain. See `docs/AI_SEARCH_CAPTURE_POLISH_2026-11-17.md`.

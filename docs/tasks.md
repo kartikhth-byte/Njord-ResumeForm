@@ -3,8 +3,9 @@
 ## AI Search capture/menu polish (2026-11-17)
 
 - [x] Fix expanded-table capture clipping and account-menu clipping locally.
-- [x] Verify 21 capture/menu and 10 paired workspace browser checks; lint/build.
-- [ ] Independent promotion review, exact paired approval, fresh backups and
+- [x] Verify 23 capture/menu and 10 paired workspace browser checks; lint/build.
+- [x] Independent review; fix and recheck privacy, frame order and mobile focus.
+- [ ] Exact paired approval, fresh backups and
   Needle-first/Holmes promotion followed by live capture and role smoke.
 - [ ] Return to unresolved AI Search full-reload latency.
 

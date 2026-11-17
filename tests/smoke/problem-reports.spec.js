@@ -84,6 +84,25 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
     await page.getByRole('button',{name:'Send',exact:true}).click();await expect(page.getByRole('status')).toContainText('sent')
     await info.attach('captured-ai.png',{body:state.images[0],contentType:'image/png'})
   })
+  test('private iframe stays masked after capture replacement',async({page})=>{
+    await fixture(page);await page.goto('/recruiter/ai/search')
+    await expect(page.frameLocator('iframe').getByRole('heading')).toHaveText('AI Search screenshot fixture')
+    await page.locator('iframe').evaluate(el=>el.setAttribute('data-report-private',''))
+    await plus(page).click();await expect(preview(page)).toBeVisible()
+    expect((await capturePixels(page)).middle.slice(0,3)).not.toEqual([120,30,80])
+    await expect(page.frameLocator('iframe').getByRole('heading')).toHaveText('AI Search screenshot fixture')
+  })
+  test('modal preserves private ancestry after capture reparenting',async({page})=>{
+    await fixture(page);await page.goto('/recruiter/companies');await expect(plus(page)).toBeVisible()
+    await page.evaluate(()=>{
+      const wrapper=document.createElement('section');wrapper.setAttribute('data-report-private','')
+      wrapper.innerHTML='<dialog style="position:fixed;inset:0;margin:auto;width:80vw;height:80vh;background:rgb(255,0,255)">PRIVATE MODAL</dialog>'
+      document.body.append(wrapper);wrapper.querySelector('dialog').showModal()
+    })
+    await plus(page).click();await expect(preview(page)).toBeVisible()
+    expect((await capturePixels(page)).middle.slice(0,3)).not.toEqual([255,0,255])
+    await expect(page.locator('section[data-report-private] > dialog')).toContainText('PRIVATE MODAL')
+  })
   test('capture masks private elements, leaves source intact and hides report controls',async({page})=>{
     await fixture(page);await page.goto('/recruiter/companies');await expect(plus(page)).toBeVisible()
     await page.evaluate(()=>{const box=document.createElement('div');box.style.cssText='position:fixed;left:400px;top:300px;width:200px;height:150px;background:rgb(10,100,20);z-index:9999';box.innerHTML='<div data-report-private style="width:100px;height:100px;background:rgb(255,0,255)">PRIVATE</div>';document.body.append(box)})
@@ -237,6 +256,13 @@ test.describe('Two-click problem reporting (synthetic only)',()=>{
     await expect(menu.getByRole('menuitem',{name:'Sign out'})).toBeFocused()
     expect(await menu.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.right-5,r.top+15))})).toBe(true)
     await page.keyboard.press('Escape');await expect(menu).toHaveCount(0);await expect(account).toBeFocused()
+    if(width<768) {
+      await expect(page.getByRole('complementary',{name:'Main'})).toHaveClass(/is-open/)
+      await expect(account).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('complementary',{name:'Main'})).not.toHaveClass(/is-open/)
+      await expect(page.getByRole('button',{name:'Open menu',exact:true})).toBeFocused()
+    }
   })
   test('failed capture removes font correction and permits a clean retry', async ({page}) => {
     await fixture(page); await page.goto('/recruiter/companies')
