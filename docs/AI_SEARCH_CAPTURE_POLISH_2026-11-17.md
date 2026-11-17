@@ -90,3 +90,22 @@ follow-up/reload checks. Lint and both builds pass. Initial sandboxed Chromium
 launch was blocked by macOS Mach-port permissions; the local synthetic suite
 passed outside the sandbox. No production data or paid model calls were used.
 This follow-up is local and requires its own production approval.
+
+## Follow-up production closeout
+
+KT approved exact Needle `b4afa94b8e16f75ce5b4d0bc1c92c74607e88378`
+and Holmes `23312af6fd2d570909e13632990db0d24550654e`. Fresh six-database
+SQLite checks and isolated PostgreSQL payload restores passed (Needle 72 tables,
+12,424 rows; Holmes 114 tables, 8,447 rows). Docker was unavailable; the current
+local PostgreSQL WASM helper completed the checks. Managed schema/globals/Storage
+bytes were not restore-tested; SQLite backup remains on the same volume.
+
+Needle engine `3790d63e-10fd-44cc-83d2-845b14694bef`, worker
+`90c53351-7f51-45c7-9bf6-3d4608f8ef45`, then Holmes Vercel
+`8KN6Pq11tQoSVn6xy35CFuGmUtg6` succeeded. Public readiness is healthy.
+Live normal Operator and Recruiter checks pass direct Escape, entering the
+real AI Search input, and retained input focus. Recruiter Tab into the frame
+also dismisses Account. Menu/project/selected-chat/heading computed typography
+matches: 14px, weight 400, same font family and secondary text colour.
+No business records, searches, reports, permissions, schema, intake or paid
+model calls were changed. Private evidence: `.local/ui-polish-20261117/typography-release.md`.
