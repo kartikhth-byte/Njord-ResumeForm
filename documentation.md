@@ -1,3 +1,12 @@
+# AI Search sign-in latency — local candidate, 2026-11-17
+
+Normal-cache tracing measured 3.819 seconds in Needle sign-in. The local
+`needle-token` change overlaps origin/auth reads, caches allowed preflights for
+five minutes, and adds safe phase timings while preserving fresh authorization
+and required Operator audit. It requires explicit Function deployment; no live
+speed improvement is claimed. Paired Needle bounds concurrent evidence checks.
+See `docs/AI_SEARCH_LATENCY_2026-11-17.md` for verification and limitations.
+
 # AI Search continuity follow-up — 2026-11-16
 
 Prepared locally, not deployed: required Match Resume selection now says

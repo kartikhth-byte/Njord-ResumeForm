@@ -1,5 +1,15 @@
 # Pending Tasks
 
+## AI Search latency (2026-11-17)
+
+- [x] Trace live token and search evidence delays; prepare focused local fixes.
+- [x] Verify token handler/CORS/role behavior offline; lint and build.
+- [ ] Exact paired release approval, backup checks and `needle-token` deployment.
+- [ ] Measure live reload phases and uncached evidence timing after deployment.
+- [ ] Repair stale broader startup smoke expectations separately.
+
+Evidence and limits: `AI_SEARCH_LATENCY_2026-11-17.md`.
+
 ## AI Search capture/menu polish (2026-11-17)
 
 - [x] Fix expanded-table capture clipping and account-menu clipping locally.
