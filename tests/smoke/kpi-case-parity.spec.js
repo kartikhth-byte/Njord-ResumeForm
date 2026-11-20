@@ -117,7 +117,7 @@ test.describe('KPI case parity (synthetic only)', () => {
       await fixture(page)
       await page.goto(path)
       const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: 'REQ-000101', exact: true }) })
-      await expect(row).toContainText('2 / 3')
+      await expect(row).toContainText(path === '/recruiter/requirements' ? '2 of 3 filled' : '2 / 3')
       await expectDesktopInset(page)
     })
   }
