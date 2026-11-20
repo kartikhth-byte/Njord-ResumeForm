@@ -25,9 +25,10 @@ import {
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { CASE_FORM_INVITE_STAGES, caseStatusMeta, isCaseTerminal } from '../utils/recruitmentCase'
+import { CASE_FORM_INVITE_STAGES, caseStatusMeta } from '../utils/recruitmentCase'
 import SegmentedControl from '../components/ui/SegmentedControl'
 import { resumeIntakeEnabled } from '../lib/resumeIntake'
+import { attachmentIsActive } from '../utils/candidateDirectory'
 import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
@@ -464,10 +465,11 @@ export default function RecruiterProspectDetail() {
     return requirement.customer_name ? `${rank} – ${ship} (${requirement.customer_name})` : `${rank} – ${ship}`
   }
   const statusLabel = (junction) => (junction.isCase ? caseStatusMeta(junction.status).label : (JUNCTION_STATUS_META[junction.status]?.label || junction.status))
-  const isActive = (junction) => (junction.isCase ? !isCaseTerminal(junction.status) : !['rejected', 'withdrawn', 'closed', 'joined'].includes(junction.status))
+  // Same rule as the Candidates list: a closed requirement no longer holds the candidate.
+  const isActive = (junction) => attachmentIsActive({ requirement: linkedRequirementMap[junction.requirement_id], status: junction.status })
   const activeJunctions = junctions.filter(isActive)
   const pastJunctions = junctions.filter((junction) => !isActive(junction))
-  const lockedBy = junctions.find((junction) => lockedStatuses.includes(junction.status))
+  const lockedBy = activeJunctions.find((junction) => lockedStatuses.includes(junction.status))
   const joinedCase = junctions.find((junction) => junction.status === 'hired' || junction.status === 'joined')
   const facts = [
     prospect.nationality_id ? nationalityName : '',

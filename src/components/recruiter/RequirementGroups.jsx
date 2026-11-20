@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { groupRequirements } from '../../utils/requirementGroups'
 import { requirementMatchBlocker } from '../../utils/requirementMatch'
 import { getStatusMeta, REQUIREMENT_STATUS_META } from '../../pages/recruiterDashboardUtils'
-import { dateCell, recordDisplayId } from '../../utils/directoryDisplay'
+import { dateCell, displayRankName, recordDisplayId } from '../../utils/directoryDisplay'
 import DirectoryNotes from './DirectoryNotes'
 import GroupedDirectoryTable from './GroupedDirectoryTable'
 
@@ -17,7 +17,7 @@ export default function RequirementGroups({ rows, fleet, data, canMatch, canAddN
             return <tr key={row.id}>
               <td>{start + index + 1}</td>
               <td><Link className="text-accent-text underline" to={`/recruiter/workspace/requirements/${row.id}`} state={{from}}>{recordDisplayId(row, row.reqId)}</Link></td>
-              <td>{row.rankName || '—'}<span className="block text-xs text-fg-muted">{row.vesselTypeName}</span></td>
+              <td>{displayRankName(row.rankName) || '—'}<span className="block text-xs text-fg-muted">{row.vesselTypeName}</span></td>
               <td><span className="block whitespace-nowrap" title="Crew joined out of positions required">{row.joinedCount} of {row.positions_required ?? '—'} filled</span>{data.casesAvailable && <Link className="block whitespace-nowrap text-xs text-accent-text underline" title="Candidates attached to this requirement at any stage" to={`/recruiter/candidates?view=all&requirement=${encodeURIComponent(row.id)}`}>{candidateCount} in pipeline</Link>}</td>
               <td><span className={`tracker-pill ${status.className}`}>{status.label}</span>{row.isArchived && <span className="ml-1 text-xs">Archived</span>}</td>
               <td>{row.recruiterName}</td><td>{dateCell(row.created_at)}</td><td>{dateCell(row.updated_at)}</td>
