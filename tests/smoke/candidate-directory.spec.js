@@ -147,10 +147,13 @@ test.describe('Candidate directory synthetic smoke',()=>{
   await page.getByRole('link',{name:'Candidates',exact:true}).click()
   await expect(page).toHaveURL(/\/recruiter\/candidates\?tab=attached/)
  })
- test('CV availability gates attachment; one save moves candidate and survives reload',async({page})=>{
+ test('CV availability gates attachment from the candidate page; one save survives reload',async({page})=>{
   const state=await fixture(page)
   await page.goto('/recruiter/candidates')
-  await candidateRow(page,'Jamie Reed').getByRole('button',{name:'Attach Jamie Reed to requirement'}).click()
+  await expect(page.getByRole('columnheader',{name:'Next step'})).toHaveCount(0)
+  await candidateRow(page,'Jamie Reed').locator('td').nth(5).click()
+  await expect(page.getByRole('heading',{name:'Jamie Reed',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Attach to requirement',exact:true}).click()
   const dialog=page.getByRole('dialog',{name:'Attach Jamie Reed'})
   await expect(dialog).toContainText('CV ready')
   await dialog.locator('input[value="R1"]').check()
@@ -160,13 +163,13 @@ test.describe('Candidate directory synthetic smoke',()=>{
   expect(state.calls.filter(c=>c.table==='recruitment_case_open')).toHaveLength(0)
   state.cvAvailable=true
   await dialog.getByRole('button',{name:'Attach',exact:true}).click()
-  await expect(page.getByRole('tab',{name:'Attached 2',exact:true})).toHaveAttribute('aria-selected','true')
+  await expect(page.getByRole('status').filter({hasText:'Candidate attached.'})).toBeVisible()
+  expect(state.calls.filter(c=>c.table==='recruitment_case_open')).toHaveLength(1)
+  await page.getByRole('link',{name:'Candidates',exact:true}).click()
+  await page.getByRole('tab',{name:/^Attached/}).click()
   await expect(candidateRow(page,'Jamie Reed')).toContainText('SYN-R1')
   await page.reload()
   await expect(candidateRow(page,'Jamie Reed')).toContainText('SYN-R1')
-  await candidateRow(page,'Jamie Reed').getByRole('button',{name:'Attach Jamie Reed to requirement'}).click()
-  await expect(page.getByRole('dialog',{name:'Attach Jamie Reed'}).locator('input[value="R1"]')).toHaveCount(0)
-  expect(state.calls.filter(c=>c.table==='recruitment_case_open')).toHaveLength(1)
  })
  test('history, inline profile correction and Coordinator read only',async({page})=>{
   const state=await fixture(page)

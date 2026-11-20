@@ -684,7 +684,7 @@ export default function RecruiterProspectDetail() {
           fleet={fleet}
           ranks={Object.values(lookupMaps.ranks)}
           vesselTypes={Object.values(lookupMaps.vessel_types)}
-          requireCv={resumeIntakeEnabled()}
+          requireCv={resumeIntakeEnabled() || Boolean(prospect.needle_resume_id)}
           onSaved={(message) => { setAttachRequirements(null); setNotice(message); setReloadToken((token) => token + 1) }}
           onClose={() => setAttachRequirements(null)}
         />
