@@ -18,3 +18,9 @@ export function latestRecordDate(...values) {
   const times = values.map(value => Date.parse(value)).filter(Number.isFinite)
   return times.length ? new Date(Math.max(...times)).toISOString() : null
 }
+
+// Reference data uses "Add" for additional ranks ("Add Chief Officer"), which
+// reads like a button label. Show the full word; stored values stay unchanged.
+export function displayRankName(name) {
+  return typeof name === 'string' ? name.replace(/^Add\s+/i, 'Additional ') : name
+}

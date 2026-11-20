@@ -260,7 +260,6 @@ test.describe('Recruitment workspace',()=>{
  test('candidate link opens the exact recruitment case',async({page})=>{
   await fixture(page)
   await page.goto('/recruiter/candidates?tab=attached')
-  await page.getByRole('row').filter({hasText:'Alex Morgan'}).first().locator('summary').click()
   await page.getByRole('link',{name:/Open recruitment/}).first().click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page).toHaveURL(/recruitment\?case=case/)
