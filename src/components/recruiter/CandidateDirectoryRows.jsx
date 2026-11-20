@@ -20,17 +20,17 @@ function NextStep({ row, from, canEdit, canAttach, onEdit, onAttach }) {
   return <span className="text-fg-muted">—</span>
 }
 
-export function CandidateRow({ row, links = [], showRequirements = false, from, canEdit, canAttach, canAddNotes, onEdit, onAttach, onError, onNotes }) {
+export function CandidateRow({ row, links = [], showRequirements = false, number, from, canEdit, canAttach, canAddNotes, onEdit, onAttach, onError, onNotes }) {
   const navigate = useNavigate()
   const open = row.isDraft ? null : `/recruiter/workspace/prospects/${row.id}`
-  const contact = row.telephone || row.email
   return <tr className={open ? 'cursor-pointer hover:bg-raised' : ''} onClick={event => { if (open && !event.target.closest(INTERACTIVE)) navigate(open, { state: { from } }) }}>
-    <td>
-      <div className="font-medium">{open ? <Link className="text-accent-text underline" to={open} state={{from}}>{row.name}</Link> : row.name || 'Unnamed candidate'}</div>
-      <span className="block max-w-full truncate text-xs text-fg-secondary" title={contact || undefined}>{contact || 'No phone or email'}</span>
-      {(row.display_id || row.isDraft) && <span className="block text-xs text-fg-muted tracker-cell--nowrap">{recordDisplayId(row, 'Draft')}</span>}
-    </td>
-    <td>{displayRankName(row.rankName) || '—'}<span className="block text-xs text-fg-muted">{row.vesselTypeName || '—'}</span></td>
+    <td>{number}</td>
+    <td className="tracker-cell--nowrap">{recordDisplayId(row, row.isDraft ? 'Draft' : '—')}</td>
+    <td className="font-medium">{open ? <Link className="text-accent-text underline" to={open} state={{from}}>{row.name}</Link> : row.name || 'Unnamed candidate'}</td>
+    <td><span className="block truncate" title={row.email || undefined}>{row.email || '—'}</span></td>
+    <td className="tracker-cell--nowrap">{row.telephone || '—'}</td>
+    <td>{displayRankName(row.rankName) || '—'}</td>
+    <td>{row.vesselTypeName || '—'}</td>
     <td>{row.needle_resume_id
       ? <button className="tracker-pill bg-accent-soft text-accent-text" title="View CV" aria-label={`View CV for ${row.name}`} onClick={() => openCandidateResume(row.id, row.needle_resume_id).catch(error => onError(error.message))}>{resumeReadiness(row.cvStatus).label}</button>
       : <span className="tracker-pill bg-warning-soft text-warning">CV missing</span>}
@@ -50,13 +50,13 @@ export function CandidateRow({ row, links = [], showRequirements = false, from, 
 export default function CandidateDirectoryRows({ rows, attached, showAllLinks, fleet, filter, history, canAddNotes, onNotesSaved, ...actions }) {
   const [noteRow, setNoteRow] = useState(null)
   const withRequirements = attached || showAllLinks
-  const header = ['Candidate','Rank','CV',...(withRequirements ? ['Requirement'] : []),'Updated','Notes','Next step']
-  const colWidths = withRequirements ? [25, 16, 12, 18, 10, 9, 10] : [32, 20, 13, 12, 12, 11]
+  const header = ['S.No.','ID','Candidate','Email','Phone','Rank','Vessel type','CV',...(withRequirements ? ['Requirement'] : []),'Updated','Notes','Next step']
+  const colWidths = withRequirements ? [4, 7, 11, 12, 9, 9, 9, 7, 11, 7, 5, 9] : [4, 8, 13, 15, 10, 10, 10, 8, 7, 6, 9]
   const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history).map(company => ({ ...company, count: new Set(company.ships.flatMap(ship => ship.candidates.map(candidate => candidate.row.id))).size })) : []
   return <>
     <GroupedDirectoryTable label="Candidates by company and ship" groups={groups} columns={header} getShipRows={ship => ship.candidates} renderRows={attached
-      ? candidates => candidates.map(({row,links}) => <CandidateRow key={row.id} row={row} links={links} showRequirements canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)
-      : candidates => candidates.map(row => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={showAllLinks} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)} ungroupedRows={attached ? [] : rows} colWidths={colWidths} tableClassName={`candidate-directory-table ${withRequirements ? 'candidate-directory-table--with-requirements' : ''}`} />
+      ? (candidates, start) => candidates.map(({row,links}, index) => <CandidateRow key={row.id} row={row} links={links} showRequirements number={start + index + 1} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)
+      : (candidates, start) => candidates.map((row, index) => <CandidateRow key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`} row={row} links={showAllLinks ? row.attachedRequirements : []} showRequirements={showAllLinks} number={start + index + 1} canAddNotes={canAddNotes} onNotes={setNoteRow} {...actions}/>)} ungroupedRows={attached ? [] : rows} colWidths={colWidths} tableClassName={`candidate-directory-table ${withRequirements ? 'candidate-directory-table--with-requirements' : ''}`} />
     {noteRow && <DirectoryNotes kind={noteRow.isDraft ? 'draft' : 'candidate'} id={noteRow.id} label={recordDisplayId(noteRow, noteRow.name)} canAdd={canAddNotes && !noteRow.isArchived} onClose={() => setNoteRow(null)} onSaved={onNotesSaved} />}
   </>
 }

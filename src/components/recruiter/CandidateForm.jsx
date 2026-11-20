@@ -147,7 +147,7 @@ export default function CandidateForm({
               const telephone=normalizeResumePhone(form.telephone)
               if(form.telephone.trim()&&!telephone)throw Error('Enter a phone number with its country code.')
               if(!telephone&&!form.email.trim())throw Error('Enter a phone number or email for the draft lead.')
-              const {data,error}=await supabase.rpc('save_resume_lead_draft',{p_fields:{name:form.name,email:form.email,telephone,notes:form.notes}})
+              const {data,error}=await supabase.rpc('save_resume_lead_draft',{p_fields:{name:form.name,email:form.email,telephone,notes:form.notes,rank_id:form.rankId||null,vessel_type_id:form.vesselTypeId||null}})
               if(error)throw error
               onSaved?.('Draft lead saved outside the candidate pool.',{leadId:data})
             }catch(e){setError(e.message)}finally{setSaving(false)}

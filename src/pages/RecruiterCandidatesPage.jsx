@@ -139,7 +139,7 @@ export default function RecruiterCandidatesPage() {
     return () => { active = false }
   }, [candidateRows])
 
-  const rows = useMemo(() => [...candidateRows.map(row => ({...row,cvStatus:resumeStates[row.needle_resume_id]})), ...drafts.map(row => ({...row, isDraft:true, created_by_recruiter_id:row.created_by, requirementCount:0, attachedRequirements:[], stage:'Unattached'}))], [candidateRows,drafts,resumeStates])
+  const rows = useMemo(() => [...candidateRows.map(row => ({...row,cvStatus:resumeStates[row.needle_resume_id]})), ...drafts.map(row => ({...row, isDraft:true, created_by_recruiter_id:row.created_by, requirementCount:0, attachedRequirements:[], stage:'Unattached', rankName:tracker.data.ranks.find(rank => rank.id === row.rank_id)?.name || '', vesselTypeName:tracker.data.vesselTypes.find(type => type.id === row.vessel_type_id)?.name || ''}))], [candidateRows,drafts,resumeStates,tracker.data.ranks,tracker.data.vesselTypes])
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -278,7 +278,7 @@ export default function RecruiterCandidatesPage() {
         ) : null}
 
         {canCreateCandidates && !resumeIntakeEnabled() && <p role="note" className="mt-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
-        {basicForm && <RecordFormDialog title={basicForm.id ? 'Edit candidate' : 'Add candidate'} onClose={() => setBasicForm(null)}><CandidateBasicForm key={basicForm.id || 'new'} candidate={basicForm.id ? basicForm : null} drafts={drafts} onSaved={saved} onCancel={() => setBasicForm(null)} onUpload={form => {setLeadForm(form);setReviewResume(null);setBasicForm(null);setShowForm(true)}}/></RecordFormDialog>}
+        {basicForm && <RecordFormDialog title={basicForm.id ? 'Edit candidate' : 'Add candidate'} onClose={() => setBasicForm(null)}><CandidateBasicForm key={basicForm.id || 'new'} candidate={basicForm.id ? basicForm : null} drafts={drafts} ranks={tracker.data.ranks} vesselTypes={tracker.data.vesselTypes} onSaved={saved} onCancel={() => setBasicForm(null)} onUpload={form => {setLeadForm(form);setReviewResume(null);setBasicForm(null);setShowForm(true)}}/></RecordFormDialog>}
         {attachCandidate && <CandidateAttachmentDialog candidate={attachCandidate} requirements={tracker.data.requirements} fleet={fleet} ranks={tracker.data.ranks} vesselTypes={tracker.data.vesselTypes} onSaved={saved} onClose={() => setAttachCandidate(null)}/>}
         {canCreateCandidates && resumeIntakeEnabled() && <details className="mt-4"><summary className="cursor-pointer text-sm">CVs awaiting review</summary><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume => {setBasicForm(null);setLeadForm({});setReviewResume(resume);setShowForm(true)}}/></details>}
         {showForm && resumeIntakeEnabled() ? (

@@ -1886,11 +1886,11 @@ body {
 }
 
 .candidate-directory-table {
-  min-width: 880px;
+  min-width: 1100px;
 }
 
 .candidate-directory-table--with-requirements {
-  min-width: 1040px;
+  min-width: 1280px;
 }
 
 .applications-table {
