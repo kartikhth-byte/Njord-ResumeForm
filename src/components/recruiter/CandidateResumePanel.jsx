@@ -36,19 +36,19 @@ export default function CandidateResumePanel({ candidate, countries, permissions
     try { await fn() } catch (failure) { setError(failure.message) } finally { setBusy(false) }
   }
   const missing = [['telephone','phone'],['email','email'],['dob','date of birth'],['nationality_id','nationality']].filter(([key]) => !candidate[key]).map(([,label]) => label)
-  return <section className="recruiter-panel space-y-4 p-6" aria-label="Résumé and contact details">
-    <h2 className="text-lg font-semibold">Résumé and contact completeness</h2>
-    {missing.length > 0 && <p className="text-sm text-warning">Before progressing past contacted, complete: {missing.join(', ')}.</p>}
-    {!resumes.length && <p className="text-sm text-warning">Résumé missing. This older candidate remains visible; upload the résumé when available.</p>}
+  return <section className="recruiter-panel space-y-4 p-6" aria-label="CV and contact details">
+    <h2 className="text-lg font-semibold">CV and contact details</h2>
+    {missing.length > 0 && <p className="text-sm text-warning">Missing: {missing.join(', ')}. Add these before moving past Contacted.</p>}
+    {!resumes.length && <p className="text-sm text-warning">No CV yet.</p>}
     {resumes.map(row => <div key={row.resume_id} className="rounded-lg border border-line p-3">
-      <button className="underline" disabled={busy} onClick={() => perform(() => openCandidateResume(candidate.id, row.resume_id))}>View résumé</button>
+      <button className="underline" disabled={busy} onClick={() => perform(() => openCandidateResume(candidate.id, row.resume_id))}>View CV</button>
       {row.needle_resume_registry?.platform&&<p className="text-sm">Storage: {row.needle_resume_registry.storage_status} · Basic extraction: {row.needle_resume_registry.basic_extraction_status?.replaceAll('_',' ')} · Indexing: {row.needle_resume_registry.indexing_status?.replaceAll('_',' ')}</p>}
       <p className="mt-1 text-xs text-fg-secondary">{row.needle_resume_registry?.filename || 'Résumé'} · {row.statusUnavailable ? 'Status refresh unavailable' : row.needle_resume_registry?.review_required ? 'Needs operator review' : row.needle_resume_registry?.status || 'Status unavailable'} · {row.source === 'holmes_upload' ? 'Holmes upload' : 'Needle search'} · Linked {dateTimeCell(row.linked_at)}</p>
       {row.needle_resume_registry?.status === 'failed' && <p className="text-sm text-warning">Couldn’t read or qualify this résumé. The original is retained; complete the details manually while the operator reviews it.</p>}
       <details className="break-all text-xs text-fg-muted"><summary className="cursor-pointer">Technical details</summary><p className="mt-1">Engine: {row.engine_version || 'Not recorded'} · Facts: {row.facts_revision || 'Not recorded'}{row.stage_id ? ` · Search stage: ${row.stage_id}` : ''}</p></details>
     </div>)}
     {canEdit && !resumeIntakeEnabled() && <p role="note" className="text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
-    {canEdit && resumeIntakeEnabled() && permissions.includes('create_prospects') && <label className="block text-sm">Add résumé PDF (keeps earlier versions)
+    {canEdit && resumeIntakeEnabled() && permissions.includes('create_prospects') && <label className="block text-sm">Upload CV (PDF)
       <input className="mt-2 block max-w-full" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event => {
         const file = event.target.files?.[0]; if (!file) return
         perform(async () => { setPendingResume(null);setReviewed(false);const resume=await uploadResume(file);setPendingResume(resume) })

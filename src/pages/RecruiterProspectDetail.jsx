@@ -8,21 +8,24 @@ import { supabase } from '../lib/supabase'
 import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import { SelectField } from '../components/recruiter/RecordFormFields'
+import CandidateAttachmentDialog from '../components/recruiter/CandidateAttachmentDialog'
+import useClientFleet from '../hooks/useClientFleet'
+import { displayRankName } from '../utils/directoryDisplay'
 import {
   archiveCandidate,
-  attachCandidateToRequirement,
   canDeleteRecord,
   deleteCandidate,
 } from '../services/recruiterRecordService'
 import {
-  ArrowLeft,
-  FileText,
-  Layers3,
+  Check,
+  Mail,
+  MessageCircle,
+  MoreVertical,
+  Phone,
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
-import { CASE_FORM_INVITE_STAGES, caseStatusMeta, isCaseTerminal } from '../utils/recruitmentCase'
+import { CASE_FORM_INVITE_STAGES, CASE_PROGRESS_STEPS, caseProgressStep, caseStatusMeta, isCaseTerminal } from '../utils/recruitmentCase'
 import { downloadPdfReport, logRecruiterExport } from '../services/recruiterReportExportService'
 import {
   buildLookupMap,
@@ -74,8 +77,11 @@ export default function RecruiterProspectDetail() {
   const [inviteCases, setInviteCases] = useState([])
   const [inviteCaseId, setInviteCaseId] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
-  const [attachOptions, setAttachOptions] = useState(null) // null = picker closed
-  const [attachValue, setAttachValue] = useState('')
+  const [attachRequirements, setAttachRequirements] = useState(null) // null = dialog closed
+  const [showInvite, setShowInvite] = useState(false)
+  const [noteBody, setNoteBody] = useState('')
+  const [noteBusy, setNoteBusy] = useState(false)
+  const fleet = useClientFleet({ includeArchived: true, includeVesselTypes: false, enabled: !permLoading })
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
   const [acting, setActing] = useState(false)
@@ -157,7 +163,7 @@ export default function RecruiterProspectDetail() {
         if (requirementIds.length > 0) {
           const { data: fetchedRequirements, error: requirementError } = await supabase
             .from('requirements')
-            .select('id, display_id, req_id_display, status, customer_name, rank_id, vessel_type_id, positions_required, target_days, owner_recruiter_id, created_by_recruiter_id, updated_at, created_at')
+            .select('id, display_id, req_id_display, status, customer_name, vessel_name, company_id, ship_id, rank_id, vessel_type_id, positions_required, target_days, owner_recruiter_id, created_by_recruiter_id, archived_at, deleted_at, updated_at, created_at')
             .in('id', requirementIds)
           if (requirementError) throw requirementError
           requirementRows = fetchedRequirements || []
@@ -279,7 +285,7 @@ export default function RecruiterProspectDetail() {
   }
 
   const nationalityName = getLookupName(lookupMaps.countries, prospect.nationality_id, 'Not provided')
-  const rankName = getLookupName(lookupMaps.ranks, prospect.rank_applied_for_id, 'Not provided')
+  const rankName = displayRankName(getLookupName(lookupMaps.ranks, prospect.rank_applied_for_id, 'Not provided'))
   const vesselName = getLookupName(lookupMaps.vessel_types, prospect.vessel_type_id, 'Not provided')
 
   const statusMeta = getStatusMeta(PROSPECT_STATUS_META, prospect.status)
@@ -304,23 +310,31 @@ export default function RecruiterProspectDetail() {
     }
   }
 
-  // Open requirements this candidate is not linked to yet.
-  const openAttachPicker = async () => {
+  // Open requirements for the attach dialog (it filters and ranks them).
+  const openAttachDialog = async () => {
     setActionError('')
-    const linked = new Set(junctions.filter(row => !row.isCase || !isCaseTerminal(row.status)).map((junction) => junction.requirement_id))
     const { data, error: loadError } = await supabase
       .from('requirements')
-      .select('id, display_id, req_id_display, customer_name, status, archived_at, deleted_at')
+      .select('company_id, ship_id, location_reviewed_at, id, display_id, req_id_display, version, date_opened, vessel_name, vessel_type_id, rank_id, positions_required, customer_name, status, archived_at, deleted_at')
       .eq('status', 'open')
       .order('date_opened', { ascending: false })
     if (loadError) {
       setActionError(loadError.message)
       return
     }
-    setAttachValue('')
-    setAttachOptions((data || [])
-      .filter((row) => !row.archived_at && !row.deleted_at && !linked.has(row.id))
-      .map((row) => ({ value: row.id, label: `${row.display_id || row.req_id_display} · ${row.customer_name || 'No customer'}` })))
+    setAttachRequirements(data || [])
+  }
+
+  const saveNote = async (event) => {
+    event.preventDefault()
+    const body = noteBody.trim()
+    if (!body || noteBusy) return
+    setNoteBusy(true)
+    setActionError('')
+    const { error: noteError } = await supabase.rpc('add_prospect_note', { p_prospect_id: prospect.id, p_body: body })
+    if (noteError) setActionError(noteError.message)
+    else { setNoteBody(''); setReloadToken((token) => token + 1) }
+    setNoteBusy(false)
   }
 
   const onDelete = () => {
@@ -437,375 +451,236 @@ export default function RecruiterProspectDetail() {
     }
   }
 
+  const canAddNotes = permissions.includes('edit_prospect_notes') && !prospect.archived_at && !prospect.deleted_at
+  const phoneDigits = (prospect.telephone || '').replace(/[^\d]/g, '')
+  const offerStatuses = ['offered', 'offer_accepted', 'documents_pending', 'documents_verified', 'sent_to_principal']
+  const competingOffers = junctions.filter((row) => offerStatuses.includes(row.status)).length > 1
+  const inviteCase = inviteCases.find((row) => row.id === inviteCaseId)
+  const requirementTitle = (requirement) => {
+    if (!requirement) return 'Requirement'
+    const rank = displayRankName(getLookupName(lookupMaps.ranks, requirement.rank_id, '')) || 'Rank not set'
+    const ship = requirement.vessel_name || 'Ship not set'
+    return requirement.customer_name ? `${rank} – ${ship} (${requirement.customer_name})` : `${rank} – ${ship}`
+  }
+  const details = [
+    ['Nationality', prospect.nationality_id ? nationalityName : ''],
+    ['Experience in rank', prospect.exp_in_rank_months ? `${prospect.exp_in_rank_months} month${prospect.exp_in_rank_months === 1 ? '' : 's'}` : ''],
+    ['Previous employer', prospect.previous_employer || ''],
+    ['Found via', prospect.lead_source || ''],
+    ['First contacted', prospect.first_contacted_at ? formatDateTime(prospect.first_contacted_at) : ''],
+    ['Profile status', statusMeta.label],
+    ['Candidate ID', prospect.display_id || ''],
+  ].filter(([, value]) => value)
+  const showMenu = canExportPdf || (canManageCandidate && !prospect.archived_at && !prospect.deleted_at) || canDeleteThis
+  const menuItem = 'block w-full rounded px-3 py-2 text-left text-sm hover:bg-raised disabled:opacity-50'
+
   return (
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <PageHeader
             title={prospect.name}
             actions={
               <div className="flex flex-wrap items-center gap-3">
-                {canExportPdf ? (
-                  <button
-                    type="button"
-                    onClick={exportProspectPdf}
-                    className="workspace-action-button workspace-action-button--secondary"
-                  >
-                    Export PDF
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => navigate(backTo)}
-                  className="workspace-action-button workspace-action-button--secondary"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </button>
-                {canAttach && attachOptions === null ? (
-                  <button type="button" disabled={acting} onClick={openAttachPicker} className="workspace-action-button workspace-action-button--primary">
+                {canAttach ? (
+                  <button type="button" disabled={acting} onClick={openAttachDialog} className="workspace-action-button workspace-action-button--primary">
                     Attach to requirement
                   </button>
                 ) : null}
-                {canManageCandidate && !prospect.archived_at && !prospect.deleted_at ? (
-                  <button type="button" disabled={acting} onClick={() => runAction(() => archiveCandidate(prospect), 'Candidate archived.')} className="workspace-action-button workspace-action-button--secondary">
-                    Archive
-                  </button>
-                ) : null}
-                {canDeleteThis ? (
-                  <button type="button" disabled={acting} onClick={onDelete} className="workspace-action-button workspace-action-button--secondary">
-                    Delete
-                  </button>
+                {showMenu ? (
+                  <details className="relative">
+                    <summary className="directory-actions__summary" aria-label="More actions" title="More actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary>
+                    <div className="absolute right-0 z-20 mt-2 w-48 rounded-control border border-line bg-surface p-1 shadow-lg">
+                      {canExportPdf ? <button type="button" className={menuItem} onClick={exportProspectPdf}>Download PDF</button> : null}
+                      {canManageCandidate && !prospect.archived_at && !prospect.deleted_at ? (
+                        <button type="button" className={menuItem} disabled={acting} onClick={() => runAction(() => archiveCandidate(prospect), 'Candidate archived.')}>Archive</button>
+                      ) : null}
+                      {canDeleteThis ? <button type="button" className={`${menuItem} text-danger`} disabled={acting} onClick={onDelete}>Delete</button> : null}
+                    </div>
+                  </details>
                 ) : null}
               </div>
             }
           >
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
-                {statusMeta.label}
-              </span>
+            <p className="mt-1 text-base text-fg-secondary">
+              {rankName !== 'Not provided' ? rankName : 'Rank not set'}{prospect.vessel_type_id ? ` · ${formatDisplayValue(vesselName)}` : ''}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {prospect.telephone ? <a className="workspace-action-button workspace-action-button--secondary" href={`tel:${prospect.telephone}`}><Phone aria-hidden="true" className="h-4 w-4" />{prospect.telephone}</a> : null}
+              {phoneDigits ? <a className="workspace-action-button workspace-action-button--secondary" href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer"><MessageCircle aria-hidden="true" className="h-4 w-4" />WhatsApp</a> : null}
+              {prospect.email ? <a className="workspace-action-button workspace-action-button--secondary max-w-full" href={`mailto:${prospect.email}`} title={prospect.email}><Mail aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="truncate">Email</span></a> : null}
               {prospect.archived_at ? <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Archived</span> : null}
               {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
-            <p className="text-sm text-fg-muted">{prospect.display_id}</p>
           </PageHeader>
+
+          {notice ? <div role="status" className="rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
+          {actionError ? <div role="alert" className="rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
+
+          <section className="recruiter-panel p-6" aria-label="Requirements">
+            <h2 className="text-lg font-semibold text-fg">Requirements</h2>
+            {competingOffers ? <p role="status" className="mt-2 text-sm text-warning">Offers on more than one requirement. Check with the candidate before moving forward.</p> : null}
+            {junctions.length === 0 ? (
+              <p className="mt-3 text-sm text-fg-secondary">Not attached to any requirement yet.</p>
+            ) : (
+              <ul className="mt-4 space-y-4">
+                {junctions.map((junction) => {
+                  const requirement = linkedRequirementMap[junction.requirement_id]
+                  const step = junction.isCase ? caseProgressStep(junction.status) : -1
+                  const ended = junction.isCase && isCaseTerminal(junction.status) && junction.status !== 'hired'
+                  const meta = junction.isCase ? caseStatusMeta(junction.status) : null
+                  const canInvite = canSendInvite && junction.isCase && CASE_FORM_INVITE_STAGES.includes(junction.status)
+                  return (
+                    <li key={junction.id} className="rounded-control border border-line p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-fg">
+                            {requirement ? (
+                              <Link className="hover:text-accent-text hover:underline" to={`/recruiter/workspace/requirements/${requirement.id}`} state={{ from: `${location.pathname}${location.search}` }}>{requirementTitle(requirement)}</Link>
+                            ) : 'Requirement'}
+                          </h3>
+                          <p className="text-xs text-fg-muted">{[requirement?.display_id || requirement?.req_id_display, junction.updated_at ? `Updated ${formatRelativeTime(junction.updated_at)}` : ''].filter(Boolean).join(' · ')}</p>
+                        </div>
+                        {meta ? <span className={`rounded-full px-3 py-1 text-xs font-semibold ${meta.tone}`}>{meta.label}</span> : <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />}
+                      </div>
+                      {junction.isCase && !ended && step >= 0 ? (
+                        <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm" aria-label="Progress">
+                          {CASE_PROGRESS_STEPS.map((label, index) => (
+                            <li key={label} className="flex items-center gap-2" aria-current={index === step ? 'step' : undefined}>
+                              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${index < step || (index === step && step === 4) ? 'bg-success-soft text-success' : index === step ? 'bg-accent-fill text-on-accent' : 'bg-raised text-fg-muted'}`}>
+                                {index < step || (index === step && step === 4) ? <Check aria-hidden="true" className="h-3.5 w-3.5" /> : index + 1}
+                              </span>
+                              <span className={index === step ? 'font-semibold text-fg' : 'text-fg-secondary'}>{label}</span>
+                              {index < CASE_PROGRESS_STEPS.length - 1 ? <span aria-hidden="true" className="text-fg-muted">→</span> : null}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : null}
+                      {junction.joined_at ? <p className="mt-2 text-sm">Joined {formatDateTime(junction.joined_at)}</p> : null}
+                      {junction.isCase && !isCaseTerminal(junction.status) ? (
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <Link className="workspace-action-button workspace-action-button--secondary" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Update stage for ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Update stage</Link>
+                          {canInvite ? (
+                            <button type="button" className="workspace-action-button workspace-action-button--secondary" onClick={() => { setInviteCaseId(junction.id); setShowInvite(true); setInviteStatus('') }}>Send full form</button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {showInvite && inviteCaseId === junction.id && canInvite ? (
+                        <div className="mt-4 space-y-3 rounded-control border border-line bg-raised p-4">
+                          <h4 className="font-semibold">Send full application form</h4>
+                          <p className="text-sm text-fg-secondary">The candidate gets an email with a link to the form.</p>
+                          <label className="block">
+                            <span className="text-sm font-medium text-fg-secondary">Email</span>
+                            <input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} disabled={!canEditProspect} className="mt-1 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg" />
+                          </label>
+                          <label className="block">
+                            <span className="text-sm font-medium text-fg-secondary">Message (optional)</span>
+                            <textarea value={inviteMessage} onChange={(event) => setInviteMessage(event.target.value)} rows={3} className="mt-1 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg" />
+                          </label>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <button type="button" onClick={handleSendInvite} disabled={inviteLoading || !inviteEmail.trim() || !inviteCase} className="workspace-action-button workspace-action-button--primary">{inviteLoading ? 'Sending…' : 'Send'}</button>
+                            <button type="button" className="underline" onClick={() => setShowInvite(false)}>Cancel</button>
+                            {prospect.bounce_flag ? <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">Last email bounced</span> : null}
+                          </div>
+                          {inviteStatus ? <p role="status" className="text-sm text-fg-secondary">{inviteStatus}</p> : null}
+                        </div>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+
           <CandidateResumePanel candidate={prospect} countries={lookupMaps.countries} permissions={permissions} onChanged={() => setReloadToken(value => value + 1)} />
 
-          {notice ? <div className="mt-4 rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
-          {actionError ? <div className="mt-4 rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
-          {attachOptions !== null ? (
-            <form
-              className="recruiter-panel mt-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-end"
-              onSubmit={(event) => {
-                event.preventDefault()
-                runAction(() => attachCandidateToRequirement(prospect.id, attachValue), 'Candidate attached to requirement.', () => {
-                  setAttachOptions(null)
-                  setReloadToken((token) => token + 1)
-                })
-              }}
-            >
-              <div className="min-w-0 flex-1">
-                {attachOptions.length === 0 ? (
-                  <p className="text-sm text-fg-secondary">No open requirements left to attach {prospect.name} to.</p>
-                ) : (
-                  <SelectField
-                    label={`Attach ${prospect.name} to`}
-                    value={attachValue}
-                    onChange={setAttachValue}
-                    options={attachOptions}
-                    placeholder="Choose an open requirement"
-                    required
-                  />
-                )}
-              </div>
-              <div className="flex gap-2">
-                {attachOptions.length > 0 ? (
-                  <button type="submit" disabled={!attachValue || acting} className="workspace-action-button workspace-action-button--primary">
-                    Attach
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => setAttachOptions(null)} className="workspace-action-button workspace-action-button--secondary">
-                  Cancel
-                </button>
-              </div>
-            </form>
+          <section className="recruiter-panel p-6" aria-label="Notes">
+            <h2 className="text-lg font-semibold text-fg">Notes</h2>
+            {canAddNotes ? (
+              <form className="mt-3 flex flex-col gap-2 sm:flex-row" onSubmit={saveNote}>
+                <label className="sr-only" htmlFor="candidate-note">Write a note</label>
+                <input id="candidate-note" value={noteBody} maxLength={2000} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write a note…" className="h-11 min-w-0 flex-1 rounded-control border border-line bg-surface px-3" />
+                <button type="submit" disabled={noteBusy || !noteBody.trim()} className="workspace-action-button workspace-action-button--primary">Save</button>
+              </form>
+            ) : null}
+            {notes.length === 0 ? (
+              <p className="mt-3 text-sm text-fg-muted">No notes yet.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {notes.map((note) => {
+                  const authorName = authorMap[note.author_recruiter_id]?.full_name || authorMap[note.author_recruiter_id]?.email || 'Recruiter'
+                  return (
+                    <li key={note.id} className="rounded-control border border-line p-3">
+                      <p className="whitespace-pre-wrap break-words text-sm text-fg">{note.body}</p>
+                      <p className="mt-2 text-xs text-fg-muted">
+                        {authorName} · {formatDateTime(note.edited_at || note.created_at)}
+                        {note.visibility === 'master_only' ? ' · Master only' : ''}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+
+          {applications.length > 0 ? (
+            <section className="recruiter-panel p-6" aria-label="Application forms">
+              <h2 className="text-lg font-semibold text-fg">Application forms</h2>
+              <ul className="mt-4 space-y-3">
+                {applications.map((application) => {
+                  const body = (
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
+                        <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
+                      </div>
+                      <StatusBadge status={application.status} />
+                    </div>
+                  )
+                  return (
+                    <li key={application.id}>
+                      {canViewApplicationTokens && application.public_token ? (
+                        <button type="button" onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })} className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left transition hover:border-accent hover:bg-surface">{body}</button>
+                      ) : (
+                        <div className="w-full rounded-control border border-line bg-raised px-4 py-4">{body}</div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           ) : null}
 
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
-            <div className="space-y-6">
-              <div className="recruiter-panel p-6">
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Rank applied for</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(rankName)}</p>
+          {details.length > 0 ? (
+            <details className="recruiter-panel p-6">
+              <summary className="cursor-pointer text-lg font-semibold text-fg">More details</summary>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                {details.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-sm text-fg-muted">{label}</dt>
+                    <dd className="mt-1 font-semibold text-fg">{value}</dd>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Vessel type</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{formatDisplayValue(vesselName)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Nationality</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{nationalityName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Experience in rank</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{prospect.exp_in_rank_months == null ? 'Not provided' : `${prospect.exp_in_rank_months} month${prospect.exp_in_rank_months === 1 ? '' : 's'}`}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Phone</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{prospect.telephone || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Email</p>
-                    <p className="mt-1 text-base font-semibold text-fg break-words">{prospect.email || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">Lead source</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{prospect.lead_source || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-fg-muted">First contacted</p>
-                    <p className="mt-1 text-base font-semibold text-fg">{formatDateTime(prospect.first_contacted_at)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="recruiter-panel overflow-hidden">
-                <div className="border-b border-line px-6 py-4">
-                  <h2 className="mt-1 text-lg font-semibold text-fg">Recruitment cases</h2>
-                  {junctions.filter(row=>['offered','offer_accepted','documents_pending','documents_verified','sent_to_principal'].includes(row.status)).length>1&&<p role="status" className="mt-2 text-sm text-warning">Competing offers across separate cases. Review the candidate’s preference; other cases remain open until explicitly updated.</p>}
-                  {junctions.some(row=>['offer_accepted','documents_pending','documents_verified','sent_to_principal','hired'].includes(row.status))&&<p className="mt-2 text-sm text-success">An offer has been accepted. Review the separate case before progressing another offer.</p>}
-                </div>
-                <div className="divide-y">
-                  {junctions.length === 0 ? (
-                    <div className="p-8">
-                      <EmptyState
-                        icon={Layers3}
-                        title="No linked requirements"
-                        action={
-                          canAttach ? (
-                            <button
-                              type="button"
-                              onClick={openAttachPicker}
-                              className="workspace-action-button workspace-action-button--primary"
-                            >
-                              Attach to requirement
-                            </button>
-                          ) : null
-                        }
-                      />
-                    </div>
-                  ) : (
-                    junctions.map((junction) => {
-                      const requirement = linkedRequirementMap[junction.requirement_id]
-                      const authorName = authorMap[junction.last_transition_by_recruiter_id]?.full_name || authorMap[junction.assigned_by_recruiter_id]?.full_name || authorMap[junction.created_by]?.full_name || 'Recruiter'
-
-                      return (
-                        <div key={junction.id} className="p-6 transition-colors hover:bg-raised/70">
-                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <h3 className="text-lg font-semibold text-fg">
-                                  {requirement ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => navigate(`/recruiter/workspace/requirements/${requirement.id}`, { state: { from: `${location.pathname}${location.search}` } })}
-                                      className="text-left hover:text-accent-text hover:underline"
-                                    >
-                                      {requirement.display_id || requirement.req_id_display}
-                                    </button>
-                                  ) : junction.requirement_id}
-                                </h3>
-                                {junction.isCase && <Link className="text-accent-text underline" to={`/recruiter/recruitment?case=${junction.id}`}>Open recruitment</Link>}
-                                {junction.isCase ? <span className={`rounded-full px-3 py-1 text-xs font-semibold ${caseStatusMeta(junction.status).tone}`}>{caseStatusMeta(junction.status).label} · Cycle {junction.cycle}</span> : <StatusPill status={junction.status} metaMap={JUNCTION_STATUS_META} />}
-                              </div>
-                              <div className="grid gap-2 text-sm text-fg-secondary md:grid-cols-2">
-                                <div>
-                                  <span className="font-medium text-fg-secondary">Customer:</span>{' '}
-                                  {requirement ? formatDisplayValue(requirement.customer_name || 'Customer not set') : 'Not loaded'}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-fg-secondary">Updated:</span> {formatRelativeTime(junction.updated_at)}
-                                </div>
-                                <div>
-                                  <span className="font-medium text-fg-secondary">By:</span> {authorName}
-                                </div>
-                                {junction.joined_at ? (
-                                  <div>
-                                    <span className="font-medium text-fg-secondary">Joined:</span> {formatDateTime(junction.joined_at)}
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-
-              <div className="recruiter-panel overflow-hidden">
-                <div className="border-b border-line px-6 py-4">
-                  <h2 className="mt-1 text-lg font-semibold text-fg">Notes</h2>
-                </div>
-                <div className="divide-y">
-                  {notes.length === 0 ? (
-                    <div className="p-8">
-                      <EmptyState
-                        icon={FileText}
-                        title="No notes yet"
-                      />
-                    </div>
-                  ) : (
-                    notes.map((note) => {
-                      const authorName = authorMap[note.author_recruiter_id]?.full_name || authorMap[note.author_recruiter_id]?.email || 'Recruiter'
-                      return (
-                        <div key={note.id} className="p-6">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-sm font-semibold text-fg">{authorName}</p>
-                            {note.is_transition_note ? (
-                              <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-text">Transition note</span>
-                            ) : null}
-                            {note.visibility === 'master_only' ? (
-                              <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">Master only</span>
-                            ) : null}
-                          </div>
-                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-fg-secondary">{note.body}</p>
-                          <p className="mt-3 text-xs text-fg-muted">
-                            {formatDateTime(note.edited_at || note.created_at)}
-                          </p>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-
-              {canSendInvite ? (
-              <div className="recruiter-panel p-6">
-                <h2 className="mt-2 text-lg font-semibold text-fg">Invite to long application</h2>
-                <p className="mt-2 text-sm text-fg-secondary">
-                  The interview must be passed first. Completing the form does not mean the candidate has been selected.
-                </p>
-
-                <label className="mt-4 block">
-                  <span className="text-sm font-medium text-fg-secondary">Recruitment case</span>
-                  <select
-                    value={inviteCaseId}
-                    onChange={(event) => setInviteCaseId(event.target.value)}
-                    className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg"
-                  >
-                    <option value="">Choose an eligible case</option>
-                    {inviteCases.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {linkedRequirementMap[row.requirement_id]?.display_id || linkedRequirementMap[row.requirement_id]?.req_id_display || 'Requirement'} · {caseStatusMeta(row.status).label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <label className="block">
-                    <span className="text-sm font-medium text-fg-secondary">Invite email</span>
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(event) => setInviteEmail(event.target.value)}
-                      disabled={!canEditProspect}
-                      className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-medium text-fg-secondary">Personal message</span>
-                    <textarea
-                      value={inviteMessage}
-                      onChange={(event) => setInviteMessage(event.target.value)}
-                      rows={4}
-                      className="mt-2 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
-                      placeholder="Optional note to the candidate"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSendInvite}
-                    disabled={inviteLoading || !canSendInvite || !inviteEmail.trim() || !inviteCaseId}
-                    className="workspace-action-button workspace-action-button--primary"
-                  >
-                    {inviteLoading ? 'Sending...' : 'Send form invite'}
-                  </button>
-                  {inviteCases.length === 0 ? (
-                    <span className="text-sm text-fg-muted">No case has a passed interview yet.</span>
-                  ) : null}
-                  {prospect.bounce_flag ? (
-                    <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning">
-                      Email bounced
-                    </span>
-                  ) : null}
-                </div>
-
-                {inviteStatus ? (
-                  <p className="mt-3 text-sm text-fg-secondary">{inviteStatus}</p>
-                ) : null}
-              </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-6">
-              <div className="recruiter-panel p-6">
-                <p className="text-sm font-medium text-fg">Applications</p>
-                <div className="mt-4 space-y-3">
-                  {applications.length === 0 ? (
-                    <EmptyState
-                      icon={Users}
-                      title="No linked applications"
-                    />
-                  ) : (
-                    applications.map((application) =>
-                      canViewApplicationTokens && application.public_token ? (
-                        <button
-                          key={application.id}
-                          type="button"
-                          onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })}
-                          className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left transition hover:border-accent hover:bg-surface"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
-                              <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
-                            </div>
-                            <StatusBadge status={application.status} />
-                          </div>
-                        </button>
-                      ) : (
-                        <div
-                          key={application.id}
-                          className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
-                              <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
-                            </div>
-                            <StatusBadge status={application.status} />
-                          </div>
-                        </div>
-                      )
-                    )
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
+                ))}
+              </dl>
+            </details>
+          ) : null}
         </div>
       </div>
+
+      {attachRequirements !== null ? (
+        <CandidateAttachmentDialog
+          candidate={{ ...prospect, attachedRequirements: junctions.map((junction) => ({ requirementId: junction.requirement_id, requirement: linkedRequirementMap[junction.requirement_id], status: junction.status })) }}
+          requirements={attachRequirements}
+          fleet={fleet}
+          ranks={Object.values(lookupMaps.ranks)}
+          vesselTypes={Object.values(lookupMaps.vessel_types)}
+          requireCv={false}
+          onSaved={(message) => { setAttachRequirements(null); setNotice(message); setReloadToken((token) => token + 1) }}
+          onClose={() => setAttachRequirements(null)}
+        />
+      ) : null}
     </div>
   )
 }

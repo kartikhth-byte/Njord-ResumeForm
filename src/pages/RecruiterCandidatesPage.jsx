@@ -40,7 +40,7 @@ const VIEW_FILTERS = [
   { value: 'joined', label: 'Joined' },
   { value: 'closed', label: 'Rejected / Withdrawn' },
   { value: 'archived', label: 'Archived' },
-  { value: 'resume_missing', label: 'Résumé missing' },
+  { value: 'resume_missing', label: 'CV missing' },
   { value: 'all', label: 'All' },
 ]
 
@@ -277,7 +277,7 @@ export default function RecruiterCandidatesPage() {
 
         {canCreateCandidates && !resumeIntakeEnabled() && <p role="note" className="mt-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
         {basicForm && <CandidateBasicForm key={basicForm.id || 'new'} candidate={basicForm.id ? basicForm : null} drafts={drafts} onSaved={saved} onCancel={() => setBasicForm(null)} onUpload={form => {setLeadForm(form);setReviewResume(null);setBasicForm(null);setShowForm(true)}}/>}
-        {attachCandidate && <CandidateAttachmentDialog candidate={attachCandidate} requirements={tracker.data.requirements} fleet={fleet} onSaved={saved} onClose={() => setAttachCandidate(null)}/>}
+        {attachCandidate && <CandidateAttachmentDialog candidate={attachCandidate} requirements={tracker.data.requirements} fleet={fleet} ranks={tracker.data.ranks} vesselTypes={tracker.data.vesselTypes} onSaved={saved} onClose={() => setAttachCandidate(null)}/>}
         {canCreateCandidates && resumeIntakeEnabled() && <details className="mt-4"><summary className="cursor-pointer text-sm">CVs awaiting review</summary><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume => {setBasicForm(null);setLeadForm({});setReviewResume(resume);setShowForm(true)}}/></details>}
         {showForm && resumeIntakeEnabled() ? (
           <section className="mt-5" aria-label="Add candidate CV">

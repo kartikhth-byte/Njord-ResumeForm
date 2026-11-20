@@ -172,3 +172,17 @@ export function caseFunnelStage(status) {
   if(['withdrawn','closed'].includes(status))return 'Withdrawn'
   return 'Needs triage'
 }
+
+// Plain progress for the candidate page: five steps anyone can read.
+export const CASE_PROGRESS_STEPS = ['Added', 'Interview', 'Offer', 'Documents', 'Joined']
+const PROGRESS_INDEX = {
+  legacy: 0, sourced: 0, interested: 0, contacted: 0, confirmed: 0,
+  test_scheduled: 1, test_passed: 1, test_waived: 1, test_failed: 1, test_no_show: 1,
+  interview_scheduled: 1, interview_failed: 1, interview_no_show: 1,
+  interview_passed: 2, selected: 2, offered: 2, offer_accepted: 2, offer_declined: 2,
+  documents_pending: 3, documents_verified: 3, sent_to_principal: 3,
+  hired: 4,
+}
+export function caseProgressStep(status) {
+  return PROGRESS_INDEX[status] ?? -1
+}
