@@ -192,7 +192,9 @@ test.describe('Candidate directory synthetic smoke',()=>{
   for(const query of ['', '?view=all']) {
    await page.goto('/recruiter/candidates'+query)
    await expect(candidateRow(page,'Robin Patel')).toBeVisible()
-   await expect(candidateRow(page,'Long synthetic candidate name').locator('td').nth(1)).toHaveCSS('white-space','nowrap')
+   await expect(candidateRow(page,'Long synthetic candidate name').locator('td').nth(4)).toHaveCSS('white-space','nowrap')
+   // Text never draws over the next column (buttons are clipped by their own cell).
+   expect(await page.locator('.candidate-directory-table tbody td').evaluateAll(cells=>cells.filter(c=>!c.querySelector('button,a.workspace-action-button')&&c.scrollWidth>c.clientWidth+1).map(c=>c.innerText.slice(0,40)))).toEqual([])
    for (const name of ['S.No.','ID','Email','Phone','Vessel type']) await expect(page.getByRole('columnheader',{name,exact:true}).first()).toBeVisible()
    await expect(candidateRow(page,'Long synthetic candidate name').locator('summary')).toHaveCount(0)
    const columns=await page.locator('.tracker-table tbody tr').evaluateAll(rows=>rows.filter(row=>row.children.length>1).map(row=>Array.from(row.children,cell=>({x:cell.getBoundingClientRect().x,width:cell.getBoundingClientRect().width}))))
