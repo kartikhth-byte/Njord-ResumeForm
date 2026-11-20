@@ -50,17 +50,16 @@ export default function CandidateBasicForm({ candidate, drafts = [], onSaved, on
     } catch (failure) { setError(failure.message === 'version_conflict' ? 'This record changed. Cancel and refresh before editing again.' : failure.message) }
     finally { setBusy(false) }
   }
-  return <section className="recruiter-panel mt-5 p-5" aria-label={candidate ? 'Edit candidate' : 'Add candidate'}>
-    <h2 className="font-semibold mb-4">{candidate ? 'Edit candidate' : 'Add candidate'}</h2>
+  return <section className="p-5" aria-label={candidate ? 'Edit candidate' : 'Add candidate'}>
     <form onSubmit={submit} className="space-y-4">
-      <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
         <TextField label="Candidate name" value={fields.name} required onChange={change('name')}/>
         <TextField label="Email" value={fields.email} type="email" onChange={change('email')}/>
         <TextField label="Phone with country code" value={fields.telephone} onChange={change('telephone')}/>
       </fieldset>
-      {(!candidate || candidate.isDraft) && <div className="text-sm text-fg-secondary"><p>CV is optional when saving. A reviewed CV is required before attachment.</p>
-        <button type="button" disabled={busy || !resumeIntakeEnabled()} className="mt-2 workspace-action-button workspace-action-button--secondary disabled:opacity-50" onClick={upload}>Add CV (optional)</button>
-        {!resumeIntakeEnabled() && <p className="mt-2">CV uploads are temporarily unavailable. You can save and edit basic details now.</p>}
+      {(!candidate || candidate.isDraft) && <div className="text-sm text-fg-secondary">{resumeIntakeEnabled()
+        ? <><p>Add a CV to attach this candidate to a requirement.</p><button type="button" disabled={busy} className="mt-2 workspace-action-button workspace-action-button--secondary" onClick={upload}>Add CV (optional)</button></>
+        : <p>CV uploads are paused. Save the details now and add a CV later.</p>}
       </div>}
       {duplicates.length > 0 && <div className="rounded border border-warning-line p-3 text-sm"><p>Possible existing records — review before saving:</p><ul>{duplicates.map(row => <li key={`${row.isDraft ? 'draft' : 'candidate'}:${row.id}`}>{row.isDraft ? `${row.name} · CV missing` : <Link className="underline" to={`/recruiter/workspace/prospects/${row.id}`}>{row.name}</Link>}</li>)}</ul><label className="mt-2 flex gap-2"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>I checked these records and want to save these details separately.</label></div>}
       {error && <p role="alert" className="text-danger text-sm">{error}</p>}
