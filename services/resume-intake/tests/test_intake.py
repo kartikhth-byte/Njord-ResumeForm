@@ -149,3 +149,11 @@ def test_page_limit_fails_before_any_storage(setup):
     for i in range(101):doc.new_page()
     assert upload(client,doc.tobytes()).status_code==400
     assert registry.claims==drive.writes==0
+
+def test_labelled_rank_and_vessel_type():
+    result=extract_pdf(pdf('Rank: Second Officer | Vessel type: Bulk Carrier\nMV Demo Pride Bulk Carrier 76,500 Third Officer Mar 2023 Nov 2023'))
+    ranks={r['value']:r['confidence'] for r in result['fields']['present_rank']}
+    assert ranks=={'Second Officer':.9,'Third Officer':.5} and 'present_rank' in result['conflicts']
+    assert [r['value'] for r in result['fields']['vessel_type']]==['Bulk Carrier']
+    table=extract_pdf(pdf('Vessel Type DWT Rank From To'))
+    assert 'vessel_type' not in table['fields']
