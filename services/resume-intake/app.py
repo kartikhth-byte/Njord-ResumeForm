@@ -6,6 +6,8 @@ All local files (scanner/OCR) use a private temporary directory and are removed.
 import hashlib
 import os
 import re
+import socket
+import struct
 import subprocess
 import tempfile
 import uuid
@@ -18,15 +20,44 @@ from drive import Drive
 from registry import Registry
 
 
+CLAMD_SOCKET='/tmp/clamd.sock'
+
+
+def clamd_scan(content, path=CLAMD_SOCKET):
+    """Scan with the resident clamd (signatures already loaded): True clean,
+    False infected, None when the daemon cannot answer."""
+    try:
+        with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as sock:
+            sock.settimeout(30);sock.connect(path);sock.sendall(b'zINSTREAM\0')
+            for start in range(0,len(content),1<<16):
+                chunk=content[start:start+(1<<16)];sock.sendall(struct.pack('>I',len(chunk))+chunk)
+            sock.sendall(struct.pack('>I',0))
+            reply=b''
+            while not reply.endswith(b'\0'):
+                part=sock.recv(4096)
+                if not part:break
+                reply+=part
+    except OSError:return None
+    reply=reply.rstrip(b'\0').decode('utf-8','replace')
+    if reply.endswith(' OK'):return True
+    if reply.endswith(' FOUND'):return False
+    return None
+
+
 def scan_pdf(content):
     # This default is mandatory in deployed service. Tests inject their own
     # scanner; no environment switch silently disables production scanning.
-    with tempfile.TemporaryDirectory(prefix='holmes-scan-') as tmp:
-        path=Path(tmp)/'original.pdf';path.write_bytes(content)
-        try: result=subprocess.run(['clamscan','--no-summary',str(path)],capture_output=True,timeout=30)
-        except (OSError,subprocess.TimeoutExpired) as exc: raise RuntimeError('malware_scanner_unavailable') from exc
-        if result.returncode==1: raise ValueError('unsafe_pdf_rejected')
-        if result.returncode!=0: raise RuntimeError('malware_scanner_unavailable')
+    # The resident daemon answers in well under a second. If it is down, the
+    # slow one-shot scanner still runs; if neither answers, the upload fails closed.
+    clean=clamd_scan(content)
+    if clean is False: raise ValueError('unsafe_pdf_rejected')
+    if clean is None:
+        with tempfile.TemporaryDirectory(prefix='holmes-scan-') as tmp:
+            path=Path(tmp)/'original.pdf';path.write_bytes(content)
+            try: result=subprocess.run(['clamscan','--no-summary',str(path)],capture_output=True,timeout=60)
+            except (OSError,subprocess.TimeoutExpired) as exc: raise RuntimeError('malware_scanner_unavailable') from exc
+            if result.returncode==1: raise ValueError('unsafe_pdf_rejected')
+            if result.returncode!=0: raise RuntimeError('malware_scanner_unavailable')
     with fitz.open(stream=content,filetype='pdf') as pdf:
         for xref in range(1,pdf.xref_length()):
             obj=pdf.xref_object(xref,compressed=True)

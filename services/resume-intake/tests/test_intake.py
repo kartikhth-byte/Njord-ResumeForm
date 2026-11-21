@@ -127,6 +127,7 @@ def test_exact_view_and_import_scope(setup):
     assert client.get('/v1/versions/'+VERSION_ID+'/pdf',headers=token('view',resume_version_id='wrong')).status_code==403
 
 def test_scanner_missing_fails_closed(monkeypatch):
+    monkeypatch.setattr('app.clamd_scan',lambda content:None)
     monkeypatch.setattr('app.subprocess.run',Mock(side_effect=FileNotFoundError()))
     with pytest.raises(RuntimeError,match='malware_scanner_unavailable'):scan_pdf(pdf('Synthetic'))
 
@@ -149,3 +150,34 @@ def test_page_limit_fails_before_any_storage(setup):
     for i in range(101):doc.new_page()
     assert upload(client,doc.tobytes()).status_code==400
     assert registry.claims==drive.writes==0
+
+def test_labelled_rank_and_vessel_type():
+    result=extract_pdf(pdf('Rank: Second Officer | Vessel type: Bulk Carrier\nMV Demo Pride Bulk Carrier 76,500 Third Officer Mar 2023 Nov 2023'))
+    ranks={r['value']:r['confidence'] for r in result['fields']['present_rank']}
+    assert ranks=={'Second Officer':.9,'Third Officer':.5} and 'present_rank' in result['conflicts']
+    assert [r['value'] for r in result['fields']['vessel_type']]==['Bulk Carrier']
+    table=extract_pdf(pdf('Vessel Type DWT Rank From To'))
+    assert 'vessel_type' not in table['fields']
+
+def _fake_clamd(tmp_path,reply):
+    import socket,threading
+    path=str(tmp_path/'clamd.sock');server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);server.bind(path);server.listen(1)
+    def serve():
+        conn,_=server.accept();data=b''
+        while not data.endswith(b'\0\0\0\0'):data+=conn.recv(65536)
+        conn.sendall(reply);conn.close();server.close()
+    threading.Thread(target=serve,daemon=True).start();return path
+
+def test_resident_scanner_answers(tmp_path):
+    from app import clamd_scan
+    assert clamd_scan(pdf('Synthetic'),_fake_clamd(tmp_path,b'stream: OK\0')) is True
+    (tmp_path/'clamd.sock').unlink()
+    assert clamd_scan(pdf('Synthetic'),_fake_clamd(tmp_path,b'stream: Test.Eicar FOUND\0')) is False
+    assert clamd_scan(pdf('Synthetic'),str(tmp_path/'missing.sock')) is None
+
+def test_scanner_falls_back_then_fails_closed(monkeypatch):
+    monkeypatch.setattr('app.clamd_scan',lambda content:False)
+    with pytest.raises(ValueError,match='unsafe_pdf_rejected'):scan_pdf(pdf('Synthetic'))
+    monkeypatch.setattr('app.clamd_scan',lambda content:None)
+    monkeypatch.setattr('app.subprocess.run',Mock(return_value=SimpleNamespace(returncode=1)))
+    with pytest.raises(ValueError,match='unsafe_pdf_rejected'):scan_pdf(pdf('Synthetic'))

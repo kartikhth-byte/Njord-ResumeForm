@@ -17,7 +17,10 @@ docker build -t holmes-resume-intake:<release> services/resume-intake
 Deploy only after KT's release gate. Use HTTPS behind the service ingress, a
 private signature volume, a memory/CPU limit, and no persistent processing disk.
 The container updates ClamAV signatures before starting and fails closed when
-signatures/scanning are unavailable. PDF parsing and OCR use private temporary
+signatures/scanning are unavailable. `start.sh` keeps a resident `clamd`
+(signatures loaded once, roughly 1–1.5 GB of memory) and waits for it before
+serving; each upload streams to it in well under a second. If the daemon stops,
+the slower one-shot `clamscan` runs instead; if neither answers, the upload fails. PDF parsing and OCR use private temporary
 directories that are removed. Store credentials only in the provider secret store.
 Do not expose this service's registry or Drive credentials to the browser.
 

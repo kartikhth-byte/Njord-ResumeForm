@@ -13,7 +13,7 @@ from pathlib import Path
 import fitz
 
 CONTRACT = 'platform.resume-intake.v1'
-VERSION = 'basic-native-tesseract-v1'
+VERSION = 'basic-native-tesseract-v2'
 MAX_PAGES = 100
 RANKS = ('Chief Engineer', 'Second Engineer', 'Third Engineer', 'Fourth Engineer',
          'Chief Officer', 'Second Officer', 'Third Officer', 'Master', 'ETO',
@@ -77,9 +77,12 @@ def extract_pdf(content, ocr=tesseract_page):
                     from datetime import date
                     try: date.fromisoformat(m[1]); add('dob', m[1], line, n, method, .95)
                     except ValueError: warnings.append({'page': n, 'code': 'invalid_birth_date'})
+                labelled = re.search(r'(?i)(present|current)\s+rank|(?:^|[|,;])\s*(?:rank|designation)\s*[:-]', line)
                 for rank in RANKS:
                     if re.search(r'(?i)(?<!\w)' + re.escape(rank) + r'(?!\w)', line):
-                        add('present_rank', rank, line, n, method, .9 if re.search(r'(?i)(present|current)\s+rank', line) else .5)
+                        add('present_rank', rank, line, n, method, .9 if labelled else .5)
+                m = re.search(r'(?i)(?:(?:vessel|ship)\s*type|type\s+of\s+(?:vessel|ship))\s*[:-]\s*([A-Za-z][A-Za-z /&()-]{1,40}?)\s*(?:[|,;]|$)', line)
+                if m: add('vessel_type', m[1], line, n, method, .9)
                 if re.search(r'(?i)(sea\s*service|vessel|ship|employment)', line) and re.search(r'\d{4}', line):
                     add('sea_service', line, line, n, method, .5)
             if n == 1 and not fields.get('full_name'):

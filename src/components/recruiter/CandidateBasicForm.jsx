@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { candidateMatches, normalizeResumePhone, openIntakeOriginal, uploadResume, withRequirementDefaults } from '../../services/needleIntegrationService'
@@ -22,6 +22,7 @@ export default function CandidateBasicForm({ candidate, drafts = [], ranks = [],
   })
   const [resume, setResume] = useState(initialResume)
   const [reading, setReading] = useState(false)
+  const [slow, setSlow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [duplicates, setDuplicates] = useState([])
@@ -29,6 +30,11 @@ export default function CandidateBasicForm({ candidate, drafts = [], ranks = [],
   const [matches, setMatches] = useState(() => initialResume?.matches || [])
   const [identity, setIdentity] = useState({ linkTo: '', confirmNew: false })
   const [checked, setChecked] = useState(false)
+  useEffect(() => {
+    if (!reading) { setSlow(false); return undefined }
+    const timer = setTimeout(() => setSlow(true), 20000)
+    return () => clearTimeout(timer)
+  }, [reading])
   const existingFile = resume?.matches?.find(row => row.reason === 'resume')
   const change = key => value => { setFields(f => ({ ...f, [key]: value })); setConfirmed(false); setDuplicates([]); setChecked(false) }
   const chooseRequirement = value => { setChecked(false); setFields(f => withRequirementDefaults(f, requirementOptions.find(row => row.value === value))) }
@@ -101,12 +107,13 @@ export default function CandidateBasicForm({ candidate, drafts = [], ranks = [],
         <label className="block font-medium text-fg-secondary">CV (PDF, optional)
           <input type="file" accept="application/pdf,.pdf" disabled={busy || reading} className="mt-2 block w-full text-fg" onChange={event => readCv(event.target.files?.[0])}/>
         </label>
-        <p className="mt-2 text-fg-secondary" role="status">{reading ? 'Reading CV…' : resume ? <>Details filled in from the CV. Check them before saving. <button type="button" className="underline" onClick={async () => { try { await openIntakeOriginal(resume.resume_version_id) } catch (e) { setError(e.message) } }}>View CV</button></> : 'Add a CV to fill in the details and to attach to a requirement.'}</p>
+        {reading && <div className="cv-progress mt-3" role="progressbar" aria-label="Reading CV"><span/></div>}
+        <p className="mt-2 text-fg-secondary" role="status">{reading ? (slow ? 'Still working… scanned CVs can take up to a minute. You can keep typing.' : 'Reading CV… this takes a few seconds (longer for scanned CVs). You can keep typing.') : resume ? <>Details filled in from the CV. Check them before saving. <button type="button" className="underline" onClick={async () => { try { await openIntakeOriginal(resume.resume_version_id) } catch (e) { setError(e.message) } }}>View CV</button></> : 'Add a CV to fill in the details and to attach to a requirement.'}</p>
       </div>}
       {!cvAllowed && isLead && <p className="text-sm text-fg-secondary">CV uploads are paused. Save the details now and add a CV later.</p>}
       {existingFile
         ? <p className="rounded-control border border-line p-3 text-sm">This CV already belongs to {existingFile.name}. <Link className="underline" to={`/recruiter/workspace/prospects/${existingFile.id}`}>Open existing candidate</Link>. Saving keeps their details{canAttach ? ' and can attach the chosen requirement' : ''}.</p>
-        : <fieldset disabled={busy || reading} className="grid gap-4 sm:grid-cols-2">
+        : <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
           <TextField label="Candidate name" value={fields.name} required onChange={change('name')}/>
           <TextField label="Email" value={fields.email} type="email" onChange={change('email')}/>
           <TextField label="Phone with country code" value={fields.telephone} onChange={change('telephone')} placeholder="+919000000001"/>
