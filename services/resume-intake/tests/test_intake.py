@@ -154,7 +154,7 @@ def test_page_limit_fails_before_any_storage(setup):
 def test_labelled_rank_and_vessel_type():
     result=extract_pdf(pdf('Rank: Second Officer | Vessel type: Bulk Carrier\nMV Demo Pride Bulk Carrier 76,500 Third Officer Mar 2023 Nov 2023'))
     ranks={r['value']:r['confidence'] for r in result['fields']['present_rank']}
-    assert ranks=={'Second Officer':.9,'Third Officer':.5} and 'present_rank' in result['conflicts']
+    assert ranks=={'Second Officer':.95,'Third Officer':.5} and 'present_rank' in result['conflicts']
     assert [r['value'] for r in result['fields']['vessel_type']]==['Bulk Carrier']
     table=extract_pdf(pdf('Vessel Type DWT Rank From To'))
     assert 'vessel_type' not in table['fields']
@@ -181,3 +181,13 @@ def test_scanner_falls_back_then_fails_closed(monkeypatch):
     monkeypatch.setattr('app.clamd_scan',lambda content:None)
     monkeypatch.setattr('app.subprocess.run',Mock(return_value=SimpleNamespace(returncode=1)))
     with pytest.raises(ValueError,match='unsafe_pdf_rejected'):scan_pdf(pdf('Synthetic'))
+
+def test_common_cv_layouts():
+    portal=extract_pdf(pdf('Sagar Sharma                    DOB: 22/06/2000\nPresent Rank       3rd Officer        Applied Rank      2nd Officer\nPhone No        9768550768\nName   Vessel   IMO   From   To'))
+    assert [r['value'] for r in portal['fields']['full_name']]==['Sagar Sharma']
+    assert {r['value']:r['confidence'] for r in portal['fields']['present_rank']}=={'3rd Officer':.95,'2nd Officer':.7}
+    assert [r['value'] for r in portal['fields']['phone']]==['9768550768']
+    form=extract_pdf(pdf('RESUME\nPOST APPLIED FOR    :   WIPER\nNAME          :    TANDEL KRUNAL\nFATHER NAME   :     TANDEL NAVNIT\nMOBILE NO.    : +91-7359862582 / 7359862582'))
+    assert [r['value'] for r in form['fields']['full_name']]==['TANDEL KRUNAL']
+    assert [r['value'] for r in form['fields']['present_rank']]==['Wiper']
+    assert [r['value'] for r in form['fields']['phone']]==['+917359862582']

@@ -16,3 +16,9 @@ test('equal-strength conflicts are left for the recruiter, typed values are kept
   const out = fillFromCv({ ...empty, name: 'Typed' }, resume, [{ id: 'r2', name: 'Second Officer' }])
   assert.equal(out.rankId, ''); assert.equal(out.name, 'Typed')
 })
+test('applied-for rank fills when there is no present rank; CV spellings match stored ranks', () => {
+  const resume = { conflicts: ['present_rank'], fields: { present_rank: [{ value: 'Wiper', confidence: .7 }, { value: 'Oiler', confidence: .5 }] } }
+  assert.equal(fillFromCv(empty, resume, [{ id: 'w', name: 'Wiper' }, { id: 'o', name: 'Oiler' }]).rankId, 'w')
+  const ab = { conflicts: [], fields: { present_rank: [{ value: 'Able Seaman', confidence: .5 }] } }
+  assert.equal(fillFromCv(empty, ab, [{ id: 'ab', name: 'AB' }]).rankId, 'ab')
+})
