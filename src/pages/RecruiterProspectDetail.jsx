@@ -503,29 +503,36 @@ export default function RecruiterProspectDetail() {
     try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 1500) } catch { setActionError('Copy failed. Select the text and copy it instead.') }
   }
   const card = 'candidate-card'
-  const gridRow = 'grid grid-cols-[minmax(0,1fr)_7rem_9rem_6.5rem_9.5rem] items-center gap-3 px-5'
   const label = 'text-xs font-medium uppercase tracking-wide text-fg-muted'
+  // Real tables: each column sizes to its content; the ID column stays narrow and first.
+  const th = `px-3 py-2.5 text-left first:pl-5 last:pr-5 ${label}`
+  const td = 'px-3 py-3.5 align-middle first:pl-5 last:pr-5'
+  const hasRecruitmentLinks = activeJunctions.some((junction) => junction.isCase)
 
   const requirementRow = (junction, past) => {
     const requirement = linkedRequirementMap[junction.requirement_id]
     const when = junction.joined_at ? `Joined ${formatDateTime(junction.joined_at).split(',')[0]}` : junction.updated_at ? formatRelativeTime(junction.updated_at) : '—'
+    const sub = [past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status}` : '', requirement?.customer_name].filter(Boolean).join(' · ')
     return (
-      <li key={junction.id} className={`${gridRow} candidate-card__line border-b py-4 last:border-b-0 ${past ? 'text-fg-secondary' : ''}`}>
-        <div className="min-w-0">
+      <tr key={junction.id} className={`candidate-card__line border-t ${past ? 'text-fg-secondary' : ''}`}>
+        <td className={`${td} whitespace-nowrap text-fg-secondary`}>{requirement?.display_id || requirement?.req_id_display || '—'}</td>
+        <td className={td}>
           <p className={past ? 'font-medium' : 'font-semibold text-fg'}>{requirementTitle(requirement)}</p>
-          <p className="truncate text-sm text-fg-secondary">{past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status}${requirement?.customer_name ? ' · ' : ''}` : ''}{requirement?.customer_name || ''}</p>
-        </div>
-        <div className="text-sm text-fg-secondary tracker-cell--nowrap">{requirement?.display_id || requirement?.req_id_display || '—'}</div>
-        <div><span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageTone(junction)}`}>{statusLabel(junction)}</span></div>
-        <div className="text-sm text-fg-secondary">{when}</div>
-        <div className="text-right">
-          {junction.isCase && !past ? (
-            <Link className="text-sm text-accent-text hover:underline" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Open in Recruitment →</Link>
-          ) : null}
-        </div>
-      </li>
+          {sub ? <p className="text-fg-secondary">{sub}</p> : null}
+        </td>
+        <td className={`${td} whitespace-nowrap`}><span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageTone(junction)}`}>{statusLabel(junction)}</span></td>
+        <td className={`${td} whitespace-nowrap text-fg-secondary`}>{when}</td>
+        {hasRecruitmentLinks ? (
+          <td className={`${td} whitespace-nowrap text-right`}>
+            {junction.isCase && !past ? (
+              <Link className="text-accent-text hover:underline" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Open in Recruitment →</Link>
+            ) : null}
+          </td>
+        ) : null}
+      </tr>
     )
   }
+  const columnCount = hasRecruitmentLinks ? 5 : 4
 
   return (
     <div className="min-h-screen bg-raised">
@@ -590,16 +597,20 @@ export default function RecruiterProspectDetail() {
                   </div>
                   {activeJunctions.length || pastJunctions.length ? (
                     <div className="overflow-x-auto">
-                      <div className="min-w-[680px]">
-                        <div className={`${gridRow} candidate-card__line border-b py-2.5 ${label}`}><span>Requirement</span><span>ID</span><span>Stage</span><span>Updated</span><span /></div>
-                        {activeJunctions.length ? <ul>{activeJunctions.map((junction) => requirementRow(junction, false))}</ul> : <p className="px-5 py-4 text-sm text-fg-secondary">Not in any open requirement.</p>}
+                      <table className="w-full min-w-[520px] text-sm">
+                        <thead><tr><th scope="col" className={`${th} w-px`}>ID</th><th scope="col" className={th}>Requirement</th><th scope="col" className={`${th} w-px`}>Stage</th><th scope="col" className={`${th} w-px`}>Updated</th>{hasRecruitmentLinks ? <th scope="col" className={`${th} w-px`}><span className="sr-only">Actions</span></th> : null}</tr></thead>
+                        <tbody>
+                          {activeJunctions.length ? activeJunctions.map((junction) => requirementRow(junction, false)) : (
+                            <tr className="candidate-card__line border-t"><td colSpan={columnCount} className={`${td} text-fg-secondary`}>Not in any open requirement.</td></tr>
+                          )}
+                        </tbody>
                         {pastJunctions.length ? (
-                          <>
-                            <p className={`candidate-card__line border-t px-5 pb-1 pt-3 ${label}`}>Past</p>
-                            <ul>{pastJunctions.map((junction) => requirementRow(junction, true))}</ul>
-                          </>
+                          <tbody>
+                            <tr className="candidate-card__line border-t"><th scope="colgroup" colSpan={columnCount} className={`${th} pt-3.5`}>Past</th></tr>
+                            {pastJunctions.map((junction) => requirementRow(junction, true))}
+                          </tbody>
                         ) : null}
-                      </div>
+                      </table>
                     </div>
                   ) : <p className="px-5 py-4 text-sm text-fg-secondary">Not attached to any requirement yet.</p>}
                 </section>
@@ -679,34 +690,37 @@ export default function RecruiterProspectDetail() {
                 </div>
                 {applications.length === 0 ? <p className="px-5 py-4 text-sm text-fg-muted">No application forms yet.</p> : (
                   <div className="overflow-x-auto">
-                    <div className="min-w-[680px]">
-                      <div className={`candidate-card__line grid grid-cols-[minmax(0,1fr)_7.5rem_8rem_10.5rem_7.5rem] items-center gap-3 border-b px-5 py-2.5 ${label}`}><span>Form</span><span>Requirement ID</span><span>Status</span><span>Date</span><span /></div>
-                      <ul>
+                    <table className="w-full min-w-[560px] text-sm">
+                      <thead><tr><th scope="col" className={`${th} w-px`}>Form</th><th scope="col" className={`${th} w-px`}>Requirement ID</th><th scope="col" className={th}>Requirement</th><th scope="col" className={`${th} w-px`}>Status</th><th scope="col" className={`${th} w-px`}>Date</th>{applications.some((application) => canViewApplicationTokens && application.public_token) ? <th scope="col" className={`${th} w-px`}><span className="sr-only">Actions</span></th> : null}</tr></thead>
+                      <tbody>
                         {applications.map((application) => {
                           const formCase = junctions.find((junction) => junction.isCase && junction.application_id === application.id)
                           const requirement = formCase ? linkedRequirementMap[formCase.requirement_id] : null
                           const place = [requirement?.customer_name, requirement?.vessel_name].filter(Boolean).join(' · ')
                           const role = requirement ? [rankOf(requirement), vesselTypeOf(requirement)].filter(Boolean).join(' · ') : ''
+                          const anyOpen = applications.some((row) => canViewApplicationTokens && row.public_token)
                           const opened = canViewApplicationTokens && application.public_token
                           return (
-                            <li key={application.id} className="candidate-card__line grid grid-cols-[minmax(0,1fr)_7.5rem_8rem_10.5rem_7.5rem] items-center gap-3 border-b px-5 py-4 last:border-b-0">
-                              <div className="min-w-0">
-                                <p className="font-semibold text-fg">{application.display_id || application.reference_number}</p>
-                                {place ? <p className="truncate text-sm text-fg-secondary">{place}</p> : null}
-                                {role ? <p className="truncate text-sm text-fg-muted">{role}</p> : null}
-                                {!requirement ? <p className="text-sm text-fg-muted">Requirement not linked</p> : null}
-                              </div>
-                              <div className="text-sm text-fg-secondary tracker-cell--nowrap">{requirement?.display_id || requirement?.req_id_display || '—'}</div>
-                              <div><StatusBadge status={application.status} /></div>
-                              <div className="text-sm text-fg-secondary">{application.submitted_at ? `Submitted ${formatDateTime(application.submitted_at).split(',')[0]}` : `Started ${formatDateTime(application.created_at).split(',')[0]}`}</div>
-                              <div className="text-right">
-                                {opened ? <button type="button" className="text-sm text-accent-text hover:underline" onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })}>Open form →</button> : null}
-                              </div>
-                            </li>
+                            <tr key={application.id} className="candidate-card__line border-t">
+                              <td className={`${td} whitespace-nowrap font-semibold text-fg`}>{application.display_id || application.reference_number}</td>
+                              <td className={`${td} whitespace-nowrap text-fg-secondary`}>{requirement?.display_id || requirement?.req_id_display || '—'}</td>
+                              <td className={td}>
+                                {place ? <p className="text-fg">{place}</p> : null}
+                                {role ? <p className="text-fg-muted">{role}</p> : null}
+                                {!requirement ? <p className="text-fg-muted">Requirement not linked</p> : null}
+                              </td>
+                              <td className={`${td} whitespace-nowrap`}><StatusBadge status={application.status} /></td>
+                              <td className={`${td} whitespace-nowrap text-fg-secondary`}>{application.submitted_at ? `Submitted ${formatDateTime(application.submitted_at).split(',')[0]}` : `Started ${formatDateTime(application.created_at).split(',')[0]}`}</td>
+                              {anyOpen ? (
+                                <td className={`${td} whitespace-nowrap text-right`}>
+                                  {opened ? <button type="button" className="text-accent-text hover:underline" onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })}>Open form →</button> : null}
+                                </td>
+                              ) : null}
+                            </tr>
                           )
                         })}
-                      </ul>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </section>
