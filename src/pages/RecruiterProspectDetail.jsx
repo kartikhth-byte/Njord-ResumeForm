@@ -502,20 +502,20 @@ export default function RecruiterProspectDetail() {
   const copy = async (which, text) => {
     try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 1500) } catch { setActionError('Copy failed. Select the text and copy it instead.') }
   }
-  const card = 'rounded-2xl border border-line bg-surface'
-  const gridRow = 'grid grid-cols-[minmax(0,1fr)_9.5rem_7rem_10rem] items-center gap-3 px-5'
+  const card = 'candidate-card'
+  const gridRow = 'grid grid-cols-[minmax(0,1fr)_7rem_9rem_6.5rem_9.5rem] items-center gap-3 px-5'
   const label = 'text-xs font-medium uppercase tracking-wide text-fg-muted'
 
   const requirementRow = (junction, past) => {
     const requirement = linkedRequirementMap[junction.requirement_id]
     const when = junction.joined_at ? `Joined ${formatDateTime(junction.joined_at).split(',')[0]}` : junction.updated_at ? formatRelativeTime(junction.updated_at) : '—'
-    const sub = [requirement?.customer_name, requirement?.display_id || requirement?.req_id_display].filter(Boolean).join(' · ')
     return (
-      <li key={junction.id} className={`${gridRow} border-b border-line py-4 last:border-b-0 ${past ? 'text-fg-secondary' : ''}`}>
+      <li key={junction.id} className={`${gridRow} candidate-card__line border-b py-4 last:border-b-0 ${past ? 'text-fg-secondary' : ''}`}>
         <div className="min-w-0">
           <p className={past ? 'font-medium' : 'font-semibold text-fg'}>{requirementTitle(requirement)}</p>
-          <p className="truncate text-sm text-fg-secondary">{past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status} · ` : ''}{sub}</p>
+          <p className="truncate text-sm text-fg-secondary">{past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status}${requirement?.customer_name ? ' · ' : ''}` : ''}{requirement?.customer_name || ''}</p>
         </div>
+        <div className="text-sm text-fg-secondary tracker-cell--nowrap">{requirement?.display_id || requirement?.req_id_display || '—'}</div>
         <div><span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageTone(junction)}`}>{statusLabel(junction)}</span></div>
         <div className="text-sm text-fg-secondary">{when}</div>
         <div className="text-right">
@@ -584,18 +584,18 @@ export default function RecruiterProspectDetail() {
             <div className="flex flex-wrap items-start gap-5">
               <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
                 <section aria-label="Requirements" className={`${card} overflow-hidden`}>
-                  <div className="flex items-center justify-between border-b border-line px-5 py-4">
+                  <div className="candidate-card__line flex items-center justify-between border-b px-5 py-4">
                     <h2 className="text-base font-semibold text-fg">Requirements</h2>
                     <span className="text-sm text-fg-secondary">{activeJunctions.length} active{pastJunctions.length ? ` · ${pastJunctions.length} past` : ''}</span>
                   </div>
                   {activeJunctions.length || pastJunctions.length ? (
                     <div className="overflow-x-auto">
-                      <div className="min-w-[560px]">
-                        <div className={`${gridRow} border-b border-line py-2.5 ${label}`}><span>Requirement</span><span>Stage</span><span>Updated</span><span /></div>
+                      <div className="min-w-[680px]">
+                        <div className={`${gridRow} candidate-card__line border-b py-2.5 ${label}`}><span>Requirement</span><span>ID</span><span>Stage</span><span>Updated</span><span /></div>
                         {activeJunctions.length ? <ul>{activeJunctions.map((junction) => requirementRow(junction, false))}</ul> : <p className="px-5 py-4 text-sm text-fg-secondary">Not in any open requirement.</p>}
                         {pastJunctions.length ? (
                           <>
-                            <p className={`border-t border-line px-5 pb-1 pt-3 ${label}`}>Past</p>
+                            <p className={`candidate-card__line border-t px-5 pb-1 pt-3 ${label}`}>Past</p>
                             <ul>{pastJunctions.map((junction) => requirementRow(junction, true))}</ul>
                           </>
                         ) : null}
@@ -618,7 +618,7 @@ export default function RecruiterProspectDetail() {
                       {notes.map((note) => {
                         const authorName = authorMap[note.author_recruiter_id]?.full_name || authorMap[note.author_recruiter_id]?.email || 'Recruiter'
                         return (
-                          <li key={note.id} className="rounded-control border border-line px-3.5 py-3">
+                          <li key={note.id} className="candidate-card__line rounded-control border px-3.5 py-3">
                             <p className="whitespace-pre-wrap break-words text-sm text-fg">{note.body}</p>
                             <p className="mt-1.5 text-xs text-fg-muted">{authorName} · {formatDateTime(note.edited_at || note.created_at)}{note.visibility === 'master_only' ? ' · Master only' : ''}</p>
                           </li>
@@ -673,14 +673,14 @@ export default function RecruiterProspectDetail() {
           {activeTab === 'forms' ? (
             <div className="space-y-5">
               <section aria-label="Application forms" className={`${card} overflow-hidden`}>
-                <div className="border-b border-line px-5 py-4">
+                <div className="candidate-card__line border-b px-5 py-4">
                   <h2 className="text-base font-semibold text-fg">Application forms</h2>
                   <p className="text-sm text-fg-secondary">Forms this candidate has started or submitted</p>
                 </div>
                 {applications.length === 0 ? <p className="px-5 py-4 text-sm text-fg-muted">No application forms yet.</p> : (
                   <div className="overflow-x-auto">
-                    <div className="min-w-[560px]">
-                      <div className={`grid grid-cols-[minmax(0,1fr)_8rem_10.5rem_7.5rem] items-center gap-3 border-b border-line px-5 py-2.5 ${label}`}><span>Form</span><span>Status</span><span>Date</span><span /></div>
+                    <div className="min-w-[680px]">
+                      <div className={`candidate-card__line grid grid-cols-[minmax(0,1fr)_7.5rem_8rem_10.5rem_7.5rem] items-center gap-3 border-b px-5 py-2.5 ${label}`}><span>Form</span><span>Requirement ID</span><span>Status</span><span>Date</span><span /></div>
                       <ul>
                         {applications.map((application) => {
                           const formCase = junctions.find((junction) => junction.isCase && junction.application_id === application.id)
@@ -689,13 +689,14 @@ export default function RecruiterProspectDetail() {
                           const role = requirement ? [rankOf(requirement), vesselTypeOf(requirement)].filter(Boolean).join(' · ') : ''
                           const opened = canViewApplicationTokens && application.public_token
                           return (
-                            <li key={application.id} className="grid grid-cols-[minmax(0,1fr)_8rem_10.5rem_7.5rem] items-center gap-3 border-b border-line px-5 py-4 last:border-b-0">
+                            <li key={application.id} className="candidate-card__line grid grid-cols-[minmax(0,1fr)_7.5rem_8rem_10.5rem_7.5rem] items-center gap-3 border-b px-5 py-4 last:border-b-0">
                               <div className="min-w-0">
                                 <p className="font-semibold text-fg">{application.display_id || application.reference_number}</p>
                                 {place ? <p className="truncate text-sm text-fg-secondary">{place}</p> : null}
                                 {role ? <p className="truncate text-sm text-fg-muted">{role}</p> : null}
                                 {!requirement ? <p className="text-sm text-fg-muted">Requirement not linked</p> : null}
                               </div>
+                              <div className="text-sm text-fg-secondary tracker-cell--nowrap">{requirement?.display_id || requirement?.req_id_display || '—'}</div>
                               <div><StatusBadge status={application.status} /></div>
                               <div className="text-sm text-fg-secondary">{application.submitted_at ? `Submitted ${formatDateTime(application.submitted_at).split(',')[0]}` : `Started ${formatDateTime(application.created_at).split(',')[0]}`}</div>
                               <div className="text-right">
