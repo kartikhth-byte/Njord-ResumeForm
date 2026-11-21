@@ -507,32 +507,44 @@ export default function RecruiterProspectDetail() {
   // Real tables: each column sizes to its content; the ID column stays narrow and first.
   const th = `px-3 py-2.5 text-left first:pl-5 last:pr-5 ${label}`
   const td = 'px-3 py-3.5 align-middle first:pl-5 last:pr-5'
-  const hasRecruitmentLinks = activeJunctions.some((junction) => junction.isCase)
 
   const requirementRow = (junction, past) => {
     const requirement = linkedRequirementMap[junction.requirement_id]
     const when = junction.joined_at ? `Joined ${formatDateTime(junction.joined_at).split(',')[0]}` : junction.updated_at ? formatRelativeTime(junction.updated_at) : '—'
     const sub = [past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status}` : '', requirement?.customer_name].filter(Boolean).join(' · ')
+    const title = requirementTitle(requirement)
     return (
       <tr key={junction.id} className={`candidate-card__line border-t ${past ? 'text-fg-secondary' : ''}`}>
         <td className={`${td} whitespace-nowrap text-fg-secondary`}>{requirement?.display_id || requirement?.req_id_display || '—'}</td>
         <td className={td}>
-          <p className={past ? 'font-medium' : 'font-semibold text-fg'}>{requirementTitle(requirement)}</p>
+          {junction.isCase && !past ? (
+            <Link className="font-semibold text-fg hover:text-accent-text hover:underline" to={`/recruiter/recruitment?case=${junction.id}`} title="Open in Recruitment" aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>{title} <span aria-hidden="true" className="text-accent-text">→</span></Link>
+          ) : <p className={past ? 'font-medium' : 'font-semibold text-fg'}>{title}</p>}
           {sub ? <p className="text-fg-secondary">{sub}</p> : null}
         </td>
         <td className={`${td} whitespace-nowrap`}><span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageTone(junction)}`}>{statusLabel(junction)}</span></td>
         <td className={`${td} whitespace-nowrap text-fg-secondary`}>{when}</td>
-        {hasRecruitmentLinks ? (
-          <td className={`${td} whitespace-nowrap text-right`}>
-            {junction.isCase && !past ? (
-              <Link className="text-accent-text hover:underline" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Open in Recruitment →</Link>
-            ) : null}
-          </td>
-        ) : null}
       </tr>
     )
   }
-  const columnCount = hasRecruitmentLinks ? 5 : 4
+  // Open and past requirements each get their own table, with titles right above their rows.
+  const requirementTable = (title, rows, past, emptyText) => {
+    return (
+      <div className="candidate-card__line border-t first:border-t-0">
+        <h3 className={`px-5 pb-1 pt-4 ${label}`}>{title} ({rows.length})</h3>
+        {rows.length ? (
+          <div className="overflow-x-auto">
+            {/* Same fixed column widths in both tables so Open and Past line up. */}
+            <table className="w-full min-w-[520px] table-fixed text-sm">
+              <colgroup><col className="w-32" /><col /><col className="w-44" /><col className="w-32" /></colgroup>
+              <thead><tr><th scope="col" className={th}>ID</th><th scope="col" className={th}>Requirement</th><th scope="col" className={th}>Stage</th><th scope="col" className={th}>Updated</th></tr></thead>
+              <tbody>{rows.map((junction) => requirementRow(junction, past))}</tbody>
+            </table>
+          </div>
+        ) : <p className="px-5 pb-4 pt-1 text-sm text-fg-secondary">{emptyText}</p>}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-raised">
@@ -593,25 +605,12 @@ export default function RecruiterProspectDetail() {
                 <section aria-label="Requirements" className={`${card} overflow-hidden`}>
                   <div className="candidate-card__line flex items-center justify-between border-b px-5 py-4">
                     <h2 className="text-base font-semibold text-fg">Requirements</h2>
-                    <span className="text-sm text-fg-secondary">{activeJunctions.length} active{pastJunctions.length ? ` · ${pastJunctions.length} past` : ''}</span>
                   </div>
                   {activeJunctions.length || pastJunctions.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[520px] text-sm">
-                        <thead><tr><th scope="col" className={`${th} w-px`}>ID</th><th scope="col" className={th}>Requirement</th><th scope="col" className={`${th} w-px`}>Stage</th><th scope="col" className={`${th} w-px`}>Updated</th>{hasRecruitmentLinks ? <th scope="col" className={`${th} w-px`}><span className="sr-only">Actions</span></th> : null}</tr></thead>
-                        <tbody>
-                          {activeJunctions.length ? activeJunctions.map((junction) => requirementRow(junction, false)) : (
-                            <tr className="candidate-card__line border-t"><td colSpan={columnCount} className={`${td} text-fg-secondary`}>Not in any open requirement.</td></tr>
-                          )}
-                        </tbody>
-                        {pastJunctions.length ? (
-                          <tbody>
-                            <tr className="candidate-card__line border-t"><th scope="colgroup" colSpan={columnCount} className={`${th} pt-3.5`}>Past</th></tr>
-                            {pastJunctions.map((junction) => requirementRow(junction, true))}
-                          </tbody>
-                        ) : null}
-                      </table>
-                    </div>
+                    <>
+                      {requirementTable('Open', activeJunctions, false, 'Not in any open requirement.')}
+                      {pastJunctions.length ? requirementTable('Past', pastJunctions, true) : null}
+                    </>
                   ) : <p className="px-5 py-4 text-sm text-fg-secondary">Not attached to any requirement yet.</p>}
                 </section>
 
@@ -686,7 +685,6 @@ export default function RecruiterProspectDetail() {
               <section aria-label="Application forms" className={`${card} overflow-hidden`}>
                 <div className="candidate-card__line border-b px-5 py-4">
                   <h2 className="text-base font-semibold text-fg">Application forms</h2>
-                  <p className="text-sm text-fg-secondary">Forms this candidate has started or submitted</p>
                 </div>
                 {applications.length === 0 ? <p className="px-5 py-4 text-sm text-fg-muted">No application forms yet.</p> : (
                   <div className="overflow-x-auto">
@@ -727,10 +725,7 @@ export default function RecruiterProspectDetail() {
 
               {canSendInvite ? (
                 <section aria-label="Send application form" className={`${card} space-y-3.5 p-5`}>
-                  <div>
-                    <h2 className="text-base font-semibold text-fg">Send application form</h2>
-                    <p className="text-sm text-fg-secondary">The candidate gets an email with a link to fill in the form online. Only for requirements where the interview is passed.</p>
-                  </div>
+                  <h2 className="text-base font-semibold text-fg">Send application form</h2>
                   {inviteOptions.length === 0 ? (
                     <p className="text-sm text-fg-muted">No requirement with a passed interview yet.</p>
                   ) : (
