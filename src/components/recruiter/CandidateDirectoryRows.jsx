@@ -5,28 +5,20 @@ import { workStage } from '../../utils/recruitmentWorkspace'
 import { groupCandidateAttachments, resumeReadiness } from '../../utils/candidateDirectory'
 import { dateCell, displayRankName, recordDisplayId } from '../../utils/directoryDisplay'
 import { openCandidateResume } from '../../services/needleIntegrationService'
-import { resumeIntakeEnabled } from '../../lib/resumeIntake'
 import DirectoryNotes from './DirectoryNotes'
 import GroupedDirectoryTable from './GroupedDirectoryTable'
 
 const INTERACTIVE = 'a,button,input,select,textarea,summary,label'
 
-// One clear action per row; everything else lives on the candidate page.
-function NextStep({ row, from, canEdit, canAttach, onEdit, onAttach }) {
-  if (row.isArchived) return <span className="text-fg-muted">—</span>
-  if (row.isDraft) return canEdit ? <button className="workspace-action-button workspace-action-button--secondary whitespace-nowrap" aria-label={`Edit ${row.name || 'unnamed candidate'}`} onClick={() => onEdit(row)}>Finish</button> : <span className="text-fg-muted">—</span>
-  if (row.needle_resume_id) return canAttach ? <button className="workspace-action-button workspace-action-button--primary whitespace-nowrap" aria-label={`Attach ${row.name} to requirement`} onClick={() => onAttach(row)}>Attach</button> : <span className="text-fg-muted">—</span>
-  if (canEdit && resumeIntakeEnabled()) return <Link className="workspace-action-button workspace-action-button--secondary whitespace-nowrap" to={`/recruiter/workspace/prospects/${row.id}`} state={{from}} aria-label={`Add CV for ${row.name}`}>Add CV</Link>
-  return <span className="text-fg-muted">—</span>
-}
-
-export function CandidateRow({ row, links = [], showRequirements = false, number, from, canEdit, canAttach, canAddNotes, onEdit, onAttach, onError, onNotes }) {
+export function CandidateRow({ row, links = [], showRequirements = false, number, from, canEdit, canAddNotes, onEdit, onError, onNotes }) {
   const navigate = useNavigate()
   const open = row.isDraft ? null : `/recruiter/workspace/prospects/${row.id}`
   return <tr className={open ? 'cursor-pointer hover:bg-raised' : ''} onClick={event => { if (open && !event.target.closest(INTERACTIVE)) navigate(open, { state: { from } }) }}>
     <td>{number}</td>
     <td>{recordDisplayId(row, row.isDraft ? 'Draft' : '—')}</td>
-    <td className="font-medium">{open ? <Link className="text-accent-text underline" to={open} state={{from}}>{row.name}</Link> : row.name || 'Unnamed candidate'}</td>
+    <td className="font-medium">{open ? <Link className="text-accent-text underline" to={open} state={{from}}>{row.name}</Link>
+      : canEdit && !row.isArchived ? <button className="text-left text-accent-text underline" aria-label={`Edit ${row.name || 'unnamed candidate'}`} title="No CV yet: edit details" onClick={() => onEdit(row)}>{row.name || 'Unnamed candidate'}</button>
+      : row.name || 'Unnamed candidate'}</td>
     <td><span className="block truncate" title={row.email || undefined}>{row.email || '—'}</span></td>
     <td className="tracker-cell--nowrap">{row.telephone || '—'}</td>
     <td>{displayRankName(row.rankName) || '—'}</td>
@@ -43,15 +35,14 @@ export function CandidateRow({ row, links = [], showRequirements = false, number
       <StickyNote aria-hidden="true" className="h-4 w-4" />
       {row.latestNote && <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent-fill" />}
     </button></td>
-    <td><NextStep row={row} from={from} canEdit={canEdit} canAttach={canAttach} onEdit={onEdit} onAttach={onAttach} /></td>
   </tr>
 }
 
 export default function CandidateDirectoryRows({ rows, attached, showAllLinks, fleet, filter, history, canAddNotes, onNotesSaved, ...actions }) {
   const [noteRow, setNoteRow] = useState(null)
   const withRequirements = attached || showAllLinks
-  const header = ['S.No.','ID','Candidate','Email','Phone','Rank','Vessel type','CV',...(withRequirements ? ['Requirement'] : []),'Updated','Notes','Next step']
-  const colWidths = withRequirements ? [3, 8, 11, 11, 10, 9, 9, 10, 10, 7, 4, 8] : [4, 9, 14, 13, 11, 10, 9, 10, 8, 4, 8]
+  const header = ['S.No.','ID','Candidate','Email','Phone','Rank','Vessel type','CV',...(withRequirements ? ['Requirement'] : []),'Updated','Notes']
+  const colWidths = withRequirements ? [3, 8, 12, 12, 10, 10, 9, 10, 12, 8, 6] : [4, 9, 16, 15, 12, 11, 10, 10, 8, 5]
   const groups = attached ? groupCandidateAttachments(rows, fleet.companies, fleet.ships, filter, history).map(company => ({ ...company, count: new Set(company.ships.flatMap(ship => ship.candidates.map(candidate => candidate.row.id))).size })) : []
   return <>
     <GroupedDirectoryTable label="Candidates by company and ship" groups={groups} columns={header} getShipRows={ship => ship.candidates} renderRows={attached

@@ -8,7 +8,6 @@ import useClientFleet from '../hooks/useClientFleet'
 import CandidateBasicForm from '../components/recruiter/CandidateBasicForm'
 import RecordFormDialog from '../components/recruiter/RecordFormDialog'
 import { displayRankName } from '../utils/directoryDisplay'
-import CandidateAttachmentDialog from '../components/recruiter/CandidateAttachmentDialog'
 import CandidateDirectoryRows from '../components/recruiter/CandidateDirectoryRows'
 import { candidateAttachmentState, matchingCandidateLinks } from '../utils/candidateDirectory'
 import { supabase } from '../lib/supabase'
@@ -59,7 +58,6 @@ export default function RecruiterCandidatesPage() {
   const canAttachCandidates = hasPermission('edit_junction_status')
   const canEditCandidates = hasPermission('edit_prospects')
   const [basicForm, setBasicForm] = useState(null)
-  const [attachCandidate, setAttachCandidate] = useState(null)
   const [drafts, setDrafts] = useState([])
   const [draftError, setDraftError] = useState('')
   const [resumeStates, setResumeStates] = useState({})
@@ -114,7 +112,7 @@ export default function RecruiterCandidatesPage() {
     void load()
     return () => { active = false }
   }, [permLoading, intakeRevision, tracker.data])
-  const saved = message => { if (attachCandidate || (basicForm && !basicForm.id)) setParams({tab:attachCandidate ? 'attached' : 'unattached',view:'current'},{replace:true}); setBasicForm(null); setAttachCandidate(null); setShowForm(false); setNotice(message); setIntakeRevision(n => n + 1); restoreCreateFocus.current = true; tracker.reload() }
+  const saved = message => { if (basicForm && !basicForm.id) setParams({tab:'unattached',view:'current'},{replace:true}); setBasicForm(null); setShowForm(false); setNotice(message); setIntakeRevision(n => n + 1); restoreCreateFocus.current = true; tracker.reload() }
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
 
@@ -279,7 +277,6 @@ export default function RecruiterCandidatesPage() {
 
         {canCreateCandidates && !resumeIntakeEnabled() && <p role="note" className="mt-4 rounded-control border border-warning-line bg-warning-soft p-3 text-sm text-warning">{RESUME_INTAKE_HOLD}</p>}
         {basicForm && <RecordFormDialog title={basicForm.id ? 'Edit candidate' : 'Add candidate'} onClose={() => setBasicForm(null)}><CandidateBasicForm key={basicForm.id || 'new'} candidate={basicForm.id ? basicForm : null} drafts={drafts} ranks={tracker.data.ranks} vesselTypes={tracker.data.vesselTypes} onSaved={saved} onCancel={() => setBasicForm(null)} onUpload={form => {setLeadForm(form);setReviewResume(null);setBasicForm(null);setShowForm(true)}}/></RecordFormDialog>}
-        {attachCandidate && <CandidateAttachmentDialog candidate={attachCandidate} requirements={tracker.data.requirements} fleet={fleet} ranks={tracker.data.ranks} vesselTypes={tracker.data.vesselTypes} onSaved={saved} onClose={() => setAttachCandidate(null)}/>}
         {canCreateCandidates && resumeIntakeEnabled() && <details className="mt-4"><summary className="cursor-pointer text-sm">CVs awaiting review</summary><ResumeIntakeQueue key={'intake'+intakeRevision} onReview={resume => {setBasicForm(null);setLeadForm({});setReviewResume(resume);setShowForm(true)}}/></details>}
         {showForm && resumeIntakeEnabled() ? (
           <RecordFormDialog title="Add candidate" onClose={() => setShowForm(false)}><section className="p-5" aria-label="Add candidate CV">
@@ -343,9 +340,9 @@ export default function RecruiterCandidatesPage() {
           </section>}
 
           <CandidateDirectoryRows key={`${tab}:${search}:${JSON.stringify(fleetFilter)}:${history}`} rows={filteredRows} attached={tab === 'attached'} showAllLinks={tab === 'all'} fleet={fleet} filter={fleetFilter} history={history}
-              from={`${location.pathname}${location.search}`} canEdit={canEditCandidates} canAttach={canAttachCandidates}
+              from={`${location.pathname}${location.search}`} canEdit={canEditCandidates}
               canAddNotes={hasPermission('edit_prospect_notes')} onNotesSaved={tracker.reload}
-              onEdit={row => {setShowForm(false);setBasicForm(row)}} onAttach={setAttachCandidate} onError={setExportError}/>
+              onEdit={row => {setShowForm(false);setBasicForm(row)}} onError={setExportError}/>
           {filteredRows.length === 0 && <EmptyState icon={Users} title={rows.length ? 'No candidates match' : 'No candidates yet'} action={rows.length ? <button className="text-accent-text underline" onClick={() => setParams({tab,view:'current',history:'active'},{replace:true})}>Clear filters</button> : canCreateCandidates ? <button className="text-accent-text underline" onClick={() => setBasicForm({})}>Add candidate</button> : null} />}
 
         </section>

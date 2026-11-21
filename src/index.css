@@ -1886,7 +1886,7 @@ body {
 }
 
 .candidate-directory-table {
-  min-width: 1020px;
+  min-width: 920px;
 }
 
 /* Eleven columns: tighter side padding, and nothing draws over the next column. */
@@ -1901,7 +1901,7 @@ body {
 }
 
 .candidate-directory-table--with-requirements {
-  min-width: 1180px;
+  min-width: 1060px;
 }
 
 .applications-table {

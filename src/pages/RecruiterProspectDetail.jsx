@@ -9,6 +9,7 @@ import RecruiterTopbar from '../components/recruiter/RecruiterTopbar'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import CandidateAttachmentDialog from '../components/recruiter/CandidateAttachmentDialog'
+import CandidateContactDialog from '../components/recruiter/CandidateContactDialog'
 import useClientFleet from '../hooks/useClientFleet'
 import { displayRankName } from '../utils/directoryDisplay'
 import {
@@ -18,10 +19,9 @@ import {
 } from '../services/recruiterRecordService'
 import {
   ArrowLeft,
-  Mail,
-  MessageCircle,
+  Check,
+  Copy,
   MoreVertical,
-  Phone,
   Users,
 } from 'lucide-react'
 import { formatDisplayValue } from '../utils/formatUtils'
@@ -84,6 +84,8 @@ export default function RecruiterProspectDetail() {
   const [attachRequirements, setAttachRequirements] = useState(null) // null = dialog closed
   const [noteBody, setNoteBody] = useState('')
   const [noteBusy, setNoteBusy] = useState(false)
+  const [editingContact, setEditingContact] = useState(false)
+  const [copied, setCopied] = useState('')
   const fleet = useClientFleet({ includeArchived: true, includeVesselTypes: false, enabled: !permLoading })
   const [notice, setNotice] = useState('')
   const [actionError, setActionError] = useState('')
@@ -133,7 +135,7 @@ export default function RecruiterProspectDetail() {
             .order('created_at', { ascending: false }),
           supabase
             .from('recruitment_cases')
-            .select('id, requirement_id, status, cycle, created_by, created_at, updated_at')
+            .select('id, requirement_id, status, cycle, application_id, created_by, created_at, updated_at')
             .eq('prospect_id', prospectId),
           supabase.from('countries').select('id, code, name').order('name'),
           supabase.from('ranks').select('id, code, name').order('name'),
@@ -454,55 +456,73 @@ export default function RecruiterProspectDetail() {
   }
 
   const canAddNotes = permissions.includes('edit_prospect_notes') && !prospect.archived_at && !prospect.deleted_at
-  const phoneDigits = (prospect.telephone || '').replace(/[^\d]/g, '')
+  const canEditContact = permissions.includes('edit_prospects') && !prospect.archived_at && !prospect.deleted_at
   const offerStatuses = ['offered', 'offer_accepted', 'documents_pending', 'documents_verified', 'sent_to_principal']
   const lockedStatuses = ['offer_accepted', 'documents_pending', 'documents_verified', 'sent_to_principal']
   const competingOffers = junctions.filter((row) => offerStatuses.includes(row.status)).length > 1
+  const rankOf = (requirement) => displayRankName(getLookupName(lookupMaps.ranks, requirement?.rank_id, '')) || 'Rank not set'
+  const vesselTypeOf = (requirement) => getLookupName(lookupMaps.vessel_types, requirement?.vessel_type_id, '')
   const requirementTitle = (requirement) => {
     if (!requirement) return 'Requirement'
-    const rank = displayRankName(getLookupName(lookupMaps.ranks, requirement.rank_id, '')) || 'Rank not set'
-    const ship = requirement.vessel_name || 'Ship not set'
-    return requirement.customer_name ? `${rank} – ${ship} (${requirement.customer_name})` : `${rank} – ${ship}`
+    return `${rankOf(requirement)} · ${requirement.vessel_name || 'Ship not set'}`
   }
+  const requirementInviteLabel = (requirement) => (requirement?.customer_name ? `${requirementTitle(requirement)} (${requirement.customer_name})` : requirementTitle(requirement))
   const statusLabel = (junction) => (junction.isCase ? caseStatusMeta(junction.status).label : (JUNCTION_STATUS_META[junction.status]?.label || junction.status))
+  const stageTone = (junction) => {
+    if (!junction.isCase) return 'bg-raised text-fg-secondary'
+    if (['hired', 'interview_passed', 'selected', 'offered', 'offer_accepted', 'documents_verified', 'sent_to_principal', 'test_passed'].includes(junction.status)) return 'bg-success-soft text-success'
+    if (['rejected', 'withdrawn', 'closed', 'interview_failed', 'test_failed', 'offer_declined', 'interview_no_show', 'test_no_show'].includes(junction.status)) return 'bg-raised text-fg-secondary'
+    return 'bg-warning-soft text-warning'
+  }
   // Same rule as the Candidates list: a closed requirement no longer holds the candidate.
   const isActive = (junction) => attachmentIsActive({ requirement: linkedRequirementMap[junction.requirement_id], status: junction.status })
   const activeJunctions = junctions.filter(isActive)
   const pastJunctions = junctions.filter((junction) => !isActive(junction))
   const lockedBy = activeJunctions.find((junction) => lockedStatuses.includes(junction.status))
-  const joinedCase = junctions.find((junction) => junction.status === 'hired' || junction.status === 'joined')
-  const facts = [
-    prospect.nationality_id ? nationalityName : '',
-    prospect.exp_in_rank_months ? `${prospect.exp_in_rank_months} month${prospect.exp_in_rank_months === 1 ? '' : 's'} in rank` : '',
-    prospect.lead_source ? `Found via ${prospect.lead_source}` : '',
-    prospect.display_id || '',
-  ].filter(Boolean)
-  const inviteOptions = inviteCases.map((row) => ({ value: row.id, label: `${requirementTitle(linkedRequirementMap[row.requirement_id])} · ${caseStatusMeta(row.status).label}` }))
+  const missingContact = [['telephone', 'phone'], ['email', 'email'], ['dob', 'date of birth'], ['nationality_id', 'nationality']].filter(([key]) => !prospect[key]).map(([, label]) => label)
+  const initials = (prospect.name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+  const profileFacts = [
+    ['Present rank', rankName !== 'Not provided' ? rankName : ''],
+    ['Vessel type', prospect.vessel_type_id ? formatDisplayValue(vesselName) : ''],
+    ['Experience in rank', prospect.exp_in_rank_months ? `${prospect.exp_in_rank_months} month${prospect.exp_in_rank_months === 1 ? '' : 's'}` : ''],
+    ['Nationality', prospect.nationality_id ? nationalityName : ''],
+    ['Found via', prospect.lead_source || ''],
+    ['Added', prospect.created_at ? formatDateTime(prospect.created_at).split(',')[0] : ''],
+  ]
+  const inviteOptions = inviteCases.map((row) => ({ value: row.id, label: requirementInviteLabel(linkedRequirementMap[row.requirement_id]) }))
   const showMenu = canExportPdf || (canManageCandidate && !prospect.archived_at && !prospect.deleted_at) || canDeleteThis
   const menuItem = 'block w-full rounded px-3 py-2 text-left text-sm hover:bg-raised disabled:opacity-50'
   const tabs = [
     { value: 'overview', label: 'Overview' },
-    { value: 'cv', label: 'CV & contact' },
-    { value: 'notes', label: 'Notes', count: notes.length },
+    { value: 'cv', label: 'CV' },
     { value: 'forms', label: 'Application forms', count: applications.length },
   ]
   const activeTab = tabs.some((tab) => tab.value === searchParams.get('tab')) ? searchParams.get('tab') : 'overview'
   const setTab = (value) => setSearchParams((previous) => { const next = new URLSearchParams(previous); if (value === 'overview') next.delete('tab'); else next.set('tab', value); return next }, { replace: true, state: location.state })
+  const copy = async (which, text) => {
+    try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 1500) } catch { setActionError('Copy failed. Select the text and copy it instead.') }
+  }
+  const card = 'rounded-2xl border border-line bg-surface'
+  const gridRow = 'grid grid-cols-[minmax(0,1fr)_9.5rem_7rem_10rem] items-center gap-3 px-5'
+  const label = 'text-xs font-medium uppercase tracking-wide text-fg-muted'
 
-  const requirementLine = (junction) => {
+  const requirementRow = (junction, past) => {
     const requirement = linkedRequirementMap[junction.requirement_id]
-    const when = junction.joined_at ? `joined ${formatDateTime(junction.joined_at)}` : junction.updated_at ? `updated ${formatRelativeTime(junction.updated_at)}` : ''
+    const when = junction.joined_at ? `Joined ${formatDateTime(junction.joined_at).split(',')[0]}` : junction.updated_at ? formatRelativeTime(junction.updated_at) : '—'
+    const sub = [requirement?.customer_name, requirement?.display_id || requirement?.req_id_display].filter(Boolean).join(' · ')
     return (
-      <li key={junction.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line py-3 last:border-b-0">
-        <p className="min-w-0 text-sm text-fg">
-          <span className="font-semibold">{requirementTitle(requirement)}</span>
-          {' — '}{statusLabel(junction)}{when ? <span className="text-fg-muted"> · {when}</span> : null}
-        </p>
-        {junction.isCase ? (
-          <Link className="whitespace-nowrap text-sm text-accent-text underline" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Open in Recruitment</Link>
-        ) : requirement ? (
-          <Link className="whitespace-nowrap text-sm text-accent-text underline" to={`/recruiter/workspace/requirements/${requirement.id}`} state={{ from: `${location.pathname}${location.search}` }}>Open requirement</Link>
-        ) : null}
+      <li key={junction.id} className={`${gridRow} border-b border-line py-4 last:border-b-0 ${past ? 'text-fg-secondary' : ''}`}>
+        <div className="min-w-0">
+          <p className={past ? 'font-medium' : 'font-semibold text-fg'}>{requirementTitle(requirement)}</p>
+          <p className="truncate text-sm text-fg-secondary">{past && requirement?.status && requirement.status !== 'open' ? `Requirement ${requirement.status} · ` : ''}{sub}</p>
+        </div>
+        <div><span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${stageTone(junction)}`}>{statusLabel(junction)}</span></div>
+        <div className="text-sm text-fg-secondary">{when}</div>
+        <div className="text-right">
+          {junction.isCase && !past ? (
+            <Link className="text-sm text-accent-text hover:underline" to={`/recruiter/recruitment?case=${junction.id}`} aria-label={`Open in Recruitment: ${requirement?.display_id || requirement?.req_id_display || 'requirement'}`}>Open in Recruitment →</Link>
+          ) : null}
+        </div>
       </li>
     )
   }
@@ -511,157 +531,207 @@ export default function RecruiterProspectDetail() {
     <div className="min-h-screen bg-raised">
       <RecruiterTopbar user={user} profile={profile} role={role} signOut={signOut} />
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="space-y-5">
           <Link to={backTo} className="inline-flex items-center gap-1 text-sm text-fg-secondary hover:text-fg hover:underline">
             <ArrowLeft aria-hidden="true" className="h-4 w-4" />{backTo.startsWith('/recruiter/candidates') ? 'Candidates' : 'Back'}
           </Link>
-          <PageHeader
-            title={prospect.name}
-            actions={
-              <div className="flex flex-wrap items-center gap-3">
-                {canAttach && !lockedBy ? (
-                  <button type="button" disabled={acting} onClick={openAttachDialog} className={`workspace-action-button ${activeJunctions.length ? 'workspace-action-button--secondary' : 'workspace-action-button--primary'}`}>
-                    {activeJunctions.length ? 'Attach to another requirement' : 'Attach to requirement'}
-                  </button>
-                ) : null}
-                {showMenu ? (
-                  <details className="relative">
-                    <summary className="directory-actions__summary" aria-label="More actions" title="More actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary>
-                    <div className="absolute right-0 z-20 mt-2 w-48 rounded-control border border-line bg-surface p-1 shadow-lg">
-                      {canExportPdf ? <button type="button" className={menuItem} onClick={exportProspectPdf}>Download PDF</button> : null}
-                      {canManageCandidate && !prospect.archived_at && !prospect.deleted_at ? (
-                        <button type="button" className={menuItem} disabled={acting} onClick={() => runAction(() => archiveCandidate(prospect), 'Candidate archived.')}>Archive</button>
-                      ) : null}
-                      {canDeleteThis ? <button type="button" className={`${menuItem} text-danger`} disabled={acting} onClick={onDelete}>Delete</button> : null}
-                    </div>
-                  </details>
-                ) : null}
+
+          <section aria-label="Candidate" className={`${card} flex flex-wrap items-center justify-between gap-5 p-6`}>
+            <div className="flex min-w-0 items-center gap-4">
+              <div aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl font-semibold text-accent-text">{initials}</div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-2xl font-bold leading-tight text-fg">{prospect.name}</h1>
+                  {prospect.display_id ? <span className="rounded-md border border-line px-2 py-0.5 text-xs text-fg-secondary">{prospect.display_id}</span> : null}
+                  {prospect.archived_at ? <span className="rounded-full bg-raised px-2.5 py-0.5 text-xs font-semibold text-fg-secondary">Archived</span> : null}
+                  {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-semibold text-danger">Deleted</span> : null}
+                </div>
+                <p className="mt-1 text-base text-fg-secondary">
+                  {rankName !== 'Not provided' ? rankName : 'Rank not set'}{prospect.vessel_type_id ? ` · ${formatDisplayValue(vesselName)}` : ''}
+                </p>
               </div>
-            }
-          >
-            <p className="mt-1 text-base text-fg-secondary">
-              {rankName !== 'Not provided' ? rankName : 'Rank not set'}{prospect.vessel_type_id ? ` · ${formatDisplayValue(vesselName)}` : ''}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {prospect.telephone ? <a className="workspace-action-button workspace-action-button--secondary" href={`tel:${prospect.telephone}`}><Phone aria-hidden="true" className="h-4 w-4" />{prospect.telephone}</a> : null}
-              {phoneDigits ? <a className="workspace-action-button workspace-action-button--secondary" href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer"><MessageCircle aria-hidden="true" className="h-4 w-4" />WhatsApp</a> : null}
-              {prospect.email ? <a className="workspace-action-button workspace-action-button--secondary max-w-full" href={`mailto:${prospect.email}`} title={prospect.email}><Mail aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="truncate">Email</span></a> : null}
-              {prospect.archived_at ? <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold text-fg-secondary">Archived</span> : null}
-              {prospect.deleted_at ? <span className="rounded-full bg-danger-soft px-3 py-1 text-xs font-semibold text-danger">Deleted</span> : null}
             </div>
-          </PageHeader>
+            <div className="flex items-center gap-2.5">
+              {canAttach && !lockedBy ? (
+                <button type="button" disabled={acting} onClick={openAttachDialog} className={`workspace-action-button ${activeJunctions.length ? 'workspace-action-button--secondary' : 'workspace-action-button--primary'}`}>
+                  {activeJunctions.length ? 'Attach to another requirement' : 'Attach to requirement'}
+                </button>
+              ) : null}
+              {showMenu ? (
+                <details className="relative">
+                  <summary className="directory-actions__summary" aria-label="More actions" title="More actions"><MoreVertical aria-hidden="true" className="h-4 w-4" /></summary>
+                  <div className="absolute right-0 z-20 mt-2 w-48 rounded-control border border-line bg-surface p-1 shadow-lg">
+                    {canExportPdf ? <button type="button" className={menuItem} onClick={exportProspectPdf}>Download PDF</button> : null}
+                    {canManageCandidate && !prospect.archived_at && !prospect.deleted_at ? (
+                      <button type="button" className={menuItem} disabled={acting} onClick={() => runAction(() => archiveCandidate(prospect), 'Candidate archived.')}>Archive</button>
+                    ) : null}
+                    {canDeleteThis ? <button type="button" className={`${menuItem} text-danger`} disabled={acting} onClick={onDelete}>Delete</button> : null}
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          </section>
 
           {notice ? <div role="status" className="rounded-control border border-success-line bg-success-soft px-4 py-3 text-sm text-success">{notice}</div> : null}
           {actionError ? <div role="alert" className="rounded-control border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">{actionError}</div> : null}
+          {lockedBy ? <p role="status" className="text-sm text-warning">Has an accepted offer on {requirementInviteLabel(linkedRequirementMap[lockedBy.requirement_id])}.</p> : null}
+          {competingOffers ? <p role="status" className="text-sm text-warning">Offers on more than one requirement. Check with the candidate before moving forward.</p> : null}
 
           <SegmentedControl label="Candidate sections" options={tabs} value={activeTab} onChange={setTab} />
 
           {activeTab === 'overview' ? (
-            <section className="recruiter-panel space-y-5 p-6" aria-label="Overview">
-              {facts.length ? <p className="text-sm text-fg-secondary">{facts.join(' · ')}</p> : null}
-              {lockedBy ? <p role="status" className="text-sm text-warning">Has an accepted offer on {requirementTitle(linkedRequirementMap[lockedBy.requirement_id])}.</p> : null}
-              {!lockedBy && joinedCase ? <p className="text-sm text-fg-secondary">Joined {requirementTitle(linkedRequirementMap[joinedCase.requirement_id])}.</p> : null}
-              {competingOffers ? <p role="status" className="text-sm text-warning">Offers on more than one requirement. Check with the candidate before moving forward.</p> : null}
-              <div>
-                <h2 className="text-base font-semibold text-fg">Requirements</h2>
-                {activeJunctions.length ? <ul className="mt-1">{activeJunctions.map(requirementLine)}</ul> : <p className="mt-2 text-sm text-fg-secondary">Not in any open requirement.</p>}
-                {pastJunctions.length ? (
-                  <details className="mt-3">
-                    <summary className="cursor-pointer text-sm text-fg-secondary">Past requirements ({pastJunctions.length})</summary>
-                    <ul className="mt-1">{pastJunctions.map(requirementLine)}</ul>
-                  </details>
-                ) : null}
+            <div className="flex flex-wrap items-start gap-5">
+              <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
+                <section aria-label="Requirements" className={`${card} overflow-hidden`}>
+                  <div className="flex items-center justify-between border-b border-line px-5 py-4">
+                    <h2 className="text-base font-semibold text-fg">Requirements</h2>
+                    <span className="text-sm text-fg-secondary">{activeJunctions.length} active{pastJunctions.length ? ` · ${pastJunctions.length} past` : ''}</span>
+                  </div>
+                  {activeJunctions.length || pastJunctions.length ? (
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[560px]">
+                        <div className={`${gridRow} border-b border-line py-2.5 ${label}`}><span>Requirement</span><span>Stage</span><span>Updated</span><span /></div>
+                        {activeJunctions.length ? <ul>{activeJunctions.map((junction) => requirementRow(junction, false))}</ul> : <p className="px-5 py-4 text-sm text-fg-secondary">Not in any open requirement.</p>}
+                        {pastJunctions.length ? (
+                          <>
+                            <p className={`border-t border-line px-5 pb-1 pt-3 ${label}`}>Past</p>
+                            <ul>{pastJunctions.map((junction) => requirementRow(junction, true))}</ul>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : <p className="px-5 py-4 text-sm text-fg-secondary">Not attached to any requirement yet.</p>}
+                </section>
+
+                <section aria-label="Notes" className={`${card} space-y-3.5 p-5`}>
+                  <h2 className="text-base font-semibold text-fg">Notes</h2>
+                  {canAddNotes ? (
+                    <form className="flex flex-col gap-2 sm:flex-row" onSubmit={saveNote}>
+                      <label className="sr-only" htmlFor="candidate-note">Write a note</label>
+                      <input id="candidate-note" value={noteBody} maxLength={2000} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write a note…" className="h-11 min-w-0 flex-1 rounded-control border border-line bg-raised px-3" />
+                      <button type="submit" disabled={noteBusy || !noteBody.trim()} className="workspace-action-button workspace-action-button--secondary">Save</button>
+                    </form>
+                  ) : null}
+                  {notes.length === 0 ? <p className="text-sm text-fg-muted">No notes yet.</p> : (
+                    <ul className="space-y-2.5">
+                      {notes.map((note) => {
+                        const authorName = authorMap[note.author_recruiter_id]?.full_name || authorMap[note.author_recruiter_id]?.email || 'Recruiter'
+                        return (
+                          <li key={note.id} className="rounded-control border border-line px-3.5 py-3">
+                            <p className="whitespace-pre-wrap break-words text-sm text-fg">{note.body}</p>
+                            <p className="mt-1.5 text-xs text-fg-muted">{authorName} · {formatDateTime(note.edited_at || note.created_at)}{note.visibility === 'master_only' ? ' · Master only' : ''}</p>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </section>
               </div>
-              <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4 text-sm">
-                <span className="font-semibold text-fg">CV</span>
-                <span className="text-fg-secondary">{prospect.needle_resume_id ? 'CV on file.' : 'No CV yet.'}</span>
-                <button type="button" className="text-accent-text underline" onClick={() => setTab('cv')}>{prospect.needle_resume_id ? 'View CV' : 'Go to CV'}</button>
-              </div>
-            </section>
+
+              <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
+                <section aria-label="Contact" className={`${card} space-y-3.5 p-5`}>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-fg">Contact</h2>
+                    {canEditContact ? <button type="button" className="workspace-action-button workspace-action-button--secondary h-8 px-3 text-sm" onClick={() => setEditingContact(true)}>Edit</button> : null}
+                  </div>
+                  {[['phone', 'Phone', prospect.telephone, `tel:${prospect.telephone}`], ['email', 'Email', prospect.email, `mailto:${prospect.email}`]].map(([key, title, value, href]) => (
+                    <div key={key}>
+                      <p className="mb-1 text-xs text-fg-muted">{title}</p>
+                      {value ? (
+                        <div className="flex items-center gap-2">
+                          <a href={href} className="min-w-0 flex-1 font-medium text-fg [overflow-wrap:anywhere] hover:underline">{value}</a>
+                          <button type="button" aria-label={`Copy ${title.toLowerCase()}`} onClick={() => copy(key, value)} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-control border border-line bg-raised px-2.5 text-xs text-fg-secondary hover:text-fg">
+                            {copied === key ? <Check aria-hidden="true" className="h-3.5 w-3.5" /> : <Copy aria-hidden="true" className="h-3.5 w-3.5" />}{copied === key ? 'Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      ) : <p className="text-sm text-fg-muted">Not added</p>}
+                    </div>
+                  ))}
+                  {missingContact.length ? <p className="text-xs text-warning">Missing: {missingContact.join(', ')}. Add before moving past Contacted.</p> : null}
+                </section>
+
+                <section aria-label="Profile" className={`${card} p-5`}>
+                  <h2 className="mb-3.5 text-base font-semibold text-fg">Profile</h2>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5">
+                    {profileFacts.map(([title, value]) => (
+                      <div key={title} className="min-w-0">
+                        <dt className="text-xs text-fg-muted">{title}</dt>
+                        <dd className="mt-0.5 font-medium text-fg">{value || '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              </aside>
+            </div>
           ) : null}
 
           {activeTab === 'cv' ? (
-            <CandidateResumePanel candidate={prospect} countries={lookupMaps.countries} permissions={permissions} onChanged={() => setReloadToken(value => value + 1)} />
-          ) : null}
-
-          {activeTab === 'notes' ? (
-            <section className="recruiter-panel p-6" aria-label="Notes">
-              {canAddNotes ? (
-                <form className="flex flex-col gap-2 sm:flex-row" onSubmit={saveNote}>
-                  <label className="sr-only" htmlFor="candidate-note">Write a note</label>
-                  <input id="candidate-note" value={noteBody} maxLength={2000} onChange={(event) => setNoteBody(event.target.value)} placeholder="Write a note…" className="h-11 min-w-0 flex-1 rounded-control border border-line bg-surface px-3" />
-                  <button type="submit" disabled={noteBusy || !noteBody.trim()} className="workspace-action-button workspace-action-button--primary">Save</button>
-                </form>
-              ) : null}
-              {notes.length === 0 ? (
-                <p className="mt-3 text-sm text-fg-muted">No notes yet.</p>
-              ) : (
-                <ul className="mt-4 space-y-3">
-                  {notes.map((note) => {
-                    const authorName = authorMap[note.author_recruiter_id]?.full_name || authorMap[note.author_recruiter_id]?.email || 'Recruiter'
-                    return (
-                      <li key={note.id} className="rounded-control border border-line p-3">
-                        <p className="whitespace-pre-wrap break-words text-sm text-fg">{note.body}</p>
-                        <p className="mt-2 text-xs text-fg-muted">
-                          {authorName} · {formatDateTime(note.edited_at || note.created_at)}
-                          {note.visibility === 'master_only' ? ' · Master only' : ''}
-                        </p>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </section>
+            <CandidateResumePanel candidate={prospect} permissions={permissions} onChanged={() => setReloadToken(value => value + 1)} />
           ) : null}
 
           {activeTab === 'forms' ? (
-            <section className="recruiter-panel space-y-5 p-6" aria-label="Application forms">
-              {applications.length === 0 ? <p className="text-sm text-fg-muted">No application forms yet.</p> : (
-                <ul className="space-y-3">
-                  {applications.map((application) => {
-                    const body = (
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-semibold text-fg">{application.display_id || application.reference_number}</p>
-                          <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(application.created_at)}</p>
-                        </div>
-                        <StatusBadge status={application.status} />
-                      </div>
-                    )
-                    return (
-                      <li key={application.id}>
-                        {canViewApplicationTokens && application.public_token ? (
-                          <button type="button" onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })} className="w-full rounded-control border border-line bg-raised px-4 py-4 text-left transition hover:border-accent hover:bg-surface">{body}</button>
-                        ) : (
-                          <div className="w-full rounded-control border border-line bg-raised px-4 py-4">{body}</div>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
+            <div className="space-y-5">
+              <section aria-label="Application forms" className={`${card} overflow-hidden`}>
+                <div className="border-b border-line px-5 py-4">
+                  <h2 className="text-base font-semibold text-fg">Application forms</h2>
+                  <p className="text-sm text-fg-secondary">Forms this candidate has started or submitted</p>
+                </div>
+                {applications.length === 0 ? <p className="px-5 py-4 text-sm text-fg-muted">No application forms yet.</p> : (
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[560px]">
+                      <div className={`grid grid-cols-[minmax(0,1fr)_8rem_10.5rem_7.5rem] items-center gap-3 border-b border-line px-5 py-2.5 ${label}`}><span>Form</span><span>Status</span><span>Date</span><span /></div>
+                      <ul>
+                        {applications.map((application) => {
+                          const formCase = junctions.find((junction) => junction.isCase && junction.application_id === application.id)
+                          const requirement = formCase ? linkedRequirementMap[formCase.requirement_id] : null
+                          const place = [requirement?.customer_name, requirement?.vessel_name].filter(Boolean).join(' · ')
+                          const role = requirement ? [rankOf(requirement), vesselTypeOf(requirement)].filter(Boolean).join(' · ') : ''
+                          const opened = canViewApplicationTokens && application.public_token
+                          return (
+                            <li key={application.id} className="grid grid-cols-[minmax(0,1fr)_8rem_10.5rem_7.5rem] items-center gap-3 border-b border-line px-5 py-4 last:border-b-0">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-fg">{application.display_id || application.reference_number}</p>
+                                {place ? <p className="truncate text-sm text-fg-secondary">{place}</p> : null}
+                                {role ? <p className="truncate text-sm text-fg-muted">{role}</p> : null}
+                                {!requirement ? <p className="text-sm text-fg-muted">Requirement not linked</p> : null}
+                              </div>
+                              <div><StatusBadge status={application.status} /></div>
+                              <div className="text-sm text-fg-secondary">{application.submitted_at ? `Submitted ${formatDateTime(application.submitted_at).split(',')[0]}` : `Started ${formatDateTime(application.created_at).split(',')[0]}`}</div>
+                              <div className="text-right">
+                                {opened ? <button type="button" className="text-sm text-accent-text hover:underline" onClick={() => navigate(`/application/view/${application.public_token}`, { state: { from: location.pathname + location.search } })}>Open form →</button> : null}
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </section>
+
               {canSendInvite ? (
-                <div className="space-y-3 border-t border-line pt-5">
-                  <h2 className="text-base font-semibold text-fg">Send full application form</h2>
+                <section aria-label="Send application form" className={`${card} space-y-3.5 p-5`}>
+                  <div>
+                    <h2 className="text-base font-semibold text-fg">Send application form</h2>
+                    <p className="text-sm text-fg-secondary">The candidate gets an email with a link to fill in the form online. Only for requirements where the interview is passed.</p>
+                  </div>
                   {inviteOptions.length === 0 ? (
-                    <p className="text-sm text-fg-secondary">Available after the candidate passes the interview.</p>
+                    <p className="text-sm text-fg-muted">No requirement with a passed interview yet.</p>
                   ) : (
                     <>
-                      {inviteOptions.length > 1 ? (
-                        <label className="block text-sm"><span className="font-medium text-fg-secondary">Requirement</span>
-                          <select className="mt-1 w-full rounded-control border border-line bg-surface px-3 py-3" value={inviteCaseId} onChange={(event) => setInviteCaseId(event.target.value)}>
+                      <div className="grid gap-3.5 sm:grid-cols-2">
+                        <label className="block text-sm text-fg-secondary">Requirement
+                          <select className="mt-1.5 h-11 w-full rounded-control border border-line bg-raised px-3 text-fg" value={inviteCaseId} onChange={(event) => setInviteCaseId(event.target.value)}>
                             {inviteOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                           </select>
                         </label>
-                      ) : <p className="text-sm text-fg-secondary">For {inviteOptions[0].label}</p>}
-                      <label className="block">
-                        <span className="text-sm font-medium text-fg-secondary">Email</span>
-                        <input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} disabled={!canEditProspect} className="mt-1 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg" />
-                      </label>
-                      <label className="block">
-                        <span className="text-sm font-medium text-fg-secondary">Message (optional)</span>
-                        <textarea value={inviteMessage} onChange={(event) => setInviteMessage(event.target.value)} rows={3} className="mt-1 w-full rounded-control border border-line bg-surface px-4 py-3 text-sm text-fg" />
+                        <label className="block text-sm text-fg-secondary">Email
+                          <input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} disabled={!canEditProspect} className="mt-1.5 h-11 w-full rounded-control border border-line bg-raised px-3 text-fg" />
+                        </label>
+                      </div>
+                      <label className="block text-sm text-fg-secondary">Message (optional)
+                        <textarea value={inviteMessage} onChange={(event) => setInviteMessage(event.target.value)} rows={3} placeholder="A short note to the candidate" className="mt-1.5 w-full rounded-control border border-line bg-raised px-3 py-2.5 text-fg" />
                       </label>
                       <div className="flex flex-wrap items-center gap-3">
                         <button type="button" onClick={handleSendInvite} disabled={inviteLoading || !inviteEmail.trim() || !inviteCaseId} className="workspace-action-button workspace-action-button--primary">{inviteLoading ? 'Sending…' : 'Send form'}</button>
@@ -670,13 +740,16 @@ export default function RecruiterProspectDetail() {
                       {inviteStatus ? <p role="status" className="text-sm text-fg-secondary">{inviteStatus}</p> : null}
                     </>
                   )}
-                </div>
+                </section>
               ) : null}
-            </section>
+            </div>
           ) : null}
         </div>
       </div>
 
+      {editingContact ? (
+        <CandidateContactDialog candidate={prospect} countries={lookupMaps.countries} onSaved={() => { setEditingContact(false); setNotice('Contact details saved.'); setReloadToken((token) => token + 1) }} onClose={() => setEditingContact(false)} />
+      ) : null}
       {attachRequirements !== null ? (
         <CandidateAttachmentDialog
           candidate={{ ...prospect, attachedRequirements: junctions.map((junction) => ({ requirementId: junction.requirement_id, requirement: linkedRequirementMap[junction.requirement_id], status: junction.status })) }}
@@ -684,7 +757,7 @@ export default function RecruiterProspectDetail() {
           fleet={fleet}
           ranks={Object.values(lookupMaps.ranks)}
           vesselTypes={Object.values(lookupMaps.vessel_types)}
-          requireCv={resumeIntakeEnabled()}
+          requireCv={resumeIntakeEnabled() || Boolean(prospect.needle_resume_id)}
           onSaved={(message) => { setAttachRequirements(null); setNotice(message); setReloadToken((token) => token + 1) }}
           onClose={() => setAttachRequirements(null)}
         />

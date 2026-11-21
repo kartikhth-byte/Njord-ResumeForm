@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import ResumeSuggestionReview from './ResumeSuggestionReview'
 import { resumeIntakeEnabled, RESUME_INTAKE_HOLD } from '../../lib/resumeIntake'
-import { candidateResumeStatus, openCandidateResume, uploadResume, saveResumeCandidate, normalizeResumePhone } from '../../services/needleIntegrationService'
+import { candidateResumeStatus, openCandidateResume, uploadResume, saveResumeCandidate } from '../../services/needleIntegrationService'
 import { dateTimeCell } from '../../utils/directoryDisplay'
 
-export default function CandidateResumePanel({ candidate, countries, permissions, onChanged }) {
+export default function CandidateResumePanel({ candidate, permissions, onChanged }) {
   const [resumes, setResumes] = useState([])
-  const [editing, setEditing] = useState(false)
-  const [fields, setFields] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
@@ -35,10 +33,8 @@ export default function CandidateResumePanel({ candidate, countries, permissions
     setBusy(true); setError('')
     try { await fn() } catch (failure) { setError(failure.message) } finally { setBusy(false) }
   }
-  const missing = [['telephone','phone'],['email','email'],['dob','date of birth'],['nationality_id','nationality']].filter(([key]) => !candidate[key]).map(([,label]) => label)
-  return <section className="recruiter-panel space-y-4 p-6" aria-label="CV and contact details">
-    <h2 className="text-lg font-semibold">CV and contact details</h2>
-    {missing.length > 0 && <p className="text-sm text-warning">Missing: {missing.join(', ')}. Add these before moving past Contacted.</p>}
+  return <section className="recruiter-panel space-y-4 p-6" aria-label="CV">
+    <h2 className="text-lg font-semibold">CV</h2>
     {!resumes.length && <p className="text-sm text-warning">No CV yet.</p>}
     {resumes.map(row => <div key={row.resume_id} className="rounded-lg border border-line p-3">
       <button className="underline" disabled={busy} onClick={() => perform(() => openCandidateResume(candidate.id, row.resume_id))}>View CV</button>
@@ -61,21 +57,6 @@ export default function CandidateResumePanel({ candidate, countries, permissions
       <button className="workspace-action-button workspace-action-button--primary" disabled={busy||!reviewed} onClick={()=>perform(async()=>{await saveResumeCandidate(pendingResume,{}, {linkTo:candidate.id});setPendingResume(null);setReviewed(false);setRevision(n=>n+1);onChanged?.()})}>Link reviewed résumé</button>
       <button className="ml-3 underline" disabled={busy} onClick={()=>{setPendingResume(null);setReviewed(false)}}>Leave in intake queue</button>
     </section>}
-    {canEdit && !editing && <button className="workspace-action-button workspace-action-button--secondary" onClick={() => { setFields({ name: candidate.name || '', email: candidate.email || '', telephone: candidate.telephone || '', dob: candidate.dob || '', nationality_id: candidate.nationality_id || '' }); setEditing(true) }}>Edit contact details</button>}
-    {editing && <form className="space-y-3" onSubmit={event => {
-      event.preventDefault(); perform(async () => {
-        const telephone = normalizeResumePhone(fields.telephone)
-        if (fields.telephone.trim() && !telephone) throw new Error('Enter a phone number with its country code.')
-        const { error: failure } = await supabase.rpc('update_resume_candidate_contacts', { p_id: candidate.id, p_expected_version: candidate.version, p_fields: { ...fields, telephone } })
-        if (failure) throw failure
-        setEditing(false); onChanged?.()
-      })
-    }}>
-      <div className="grid gap-3 sm:grid-cols-2">{[['name','Name','text'],['email','Email','email'],['telephone','Phone with country code','tel'],['dob','Date of birth','date']].map(([key,label,type]) => <label className="block text-sm" key={key}>{label}<input className="mt-1 w-full rounded border border-line bg-surface p-2" type={type} required={key === 'name'} value={fields[key] || ''} onChange={event => setFields(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}
-        <label className="block text-sm">Nationality<select className="mt-1 w-full rounded border border-line bg-surface p-2" value={fields.nationality_id || ''} onChange={event => setFields(prev => ({ ...prev, nationality_id: event.target.value }))}><option value="">Not provided</option>{Object.entries(countries).map(([id,row]) => <option key={id} value={id}>{typeof row === 'string' ? row : row.name}</option>)}</select></label>
-      </div>
-      <button disabled={busy} className="workspace-action-button workspace-action-button--primary">Save contact details</button> <button type="button" className="underline" onClick={() => setEditing(false)}>Cancel</button>
-    </form>}
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
   </section>
 }
