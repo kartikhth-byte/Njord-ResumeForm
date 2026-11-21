@@ -17,7 +17,7 @@ async function fixture(page) {
   if(['localhost','127.0.0.1'].includes(url.hostname))return route.continue()
   if(url.hostname!=='supabase.invalid')return route.abort()
   const table=url.pathname.split('/').pop()
-  if(table==='resume-intake'){state.calls.push({table});return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({resumes:[resume]})})}
+  if(table==='resume-intake'){state.calls.push({table});if(state.gate)await state.gate;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({resumes:[resume]})})}
   const body=req.postData()?req.postDataJSON():null
   if(table==='resume_lead_drafts'&&url.searchParams.has('id'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state.drafts.find(d=>d.id===url.searchParams.get('id').replace('eq.','')))})
   if(table==='review_platform_resume'||table==='review_resume_lead'){state.calls.push({table,body});return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({prospect_id:'pNew'})})}
@@ -63,5 +63,21 @@ test.describe('One add-candidate form with CV',()=>{
   await dialog.getByRole('button',{name:'Save',exact:true}).click()
   await expect(page.getByRole('status').filter({hasText:'Candidate saved.'})).toBeVisible()
   expect(state.calls.find(c=>c.table==='review_resume_lead').body).toMatchObject({p_lead:'draft1',p_lead_version:1,p_fields:{name:'Robin Patel',notes:'Synthetic draft'}})
+ })
+ test('a progress bar shows while the CV is read and typing is not blocked',async({page})=>{
+  const state=await fixture(page)
+  let release;state.gate=new Promise(resolve=>{release=resolve})
+  await page.goto('/recruiter/candidates')
+  await page.getByRole('button',{name:'Add candidate',exact:true}).click()
+  const dialog=page.getByRole('dialog',{name:'Add candidate'})
+  await dialog.getByLabel('CV (PDF, optional)').setInputFiles({name:'cv.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic')})
+  await expect(dialog.getByRole('progressbar',{name:'Reading CV'})).toBeVisible()
+  await expect(dialog.getByRole('status')).toContainText('You can keep typing')
+  await dialog.getByRole('textbox',{name:'Candidate name'}).fill('Typed While Reading')
+  await expect(dialog.getByRole('button',{name:'Save',exact:true})).toBeDisabled()
+  release()
+  await expect(dialog.getByRole('progressbar')).toHaveCount(0)
+  await expect(dialog.getByRole('textbox',{name:'Candidate name'})).toHaveValue('Typed While Reading')
+  await expect(dialog.getByRole('textbox',{name:'Email',exact:true})).toHaveValue('arjun.testkumar@example.invalid')
  })
 })
