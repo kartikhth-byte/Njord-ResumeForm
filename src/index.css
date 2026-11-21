@@ -204,6 +204,17 @@ body {
   box-shadow: none;
 }
 
+.candidate-card {
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--fg) / 0.16);
+  border-radius: 1rem;
+}
+
+/* Rows and items inside a candidate card share the same hairline. */
+.candidate-card__line {
+  border-color: rgb(var(--fg) / 0.1);
+}
+
 .recruiter-panel--muted {
   background: rgb(var(--raised));
   box-shadow: none;
